@@ -18,6 +18,7 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
+using Hybrasyl.Interfaces;
 
 namespace Hybrasyl.Objects;
 
@@ -56,10 +57,9 @@ public class Gold : VisibleObject
         Amount = amount;
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
-        if (!(obj is User)) return;
-        var user = (User)obj;
+        if (obj is not User user) return;
         user.SendVisibleGold(this);
     }
 }

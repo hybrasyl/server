@@ -25,6 +25,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using Hybrasyl.Interfaces;
 
 namespace Hybrasyl.ChatCommands;
 // Various admin commands are implemented here.
@@ -165,7 +166,7 @@ class ShowEphemeral : ChatCommand
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
             string ephemerals = $"Mundane {merchant.Name} Ephemeral Store\n\n";
-            foreach (var kv in merchant.GetEphemeralValues())
+            foreach (var kv in (merchant as IEphemeral).GetEphemeralValues())
                 ephemerals = $"{ephemerals}\n{kv.Item1} : {kv.Item2}\n";
             return Success($"{ephemerals}", MessageTypes.SLATE_WITH_SCROLLBAR);
         }
@@ -184,7 +185,7 @@ class SetEphemeral : ChatCommand
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
-            merchant.SetEphemeral(args[1], args[2]);
+            (merchant as IEphemeral).SetEphemeral(args[1], args[2]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
         }
         else return Fail($"NPC {args[0]} not found.");
@@ -202,7 +203,7 @@ class ClearEphemeral : ChatCommand
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
-            merchant.ClearEphemeral(args[1]);
+            (merchant as IEphemeral).ClearEphemeral(args[1]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
         }
         else return Fail($"NPC {args[0]} not found.");

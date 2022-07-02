@@ -16,8 +16,9 @@ namespace Hybrasyl.Scripting
     [MoonSharpUserData]
     public class HybrasylInteractable
     {
-        public List<DialogSequence> Sequences = new();
-        public Dictionary<string, DialogSequence> Index = new();
+        internal List<DialogSequence> Sequences = new();
+        internal Dictionary<string, DialogSequence> Index = new();
+        internal ushort Sprite { get; set; }
 
         public void RegisterDialogSequence(HybrasylDialogSequence wrapped)
         {
@@ -25,5 +26,9 @@ namespace Hybrasyl.Scripting
             Sequences.Add(wrapped.Sequence);
             Index.Add(wrapped.Sequence.Name, wrapped.Sequence);
         }
+
+        public void SetItemSprite(ushort sprite) => Sprite = (ushort) (0x8000 + sprite);
+        public void SetCreatureSprite(ushort sprite) => Sprite = (ushort)(0x4000 + sprite);
+
     }
 }

@@ -28,6 +28,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Remoting;
 using System.Text.RegularExpressions;
+using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
@@ -143,6 +144,8 @@ public class Script
             ItemObject item => UserData.Create(new HybrasylItemObject(item)),
             WorldObject wobj => UserData.Create(new HybrasylWorldObject(wobj)),
             HybrasylInteractable hi => UserData.Create(hi),
+            // todo: wrapper?
+            CastableObject co => UserData.Create(co),
             _ => DynValue.NewNil()
         };
     }

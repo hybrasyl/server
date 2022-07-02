@@ -24,15 +24,17 @@ using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Hybrasyl.ChatCommands;
 using Hybrasyl.Xml;
 using Hybrasyl.Dialogs;
+using Hybrasyl.Interfaces;
 using Serilog.Debugging;
 
 namespace Hybrasyl.Objects;
 
-public class ItemObject : VisibleObject, IDynamicInteractable
+public class ItemObject : VisibleObject, IInteractable
 {
     public string TemplateId { get; private set; }
 
@@ -391,7 +393,7 @@ public class ItemObject : VisibleObject, IDynamicInteractable
                 return;
             }
 
-            var env = ScriptEnvironment.CreateWithInvoker(trigger);
+            var env = ScriptEnvironment.CreateWithOrigin(trigger);
             env.Add("item", this);
             invokeScript.ExecuteFunction("OnUse", env);
         }
@@ -449,21 +451,27 @@ public class ItemObject : VisibleObject, IDynamicInteractable
         Guid = Guid.NewGuid();
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public new void ShowTo(IVisible obj)
     {
-        if (obj is User)
-        {
-            var user = obj as User;
-            user.SendVisibleItem(this);
-        }
+        if (obj is not User user) return;
+        user.SendVisibleItem(this);
     }
 
-    public new virtual List<DialogSequence> DialogSequences =>
-        Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
+    public virtual List<DialogSequence> DialogSequences
+    {
+        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
+        set => throw new NotImplementedException();
+    }
 
-    public new virtual Dictionary<string, DialogSequence> SequenceIndex =>
-        Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
+    public virtual Dictionary<string, DialogSequence> SequenceIndex
+    {
+        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
+        set => throw new NotImplementedException();
+    }
 
-    public new virtual Script Script =>
-        Game.World.ScriptProcessor.TryGetScript(Use.Script, out var script) ? script : null;
+    public virtual Script Script
+    {
+        get => Game.World.ScriptProcessor.TryGetScript(Use.Script, out var script) ? script : null;
+        set => throw new NotImplementedException();
+    }
 }

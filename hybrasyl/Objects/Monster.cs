@@ -27,7 +27,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Casting;
-using Hybrasyl.ChatCommands;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Objects;
@@ -40,7 +40,7 @@ public enum MobAction
     Death
 }
 
-public class Monster : Creature, ICloneable
+public class Monster : Creature, ICloneable, IEphemeral
 {
     private readonly object _lock = new object();
 
@@ -55,6 +55,10 @@ public class Monster : Creature, ICloneable
     private CreatureBehaviorSet _behaviorSet { get; set; }
     public DateTime CreationTime { get; set; }
     public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+
 
     public CreatureBehaviorSet BehaviorSet
     {
@@ -300,14 +304,14 @@ public class Monster : Creature, ICloneable
             ScriptExists = false;
     }
 
-    public override bool UseCastable(Castable castable, Creature target)
+    public override bool UseCastable(Castable castableXml, Creature target)
     {
         if (!Condition.CastingAllowed) return false;
-        if (castable.IsAssail)
+        if (castableXml.IsAssail)
         {
             Motion(1,20);
         }
-        return base.UseCastable(castable, target);
+        return base.UseCastable(castableXml, target);
     }
     public override void OnHear(SpokenEvent e)
     {
@@ -322,7 +326,7 @@ public class Monster : Creature, ICloneable
         if (e.Speaker is User user)
             env.Add("invoker", new HybrasylUser(user));
         else
-            env.Add("invoker", new HybrasylWorldObject(e.Speaker));
+            env.Add("invoker", new HybrasylWorldObject(e.Speaker as IWorldObject));
         Script.ExecuteFunction("OnHear", env);
     }
 
@@ -357,7 +361,7 @@ public class Monster : Creature, ICloneable
 
             if (Script == null) return;
 
-            var env = ScriptEnvironment.CreateWithInvoker(this);
+            var env = ScriptEnvironment.CreateWithOrigin(this);
             env.Add("damage", damageEvent.Damage);
             env.Add("source", damageEvent.Attacker);
 
@@ -370,7 +374,7 @@ public class Monster : Creature, ICloneable
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-        var env = ScriptEnvironment.CreateWithInvoker(this);
+        var env = ScriptEnvironment.CreateWithOrigin(this);
         env.Add("heal", heal);
         env.Add("source", healer);
         Script.ExecuteFunction("OnHeal", env);
@@ -569,9 +573,9 @@ public class Monster : Creature, ICloneable
         PlaySound(1);
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
-        if (!(obj is User user)) return;
+        if (obj is not User user) return;
         if (!Condition.IsInvisible || user.Condition.SeeInvisible)
             user.SendVisibleCreature(this);
     }

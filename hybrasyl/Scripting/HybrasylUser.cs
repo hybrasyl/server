@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 
@@ -486,42 +487,43 @@ public class HybrasylUser : HybrasylWorldObject
         return true;
     }
 
-    /// <summary>
-    /// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
-    /// player is required).
-    /// </summary>
-    /// <param name="sequence">The sequence name to start</param>
-    /// <param name="invoker">The player invoking the asynchronous dialog.</param>
-    /// <returns>Boolean indicating whether or not the request was successful.</returns>
-    public bool RequestDialog(string sequence, string invoker = "")
-    {
-        if (string.IsNullOrEmpty(sequence))
-        {
-            GameLog.ScriptingError("RequestDialog: {user} - sequence (first argument) was null or empty", User.Name);
-            return false;
-        }
+    ///// <summary>
+    ///// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
+    ///// player is required).
+    ///// </summary>
+    ///// <param name="sequence">The sequence name to start</param>
+    ///// <param name="invoker">The player invoking the asynchronous dialog.</param>
+    ///// <returns>Boolean indicating whether or not the request was successful.</returns>
+    //public bool RequestDialog(string sequence, string invoker = "")
+    //{
+    //    if (string.IsNullOrEmpty(sequence))
+    //    {
+    //        GameLog.ScriptingError("RequestDialog: {user} - sequence (first argument) was null or empty", User.Name);
+    //        return false;
+    //    }
 
-        DialogSequence sequenceObj = null;
-        VisibleObject invokerObj = null;
+    //    DialogSequence sequenceObj = null;
+    //    IWorldObject invokerObj = null;
 
-        if (Game.World.TryGetActiveUser(invoker, out User user))
-            invokerObj = user as VisibleObject;
-        else if (Game.World.WorldData.TryGetValue<Merchant>(invoker, out Merchant merchant))
-            invokerObj = merchant as VisibleObject;
+    //    if (Game.World.TryGetActiveUser(invoker, out User user))
+    //        invokerObj = user;
+    //    else if (Game.World.WorldData.TryGetValue<Merchant>(invoker, out Merchant merchant))
+    //        invokerObj = merchant;
 
-        if (invokerObj != null)
-            invokerObj.SequenceIndex.TryGetValue(sequence, out sequenceObj);
+    //    if (invokerObj != null)
+    //        invokerObj.SequenceIndex.TryGetValue(sequence, out sequenceObj);
 
-        if (sequenceObj == null)
-            // Try global catalog
-            Game.World.GlobalSequences.TryGetValue(sequence, out sequenceObj);
+    //    if (sequenceObj == null)
+    //        // Try global catalog
+    //        Game.World.GlobalSequences.TryGetValue(sequence, out sequenceObj);
 
-        if (invokerObj != null && sequenceObj != null)
-            return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
+    //    if (invokerObj != null && sequenceObj != null)
+    //        return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
 
-        GameLog.ScriptingWarning("RequestDialog: {user} - invoker {invoker} or sequence {sequence} not found", user, invoker, sequence);
-        return false;
-    }
+    //    GameLog.ScriptingWarning("RequestDialog: {user} - invoker {invoker} or sequence {sequence} not found", user, invoker, sequence);
+    //    return false;
+    //}
+
     /// <summary>
     /// Set a session cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string key). NPCs and other scripting functionality can 
     /// use this to store independent state to track quest progress / etc. Session cookies are deleted when a player is logged out.
@@ -1055,12 +1057,14 @@ public class HybrasylUser : HybrasylWorldObject
         //GameLog.Info("Dialog: closed by script");
     }
 
+    // Helper override 
+
     /// <summary>
     /// Start a dialog sequence for the current player. This will display the first dialog in the sequence to the player.
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
-    /// <param name="associateOverride">An object to associate with the dialog as the invokee.</param>
-    public void StartSequence(string sequenceName, IScriptable associateOverride = null)
+    /// <param name="associateOverride">An IInteractable to associate with the dialog as the origin.</param>
+    public void StartSequence(string sequenceName, IInteractable associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1068,7 +1072,7 @@ public class HybrasylUser : HybrasylWorldObject
             return;
         }
         DialogSequence sequence = null;
-        VisibleObject associate = null;
+        IInteractable associate = null;
         GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
         // First: is this a global sequence?
@@ -1078,22 +1082,17 @@ public class HybrasylUser : HybrasylWorldObject
         if (associateOverride == null)
         {
             if (User.DialogState.Associate != null)
-                associate = User.DialogState.Associate as VisibleObject;
+                associate = User.DialogState.Associate;
             else if (User.LastAssociate != null)
                 associate = User.LastAssociate;
         }
         else
-            associate = associateOverride.WorldObject as VisibleObject;
+            associate = associateOverride;
 
-        // If we didn't get a sequence before, try with our associate
+        // If we didn't get a sequence before, try with our associate. Either we know it implements an Interactable 
+        // interface or it's null
         if (sequence == null && associate != null)
-        {
-            // Item & spell (castable) dialogs
-            if (associate is IDynamicInteractable id)
-                id.SequenceIndex.TryGetValue(sequenceName, out sequence);
-            else
-                associate.SequenceIndex.TryGetValue(sequenceName, out sequence);
-        }
+            associate.SequenceIndex.TryGetValue(sequenceName, out sequence);
 
         // We should hopefully have a sequence now...
         if (sequence == null)
@@ -1104,8 +1103,8 @@ public class HybrasylUser : HybrasylWorldObject
             User.DialogState.EndDialog();
             // If the user was previously talking to a merchant, and we can't find a sequence,
             // simply display the main menu again. If it's a reactor....oh well.
-            if (associate is Merchant)
-                associate.DisplayPursuits(User);
+            if (associate is IPursuitable ip)
+                ip.DisplayPursuits(User);
             return;
         }
 

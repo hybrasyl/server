@@ -42,10 +42,11 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Hybrasyl.Casting;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Xml;
 using Creature = Hybrasyl.Objects.Creature;
 using Reactor = Hybrasyl.Objects.Reactor;
@@ -97,15 +98,15 @@ public partial class World : Server
     public Dictionary<uint, WorldObject> Objects { get; set; }
 
     public Dictionary<string, string> Portraits { get; set; }
-    public Xml.LocalizedStringGroup Strings { get; set; }
+    public LocalizedStringGroup Strings { get; set; }
     public WorldDataStore WorldData { set; get; }
 
-    public Xml.Nation DefaultNation
+    public Nation DefaultNation
     {
         get
         {
-            var nation = WorldData.Values<Xml.Nation>().FirstOrDefault(n => n.Default);
-            return nation ?? WorldData.Values<Xml.Nation>().First();
+            var nation = WorldData.Values<Nation>().FirstOrDefault(n => n.Default);
+            return nation ?? WorldData.Values<Nation>().First();
         }
     }
 
@@ -212,7 +213,7 @@ public partial class World : Server
         InitializeWorld();
     }
 
-    public World(int port, Xml.DataStore store, string dataDir, bool adminEnabled=false, bool isDefault = false)
+    public World(int port, DataStore store, string dataDir, bool adminEnabled=false, bool isDefault = false)
         : base(port, isDefault)
     {
         InitializeWorld();
@@ -465,7 +466,7 @@ public partial class World : Server
         {
             try
             {
-                Strings = Xml.LocalizedStringGroup.LoadFromFile(xml);
+                Strings = LocalizedStringGroup.LoadFromFile(xml);
                 GameLog.Debug("Localization strings loaded.");
             }
             catch (Exception e)
@@ -480,7 +481,7 @@ public partial class World : Server
         {
             try
             {
-                Xml.VariantGroup newGroup = Xml.VariantGroup.LoadFromFile(xml);
+                VariantGroup newGroup = VariantGroup.LoadFromFile(xml);
                 GameLog.DebugFormat("Item variants: loaded {0}", newGroup.Name);
                 WorldData.Set(newGroup.Name, newGroup);
 
@@ -491,29 +492,29 @@ public partial class World : Server
             }
         }
 
-        GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<Xml.VariantGroup>().Count());
+        GameLog.InfoFormat("ItemObject variants: {0} variant sets loaded", WorldData.Values<VariantGroup>().Count());
 
         // Load items
         foreach (var xml in GetXmlFiles(ItemDirectory))
         {
             try
             {
-                Xml.Item newItem = Xml.Item.LoadFromFile(xml);
-                var variants = new Dictionary<string, List<Xml.Item>>();
+                Item newItem = Item.LoadFromFile(xml);
+                var variants = new Dictionary<string, List<Item>>();
                 WorldData.RegisterItem(newItem);
                 GameLog.DebugFormat("Items: loaded {0}, id {1}", newItem.Name, newItem.Id);
                 if (newItem.Properties.Variants != null)
                 {
                     foreach (var targetGroup in newItem.Properties.Variants.Group)
                     {
-                        variants[targetGroup] = new List<Xml.Item>();
-                        foreach (var variant in WorldData.Get<Xml.VariantGroup>(targetGroup).Variant)
+                        variants[targetGroup] = new List<Item>();
+                        foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
                         {
                             var variantItem = ResolveVariant(newItem, variant, targetGroup);
                             GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
-                            if (WorldData.ContainsKey<Xml.Item>(variantItem.Id))
+                            if (WorldData.ContainsKey<Item>(variantItem.Id))
                             {
-                                GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Xml.Item>(variantItem.Id).Name, variantItem.Name);
+                                GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
                             }
                             WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
                             WorldData.RegisterItem(variantItem);
@@ -534,7 +535,7 @@ public partial class World : Server
                 {
                     Game.World.WorldData.Set(newItem.Id, associate);
                 }
-                else
+                else if (result.Result != ScriptResult.FunctionMissing)
                     GameLog.Error($"OnLoad for {newItem.Name}: errors encountered, check scripting log");
             }
             catch (Exception e)
@@ -545,12 +546,12 @@ public partial class World : Server
 
         // Create a static "monster weapon" that is used in various places
         // TODO: maybe just use xml for this
-        var monsterWeapon = new Xml.Item() { Name = "monsterblade" };
-        monsterWeapon.Properties = new Xml.ItemProperties();
-        monsterWeapon.Properties.Damage = new Xml.ItemDamage();
-        monsterWeapon.Properties.Damage.Small = new Xml.ItemDamageSmall();
-        monsterWeapon.Properties.Damage.Large = new Xml.ItemDamageLarge();
-        monsterWeapon.Properties.Physical = new Xml.Physical();
+        var monsterWeapon = new Item() { Name = "monsterblade" };
+        monsterWeapon.Properties = new ItemProperties();
+        monsterWeapon.Properties.Damage = new ItemDamage();
+        monsterWeapon.Properties.Damage.Small = new ItemDamageSmall();
+        monsterWeapon.Properties.Damage.Large = new ItemDamageLarge();
+        monsterWeapon.Properties.Physical = new Physical();
         WorldData.SetWithIndex(monsterWeapon.Id, monsterWeapon, monsterWeapon.Name);
 
         //Load NPCs
@@ -558,7 +559,7 @@ public partial class World : Server
         {
             try
             {
-                var npc = Xml.Npc.LoadFromFile(xml);
+                var npc = Npc.LoadFromFile(xml);
                 GameLog.Debug($"NPCs: loaded {npc.Name}");
                 WorldData.Set(npc.Name, npc);
             }
@@ -592,7 +593,7 @@ public partial class World : Server
         {
             try
             {
-                var newNation = Xml.Nation.LoadFromFile(xml);
+                var newNation = Nation.LoadFromFile(xml);
                 GameLog.DebugFormat("Nations: Loaded {0}", newNation.Name);
                 WorldData.Set(newNation.Name, newNation);
             }
@@ -603,7 +604,7 @@ public partial class World : Server
         }
 
         // Ensure at least one nation and one map exist. Otherwise, things get a little weird
-        if (WorldData.Count<Xml.Nation>() == 0)
+        if (WorldData.Count<Nation>() == 0)
         {
             GameLog.Fatal("National data: at least one well-formed nation file must exist!");
             return false;
@@ -615,12 +616,12 @@ public partial class World : Server
             return false;
         }
 
-        GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Xml.Nation>());
+        GameLog.InfoFormat("National data: {0} nations loaded", WorldData.Count<Nation>());
 
         // Load Behaviorsets
         // TODO: genericize and refactor all of these, potentially using this new behaviorset pattern
 
-        var behaviorSets = Xml.CreatureBehaviorSet.LoadAll(XmlDirectory);
+        var behaviorSets = CreatureBehaviorSet.LoadAll(XmlDirectory);
 
         // TODO: change to foreach on XML assembly classes implementing IHybrasylLoadable
         // eg: WorldData.ImportAll(Xml.CreatureBehaviorSet.LoadAll(XmlDirectory));
@@ -652,7 +653,7 @@ public partial class World : Server
         GameLog.InfoFormat("Creatures: {0} creatures loaded", WorldData.Count<Xml.Creature>());
 
 
-        var spawnGroups = Xml.SpawnGroup.LoadAll(XmlDirectory);
+        var spawnGroups = SpawnGroup.LoadAll(XmlDirectory);
 
         foreach (var group in spawnGroups.Results)
         {
@@ -678,7 +679,7 @@ public partial class World : Server
             }
         }
 
-        GameLog.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<Xml.LootSet>());
+        GameLog.InfoFormat("Loot Sets: {0} loot sets loaded", WorldData.Count<LootSet>());
 
         // Load worldmaps
         foreach (var xml in GetXmlFiles(WorldMapDirectory))
@@ -709,7 +710,7 @@ public partial class World : Server
             try
             {
                 string name = string.Empty;
-                Xml.Status newStatus = Xml.Status.LoadFromFile(xml);
+                Status newStatus = Status.LoadFromFile(xml);
                 WorldData.Set(newStatus.Name, newStatus);
                 GameLog.Warning($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
             }
@@ -720,17 +721,46 @@ public partial class World : Server
 
         }
 
-        GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Xml.Status>().Count());
+        GameLog.InfoFormat("Statuses: {0} statuses loaded", WorldData.Values<Status>().Count());
+        uint castableId = 0;
 
         foreach (var xml in GetXmlFiles(CastableDirectory))
         {
             try
             {
+                // integer IDs have to be used here due to a client limitation, either that or we end up tracking a hell of a lot more
+                // state on the server to make castable dialogs work
                 string name = string.Empty;
-                Xml.Castable newCastable = Xml.Castable.LoadFromFile(xml);
+                Castable newCastable = Castable.LoadFromFile(xml);
+                newCastable.Guid = Guid.NewGuid();
                 WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
                 WorldData.RegisterCastable(newCastable);
                 GameLog.InfoFormat("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
+                // Evaluate dialogs, if any
+                if (string.IsNullOrEmpty(newCastable.Script) ||
+                    !Game.World.ScriptProcessor.TryGetScript(newCastable.Script, out var script)) continue;
+                var env = new ScriptEnvironment();
+                var associate = new HybrasylInteractable();
+                env.Add("associate", associate);
+                var result = script.ExecuteFunction("OnLoad", env);
+                if (result.Result == ScriptResult.Success)
+                {
+                    var castable = new CastableObject
+                    {
+                        Guid = newCastable.Guid,
+                        Id = castableId, 
+                        Template = newCastable, 
+                        ScriptedDialogs = associate,
+                        Sprite = associate.Sprite,
+                        Script = script
+                    };
+                    // Store the CastableObject for later usage by dialog system, along with guid index
+                    Game.World.WorldData.SetWithIndex(castable.Id, castable, castable.Guid);
+                    castableId++;
+                }
+                else if (result.Result != ScriptResult.FunctionMissing )
+                    GameLog.Error($"OnLoad for {newCastable.Name}: errors encountered, check scripting log");
+
             }
             catch (Exception e)
             {
@@ -738,7 +768,7 @@ public partial class World : Server
             }
         }
 
-        GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Xml.Castable>().Count());
+        GameLog.InfoFormat("Castables: {0} castables loaded", WorldData.Values<Castable>().Count());
 
         //load element tables
         foreach (var xml in GetXmlFiles(ElementDirectory))
@@ -746,7 +776,7 @@ public partial class World : Server
             try
             {
                 //currently only support one table
-                Xml.ElementTable table = Xml.ElementTable.LoadFromFile(xml);
+                ElementTable table = ElementTable.LoadFromFile(xml);
                 WorldData.Set("ElementTable", table);
                 foreach (var source in table.Source)
                 {
@@ -808,17 +838,17 @@ public partial class World : Server
         return true;
     }
 
-    public Xml.Item ResolveVariant(Xml.Item item, Xml.Variant variant, string variantGroup)
+    public Item ResolveVariant(Item item, Variant variant, string variantGroup)
     {
         // Ensure all our modifiable / referenced properties at least exist
         // TODO: this is pretty hacky
-        item.Properties.Physical ??= new Xml.Physical();
-        item.Properties.StatModifiers ??= new Xml.StatModifiers();
-        item.Properties.Restrictions ??= new Xml.ItemRestrictions();
-        item.Properties.Restrictions.Level ??= new Xml.RestrictionsLevel();
-        item.Properties.Damage ??= new Xml.ItemDamage();
-        item.Properties.Damage.Small ??= new Xml.ItemDamageSmall();
-        item.Properties.Damage.Large ??= new Xml.ItemDamageLarge();
+        item.Properties.Physical ??= new Physical();
+        item.Properties.StatModifiers ??= new StatModifiers();
+        item.Properties.Restrictions ??= new ItemRestrictions();
+        item.Properties.Restrictions.Level ??= new RestrictionsLevel();
+        item.Properties.Damage ??= new ItemDamage();
+        item.Properties.Damage.Small ??= new ItemDamageSmall();
+        item.Properties.Damage.Large ??= new ItemDamageLarge();
 
         var variantItem = item.Clone();
 
@@ -867,6 +897,20 @@ public partial class World : Server
                 (ushort)(item.Properties.Damage.Small.Min * variant.Properties.Damage.Small.Min);
         }
 
+        if (variant.Properties.StatModifiers?.BaseDefensiveElement != null)
+            variantItem.Properties.StatModifiers.BaseDefensiveElement =
+                variant.Properties.StatModifiers.BaseDefensiveElement;
+        else
+            variantItem.Properties.StatModifiers.BaseDefensiveElement =
+                item.Properties.StatModifiers?.BaseDefensiveElement ?? ElementType.None;
+
+        if (variant.Properties.StatModifiers?.BaseOffensiveElement != null)
+            variantItem.Properties.StatModifiers.BaseOffensiveElement =
+                variant.Properties.StatModifiers.BaseOffensiveElement;
+        else
+            variantItem.Properties.StatModifiers.BaseDefensiveElement =
+                item.Properties.StatModifiers?.BaseOffensiveElement ?? ElementType.None;
+
         return variantItem;
     }
 
@@ -875,18 +919,18 @@ public partial class World : Server
         // these might be better suited in LoadData as the database is being read, but only items are in database atm
         #region ItemInfo
         var itmIndex = 0;
-        var itmPerFile = (WorldData.Values<Xml.Item>().Count() / 16);
+        var itmPerFile = (WorldData.Values<Item>().Count() / 16);
 
         for (var i = 0; i < 16; i++)
         {
             var iteminfo = new Metafile($"ItemInfo{i}");
-            var items = WorldData.Values<Xml.Item>().OrderBy(x => x.Name).ToArray();
+            var items = WorldData.Values<Item>().OrderBy(x => x.Name).ToArray();
             for(var j = 0 + itmIndex; j< (itmPerFile + itmIndex); j++)
             {
                 if (j == items.Length) break;
                 var item = items[j];
                 var level = item.Properties.Restrictions?.Level?.Min ?? 1;
-                var xclass = item.Properties.Restrictions?.Class ?? Xml.Class.Peasant;
+                var xclass = item.Properties.Restrictions?.Class ?? Class.Peasant;
                 var nclass = xclass.ToString("g").Replace("Peasant","All");
                 var weight = item.Properties.Physical.Weight;
                 var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
@@ -917,12 +961,12 @@ public partial class World : Server
         {
             var sclass = new Metafile("SClass" + i);
                 
-            List<Xml.Castable> skills = null;
-            List<Xml.Castable> spells = null;
-            Xml.Class @class = (Xml.Class)i;
+            List<Castable> skills = null;
+            List<Castable> spells = null;
+            Class @class = (Class)i;
 
-            skills = WorldData.Values<Xml.Castable>().Where(x => x.IsSkill && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
-            spells = WorldData.Values<Xml.Castable>().Where(x => x.IsSpell && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+            skills = WorldData.Values<Castable>().Where(x => x.IsSkill && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
+            spells = WorldData.Values<Castable>().Where(x => x.IsSpell && (x.Class.Contains(@class))).OrderBy(x => x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)) == null ? 1 : x.Requirements.FirstOrDefault(y => y.Class.Contains(@class)).Level?.Min ?? 1).ThenBy(x => x.Name).ToList();
 
             var ignoreSpells = spells.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
             var ignoreSkills = skills.Where(x => x.Categories.Any(x => x.Value.ToLower() == "ignore")).ToList();
@@ -945,9 +989,9 @@ public partial class World : Server
                 {
                     desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(@class)).Value;
                 }
-                else if(skill.Descriptions.Any(x => x.Class.Contains(Xml.Class.Peasant)))
+                else if(skill.Descriptions.Any(x => x.Class.Contains(Class.Peasant)))
                 {
-                    desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant)).Value;
+                    desc = skill.Descriptions.FirstOrDefault(x => x.Class.Contains(Class.Peasant)).Value;
                 }
                     
                 if(desc == null)
@@ -958,22 +1002,22 @@ public partial class World : Server
                 var requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(@class));
                 if (requirements == null)
                 {
-                    requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant));
+                    requirements = skill.Requirements.FirstOrDefault(x => x.Class.Contains(Class.Peasant));
                 }
 
-                List<Xml.LearnPrerequisite> prereqs = null;
+                List<LearnPrerequisite> prereqs = null;
                 if(requirements != null)
                 {
                     prereqs = requirements.Prerequisites;
                 }
                 else
                 {
-                    requirements = new Xml.Requirement();
+                    requirements = new Requirement();
                 }
 
                 if(requirements.Level == null)
                 {
-                    requirements.Level = new Xml.ClassRequirementLevel();
+                    requirements.Level = new ClassRequirementLevel();
                     requirements.Level.Min = 0;
                 }
 
@@ -1045,9 +1089,9 @@ public partial class World : Server
                 {
                     desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(@class)).Value;
                 }
-                else if (spell.Descriptions.Any(x => x.Class.Contains(Xml.Class.Peasant)))
+                else if (spell.Descriptions.Any(x => x.Class.Contains(Class.Peasant)))
                 {
-                    desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant)).Value;
+                    desc = spell.Descriptions.FirstOrDefault(x => x.Class.Contains(Class.Peasant)).Value;
                 }
 
                 if (desc == null)
@@ -1058,22 +1102,22 @@ public partial class World : Server
                 var requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(@class));
                 if (requirements == null)
                 {
-                    requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(Xml.Class.Peasant));
+                    requirements = spell.Requirements.FirstOrDefault(x => x.Class.Contains(Class.Peasant));
                 }
 
-                List<Xml.LearnPrerequisite> prereqs = null;
+                List<LearnPrerequisite> prereqs = null;
                 if (requirements != null)
                 {
                     prereqs = requirements.Prerequisites;
                 }
                 else
                 {
-                    requirements = new Xml.Requirement();
+                    requirements = new Requirement();
                 }
 
                 if (requirements.Level == null)
                 {
-                    requirements.Level = new Xml.ClassRequirementLevel();
+                    requirements.Level = new ClassRequirementLevel();
                     requirements.Level.Min = 0;
                 }
 
@@ -1141,7 +1185,7 @@ public partial class World : Server
         #region NPCIllust
 
         var npcillust = new Metafile("NPCIllust");
-        foreach (var npc in WorldData.Values<Xml.Npc>()) // change to merchants that have a portrait rather than all
+        foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
         {
             if (npc.Appearance.Portrait != null)
             {
@@ -1156,7 +1200,7 @@ public partial class World : Server
         #region NationDesc
 
         var nationdesc = new Metafile("NationDesc");
-        foreach (var nation in WorldData.Values<Xml.Nation>())
+        foreach (var nation in WorldData.Values<Nation>())
         {
             GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
             nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
@@ -1177,7 +1221,7 @@ public partial class World : Server
             GameLog.Info($"Loading script: {path}");
             try
             {
-                var script = new Scripting.Script(file, ScriptProcessor);
+                var script = new Script(file, ScriptProcessor);
                 ScriptProcessor.RegisterScript(script);
                 if (path.StartsWith("common"))
                     script.Run();
@@ -1451,7 +1495,7 @@ public partial class World : Server
             return false;
     }
 
-    public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)
+    public bool TryAsyncDialog(IInteractable invoker, User invokee, DialogSequence startSequence)
     {
         var request = new AsyncDialogRequest(startSequence, invoker, invokee);
         if (request.CheckRequest())
@@ -1517,7 +1561,7 @@ public partial class World : Server
         try
         {
             GameLog.InfoFormat("cid {0}: closed, player {1} removed", cleanup.ConnectionId, cleanup.Name);
-            if (!World.ControlMessageQueue.IsCompleted && Game.IsActive()) 
+            if (!ControlMessageQueue.IsCompleted && Game.IsActive()) 
             {
                 // If the world is shutting down, none of the below matters
                 if (cleanup.ActiveExchange != null)
@@ -1686,7 +1730,7 @@ public partial class World : Server
 
     private void ControlMessage_HandleDeath(HybrasylControlMessage message)
     {
-        var creature = (Objects.Creature)message.Arguments[0];
+        var creature = (Creature)message.Arguments[0];
         if (creature is User u) { u.OnDeath(); }
         if (creature is Monster ms && !ms.DeathProcessed) { ms.OnDeath(); }
     }
@@ -1748,17 +1792,17 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze, PlayerFlags.InDialog)]
     private void PacketHandler_0x06_Walk(Object obj, ClientPacket packet)
     {
         var user = (User)obj;
         var direction = packet.ReadByte();
         if (direction > 3) return;
         user.Condition.Casting = false;
-        user.Walk((Xml.Direction)direction);
+        user.Walk((Direction)direction);
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x07_PickupItem(Object obj, ClientPacket packet)
     {
@@ -1894,7 +1938,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x08_DropItem(Object obj, ClientPacket packet)
     {
@@ -1914,7 +1958,7 @@ public partial class World : Server
             Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
         {
             GameLog.ErrorFormat("Request to drop item exceeds maximum distance {0}",
-                Hybrasyl.Constants.MAXIMUM_DROP_DISTANCE);
+                Constants.MAXIMUM_DROP_DISTANCE);
             return;
         }
 
@@ -2015,7 +2059,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
     {
@@ -2163,11 +2207,11 @@ public partial class World : Server
         }
         else if (loginUser.AuthInfo.FirstLogin)
         {
-            Xml.NewPlayer handler = Game.Config.Handlers?.NewPlayer;
+            NewPlayer handler = Game.Config.Handlers?.NewPlayer;
             var targetmap = WorldData.First<Map>();
             if (handler != null)
             {
-                Xml.StartMap startmap = handler.GetStartMap();
+                StartMap startmap = handler.GetStartMap();
                 loginUser.AuthInfo.FirstLogin = false;
                 if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
                     loginUser.Teleport(map.Id, startmap.X, startmap.Y);
@@ -2185,7 +2229,7 @@ public partial class World : Server
             }
         }
         else if (loginUser.Nation.SpawnPoints.Count != 0 &&
-                 loginUser.SinceLastLogin > Hybrasyl.Constants.NATION_SPAWN_TIMEOUT)
+                 loginUser.SinceLastLogin > Constants.NATION_SPAWN_TIMEOUT)
         {
             var spawnpoint = loginUser.Nation.RandomSpawnPoint;
             if (spawnpoint != null && !string.IsNullOrEmpty(spawnpoint.MapName)) loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
@@ -2215,17 +2259,17 @@ public partial class World : Server
 
     }
 
-    [Prohibited(Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x11_Turn(Object obj, ClientPacket packet)
     {
         var user = (User)obj;
         var direction = packet.ReadByte();
         if (direction > 3) return;
         user.Condition.Casting = false;
-        user.Turn((Xml.Direction)direction);
+        user.Turn((Direction)direction);
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze, PlayerFlags.InDialog)]
     private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -2312,8 +2356,8 @@ public partial class World : Server
                     return;
                 }
 
-                Scripting.Script script;
-                var env = ScriptEnvironment.CreateWithInvoker(user);
+                Script script;
+                var env = ScriptEnvironment.CreateWithOrigin(user);
 
                 if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) ||
                     message.ToLower().Contains("--clear--"))
@@ -2403,7 +2447,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1C_UseItem(Object obj, ClientPacket packet)
@@ -2427,7 +2471,7 @@ public partial class World : Server
 
         switch (item.ItemObjectType)
         {
-            case Enums.ItemObjectType.CanUse:
+            case ItemObjectType.CanUse:
                 if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte) ItemSlots.None) != (byte) ItemSlots.None)
                 {
                     user.SendSystemMessage("This item is too badly damaged to use.");
@@ -2441,11 +2485,11 @@ public partial class World : Server
                     user.SendItemUpdate(item, slot);
                 break;
 
-            case Enums.ItemObjectType.CannotUse:
+            case ItemObjectType.CannotUse:
                 user.SendMessage("You can't use that.", 3);
                 break;
 
-            case Enums.ItemObjectType.Equipment:
+            case ItemObjectType.Equipment:
             {
 
                 if (user.Condition.IsEquipmentChangeProhibited)
@@ -2575,7 +2619,7 @@ public partial class World : Server
     }
 
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1D_Emote(Object obj, ClientPacket packet)
     {
@@ -2588,7 +2632,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x24_DropGold(Object obj, ClientPacket packet)
     {
@@ -2612,7 +2656,7 @@ public partial class World : Server
             Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
         {
             GameLog.ErrorFormat("Request to drop gold exceeds maximum distance {0}",
-                Hybrasyl.Constants.MAXIMUM_DROP_DISTANCE);
+                Constants.MAXIMUM_DROP_DISTANCE);
             return;
         }
 
@@ -2676,7 +2720,7 @@ public partial class World : Server
          *    5) Send them a dialog and have them explicitly accept.
          *    6) If accepted, join group (see stage 0x03).
          */
-    [Prohibited(Xml.CreatureCondition.Coma, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2E_GroupRequest(Object obj, ClientPacket packet)
     {
@@ -2803,7 +2847,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2F_GroupToggle(Object obj, ClientPacket packet)
     {
@@ -2829,7 +2873,7 @@ public partial class World : Server
         // are extra bytes coming through but not sure what purpose they serve.
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2A_DropGoldOnCreature(Object obj, ClientPacket packet)
     {
@@ -2866,10 +2910,10 @@ public partial class World : Server
                 exchange.StartExchange();
                 exchange.AddGold(user, goldAmount);
             }
-            else if (target is Objects.Creature && user.IsInViewport((VisibleObject)target))
+            else if (target is Creature && user.IsInViewport((VisibleObject)target))
             {
                 // Give gold to Creature and go about our lives
-                var creature = (Objects.Creature)target;
+                var creature = (Creature)target;
                 creature.Stats.Gold += goldAmount;
                 user.Stats.Gold -= goldAmount;
                 user.UpdateAttributes(StatUpdateFlags.Stats);
@@ -2881,7 +2925,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x29_DropItemOnCreature(Object obj, ClientPacket packet)
     {
@@ -2919,9 +2963,9 @@ public partial class World : Server
                 else
                     exchange.AddItem(user, itemSlot, quantity);
             }
-            else if (target is Objects.Creature && user.IsInViewport((VisibleObject)target))
+            else if (target is Creature && user.IsInViewport((VisibleObject)target))
             {
-                var creature = (Objects.Creature)target;
+                var creature = (Creature)target;
                 var item = user.Inventory[itemSlot];
                 if (item != null)
                 {
@@ -3064,7 +3108,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, Xml.CreatureCondition.Paralyze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
     {
@@ -3074,7 +3118,7 @@ public partial class World : Server
         user.UseSkill(slot);
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x3F_MapPointClick(Object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3109,7 +3153,7 @@ public partial class World : Server
         user.Refresh();
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x39_NPCMainMenu(Object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3127,11 +3171,10 @@ public partial class World : Server
         // Sanity checks
         WorldObject wobj;
 
-        if (Game.World.Objects.TryGetValue(objectId, out wobj))
+        if (Game.World.Objects.TryGetValue(objectId, out wobj) && wobj is IPursuitable ip)
         {
             // Are we handling a global sequence?
             DialogSequence pursuit;
-            VisibleObject clickTarget = wobj as VisibleObject;
 
             if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
             {
@@ -3178,7 +3221,7 @@ public partial class World : Server
                 // This is a local pursuit
                 try
                 {
-                    pursuit = clickTarget.Pursuits[pursuitId - Constants.DIALOG_SEQUENCE_SHARED];
+                    pursuit = ip.Pursuits[pursuitId - Constants.DIALOG_SEQUENCE_SHARED];
                 }
                 catch
                 {
@@ -3187,58 +3230,59 @@ public partial class World : Server
                 }
             }
             GameLog.DebugFormat("{0}: showing initial dialog for Pursuit {1} ({2})",
-                clickTarget.Name, pursuit.Id, pursuit.Name);
-            user.DialogState.StartDialog(clickTarget, pursuit);
-            pursuit.ShowTo(user, clickTarget);
+                ip.Name, pursuit.Id, pursuit.Name);
+            user.DialogState.StartDialog(ip, pursuit);
+            pursuit.ShowTo(user, ip);
         }
         else
         {
-            GameLog.WarningFormat("specified object ID {0} doesn't exist?", objectId);
+            GameLog.WarningFormat("specified object ID {0} doesn't exist or doesn't implement IPursuitable", objectId);
             return;
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x3A_DialogUse(Object obj, ClientPacket packet)
     {
-        var user = (User)obj;
+        var user = (User) obj;
 
         var header = packet.ReadDialogHeader();
         var objectType = packet.ReadByte();
         var objectID = packet.ReadUInt32();
         var pursuitID = packet.ReadUInt16();
         var pursuitIndex = packet.ReadUInt16();
-        GameLog.DebugFormat($"0x3A   user: {user.Name} objectType {objectType} objectID {objectID} pursuitID {pursuitID} pursuitIndex {pursuitIndex}");
+        GameLog.DebugFormat(
+            $"0x3A   user: {user.Name} objectType {objectType} objectID {objectID} pursuitID {pursuitID} pursuitIndex {pursuitIndex}");
 
         GameLog.DebugFormat("0x3A   DialogState: previous {prev}, current {cur}, pursuitIndex {pidx}",
             user.DialogState.PreviousPursuitId?.ToString() ?? "null",
-            user.DialogState.CurrentPursuitId, 
+            user.DialogState.CurrentPursuitId,
             user.DialogState.CurrentPursuitIndex);
 
         AsyncDialogRequest request = null;
-        VisibleObject source = null;
+        IInteractable source = null;
 
         // Is this an async dialog session (either one in progress, or one starting)
         if (objectID == uint.MaxValue)
         {
-            // TODO: optimize
-            var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);
-            if (asynckeys.Count() == 1)
-            {
-                if (!ActiveAsyncDialogs.TryGetValue(asynckeys.First(), out request))
-                {
-                    GameLog.Error("WARNING: {Name}: Async count was nonzero but session could not be found", user.Name);
-                    return;
-                }
-                // If we are processing an asynchronous dialog request, make sure the source is set
-                // to the other side of the session so it can be sent to callbacks
-                source = request.Invokee.Name == user.Name ? request.Invoker : request.Invokee;
-            }
-            else if (asynckeys.Count() > 1)
-            {
-                GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
-                return;
-            }
+            //// TODO: optimize
+            //var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);
+            //if (asynckeys.Count() == 1)
+            //{
+            //    if (!ActiveAsyncDialogs.TryGetValue(asynckeys.First(), out request))
+            //    {
+            //        GameLog.Error("WARNING: {Name}: Async count was nonzero but session could not be found", user.Name);
+            //        return;
+            //    }
+            //    // If we are processing an asynchronous dialog request, make sure the source is set
+            //    // to the other side of the session so it can be sent to callbacks
+            //    source = request.Target.Name == user.Name ? request.Source : request.Target;
+            //}
+            //else if (asynckeys.Count() > 1)
+            //{
+            //    GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
+            //    return;
+            //}
         }
 
         if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
@@ -3264,183 +3308,192 @@ public partial class World : Server
         }
 
         WorldObject wobj;
+        IInteractable clickTarget = null;
 
-        if (user.World.Objects.TryGetValue(objectID, out wobj) || objectID == UInt32.MaxValue)
+        if (user.World.Objects.TryGetValue(objectID, out wobj))
+            clickTarget = wobj as IInteractable;
+
+        if (Game.World.WorldData.TryGetValue(objectID, out CastableObject castableObj))
+            clickTarget = castableObj;
+
+        // TODO: expand for new async implementation
+        if (clickTarget == null) 
+            return;
+
+        // Was the previous button clicked? Handle that first
+        if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
         {
-            VisibleObject clickTarget = wobj as VisibleObject;
+            GameLog.DebugFormat("Handling prev: client passed index {0}, current index is {1}",
+                pursuitIndex, user.DialogState.CurrentPursuitIndex);
 
-            // Was the previous button clicked? Handle that first
-            if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
+            if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
             {
-                GameLog.DebugFormat("Handling prev: client passed index {0}, current index is {1}",
-                    pursuitIndex, user.DialogState.CurrentPursuitIndex);
-
-                if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
-                {
-                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                    return;
-                }
+                user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                return;
             }
+        }
 
-            // Is the active dialog an input or options dialog?
-            // If so, we handle that first, as the response / callback / handler 
-            // needs to be able to handle the response (which chould change the active sequence),
-            // and then we need to potentially display the next dialog in sequence.
+        // Is the active dialog an input or options dialog?
+        // If so, we handle that first, as the response / callback / handler 
+        // needs to be able to handle the response (which chould change the active sequence),
+        // and then we need to potentially display the next dialog in sequence.
 
-            var currPursuitId = user.DialogState.CurrentPursuitId;
-            var currPursuitIndex = user.DialogState.CurrentPursuitIndex;
-            var currMerchantId = user.DialogState.CurrentMerchantId;
+        var currPursuitId = user.DialogState.CurrentPursuitId;
+        var currPursuitIndex = user.DialogState.CurrentPursuitIndex;
+        var currMerchantId = user.DialogState.CurrentMerchantId;
 
-            if (user.DialogState.ActiveDialog is OptionsDialog)
+        if (user.DialogState.ActiveDialog is OptionsDialog optionsDialog)
+        {
+            var paramsLength = packet.ReadByte();
+            var option = packet.ReadByte();
+
+            // If an error occurred in handling the response, it's generally safest to 
+            // simply bail out 
+            if (!optionsDialog.HandleResponse(user, option, clickTarget))
             {
-                var paramsLength = packet.ReadByte();
-                var option = packet.ReadByte();
-                var dialog = user.DialogState.ActiveDialog as OptionsDialog;
-
-                // If an error occurred in handling the response, it's generally safest to 
-                // simply bail out 
-                if (!dialog.HandleResponse(user, option, clickTarget, source))
-                {
-                    user.ClearDialogState();
-                    return;
-                }
-
-                // Did the response cause the current sequence or dialog id to change? 
-                // If so, simply return; otherwise, continue to process next dialog                   
-                if (user.DialogState.CurrentMerchantId != currMerchantId ||
-                    user.DialogState.CurrentPursuitId != currPursuitId ||
-                    user.DialogState.CurrentPursuitIndex != currPursuitIndex)
-                    return;
-            }
-
-            // This logic is effectively identical to OptionsDialog
-            if (user.DialogState.ActiveDialog is TextDialog)
-            {
-                var paramsLength = packet.ReadByte();
-                var response = packet.ReadString8();
-                var dialog = user.DialogState.ActiveDialog as TextDialog;
-                if (!dialog.HandleResponse(user, response, clickTarget, source))
-                {
-                    user.ClearDialogState();
-                    return;
-                }
-                if (user.DialogState.CurrentMerchantId != currMerchantId ||
-                    user.DialogState.CurrentPursuitId != currPursuitId ||
-                    user.DialogState.CurrentPursuitIndex != currPursuitIndex)
-                    return;
-            }
-
-            if (user.DialogState.ActiveDialog is null)
-            {
-                // The response handler could have closed the dialog, or done Goddess knows what
-                // to the state. We check here, and if the dialog state is null (the result of
-                // calling EndDialog() we send a close packet.
                 user.ClearDialogState();
                 return;
             }
 
-            // Did the user click next on the last dialog in a sequence?
-            //
-            // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
-            // Otherwise, either close the dialog or go to the main menu (main menu by 
-            // default).
+            // Did the response cause the current sequence or dialog id to change? 
+            // If so, simply return; otherwise, continue to process next dialog                   
+            if (user.DialogState.CurrentMerchantId != currMerchantId ||
+                user.DialogState.CurrentPursuitId != currPursuitId ||
+                user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                return;
+        }
 
-            if (user.DialogState.ActiveDialogSequence.Dialogs.Count() == pursuitIndex)
+        // This logic is effectively identical to OptionsDialog
+        if (user.DialogState.ActiveDialog is TextDialog textDialog)
+        {
+            var paramsLength = packet.ReadByte();
+            var response = packet.ReadString8();
+            if (!textDialog.HandleResponse(user, response, clickTarget, source))
             {
-                if (user.DialogState.ActiveDialog is JumpDialog)
-                {
+                user.ClearDialogState();
+                return;
+            }
+
+            if (user.DialogState.CurrentMerchantId != currMerchantId ||
+                user.DialogState.CurrentPursuitId != currPursuitId ||
+                user.DialogState.CurrentPursuitIndex != currPursuitIndex)
+                return;
+        }
+
+        if (user.DialogState.ActiveDialog is null)
+        {
+            // The response handler could have closed the dialog, or done Goddess knows what
+            // to the state. We check here, and if the dialog state is null (the result of
+            // calling EndDialog() we send a close packet.
+            user.ClearDialogState();
+            return;
+        }
+
+        // Did the user click next on the last dialog in a sequence?
+        //
+        // If the last dialog is a JumpDialog or FunctionDialog, just ShowTo it; it'll handle the rest.
+        // Otherwise, either close the dialog or go to the main menu (main menu by 
+        // default).
+
+        if (user.DialogState.ActiveDialogSequence.Dialogs.Count == pursuitIndex)
+        {
+            switch (user.DialogState.ActiveDialog)
+            {
+                case JumpDialog:
                     user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
                     return;
-                }
-                if (user.DialogState.ActiveDialog is FunctionDialog)
+                case FunctionDialog:
                 {
                     var currpid = user.DialogState.CurrentPursuitId;
                     user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
                     // Check to see if a script function changed the active dialog.
                     // If it did, we don't need to send a close dialog packet.
-                    if (user.DialogState.CurrentPursuitId == currpid)
-                    {
-                        GameLog.DebugFormat("Sending close packet");
-                        user.SendCloseDialog();
-                    }
-                    return;
-                }
-                if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
-                {
+                    if (user.DialogState.CurrentPursuitId != currpid) return;
                     GameLog.DebugFormat("Sending close packet");
-                    user.ClearDialogState();
+                    user.SendCloseDialog();
+
                     return;
                 }
-                else
-                {
-                    // If this is an NPC or reactor (and has a click target), then display main menu
-                    if (clickTarget != null)
-                        clickTarget.DisplayPursuits(user);
-                }
-                // Either way down here, reset the dialog state since we're done with the sequence
-                user.DialogState.EndDialog();
-                // If this is an asynchronous dialog, and we've reached here, also close the dialog
-                if (request != null)
-                {
-                    request.Close(user.Id);
-                    user.SendCloseDialog();
-                }
-                return;
             }
 
-            // Are we transitioning between two dialog sequences? If so, show the first dialog from
-            // the new sequence and make sure we clear the previous state.
-            if (user.DialogState.PreviousPursuitId == pursuitID)
+            if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
             {
-                user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                user.DialogState.PreviousPursuitId = null;
-                return;
-            }
-
-            // Did the handling of a response result in our active dialog sequence changing? If so, exit.
-            if (user.DialogState.CurrentPursuitId != pursuitID)
-            {
-                GameLog.ErrorFormat("Dialog has changed, exiting");
-                return;
-            }
-
-            // TODO: improve this logic
-            // Handle function dialogs in between us and the next real dialog (or the end)
-            if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
-            {
-                while (user.DialogState.ActiveDialog is FunctionDialog)
-                {
-                    var currpid = user.DialogState.CurrentPursuitId;
-                    // ShowTo and go
-                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
-                    // Check to see we're still in the same sequence.
-                    if (currpid != user.DialogState.CurrentPursuitId)
-                        return;
-                    pursuitIndex++;
-                    if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
-                    {
-                        // We're at the end of our rope
-                        user.SendCloseDialog();
-                        //GameLog.Info("Dialog: closed by while loop");
-                        return;
-                    }
-                }
-                GameLog.DebugFormat("Pursuit index is now {0}", pursuitIndex);
-
-                user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                GameLog.DebugFormat("Sending close packet");
+                user.ClearDialogState();
                 return;
             }
             else
             {
-                GameLog.DebugFormat("Sending close packet");
-                //GameLog.Info("Dialog: closed by SetDialogIndex == false");
-                user.SendCloseDialog();
-                user.DialogState.EndDialog();
+                // If this is an NPC or reactor (and has a click target), then display main menu
+                if (clickTarget is IPursuitable pursuitable)
+                    pursuitable.DisplayPursuits(user);
             }
+
+            // Either way down here, reset the dialog state since we're done with the sequence
+            user.DialogState.EndDialog();
+            // If this is an asynchronous dialog, and we've reached here, also close the dialog
+            if (request != null)
+            {
+                request.Close(user.Id);
+                user.SendCloseDialog();
+            }
+
+            return;
         }
+
+        // Are we transitioning between two dialog sequences? If so, show the first dialog from
+        // the new sequence and make sure we clear the previous state.
+        if (user.DialogState.PreviousPursuitId == pursuitID)
+        {
+            user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+            user.DialogState.PreviousPursuitId = null;
+            return;
+        }
+
+        // Did the handling of a response result in our active dialog sequence changing? If so, exit.
+        if (user.DialogState.CurrentPursuitId != pursuitID)
+        {
+            GameLog.ErrorFormat("Dialog has changed, exiting");
+            return;
+        }
+
+        // TODO: improve this logic
+        // Handle function dialogs in between us and the next real dialog (or the end)
+        if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
+        {
+            while (user.DialogState.ActiveDialog is FunctionDialog)
+            {
+                var currpid = user.DialogState.CurrentPursuitId;
+                // ShowTo and go
+                user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                // Check to see we're still in the same sequence.
+                if (currpid != user.DialogState.CurrentPursuitId)
+                    return;
+                pursuitIndex++;
+                if (!user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
+                {
+                    // We're at the end of our rope
+                    user.SendCloseDialog();
+                    //GameLog.Info("Dialog: closed by while loop");
+                    return;
+                }
+            }
+
+            GameLog.DebugFormat("Pursuit index is now {0}", pursuitIndex);
+
+            user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+        }
+        else
+        {
+            GameLog.DebugFormat("Sending close packet");
+            //GameLog.Info("Dialog: closed by SetDialogIndex == false");
+            user.SendCloseDialog();
+            user.DialogState.EndDialog();
+        }
+
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x43_PointClick(Object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3522,7 +3575,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x44_EquippedItemClick(Object obj, ClientPacket packet)
     {
@@ -3573,7 +3626,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x47_StatPoint(Object obj, ClientPacket packet)
     {
@@ -3611,7 +3664,7 @@ public partial class World : Server
         }
     }
 
-    [Prohibited(Xml.CreatureCondition.Coma, Xml.CreatureCondition.Sleep, Xml.CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
     {
@@ -3814,7 +3867,7 @@ public partial class World : Server
 
     private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, ClientPacket packet)
     {
-        merchant.DisplayPursuits(user);
+        (merchant as IPursuitable).DisplayPursuits(user);
     }
 
     private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant, ClientPacket packet)
@@ -3874,7 +3927,7 @@ public partial class World : Server
     private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
     {
         var skillName = packet.ReadString8(); //skill name
-        var skill = WorldData.GetByIndex<Xml.Castable>(skillName);
+        var skill = WorldData.GetByIndex<Castable>(skillName);
         user.ShowLearnSkill(merchant, skill);
     }
 
@@ -3893,7 +3946,7 @@ public partial class World : Server
     private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
     {
         var spellName = packet.ReadString8();
-        var spell = WorldData.GetByIndex<Xml.Castable>(spellName);
+        var spell = WorldData.GetByIndex<Castable>(spellName);
         user.ShowLearnSpell(merchant, spell);
     }
     private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet) =>
@@ -4070,7 +4123,7 @@ public partial class World : Server
 
         if (obj is ItemObject)
         {
-            Scripting.Script itemscript;
+            Script itemscript;
             if (Game.World.ScriptProcessor.TryGetScript(obj.Name, out itemscript))
             {
                 var clone = itemscript.Clone();
@@ -4113,7 +4166,7 @@ public partial class World : Server
         return item;
     }
 
-    public ItemObject CreateItem(Xml.Item item, int quantity = 1)
+    public ItemObject CreateItem(Item item, int quantity = 1)
     {
         var itemObj = new ItemObject(item, Guid);
         if (quantity > item.MaximumStack)

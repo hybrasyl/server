@@ -24,7 +24,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Hybrasyl.Casting;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
 using Newtonsoft.Json;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml;
@@ -506,19 +508,19 @@ public class Creature : VisibleObject
 
     #endregion
 
-    public virtual bool UseCastable(Xml.Castable castObject, Creature target = null)
+    public virtual bool UseCastable(Xml.Castable castableXml, Creature target = null)
     {
         if (this is User)
             GameLog.UserActivityInfo(
-                $"UseCastable: {Name} begin casting {castObject.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+                $"UseCastable: {Name} begin casting {castableXml.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
 
-        var damage = castObject.Effects.Damage;
+        var damage = castableXml.Effects.Damage;
         List<Creature> targets = new List<Creature>();
-        targets = GetTargets(castObject, target);
+        targets = GetTargets(castableXml, target);
 
         // Quick checks
         // If no targets and is not an assail, do nothing
-        if (!targets.Any() && castObject.IsAssail == false && string.IsNullOrEmpty(castObject.Script))
+        if (!targets.Any() && castableXml.IsAssail == false && string.IsNullOrEmpty(castableXml.Script))
         {
             GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
             return false;
@@ -528,52 +530,50 @@ public class Creature : VisibleObject
         // We do these next steps to ensure effects are displayed uniformly and as fast as possible
         var deadMobs = new List<Creature>();
 
-        if (castObject.Effects?.Animations?.OnCast != null)
+        if (castableXml.Effects?.Animations?.OnCast != null)
         {
-            if (castObject.Effects?.Animations?.OnCast.Target != null)
+            if (castableXml.Effects?.Animations?.OnCast.Target != null)
             {
                 foreach (var tar in targets)
                 {
                     foreach (var user in tar.viewportUsers.ToList())
                     {
                         GameLog.UserActivityInfo(
-                            $"UseCastable: Sending {user.Name} effect for {Name}: {castObject.Effects.Animations.OnCast.Target.Id}");
-                        user.SendEffect(tar.Id, castObject.Effects.Animations.OnCast.Target.Id,
-                            castObject.Effects.Animations.OnCast.Target.Speed);
+                            $"UseCastable: Sending {user.Name} effect for {Name}: {castableXml.Effects.Animations.OnCast.Target.Id}");
+                        user.SendEffect(tar.Id, castableXml.Effects.Animations.OnCast.Target.Id,
+                            castableXml.Effects.Animations.OnCast.Target.Speed);
                     }
                 }
 
             }
 
-            if (castObject.Effects?.Animations?.OnCast?.SpellEffect != null)
+            if (castableXml.Effects?.Animations?.OnCast?.SpellEffect != null)
             {
                 GameLog.UserActivityInfo(
-                    $"UseCastable: Sending spelleffect for {Name}: {castObject.Effects.Animations.OnCast.SpellEffect.Id}");
-                Effect(castObject.Effects.Animations.OnCast.SpellEffect.Id,
-                    castObject.Effects.Animations.OnCast.SpellEffect.Speed);
+                    $"UseCastable: Sending spelleffect for {Name}: {castableXml.Effects.Animations.OnCast.SpellEffect.Id}");
+                Effect(castableXml.Effects.Animations.OnCast.SpellEffect.Id,
+                    castableXml.Effects.Animations.OnCast.SpellEffect.Speed);
             }
         }
 
-        if (castObject.Effects?.Sound != null)
-            PlaySound(castObject.Effects.Sound.Id);
+        if (castableXml.Effects?.Sound != null)
+            PlaySound(castableXml.Effects.Sound.Id);
 
-        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castObject.Name}, {targets.Count()} targets");
+        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
 
-        if (!string.IsNullOrEmpty(castObject.Script))
+        if (!string.IsNullOrEmpty(castableXml.Script))
         {
             // If a script is defined we fire it immediately, and let it handle targeting / etc
-            if (Game.World.ScriptProcessor.TryGetScript(castObject.Script, out Script script))
+            if (Game.World.ScriptProcessor.TryGetScript(castableXml.Script, out Script script))
             {
-                var ret = script.ExecuteFunction("OnUse", ScriptEnvironment.Create(("invoker", target), ("source", this)));
+                Game.World.WorldData.TryGetValueByIndex(castableXml.Guid, out CastableObject castableObj);
+                var ret = script.ExecuteFunction("OnUse",
+                    ScriptEnvironment.Create(("target", target), ("origin", this), ("invoker", this), ("castable", castableObj)));
                 return ret.Result == ScriptResult.Success;
             }
-            else
-            {
-                GameLog.UserActivityError(
-                    $"UseCastable: {Name} casting {castObject.Name}: castable script {castObject.Script} missing");
-                return false;
-            }
-
+            GameLog.UserActivityError(
+                $"UseCastable: {Name} casting {castableXml.Name}: castable script {castableXml.Script} missing");
+            return false;
         }
 
         if (targets.Count == 0)
@@ -581,14 +581,14 @@ public class Creature : VisibleObject
 
         foreach (var tar in targets)
         {
-            if (castObject.Effects?.ScriptOverride == true)
+            if (castableXml.Effects?.ScriptOverride == true)
             {
                 // TODO: handle castables with scripting
                 // DoStuff();
                 continue;
             }
 
-            foreach (var reactor in castObject.Effects?.Reactors)
+            foreach (var reactor in castableXml.Effects?.Reactors)
             {
                 if (X + reactor.RelativeX < byte.MinValue || X + reactor.RelativeX > byte.MaxValue ||
                     Y + reactor.RelativeY < byte.MinValue || Y + reactor.RelativeY > byte.MaxValue)
@@ -597,7 +597,7 @@ public class Creature : VisibleObject
                 var actualY = (byte) (Y + reactor.RelativeY);
                 var reactorObj =
                     new Reactor(actualX, actualY, tar.Map, reactor.Script,
-                        reactor.Expiration, $"{Name}'s {castObject.Name}", reactor.Blocking);
+                        reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking);
                 reactorObj.Sprite = reactor.Sprite;
                 reactorObj.CreatedBy = Guid;
                 reactorObj.Uses = reactor.Uses;
@@ -606,30 +606,30 @@ public class Creature : VisibleObject
                 reactorObj.OnSpawn();
             }
 
-            if (castObject.Effects?.Damage != null && !castObject.Effects.Damage.IsEmpty)
+            if (castableXml.Effects?.Damage != null && !castableXml.Effects.Damage.IsEmpty)
             {
                 Xml.ElementType attackElement;
-                var damageOutput = NumberCruncher.CalculateDamage(castObject, tar, this);
-                if (castObject.Element == Xml.ElementType.Random)
+                var damageOutput = NumberCruncher.CalculateDamage(castableXml, tar, this);
+                if (castableXml.Element == Xml.ElementType.Random)
                 {
                     var Elements = Enum.GetValues(typeof(Xml.ElementType));
                     attackElement = (Xml.ElementType) Elements.GetValue(Random.Shared.Next(Elements.Length));
                 }
-                else if (castObject.Element != Xml.ElementType.None)
-                    attackElement = castObject.Element;
+                else if (castableXml.Element != Xml.ElementType.None)
+                    attackElement = castableXml.Element;
                 else
                     attackElement = (Stats.OffensiveElementOverride != Xml.ElementType.None
                         ? Stats.OffensiveElementOverride
                         : Stats.BaseOffensiveElement);
 
                 GameLog.UserActivityInfo(
-                    $"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+                    $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
 
-                if (tar is User u && !castObject.IsAssail) 
+                if (tar is User u && !castableXml.IsAssail) 
                 {
-                    u.SendSystemMessage($"{Name} attacks you with {castObject.Name}.");
+                    u.SendSystemMessage($"{Name} attacks you with {castableXml.Name}.");
                 }
 
                 if (this is User)
@@ -646,14 +646,14 @@ public class Creature : VisibleObject
             }
             // Note that we ignore castables with both damage and healing effects present - one or the other.
             // A future improvement might be to allow more complex effects.
-            else if (castObject.Effects?.Heal != null && !castObject.Effects.Heal.IsEmpty)
+            else if (castableXml.Effects?.Heal != null && !castableXml.Effects.Heal.IsEmpty)
             {
-                var healOutput = NumberCruncher.CalculateHeal(castObject, tar, this);
+                var healOutput = NumberCruncher.CalculateHeal(castableXml, tar, this);
                 tar.Heal(healOutput, this);
                 if (this is User)
                 {
                     GameLog.UserActivityInfo(
-                        $"UseCastable: {Name} casting {castObject.Name} - target: {tar.Name} healing: {healOutput}");
+                        $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} healing: {healOutput}");
                     if (Equipment.Weapon is {Undamageable: false})
                         Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
                                                             ((100 - Stats.Ac) == 0 ? 1 : (100 - Stats.Ac)));
@@ -662,13 +662,13 @@ public class Creature : VisibleObject
 
             // Handle statuses
 
-            foreach (var status in castObject.AddStatuses)
+            foreach (var status in castableXml.AddStatuses)
             {
                 if (World.WorldData.TryGetValue<Xml.Status>(status.Value.ToLower(), out var applyStatus))
                 {
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                     GameLog.UserActivityInfo(
-                        $"UseCastable: {Name} casting {castObject.Name} - applying status {status.Value} - duration {duration}");
+                        $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
                     if (tar.CurrentStatusInfo.Any(x => x.Category == applyStatus.Category))
                     {
                         if (this is User user)
@@ -677,25 +677,25 @@ public class Creature : VisibleObject
                         }
                     }
                     else
-                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castObject, this, duration, -1,
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
                             status.Intensity));
                 }
                 else
                     GameLog.UserActivityError(
-                        $"UseCastable: {Name} casting {castObject.Name} - failed to add status {status.Value}, does not exist!");
+                        $"UseCastable: {Name} casting {castableXml.Name} - failed to add status {status.Value}, does not exist!");
             }
 
-            foreach (var status in castObject.RemoveStatuses)
+            foreach (var status in castableXml.RemoveStatuses)
             {
                 if (World.WorldData.TryGetValue<Xml.Status>(status.ToLower(), out var applyStatus))
                 {
                     GameLog.UserActivityError(
-                        $"UseCastable: {Name} casting {castObject.Name} - removing status {status}");
+                        $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
                     tar.RemoveStatus(applyStatus.Icon);
                 }
                 else
                     GameLog.UserActivityError(
-                        $"UseCastable: {Name} casting {castObject.Name} - failed to remove status {status}, does not exist!");
+                        $"UseCastable: {Name} casting {castableXml.Name} - failed to remove status {status}, does not exist!");
 
             }
         }
@@ -1183,9 +1183,9 @@ public class Creature : VisibleObject
         }
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
-        if (!(obj is User user)) return;
+        if (obj is not User user) return;
         user.SendVisibleCreature(this);
     }
 

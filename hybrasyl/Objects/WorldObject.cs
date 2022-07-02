@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using C3;
 using Hybrasyl.Dialogs;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Newtonsoft.Json;
 
@@ -59,51 +60,13 @@ public class WorldObject : IQuadStorable, IWorldObject
     public World World => Game.GetServerByGuid<World>(ServerGuid);
     public ushort DialogSprite { get; set; }
 
-    private Dictionary<string, dynamic> _ephemeralStore { get; set; }
-    private readonly object _storeLock = new object();
-
-    public void SetEphemeral(string key, dynamic value)
-    {
-        lock (_storeLock)
-            _ephemeralStore[key] = value;
-    }
 
     public virtual void OnInsert() { }
 
-    public List<Tuple<string, dynamic>> GetEphemeralValues()
-    {
-        var ret = new List<Tuple<string, dynamic>>();
-        lock (_storeLock)
-        {
-            foreach (var entry in _ephemeralStore)
-                ret.Add(new Tuple<string, dynamic>(entry.Key, entry.Value));
-        }
-        return ret;
-    }
-
-    public dynamic GetEphemeral(string key)
-    {
-        lock (_storeLock)
-            return _ephemeralStore.ContainsKey(key) ? _ephemeralStore[key] : null;
-    }
-
-    public bool ClearEphemeral(string key)
-    {
-        lock (_storeLock)
-            return _ephemeralStore.ContainsKey(key) && _ephemeralStore.Remove(key);
-    }
-
-    public bool TryGetEphemeral(string key, out dynamic value)
-    {
-        lock (_storeLock)
-            return _ephemeralStore.TryGetValue(key, out value);
-    }
 
     public WorldObject()
     {
         Name = string.Empty;
-        ResetPursuits();
-        _ephemeralStore = new Dictionary<string, dynamic>();
         CreationTime = DateTime.Now;
     }
 
@@ -117,59 +80,4 @@ public class WorldObject : IQuadStorable, IWorldObject
         return Point.Distance(obj.X, obj.Y, X, Y);
     }
 
-    public void ResetPursuits()
-    {
-        Pursuits = new List<DialogSequence>();
-        DialogSequences = new List<DialogSequence>();
-        SequenceIndex = new Dictionary<string, DialogSequence>();
-    }
-
-    public virtual void AddPursuit(DialogSequence pursuit)
-    {
-        if (pursuit.Id == null)
-        {
-            // This is a local sequence, so assign it into the pursuit range and
-            // assign an ID
-            pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count);
-            Pursuits.Add(pursuit);
-        }
-        else
-        {
-            // This is a shared sequence
-            Pursuits.Add(pursuit);
-        }
-
-        if (SequenceIndex.ContainsKey(pursuit.Name))
-        {
-            GameLog.WarningFormat("Pursuit {0} is being overwritten", pursuit.Name);
-            SequenceIndex.Remove(pursuit.Name);
-        }
-
-        SequenceIndex.Add(pursuit.Name, pursuit);
-
-        if (pursuit.Id > Constants.DIALOG_SEQUENCE_SHARED)
-        {
-            pursuit.AssociateSequence(this);
-        }
-    }
-
-    public virtual void RegisterDialogSequence(DialogSequence sequence)
-    {
-        sequence.Id = (uint)(Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
-        sequence.AssociateSequence(this);
-        DialogSequences.Add(sequence);
-
-        if (SequenceIndex.ContainsKey(sequence.Name))
-        {
-            GameLog.WarningFormat("Dialog sequence {0} is being overwritten", sequence.Name);
-            SequenceIndex.Remove(sequence.Name);
-
-        }
-        SequenceIndex.Add(sequence.Name, sequence);
-
-    }
-
-    public List<DialogSequence> Pursuits;
-    public virtual List<DialogSequence> DialogSequences { get; set; }
-    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; }
 } 

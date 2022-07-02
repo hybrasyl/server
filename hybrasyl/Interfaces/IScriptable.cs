@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 
-namespace Hybrasyl.Scripting;
+namespace Hybrasyl.Interfaces;
 
 public interface IScriptable
 {

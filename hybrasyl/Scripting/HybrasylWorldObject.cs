@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
+using Hybrasyl.Interfaces;
 
 namespace Hybrasyl.Scripting;
 
@@ -76,8 +77,8 @@ public class HybrasylWorldObject : IScriptable
     /// <returns>The localized string for a given key</returns>
     public string GetLocalString(string key)
     {
-        if (Obj is Merchant m)
-            return m.GetLocalString(key);
+        if (Obj is IResponseCapable m)
+            return m.DefaultGetLocalString(key);
         return Game.World.GetLocalString(key);
     }
 
@@ -116,15 +117,8 @@ public class HybrasylWorldObject : IScriptable
             GameLog.ScriptingError("DisplayPursuits: invoker was null, ignoring");
             return;
         }
-        if (Obj is Merchant || Obj is Reactor)
-        {
-            var merchant = Obj as VisibleObject;
-            if (invoker is HybrasylUser hybUser)
-            {
-                merchant.DisplayPursuits(hybUser.User);
-            }
-        }
-
+        if (Obj is IPursuitable pursuitable && invoker is HybrasylUser hybUser)
+            pursuitable.DisplayPursuits(hybUser.User);
     }
 
     /// <summary>
@@ -146,13 +140,13 @@ public class HybrasylWorldObject : IScriptable
     {
         if (hybrasylSequence is null || hybrasylSequence.Sequence.Dialogs.Count == 0)
         {
-            GameLog.ScriptingError("AddPursuit: Dialog sequence (first argument) was null or sequence was empty (no dialogs)");
+            GameLog.ScriptingError(
+                "AddPursuit: Dialog sequence (first argument) was null or sequence was empty (no dialogs)");
+            return;
         }
-        if (Obj is VisibleObject && !(Obj is User))
-        {
-            var vobj = Obj as VisibleObject;
-            vobj.AddPursuit(hybrasylSequence.Sequence);
-        }
+
+        if (Obj is IPursuitable pursuitable)
+            pursuitable.AddPursuit(hybrasylSequence.Sequence);
     }
 
     /// <summary>
@@ -167,10 +161,13 @@ public class HybrasylWorldObject : IScriptable
     {
         if (string.IsNullOrEmpty(key) || value is null)
         {
-            GameLog.ScriptingError("SetEphemeral: key (first argument) or value (second argument) was null or empty, ignoring");
+            GameLog.ScriptingError(
+                "SetEphemeral: key (first argument) or value (second argument) was null or empty, ignoring");
             return;
         }
-        Obj.SetEphemeral(key, value);
+
+        if (Obj is not IEphemeral ephemeral) return;
+        ephemeral.SetEphemeral(key, value);
         GameLog.ScriptingInfo("{Function}: {Name}, stored key {Key} with value {Value}",
             MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value);
     }
@@ -191,7 +188,9 @@ public class HybrasylWorldObject : IScriptable
             GameLog.ScriptingError("SetEphemeral: user (first argument) or key (second argument) or value (third argument) was null or empty, ignoring");
             return;
         }
-        Obj.SetEphemeral($"{user.ToLower()}:{key}", value);
+
+        if (Obj is not IEphemeral ephemeral) return;
+        ephemeral.SetEphemeral($"{user.ToLower()}:{key}", value);
         GameLog.ScriptingInfo("{Function}: {Name}, stored scoped key {Key} with value {Value} for {user}",
             MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value, user);
     }
@@ -207,7 +206,8 @@ public class HybrasylWorldObject : IScriptable
             GameLog.ScriptingError("ClearEphemeral: key (first argument) was null or empty, ignoring");
             return;
         }
-        Obj.ClearEphemeral(key);
+        if (Obj is not IEphemeral ephemeral) return;
+        ephemeral.ClearEphemeral(key);
     }
 
     /// <summary>
@@ -222,9 +222,9 @@ public class HybrasylWorldObject : IScriptable
             GameLog.ScriptingError("GetEphemeral: key (first argument) was null or empty, returning nil");
             return DynValue.Nil;
         }
-        if (Obj.TryGetEphemeral(key, out dynamic value))
-            return value;
-        else return DynValue.Nil;
+
+        if (Obj is not IEphemeral ephemeral) return DynValue.Nil;
+        return ephemeral.TryGetEphemeral(key, out dynamic value) ? value : DynValue.Nil;
     }
 
     /// <summary>
@@ -240,10 +240,9 @@ public class HybrasylWorldObject : IScriptable
             GameLog.ScriptingError("GetScopedEphemeral: user (first argument) or key (second argument) was null or empty, returning nil");
             return DynValue.Nil;
         }
-        if (Obj.TryGetEphemeral($"{user.ToLower()}:{key}", out dynamic value))
-            return value;
-        else
-            return DynValue.Nil;
+
+        if (Obj is not IEphemeral ephemeral) return DynValue.Nil;
+        return ephemeral.TryGetEphemeral($"{user.ToLower()}:{key}", out dynamic value) ? value : DynValue.Nil;
     }
 
     /// <summary>
@@ -258,11 +257,8 @@ public class HybrasylWorldObject : IScriptable
             GameLog.Error("RegisterSequence: sequence (first argument) was null or contained no dialogs, ignoring");
             return;
         }
-        if (Obj is VisibleObject && !(Obj is User))
-        {
-            var vobj = Obj as VisibleObject;
-            vobj.RegisterDialogSequence(hybrasylSequence.Sequence);
-        }
+        if (Obj is IInteractable interactable)
+            interactable.RegisterDialogSequence(hybrasylSequence.Sequence);
     }
 
     /// <summary>
@@ -292,35 +288,35 @@ public class HybrasylWorldObject : IScriptable
         return -1;
     }
 
-    /// <summary>
-    /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
-    /// </summary>
-    /// <param name="player">The logged-in player that will receive the dialog</param>
-    /// <param name="sequence">The sequence that will be started for the target player.</param>
-    /// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
-    /// <returns>Boolean indicating success</returns>
-    public bool RequestDialog(string player, string sequence, bool requireLocal = true)
-    {
-        if (string.IsNullOrEmpty(player) || string.IsNullOrEmpty(sequence))
-        {
-            GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty, returning false");
-            return false;
-        }
+    ///// <summary>
+    ///// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
+    ///// </summary>
+    ///// <param name="player">The logged-in player that will receive the dialog</param>
+    ///// <param name="sequence">The sequence that will be started for the target player.</param>
+    ///// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
+    ///// <returns>Boolean indicating success</returns>
+    //public bool RequestDialog(string player, string sequence, bool requireLocal = true)
+    //{
+    //    if (string.IsNullOrEmpty(player) || string.IsNullOrEmpty(sequence))
+    //    {
+    //        GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty, returning false");
+    //        return false;
+    //    }
 
-        DialogSequence seq;
-        if (Game.World.TryGetActiveUser(player, out User user))
-        {
-            if (Obj.SequenceIndex.TryGetValue(sequence, out seq) ||
-                Game.World.GlobalSequences.TryGetValue(sequence, out seq))
-                // TODO: fix this awful object hierarchy nonsense
-                return Game.World.TryAsyncDialog(Obj as VisibleObject, user, seq);
-            else
-                GameLog.ScriptingError("RequestDialog: {player} - sequence {sequence} was not found", user.Name, sequence);
-        }
-        else
-            GameLog.ScriptingWarning("RequestDialog: {player} is not online", user.Name);
-        return false;
-    }
+    //    DialogSequence seq;
+    //    if (Game.World.TryGetActiveUser(player, out User user))
+    //    {
+    //        if (Obj.SequenceIndex.TryGetValue(sequence, out seq) ||
+    //            Game.World.GlobalSequences.TryGetValue(sequence, out seq))
+    //            // TODO: fix this awful object hierarchy nonsense
+    //            return Game.World.TryAsyncDialog(Obj, user, seq);
+    //        else
+    //            GameLog.ScriptingError("RequestDialog: {player} - sequence {sequence} was not found", user.Name, sequence);
+    //    }
+    //    else
+    //        GameLog.ScriptingWarning("RequestDialog: {player} is not online", user.Name);
+    //    return false;
+    //}
 
     /// <summary>
     /// Speak as the current world object ("white message").

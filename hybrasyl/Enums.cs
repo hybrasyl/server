@@ -427,6 +427,15 @@ namespace Hybrasyl
             Reactor
         }
 
+        public enum DialogObjectType : byte
+        {
+            Creature = 0x01,
+            ItemObject = 0x02,
+            Reactor = 0x04,
+            CastableObject = 0x05,
+            Asynchronous = 0xFE
+        }
+
         public class EnumUtil
         {
             public static T ParseEnum<T>(string value, T defaultValue) where T : struct, IConvertible

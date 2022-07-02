@@ -23,9 +23,11 @@ using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Hybrasyl.Controllers;
+using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
@@ -35,8 +37,6 @@ namespace Hybrasyl.Objects;
 
 public class MerchantInventoryItem
 {
-        
-
     public Xml.Item Item { get; private set; }
     public uint OnHand { get; set; }
     public uint RestockAmount { get; private set; }
@@ -54,10 +54,15 @@ public class MerchantInventoryItem
 
 }
 
-
-public class Merchant : Creature, IXmlReloadable
+public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
 {
+    // TODO: move these to new base class (eg Creature->NewClass->Merchant|Reactor etc)
     private readonly object inventoryLock = new();
+    public List<DialogSequence> Pursuits { get; set; } = new();
+    public Dictionary<string, string> Strings { get; set; } = new();
+    public Dictionary<string, string> Responses { get; set; } = new();
+    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
+    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
     public bool Ready;
     public string Filename { get; set; }
@@ -65,6 +70,15 @@ public class Merchant : Creature, IXmlReloadable
     public MerchantJob Jobs { get; set; }
     private MerchantController Controller { get; set; }
     public List<MerchantInventoryItem> MerchantInventory { get; set; }
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+    // TODO: remove this when base(<interface name>) is actually added to the language
+    public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);
+
+    public string GetLocalString(string key, params (string Token, string Value)[] replacements) =>
+        ((IResponseCapable) this).DefaultGetLocalString(key);
 
     public Merchant(Npc npc)
         : base()
@@ -189,8 +203,8 @@ public class Merchant : Creature, IXmlReloadable
             Script = script;
             Script.AssociateScriptWithObject(this);
             // Clear existing pursuits, in case the OnSpawn crashes / has a bug
-            ResetPursuits();
-            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.CreateWithInvoker(this));
+            (this as IPursuitable).ResetPursuits();            
+            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.CreateWithOrigin(this));
             Ready = ret.Result == ScriptResult.Success;
         }
         else
@@ -254,9 +268,9 @@ public class Merchant : Creature, IXmlReloadable
             OnSpawn();
 
         if (Script != null && Script.HasFunction("OnClick"))
-            Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithInvoker(invoker));
+            Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithOrigin(invoker));
         else
-            DisplayPursuits(invoker);
+           (this as IPursuitable).DisplayPursuits(invoker);
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -264,7 +278,7 @@ public class Merchant : Creature, IXmlReloadable
         base.AoiEntry(obj);
         if (Script != null)
         {
-            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithInvoker(obj));
+            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithOrigin(obj));
         }
     }
 
@@ -273,32 +287,28 @@ public class Merchant : Creature, IXmlReloadable
         base.AoiDeparture(obj);
         if (Script != null)
         {
-            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithInvoker(obj));
+            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOrigin(obj));
         }
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
-        if (obj is User)
-        {
-            var user = obj as User;
-            var npcPacket = new ServerPacket(0x07);
-            npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
-            npcPacket.WriteUInt16(X);
-            npcPacket.WriteUInt16(Y);
-            npcPacket.WriteUInt32(Id);
-            npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
-            npcPacket.WriteByte(0);
-            npcPacket.WriteByte(0);
-            npcPacket.WriteByte(0);
-            npcPacket.WriteByte(0);
-            npcPacket.WriteByte((byte)Direction);
-            npcPacket.WriteByte(0);
-
-            npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-            npcPacket.WriteString8(Name);
-            user.Enqueue(npcPacket);
-        }
+        if (obj is not User user) return;
+        var npcPacket = new ServerPacket(0x07);
+        npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
+        npcPacket.WriteUInt16(X);
+        npcPacket.WriteUInt16(Y);
+        npcPacket.WriteUInt32(Id);
+        npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte((byte)Direction);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
+        npcPacket.WriteString8(Name);
+        user.Enqueue(npcPacket);
     }
 }
 

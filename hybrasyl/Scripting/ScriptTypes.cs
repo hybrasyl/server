@@ -107,9 +107,10 @@ namespace Hybrasyl.Scripting
             return ret;
         }
 
-        public static ScriptEnvironment CreateWithInvoker(dynamic invoker) => Create(("invoker", invoker));
+        // TODO: clarify this terminology in scripting
+        public static ScriptEnvironment CreateWithOrigin(dynamic invoker) => Create(("invoker", invoker));
 
-        public static ScriptEnvironment CreateWithInvokerAndSource(dynamic invoker, dynamic source) =>
+        public static ScriptEnvironment CreateWithOriginAndSource(dynamic invoker, dynamic source) =>
             Create(("invoker", invoker), ("source", source));
 
 

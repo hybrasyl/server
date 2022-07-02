@@ -23,6 +23,10 @@
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Messaging;
+using Hybrasyl.Utility;
+using Hybrasyl.Xml;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -31,9 +35,6 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Hybrasyl.Utility;
-using Hybrasyl.Xml;
-using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Objects;
 
@@ -66,14 +67,14 @@ public class User : Creature
     public long PreviousConnectionId { get; set; }
 
     [JsonProperty]
-    public Xml.Gender Gender { get; set; }
+    public Gender Gender { get; set; }
     //private account Account { get; set; }
 
     [JsonProperty]
-    public Xml.Class Class { get; set; }
+    public Class Class { get; set; }
 
     [JsonProperty]
-    public Xml.Class PreviousClass { get; set; }
+    public Class PreviousClass { get; set; }
 
     [JsonProperty]
     public bool IsMaster { get; set; }
@@ -143,7 +144,7 @@ public class User : Creature
     [JsonProperty]
     public string ProfileText { get; set; }
 
-    public Xml.Castable PendingLearnableCastable { get; private set; }
+    public Castable PendingLearnableCastable { get; private set; }
     public ItemObject PendingSendableParcel { get; private set; }
     public uint PendingSendableQuantity { get; private set; }
     public string PendingParcelRecipient { get; private set; }
@@ -166,9 +167,9 @@ public class User : Creature
     public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
     public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
 
-    private Xml.Nation _nation;
+    private Nation _nation;
 
-    public Xml.Nation Nation
+    public Nation Nation
     {
         get => _nation ?? World.DefaultNation;
         set
@@ -191,7 +192,7 @@ public class User : Creature
 
     // Used by reactors and certain other objects to set an associate, so that functions called
     // from Lua later know who to "consult" for dialogs / etc.
-    public VisibleObject LastAssociate { get; set; }
+    public IInteractable LastAssociate { get; set; }
 
     public Exchange ActiveExchange { get; set; }
 
@@ -229,7 +230,7 @@ public class User : Creature
     {
         if (Citizenship != null)
         {
-            Xml.Nation theNation;
+            Nation theNation;
             Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
         }
     }
@@ -629,7 +630,7 @@ public class User : Creature
         if (!Condition.Comatose) return;
         Condition.Comatose = false;
         var handler = Game.Config.Handlers?.Death;
-        if (handler?.Coma != null && Game.World.WorldData.TryGetValue(handler.Coma.Value, out Xml.Status status))
+        if (handler?.Coma != null && Game.World.WorldData.TryGetValue(handler.Coma.Value, out Status status))
             RemoveStatus(status.Icon);
     }
         
@@ -943,10 +944,10 @@ public class User : Creature
         switch (toRemove.EquipmentSlot)
         {
             case (byte)ItemSlots.Necklace:
-                Stats.BaseOffensiveElement = Xml.ElementType.None;
+                Stats.BaseOffensiveElement = ElementType.None;
                 break;
             case (byte)ItemSlots.Waist:
-                Stats.BaseDefensiveElement = Xml.ElementType.None;
+                Stats.BaseDefensiveElement = ElementType.None;
                 break;
         }
     }
@@ -1187,7 +1188,7 @@ public class User : Creature
         }
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
         switch (obj)
         {
@@ -1318,7 +1319,7 @@ public class User : Creature
     /// </summary>
     /// <param name="castable">The castable that is being cast.</param>
     /// <returns>True or false depending on success.</returns>
-    public bool ProcessCastingCost(Xml.Castable castable, Creature target, out string message)
+    public bool ProcessCastingCost(Castable castable, Creature target, out string message)
     {
         var cost = NumberCruncher.CalculateCastCost(castable, target, this);
         bool hasItemCost = true;
@@ -1418,7 +1419,7 @@ public class User : Creature
         }
     }
 
-    public void SetHairColor(Xml.ItemColor itemColor)
+    public void SetHairColor(ItemColor itemColor)
     {
         HairColor = (byte)itemColor;
         SendUpdateToUser();
@@ -1535,7 +1536,7 @@ public class User : Creature
         equipPacket.WriteUInt32(itemObject.DisplayDurability);
         equipPacket.DumpPacket();
         Enqueue(equipPacket);
-        if (itemObject.EquipmentSlot == (byte)Xml.EquipmentSlot.Weapon)
+        if (itemObject.EquipmentSlot == (byte)EquipmentSlot.Weapon)
             SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name}");
         else
             SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
@@ -1667,7 +1668,7 @@ public class User : Creature
         Enqueue(spellUpdate.Packet());
     }
 
-    private int CalculateLines(Xml.Castable castable)
+    private int CalculateLines(Castable castable)
     {
         try
         {
@@ -1697,17 +1698,17 @@ public class User : Creature
                 }
                 // Evaluate modifier match.
                 // Exact match first, then between min / max, which is same as "all" if no min/max defined (default -1 / 255)
-                if (modifier is Xml.CastModifierAdd add)
+                if (modifier is CastModifierAdd add)
                 {
                     if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
                         return Math.Min(255, castable.Lines + add.Amount);
                 }
-                else if (modifier is Xml.CastModifierSubtract sub)
+                else if (modifier is CastModifierSubtract sub)
                 {
                     if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
                         return Math.Max(0, castable.Lines - sub.Amount);
                 }
-                else if (modifier is Xml.CastModifierReplace repl)
+                else if (modifier is CastModifierReplace repl)
                 {
                     if (castable.Lines == repl.Match || (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
                         return repl.Amount;
@@ -1798,7 +1799,7 @@ public class User : Creature
         Enqueue(x08);
     }
 
-    public int GetCastableMaxLevel(Xml.Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass(Class);
+    public int GetCastableMaxLevel(Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass(Class);
 
 
     public User GetFacingUser()
@@ -1807,16 +1808,16 @@ public class User : Creature
 
         switch (Direction)
         {
-            case Xml.Direction.North:
+            case Direction.North:
                 contents = Map.GetTileContents(X, Y - 1);
                 break;
-            case Xml.Direction.South:
+            case Direction.South:
                 contents = Map.GetTileContents(X, Y + 1);
                 break;
-            case Xml.Direction.West:
+            case Direction.West:
                 contents = Map.GetTileContents(X - 1, Y);
                 break;
-            case Xml.Direction.East:
+            case Direction.East:
                 contents = Map.GetTileContents(X + 1, Y);
                 break;
             default:
@@ -1837,7 +1838,7 @@ public class User : Creature
 
         switch (Direction)
         {
-            case Xml.Direction.North:
+            case Direction.North:
             {
                 for (var i = 1; i <= distance; i++)
                 {
@@ -1845,7 +1846,7 @@ public class User : Creature
                 }
             }
                 break;
-            case Xml.Direction.South:
+            case Direction.South:
             {
                 for (var i = 1; i <= distance; i++)
                 {
@@ -1853,7 +1854,7 @@ public class User : Creature
                 }
             }
                 break;
-            case Xml.Direction.West:
+            case Direction.West:
             {
                 for (var i = 1; i <= distance; i++)
                 {
@@ -1861,7 +1862,7 @@ public class User : Creature
                 }
             }
                 break;
-            case Xml.Direction.East:
+            case Direction.East:
             {
                 for (var i = 1; i <= distance; i++)
                 {
@@ -1877,7 +1878,7 @@ public class User : Creature
         return contents;
     }
 
-    public override bool Walk(Xml.Direction direction)
+    public override bool Walk(Direction direction)
     {
         int oldX = X, oldY = Y, newX = X, newY = Y;
         Rectangle arrivingViewport = Rectangle.Empty;
@@ -1900,22 +1901,22 @@ public class User : Creature
             // notified of an update to their AOI (area of interest, which is the object's viewport calculated from its
             // current position).
 
-            case Xml.Direction.North:
+            case Direction.North:
                 --newY;
                 arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4, Constants.VIEWPORT_SIZE, 1);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2, Constants.VIEWPORT_SIZE, 1);
                 break;
-            case Xml.Direction.South:
+            case Direction.South:
                 ++newY;
                 arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4, Constants.VIEWPORT_SIZE, 1);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2, Constants.VIEWPORT_SIZE, 1);
                 break;
-            case Xml.Direction.West:
+            case Direction.West:
                 --newX;
                 arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
                 departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1, Constants.VIEWPORT_SIZE);
                 break;
-            case Xml.Direction.East:
+            case Direction.East:
                 ++newX;
                 arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
@@ -2115,7 +2116,7 @@ public class User : Creature
         return true;
     }
 
-    public bool AddSkill(Xml.Castable castable)
+    public bool AddSkill(Castable castable)
     {
         if (SkillBook.IsFull(castable.Book))
         {
@@ -2125,7 +2126,7 @@ public class User : Creature
         return AddSkill(castable, SkillBook.FindEmptySlot(castable.Book));
     }
 
-    public bool AddSkill(Xml.Castable item, byte slot)
+    public bool AddSkill(Castable item, byte slot)
     {
         // Quantity check - if we already have an ItemObject with the same name, will
         // adding the MaximumStack)
@@ -2149,7 +2150,7 @@ public class User : Creature
         return true;
     }
 
-    public bool AddSpell(Xml.Castable castable)
+    public bool AddSpell(Castable castable)
     {
         if (SpellBook.IsFull(castable.Book))
         {
@@ -2159,7 +2160,7 @@ public class User : Creature
         return AddSpell(castable, SpellBook.FindEmptySlot(castable.Book));
     }
 
-    public bool AddSpell(Xml.Castable item, byte slot)
+    public bool AddSpell(Castable item, byte slot)
     {
         // Quantity check - if we already have an ItemObject with the same name, will
         // adding the MaximumStack)
@@ -2246,7 +2247,7 @@ public class User : Creature
 
     public bool AddItem(string itemName, ushort quantity = 1, bool updateWeight = true)
     {
-        var xmlItem = World.WorldData.GetByIndex<Xml.Item>(itemName);
+        var xmlItem = World.WorldData.GetByIndex<Item>(itemName);
 
         if(xmlItem.Stackable)
         {
@@ -2568,8 +2569,8 @@ public class User : Creature
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
-    public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None,
-        Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true)
+    public override void Damage(double damage, ElementType element = ElementType.None,
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true)
     {
         if (Condition.Comatose || !Condition.Alive) return;
         base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
@@ -2577,7 +2578,7 @@ public class User : Creature
         {
             Stats.Hp = 1;
             var handler = Game.Config.Handlers?.Death?.Coma;
-            if (handler?.Value != null && World.WorldData.TryGetValue(handler.Value, out Xml.Status status))
+            if (handler?.Value != null && World.WorldData.TryGetValue(handler.Value, out Status status))
             {
                 Condition.Comatose = true;
                 ApplyStatus(new CreatureStatus(status, this, null, attacker));
@@ -2607,7 +2608,7 @@ public class User : Creature
         if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
     }
 
-    private bool CheckCastableRestrictions(List<Xml.EquipmentRestriction> restrictions, out string message)
+    private bool CheckCastableRestrictions(List<EquipmentRestriction> restrictions, out string message)
     {
         message = string.Empty;
 
@@ -2626,7 +2627,7 @@ public class User : Creature
            * 
            * 
            */
-            if (restriction.Slot == Xml.EquipmentSlot.None && restriction.Value != null)
+            if (restriction.Slot == EquipmentSlot.None && restriction.Value != null)
             {
                 // Inventory check
                 if (Inventory.ContainsName(restriction.Value))
@@ -2646,9 +2647,9 @@ public class User : Creature
             }
             else
             {
-                if (restriction.Slot == Xml.EquipmentSlot.Weapon)
+                if (restriction.Slot == EquipmentSlot.Weapon)
                 {
-                    if (Equipment.Weapon == null && restriction.Type == Xml.WeaponType.None)
+                    if (Equipment.Weapon == null && restriction.Type == WeaponType.None)
                         return true;
                     if (Equipment.Weapon != null && restriction.Type == Equipment.Weapon.WeaponType)
                         return true;
@@ -2666,29 +2667,29 @@ public class User : Creature
         return false;
     }
 
-    public override bool UseCastable(Xml.Castable castObject, Creature target = null)
+    public override bool UseCastable(Castable castableXml, Creature target = null)
     {
-        if(castObject.Intents[0].UseType == SpellUseType.Prompt)
+        if(castableXml.Intents[0].UseType == SpellUseType.Prompt)
         {
             //do something. 
             return false;
         }
 
         // Check casting costs
-        if (!ProcessCastingCost(castObject, target, out var message))
+        if (!ProcessCastingCost(castableXml, target, out var message))
         {
             SendSystemMessage(message);
             return false;
         }
 
-        if (CheckCastableRestrictions(castObject.Restrictions, out var restrictionMessage))
-            return base.UseCastable(castObject, target);
+        if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
+            return base.UseCastable(castableXml, target);
         SendSystemMessage(restrictionMessage);
         return false;
 
     }
 
-    public void AssailAttack(Xml.Direction direction, Creature target = null)
+    public void AssailAttack(Direction direction, Creature target = null)
     {
         target ??= GetDirectionalTarget(direction);
         var animation = false;
@@ -2705,21 +2706,21 @@ public class User : Creature
         if (!animation)
         {
             var motionId = (byte) 1;
-            if (Class == Xml.Class.Warrior)
+            if (Class == Class.Warrior)
             {
                 if (SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
                 {
                     if (Equipment.Weapon?.WeaponType == WeaponType.TwoHand &&
-                        Equipment.Armor?.Class == Xml.Class.Warrior)
+                        Equipment.Armor?.Class == Class.Warrior)
                     {
                         motionId = 129;
                     }
                 }
             }
 
-            if (Class == Xml.Class.Monk)
+            if (Class == Class.Monk)
             {
-                if (Equipment.Armor?.Class == Xml.Class.Monk)
+                if (Equipment.Armor?.Class == Class.Monk)
                 {
                     motionId = 132;
                     if (Equipment.Weapon != null)
@@ -2793,7 +2794,7 @@ public class User : Creature
             CanGroup = Grouping,
             GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
             Class = (byte)Class,
-            ClassName = IsMaster ? "Master" : Hybrasyl.Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
+            ClassName = IsMaster ? "Master" : Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
             GuildName = GetGuildInfo().GuildName,
             PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
         };
@@ -2908,9 +2909,9 @@ public class User : Creature
         var merchantSkills = new MerchantSkills();
         merchantSkills.Skills = new List<MerchantSkill>();
 
-        foreach (var skill in merchant.Template.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant))).OrderBy(y => y.Name))
+        foreach (var skill in merchant.Template.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Class.Peasant))).OrderBy(y => y.Name))
         {
-            if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Xml.Castable result))
+            if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Castable result))
             {
                 if (SkillBook.Contains(result.Id)) continue;
                 merchantSkills.Skills.Add(new MerchantSkill()
@@ -3046,10 +3047,10 @@ public class User : Creature
         SendClearSpell(slot);
     }
 
-    public void ShowLearnSkill(Merchant merchant, Xml.Castable castable)
+    public void ShowLearnSkill(Merchant merchant, Castable castable)
     {
         var skillDesc =
-            castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
+            castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3090,7 +3091,7 @@ public class User : Creature
     {
         var castable = PendingLearnableCastable;
         //now check requirements.
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
 
         MerchantOptions options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3196,7 +3197,7 @@ public class User : Creature
     public void ShowLearnSkillAccept(Merchant merchant)
     {
         var castable = PendingLearnableCastable;
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
 
         var prompt = string.Empty;
         var options = new MerchantOptions();
@@ -3281,11 +3282,11 @@ public class User : Creature
 
         foreach (var spell in merchant.Template.Roles.Train
                      .Where(x => x.Type == "Spell" &&
-                                 (x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant)))
+                                 (x.Class.Contains(Class) || x.Class.Contains(Class.Peasant)))
                      .OrderBy(y => y.Name))
         {
             // Verify the spell exists first
-            if (!Game.World.WorldData.TryGetValueByIndex(spell.Name, out Xml.Castable result)) continue;
+            if (!Game.World.WorldData.TryGetValueByIndex(spell.Name, out Castable result)) continue;
             if (SpellBook.Contains(result.Id)) continue;
             merchantSpells.Spells.Add(new MerchantSpell()
             {
@@ -3316,9 +3317,9 @@ public class User : Creature
         Enqueue(packet.Packet());
     }
 
-    public void ShowLearnSpell(Merchant merchant, Xml.Castable castable)
+    public void ShowLearnSpell(Merchant merchant, Castable castable)
     {
-        var spellDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Xml.Class.Peasant));
+        var spellDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3358,7 +3359,7 @@ public class User : Creature
     {
         var castable = PendingLearnableCastable;
         //now check requirements.
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
         MerchantOptions options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
         var prompt = string.Empty;
@@ -3465,7 +3466,7 @@ public class User : Creature
     public void ShowLearnSpellAccept(Merchant merchant)
     {
         var castable = PendingLearnableCastable;
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Xml.Class.Peasant);
+        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
         var prompt = string.Empty;
         var options = new MerchantOptions
         {
@@ -3591,7 +3592,7 @@ public class User : Creature
 
     public void ShowBuyMenuQuantity(Merchant merchant, string name)
     {
-        var item = Game.World.WorldData.GetByIndex<Xml.Item>(name);
+        var item = Game.World.WorldData.GetByIndex<Item>(name);
         PendingBuyableItem = name;
         if (item.Stackable)
         {
@@ -3625,7 +3626,7 @@ public class User : Creature
     public void ShowBuyItem(Merchant merchant, uint quantity = 1)
     {
         var prompt = string.Empty;
-        var item = Game.World.WorldData.GetByIndex<Xml.Item>(PendingBuyableItem);
+        var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
         var itemObj = Game.World.CreateItem(item.Id);
         var reqGold = (uint)(itemObj.Value * quantity);
         var options = new MerchantOptions
@@ -4513,7 +4514,7 @@ public class User : Creature
             Inventory[PendingRepairSlot].Durability = Inventory[PendingRepairSlot].MaximumDurability;
             PendingRepairSlot = 0;
             PendingRepairCost = 0;
-            merchant.DisplayPursuits(this);
+            (merchant as IPursuitable).DisplayPursuits(this);
         }
     }
 
@@ -4683,7 +4684,7 @@ public class User : Creature
 
         foreach (var item in Vault.Items)
         {
-            Game.World.WorldData.TryGetValueByIndex<Xml.Item>(item.Key, out var worldItem);
+            Game.World.WorldData.TryGetValueByIndex<Item>(item.Key, out var worldItem);
             if(worldItem == null) continue;
             merchantItems.Items.Add(new MerchantShopItem()
             {
@@ -4717,7 +4718,7 @@ public class User : Creature
 
     public void ShowWithdrawItemQuantity(Merchant merchant, string item)
     {
-        var worldItem = World.WorldData.GetByIndex<Xml.Item>(item);
+        var worldItem = World.WorldData.GetByIndex<Item>(item);
         if (worldItem.Stackable)
         {
             PendingWithdrawItem = item;
@@ -4751,7 +4752,7 @@ public class User : Creature
     public void WithdrawItemConfirm(Merchant merchant, string item, uint quantity = 1)
     {
         var failure = false;
-        var worldItem = World.WorldData.GetByIndex<Xml.Item>(item);
+        var worldItem = World.WorldData.GetByIndex<Item>(item);
             
 
         var options = new MerchantOptions();
