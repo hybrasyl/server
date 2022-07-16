@@ -28,6 +28,8 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using Hybrasyl.Interfaces;
+using System;
+using Hybrasyl.Casting;
 
 namespace Hybrasyl.Scripting;
 
@@ -40,6 +42,7 @@ public class HybrasylWorldObject : IScriptable
     public string Name => WorldObject.Name;
     public string Type => Obj.GetType().Name;
     //public Xml.Direction Direction => WorldObject.Direction;
+    public string Guid => Obj.Guid.ToString();
 
     public void DebugFunction(string x)
     {
@@ -53,7 +56,7 @@ public class HybrasylWorldObject : IScriptable
     public void SetNpcDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.Sprite = (ushort)(0x4000 + displaySprite);
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
     }
@@ -65,7 +68,7 @@ public class HybrasylWorldObject : IScriptable
     public void SetItemDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.Sprite = (ushort)(0x4000 + displaySprite);
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
     }
@@ -291,32 +294,50 @@ public class HybrasylWorldObject : IScriptable
     ///// <summary>
     ///// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
     ///// </summary>
-    ///// <param name="player">The logged-in player that will receive the dialog</param>
-    ///// <param name="sequence">The sequence that will be started for the target player.</param>
+    ///// <param name="targetUser">The logged-in player that will receive the dialog</param>
+    ///// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
+    ///// <param name="sequenceName">The sequence that will be started for the target player</param>
+    ///// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
     ///// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
     ///// <returns>Boolean indicating success</returns>
-    //public bool RequestDialog(string player, string sequence, bool requireLocal = true)
-    //{
-    //    if (string.IsNullOrEmpty(player) || string.IsNullOrEmpty(sequence))
-    //    {
-    //        GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty, returning false");
-    //        return false;
-    //    }
+    public bool RequestDialog(string targetUser, string sourceGuid, string sequenceName, string originGuid, bool requireLocal = true)
+    {
+        IInteractable originInteractable = null;
+        WorldObject originObj = null;
+        CastableObject originCastable = null;
+        if (string.IsNullOrEmpty(sequenceName) || string.IsNullOrEmpty(targetUser)) {
+            GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty");
+            return false;
+        }
+        if (!System.Guid.TryParse(sourceGuid, out Guid source) || !System.Guid.TryParse(originGuid, out Guid origin)) {
+            GameLog.ScriptingError($"RequestDialog: source or origin guid {sourceGuid} / {originGuid} is invalid");
+            return false;
+        }
+        if (!Game.World.TryGetActiveUser(targetUser, out User user)) {
+            GameLog.ScriptingWarning($"RequestDialog: {targetUser} is not online");
+            return false;
+        }
 
-    //    DialogSequence seq;
-    //    if (Game.World.TryGetActiveUser(player, out User user))
-    //    {
-    //        if (Obj.SequenceIndex.TryGetValue(sequence, out seq) ||
-    //            Game.World.GlobalSequences.TryGetValue(sequence, out seq))
-    //            // TODO: fix this awful object hierarchy nonsense
-    //            return Game.World.TryAsyncDialog(Obj, user, seq);
-    //        else
-    //            GameLog.ScriptingError("RequestDialog: {player} - sequence {sequence} was not found", user.Name, sequence);
-    //    }
-    //    else
-    //        GameLog.ScriptingWarning("RequestDialog: {player} is not online", user.Name);
-    //    return false;
-    //}
+        if (!Game.World.WorldData.TryGetWorldObject(origin, out originObj) && !Game.World.WorldData.TryGetValueByIndex(origin, out originCastable))
+        {
+            GameLog.ScriptingWarning($"RequestDialog: {originGuid} not found");
+            return false;
+        }
+
+        originInteractable = originObj == null ? originCastable : originObj as IInteractable;
+
+        if (!originInteractable.SequenceIndex.ContainsKey(sequenceName) && !Game.World.GlobalSequences.ContainsKey(sequenceName)) {
+            GameLog.ScriptingError($"RequestDialog: {targetUser} - sequence {sequenceName} was not found");
+            return false;
+        }
+        if (!Game.World.WorldData.TryGetWorldObject(source, out WorldObject worldObj)) {
+            GameLog.ScriptingError($"RequestDialog: source guid {sourceGuid} could not be found");
+            return false;
+        }
+
+        var session = new AsyncDialogSession(sequenceName, originInteractable, worldObj as IVisible, user);
+        return Game.World.TryAsyncDialog(session);
+    }
 
     /// <summary>
     /// Speak as the current world object ("white message").

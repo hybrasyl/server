@@ -58,6 +58,7 @@ public class WorldObject : IQuadStorable, IWorldObject
 
     public Guid ServerGuid { get; set; }
     public World World => Game.GetServerByGuid<World>(ServerGuid);
+
     public ushort DialogSprite { get; set; }
 
 

@@ -22,7 +22,8 @@ public class Dialog
     public int Index;
 
     public string CallbackExpression { get; set; }
-    private ushort _sprite { get; set; }
+
+    public ushort Sprite { get; set; }
 
     private string _displayText { get; set; }
 
@@ -31,97 +32,47 @@ public class Dialog
     public ScriptExecutionResult LastScriptResult { get; set; } = null;
 
     /// <summary>
-    /// Gets the script responsible for handling events. This can be either an associate (e.g. an NPC),
-    /// an override, or a global script (set by a dialog's sequence).
-    /// Associate override first, then associate, and lastly, a global script.
-    /// </summary>
-    /// <returns></returns>
-    protected Script GetScript(IInteractable AssociateOverride = null)
-    {
-        if (AssociateOverride is IInteractable io)
-            return io.Script;
-
-        var associate = AssociateOverride == null ? Sequence.Associate : AssociateOverride;
-
-        if (associate != null)
-            return associate.Script;
-        return Sequence.Script ?? null;
-    }
-
-    /// <summary>
     /// Using the sequence associate or an override, evaluate the display text and replace
     /// {{foo}} tokens (dialog template variables) with values from the ephemeral store.
     /// </summary>
-    /// <param name="target">The user who is receiving the dialog</param>
-    /// <param name="AssociateOverride">The associate override, if any, to use as a source for token data</param>
+    /// <param name="invocation">The current DialogInvocation representing the ongoing dialog session</param>
     /// <returns>An evaluated string</returns>
-    public string EvaluateDisplayText(User target, IInteractable AssociateOverride = null)
+    public string EvaluateDisplayText(DialogInvocation invocation)
     {
         var matches = _regex.Matches(_displayText);
 
         if (matches.Count == 0)
             return _displayText;
 
-        var associate = AssociateOverride == null ? Sequence.Associate : AssociateOverride;
-
         // Handle a few special cases here
 
         var ret = _displayText;
 
-        if ((Sequence?.Id ?? uint.MaxValue) < Constants.DIALOG_SEQUENCE_SHARED)
+        ret = ret.Replace("{{target}}", invocation.Target.Name);
+        ret = ret.Replace("{{source}}", invocation.Source.Name);
+        ret = ret.Replace("{{origin}}", invocation.Origin.Name);
+
+        if (invocation.Origin is not IEphemeral ephemeral) return ret;
+
+        foreach (Match match in matches)
         {
-            // Global sequence, check for async
-            var dialog = Game.World.ActiveAsyncDialogs.Keys.Where(key => key.Item1 == target.Id || key.Item2 == target.Id).First();
-            if (dialog != null)
+            var groups = match.Groups;
+            if (ephemeral.TryGetEphemeral(groups["token"].Value, out dynamic value))
             {
-                WorldObject invoker = null;
-                if (dialog.Item1 == target.Id)
-                    Game.World.Objects.TryGetValue(dialog.Item2, out invoker);
-                if (dialog.Item2 == target.Id)
-                    Game.World.Objects.TryGetValue(dialog.Item1, out invoker);
-                ret = ret.Replace("{{invoker}}", invoker?.Name ?? "System");
+                ret = ret.Replace("{{" + groups["token"] + "}}", value.ToString());
+                GameLog.ScriptingInfo("{Function}: {Name}: token {Token} replaced with {String}",
+                    MethodInfo.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"], value);
             }
-        }
-
-        if (associate == null)
-            return ret;
-
-        if (associate is IEphemeral ephemeral)
-        {
-            foreach (Match match in matches)
+            else
             {
-                GroupCollection groups = match.Groups;
-                if (ephemeral.TryGetEphemeral(groups["token"].Value, out dynamic value))
-                {
-                    ret = ret.Replace("{{" + groups["token"] + "}}", value.ToString());
-                    GameLog.ScriptingInfo("{Function}: {Name}: token {Token} replaced with {String}",
-                        MethodInfo.GetCurrentMethod().Name, associate.Name, groups["token"], value);
-                }
-                else
-                {
-                    GameLog.ScriptingError(
-                        "{Function}: {Name}: template script references {Token} which could not be evaluated",
-                        MethodInfo.GetCurrentMethod().Name, associate.Name, groups["token"]);
-                    continue;
-                }
+                GameLog.ScriptingError(
+                    "{Function}: {Name}: template script references {Token} which could not be evaluated",
+                    MethodInfo.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"]);
+                continue;
             }
         }
 
         return ret;
-    }
-
-    public ushort Sprite
-    {
-        get
-        {
-            if (_sprite == ushort.MaxValue)
-                return Sequence?.Associate?.DialogSprite ?? Sequence?.Sprite ?? 0;
-            return _sprite;
-        }
-        set
-        {
-            _sprite = value;
-        }
     }
 
     public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
@@ -129,8 +80,8 @@ public class Dialog
         DialogType = (ushort)dialogType;
         _displayText = displayText;
         CallbackExpression = callbackFunction;
-        _sprite = ushort.MaxValue; // Client only uses about ~1000 of these values
         _regex = new Regex(_tokenRegex, RegexOptions.Compiled);
+        Sprite = ushort.MinValue;
     }
 
     // Any Dialog can have a callback function which can be used to process dialog responses, or
@@ -141,16 +92,12 @@ public class Dialog
         CallbackExpression = callback;
     }
 
-    public ScriptExecutionResult RunCallback(User target, IInteractable associateOverride = null)
+    public ScriptExecutionResult RunCallback(DialogInvocation invocation)
     {
         if (string.IsNullOrEmpty(CallbackExpression)) return ScriptExecutionResult.NoExecution;
-
-        var script = GetScript(associateOverride);
-        if (script == null) return ScriptExecutionResult.NotFound;
-        var env = new ScriptEnvironment();
-        env.DialogPath = DialogPath;
-        env.Add("invoker", target);
-        LastScriptResult = script.ExecuteExpression(CallbackExpression);
+        if (invocation.Script == null) return ScriptExecutionResult.NotFound;
+        invocation.Environment.DialogPath = DialogPath;
+        LastScriptResult = invocation.ExecuteExpression(CallbackExpression);
         return LastScriptResult;
     }
 
@@ -174,8 +121,11 @@ public class Dialog
         return (DialogType == DialogTypes.SIMPLE_DIALOG) && (Index + 1 < Sequence.Dialogs.Count);
     }
 
-    public ServerPacket GenerateBasePacket(User invoker, IInteractable source)
+    public ServerPacket GenerateBasePacket(DialogInvocation invocation)
     {
+        if (invocation.Origin == null)
+            throw new ArgumentNullException("Invocations must have origin");
+
         byte color = 0;
         ushort sprite = 0;
         DialogObjectType objType = 0;
@@ -183,41 +133,39 @@ public class Dialog
         var dialogPacket = new ServerPacket(0x30);
         dialogPacket.WriteByte((byte)(DialogType));
 
-        switch (source)
+        switch (invocation.Origin)
         {
             case Creature creature:
                 sprite = (ushort)(0x4000 + creature.Sprite);
                 objType = DialogObjectType.Creature;
                 break;
             case ItemObject itemObject:
-                {
-                    objType = DialogObjectType.ItemObject;
-                    sprite = (ushort)(0x8000 + itemObject.Sprite);
-                    color = itemObject.Color;
-                    break;
-                }
+                objType = DialogObjectType.ItemObject;
+                sprite = (ushort)(0x8000 + itemObject.Sprite);
+                color = itemObject.Color;
+                break;
             case Reactor r:
                 objType = DialogObjectType.Reactor;
-                sprite = r.Sprite;
+                sprite = r.DialogSprite;
                 break;
             case CastableObject co:
                 objType = DialogObjectType.CastableObject;
                 sprite = co.Sprite;
                 break;
+            case AsyncDialogSession ads:
+                objType = DialogObjectType.Asynchronous;
+                sprite = ads.DialogSprite;
+                break;
         }
 
         if (sprite == 0)
-            // If dialog sprite is unset, try using invokee's sprite; 
-            // then try user dialog state (global sequence),
-            // and lastly try the sprite for the active sequence itself
-            sprite = source?.DialogSprite ?? invoker.DialogState?.Associate?.DialogSprite ??
-                invoker.DialogState?.ActiveDialogSequence?.Sprite ?? 0;
+            sprite = Sprite > 0 ? Sprite : Sequence?.Sprite ?? invocation.Target.DialogState.Associate.DialogSprite;
 
         dialogPacket.WriteByte((byte)objType);
-        // If no invokee ID, we use 0xFFFFFFFF; 99.9% of the time this is an async dialog request
-        dialogPacket.WriteUInt32(source?.Id ?? uint.MaxValue);
+        dialogPacket.WriteUInt32(invocation.Origin.Id);
         dialogPacket.WriteByte(0); // Unknown value
         GameLog.Info("Sprite is {Sprite}", sprite);
+        GameLog.Info($"Object type is {objType}");
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
         dialogPacket.WriteByte(0); // Unknown value
@@ -232,8 +180,8 @@ public class Dialog
 
         dialogPacket.WriteByte(0);
         // TODO: Allow override here from DialogSequence
-        dialogPacket.WriteString8(source?.Name ?? invoker.DialogState?.Associate?.Name ?? Sequence.DisplayName);
-        var displayText = EvaluateDisplayText(invoker, source);
+        dialogPacket.WriteString8(invocation.Origin?.Name ?? invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName);
+        var displayText = EvaluateDisplayText(invocation);
 
         if (!string.IsNullOrEmpty(displayText))
             dialogPacket.WriteString16(displayText);
@@ -246,7 +194,7 @@ public class Dialog
         Sequence = dialogSequence;
     }
 
-    public virtual void ShowTo(User invoker, IInteractable origin)
+    public virtual void ShowTo(DialogInvocation invocation)
     {
     }
 

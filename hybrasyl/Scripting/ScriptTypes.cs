@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Microsoft.DocAsCode.SubCommands;
 using MoonSharp.Interpreter;
@@ -51,17 +52,16 @@ namespace Hybrasyl.Scripting
             Guid = Guid.NewGuid();
         }
 
-        public static ScriptExecutionResult Disabled => new ScriptExecutionResult
-            {Result = ScriptResult.Disabled, Return = DynValue.Nil, Error = null};
+        public static ScriptExecutionResult Disabled => new() {Result = ScriptResult.Disabled, Return = DynValue.Nil, Error = null};
 
-        public static ScriptExecutionResult NotFound => new ScriptExecutionResult
+        public static ScriptExecutionResult NotFound => new()
         {
             Result = ScriptResult.NoExecution,
             Return = DynValue.Nil,
             Error = null
         };
 
-        public static ScriptExecutionResult NoExecution => new ScriptExecutionResult
+        public static ScriptExecutionResult NoExecution => new()
         {
             Result = ScriptResult.NoExecution,
             Return = DynValue.Nil,
@@ -81,6 +81,44 @@ namespace Hybrasyl.Scripting
         public override string ToString()
         {
             return $"{ErrorType}: {Filename} line {LineNumber}\n{Error}\n\n{HumanizedError}";
+        }
+    }
+
+    public class DialogInvocation
+    {
+        public ScriptEnvironment Environment { get; set; }
+        // Origin is the script responsible for what is currently happening
+        public IInteractable Origin { get; set; }
+        public Script Script => Origin?.Script;
+        // Target is the target of a (dialog) spell, the recipient of a dialog, etc. Somewhat obviously,
+        // mundanes cannot be shown dialogs
+        public User Target { get; set; }
+        // Source is the object responsible for the action occurring - could be a user, a mundane, etc
+        public IWorldObject Source { get; set; }
+        public ushort Sprite => Origin.Sprite;
+
+        public ScriptExecutionResult ExecuteExpression(string expr)
+        {
+            Environment.Add("origin", Origin);
+            Environment.Add("source", Source);
+            Environment.Add("target", Target);
+            return Script.ExecuteExpression(expr, Environment);
+        }
+
+        public ScriptExecutionResult ExecuteFunction(string function)
+        {
+            Environment.Add("origin", Origin);
+            Environment.Add("source", Source);
+            Environment.Add("target", Target);
+            return Script.ExecuteFunction(function, Environment);
+        }
+
+        public DialogInvocation(IInteractable origin, User target, IWorldObject source)
+        {
+            Source = source;
+            Origin = origin;
+            Target = target;
+            Environment = new ScriptEnvironment();
         }
     }
 
@@ -108,12 +146,15 @@ namespace Hybrasyl.Scripting
         }
 
         // TODO: clarify this terminology in scripting
-        public static ScriptEnvironment CreateWithOrigin(dynamic invoker) => Create(("invoker", invoker));
+        public static ScriptEnvironment CreateWithTarget(dynamic target) => Create(("target", target));
 
-        public static ScriptEnvironment CreateWithOriginAndSource(dynamic invoker, dynamic source) =>
-            Create(("invoker", invoker), ("source", source));
+        public static ScriptEnvironment CreateWithTargetAndSource(dynamic target, dynamic source) =>
+            Create(("target", target), ("source", source));
 
-
+        public static ScriptEnvironment CreateWithOriginAndTarget(dynamic origin, dynamic target) =>
+            Create(("origin", target), ("target", target));
+        public static ScriptEnvironment CreateWithOriginTargetAndSource(dynamic origin, dynamic target, dynamic source) =>
+            Create(("origin", target), ("target", target), ("source", source));
     }
 
 }

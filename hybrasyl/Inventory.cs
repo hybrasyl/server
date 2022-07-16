@@ -790,6 +790,7 @@ public class Inventory : IEnumerable<ItemObject>
     protected Dictionary<byte, ItemObject> Items = new();
     protected Dictionary<string, List<(byte Slot, ItemObject Item)>> ItemIndex = new();
     protected Dictionary<string, List<(byte Slot, ItemObject Item)>> CategoryIndex = new();
+    private HashSet<Guid> GuidIndex { get; set; } = new();
 
     protected Lockable<int> _size { get; }
     protected Lockable<int> _count { get; } = new(0);
@@ -882,6 +883,7 @@ public class Inventory : IEnumerable<ItemObject>
                     CategoryIndex.Add(category, new List<(byte Slot, ItemObject Item)> {index});
                 }
             }
+            GuidIndex.Add(obj.Guid);
         }
     }
 
@@ -897,6 +899,8 @@ public class Inventory : IEnumerable<ItemObject>
             {
                 CategoryIndex[category].RemoveAll(x => x.Slot == slot);
             }
+
+            GuidIndex.Remove(obj.Guid);
         }
     }
 
@@ -975,6 +979,8 @@ public class Inventory : IEnumerable<ItemObject>
         itemObject = itemList.First().Item;
         return true;
     }
+
+    public bool Contains(ItemObject io) => GuidIndex.Contains(io.Guid);
 
     public bool ContainsName(string name, int quantity = 1) => Item.GenerateIds(name).Any(x => ContainsId(x, quantity));
 

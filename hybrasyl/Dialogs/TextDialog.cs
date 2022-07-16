@@ -1,4 +1,5 @@
-﻿using Hybrasyl.Interfaces;
+﻿using Grpc.Core;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
@@ -20,45 +21,32 @@ public class TextDialog : InputDialog
         InputLength = inputLength;
     }
 
-    public override void ShowTo(User invoker, IInteractable origin)
+    public override void ShowTo(DialogInvocation invocation)
     {
         Log.Debug("active for input dialog: {TopCaption}, {InputLength}, {BottomCaption}", TopCaption, InputLength, BottomCaption);
-        var dialogPacket = base.GenerateBasePacket(invoker, origin);
+        var dialogPacket = base.GenerateBasePacket(invocation);
         dialogPacket.WriteString8(TopCaption);
         dialogPacket.WriteByte((byte)InputLength);
         dialogPacket.WriteString8(BottomCaption);
-        invoker.Enqueue(dialogPacket);
-        RunCallback(invoker, origin);
+        invocation.Target.Enqueue(dialogPacket);
+        RunCallback(invocation);
     }
 
-    public bool HandleResponse(User invoker, string response, IInteractable associateOverride = null, IInteractable origin = null)
+    public bool HandleResponse(string response, DialogInvocation invocation)
     {
-        Log.Debug("Response {Response} from player {Invoker}", response, invoker.Name);
+        Log.Debug("Response {Response} from player {Invoker}", response, invocation.Source.Name);
 
-        if (Handler != string.Empty)
+        if (Handler == string.Empty) return false;
+
+        if (invocation.Script == null)
         {
-            // Either we must have an associate already known to us, one must be passed, or we must have a script defined
-            if (Sequence.Associate == null && associateOverride == null && Sequence.Script == null)
-            {
-                Log.Error("InputDialog has no known associate or script...?");
-                return false;
-            }
-
-            var scriptTarget = GetScript(associateOverride);
-            if (scriptTarget == null)
-            {
-                Log.Error("scriptTarget is null, this should not happen");
-                return false;
-            }
-            var env = new ScriptEnvironment();
-            env.Add("player_response", response);
-            env.Add("invoker", invoker);
-            env.Add("source", origin);
-            env.DialogPath = DialogPath;
-            LastScriptResult = scriptTarget.ExecuteExpression(Handler, env);
-
-            return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
+            Log.Error("Invocation script is null, this should not happen");
+            return false;
         }
-        return false;
+        invocation.Environment.Add("player_response", response);
+        invocation.Environment.DialogPath = DialogPath;
+        LastScriptResult = invocation.ExecuteExpression(Handler);
+
+        return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
     }
 }

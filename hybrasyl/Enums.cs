@@ -433,7 +433,7 @@ namespace Hybrasyl
             ItemObject = 0x02,
             Reactor = 0x04,
             CastableObject = 0x05,
-            Asynchronous = 0xFE
+            Asynchronous = 0xFE,
         }
 
         public class EnumUtil

@@ -19,7 +19,7 @@ public interface IInteractable : ISprite
     public virtual void RegisterDialogSequence(DialogSequence sequence)
     {
         sequence.Id = (uint) (Constants.DIALOG_SEQUENCE_PURSUITS + DialogSequences.Count);
-        sequence.AssociateSequence(this);
+        //sequence.AssociateSequence(this);
         DialogSequences.Add(sequence);
 
         if (SequenceIndex.ContainsKey(sequence.Name))

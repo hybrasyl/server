@@ -48,11 +48,6 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         }
 
         SequenceIndex.Add(pursuit.Name, pursuit);
-
-        if (pursuit.Id > Constants.DIALOG_SEQUENCE_SHARED)
-        {
-            pursuit.AssociateSequence(this as IInteractable);
-        }
     }
 
     public sealed void DisplayPursuits(User invoker)
@@ -115,7 +110,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
             if (pursuit.MenuCheckExpression != string.Empty)
             {
-                var env = ScriptEnvironment.CreateWithOrigin(invoker);
+                var env = ScriptEnvironment.CreateWithTarget(invoker);
                 env.DialogPath = $"{Name}:DisplayPursuits:MenuCheckExpression";
                 var ret = Script.ExecuteExpression(pursuit.MenuCheckExpression,
                     env);

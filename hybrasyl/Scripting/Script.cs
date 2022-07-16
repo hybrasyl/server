@@ -111,6 +111,7 @@ public class Script
         if (obj is VisibleObject vo)
             Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(vo.Map)));
         Compiled.Globals.Set("associate", UserData.Create(Associate));
+        Compiled.Globals.Set("origin", UserData.Create(Associate));
         obj.Script = this;
     }
 

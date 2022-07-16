@@ -18,19 +18,17 @@ public class OptionsDialog : InputDialog
         Options = new List<DialogOption>();
     }
 
-    public override void ShowTo(User invoker, IInteractable origin)
+    public override void ShowTo(DialogInvocation invocation)
     {
-        var dialogPacket = base.GenerateBasePacket(invoker, origin);
-        if (Options.Count > 0)
+        var dialogPacket = GenerateBasePacket(invocation);
+        if (Options.Count <= 0) return;
+        dialogPacket.WriteByte((byte)Options.Count);
+        foreach (var option in Options)
         {
-            dialogPacket.WriteByte((byte)Options.Count);
-            foreach (var option in Options)
-            {
-                dialogPacket.WriteString8(option.OptionText);
-            }
-            invoker.Enqueue(dialogPacket);
-            RunCallback(invoker, origin);
+            dialogPacket.WriteString8(option.OptionText);
         }
+        invocation.Target.Enqueue(dialogPacket);
+        RunCallback(invocation);
     }
 
     public void AddDialogOption(string option, string callback = null)
@@ -48,9 +46,8 @@ public class OptionsDialog : InputDialog
         Options.Add(new DialogOption(option, sequence));
     }
 
-    public bool HandleResponse(User invoker, int optionSelected, IInteractable associateOverride = null, User origin = null)
+    public bool HandleResponse(int optionSelected, DialogInvocation invocation)
     {
-        IInteractable associate;
         string Expression = string.Empty;
         // Quick sanity check
         if (optionSelected < 0 || optionSelected > Options.Count)
@@ -59,14 +56,13 @@ public class OptionsDialog : InputDialog
             return false;
         }
 
-        associate = Sequence.Associate ?? associateOverride;
         // Note that client is 1-indexed for responses
         // If we have a JumpDialog, handle that first
 
         if (Options[optionSelected - 1].JumpDialog != null)
         {
             // Use jump dialog first
-            Options[optionSelected - 1].JumpDialog.ShowTo(invoker, associate);
+            Options[optionSelected - 1].JumpDialog.ShowTo(invocation);
             return true;
         }
 
@@ -74,8 +70,8 @@ public class OptionsDialog : InputDialog
         if (Options[optionSelected - 1].OverrideSequence != null)
         {
             var sequence = Options[optionSelected - 1].OverrideSequence;
-            invoker.DialogState.TransitionDialog(associate, Options[optionSelected - 1].OverrideSequence);
-            sequence.ShowTo(invoker, associate);
+            invocation.Target.DialogState.TransitionDialog(invocation.Origin, Options[optionSelected - 1].OverrideSequence);
+            sequence.ShowTo(invocation);
         }
 
         // If the individual options don't have callbacks, use the dialog callback instead.
@@ -90,15 +86,11 @@ public class OptionsDialog : InputDialog
         // Regardless of what handler we use, make sure the script can see the value.
         // We pass everything as string to not make UserData barf, as it can't handle dynamics.
         // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.
-        var script = GetScript(associateOverride);
-        if (script == null) return false;
-        var env = new ScriptEnvironment();
-        env.Add("player_selection", optionSelected.ToString());
-        env.Add("player_response", Options[optionSelected - 1].OptionText);
-        env.Add("invoker", invoker);
-        env.Add("origin", origin);
-        env.DialogPath = DialogPath;
-        LastScriptResult = script.ExecuteExpression(Expression, env);
+        if (invocation.Script == null) return false;
+        invocation.Environment.Add("player_selection", optionSelected.ToString());
+        invocation.Environment.Add("player_response", Options[optionSelected - 1].OptionText);
+        invocation.Environment.DialogPath = DialogPath;
+        LastScriptResult = invocation.ExecuteExpression(Expression);
         return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
     }
 }

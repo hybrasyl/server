@@ -568,7 +568,7 @@ public class Creature : VisibleObject
             {
                 Game.World.WorldData.TryGetValueByIndex(castableXml.Guid, out CastableObject castableObj);
                 var ret = script.ExecuteFunction("OnUse",
-                    ScriptEnvironment.Create(("target", target), ("origin", this), ("invoker", this), ("castable", castableObj)));
+                    ScriptEnvironment.Create(("target", target), ("origin", castableObj), ("source", this), ("castable", castableObj)));
                 return ret.Result == ScriptResult.Success;
             }
             GameLog.UserActivityError(

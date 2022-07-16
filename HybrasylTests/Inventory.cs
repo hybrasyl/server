@@ -159,6 +159,20 @@ public class Inventory
 
 
     }
+
+    [Theory]
+    [MemberData(nameof(XmlItems))]
+    public void ContainsGuid(params Item[] items)
+    {
+        Fixture.TestUser.Inventory.Clear();
+        for (var x = 1; x < 6; x++)
+        {
+            var item = Game.World.CreateItem(items[0].Id);
+            Fixture.TestUser.AddItem(item);
+            Assert.True(Fixture.TestUser.Inventory.Contains(item));
+        }
+    }
+
     [Theory]
     [MemberData(nameof(XmlItems))]
     public void AddItemsToInventory(params Item[] items)
@@ -217,8 +231,6 @@ public class Inventory
         Fixture.TestUser.SwapItem(4, 58);
         Assert.True(Fixture.TestUser.Inventory[4] is null);
         Assert.True(Fixture.TestUser.Inventory[58].Name == "Test Item");
-
-
     }
 
 

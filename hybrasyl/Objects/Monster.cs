@@ -275,11 +275,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             // TODO: ondeath castables
             InitScript();
             // FIXME: in the glorious future, run asynchronously with locking
-            // TODO: fix awful hack here in scripting refactor
-            if (Script != null)
-            {
-                Script.ExecuteFunction("OnDeath", ScriptEnvironment.Create(("lasthitter", LastHitter)));
-            }
+            Script?.ExecuteFunction("OnDeath", ScriptEnvironment.Create(("origin", this), ("target", this), ("source", LastHitter)));
             Map?.Remove(this);
             World?.Remove(this);
         }
@@ -321,12 +317,13 @@ public class Monster : Creature, ICloneable, IEphemeral
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout));
+        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
+            ("origin", new HybrasylWorldObject(this)));
 
         if (e.Speaker is User user)
-            env.Add("invoker", new HybrasylUser(user));
+            env.Add("source", new HybrasylUser(user));
         else
-            env.Add("invoker", new HybrasylWorldObject(e.Speaker as IWorldObject));
+            env.Add("source", new HybrasylWorldObject(e.Speaker as IWorldObject));
         Script.ExecuteFunction("OnHear", env);
     }
 
@@ -361,9 +358,9 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             if (Script == null) return;
 
-            var env = ScriptEnvironment.CreateWithOrigin(this);
+            var wrapped = new HybrasylWorldObject(this);
+            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(wrapped, wrapped, damageEvent.Attacker);
             env.Add("damage", damageEvent.Damage);
-            env.Add("source", damageEvent.Attacker);
 
             Script.ExecuteFunction("OnDamage", env);
         }
@@ -374,9 +371,8 @@ public class Monster : Creature, ICloneable, IEphemeral
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-        var env = ScriptEnvironment.CreateWithOrigin(this);
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healer, this, healer);
         env.Add("heal", heal);
-        env.Add("source", healer);
         Script.ExecuteFunction("OnHeal", env);
     }
 

@@ -2,6 +2,7 @@
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
+using Hybrasyl.Scripting;
 using Serilog;
 
 namespace Hybrasyl.Dialogs;
@@ -57,12 +58,11 @@ public class DialogState
     {
         get
         {
-            if (ActiveDialog != null && ActiveDialogSequence != null)
-                if (ActiveDialogSequence.Id < Constants.DIALOG_SEQUENCE_SHARED)
-                    return true;
-                else
-                    return Associate != null;
-            return false;
+            if (ActiveDialog == null || ActiveDialogSequence == null) return false;
+            if (ActiveDialogSequence.Id < Constants.DIALOG_SEQUENCE_SHARED)
+                return true;
+            else
+                return Associate != null;
         }
     }
 
@@ -75,9 +75,9 @@ public class DialogState
         PreviousPursuitId = null;
     }
 
-    public void RunCallback(User target, IInteractable associate)
+    public void RunCallback(DialogInvocation invocation)
     {
-        ActiveDialog.RunCallback(target, associate);
+        ActiveDialog.RunCallback(invocation);
     }
 
     /// <summary>
@@ -156,9 +156,9 @@ public class DialogState
             case Merchant:
             case Creature:
             {
-                if (target is Creature c && target != null && (target != Associate ||
-                                                               pursuitId != CurrentPursuitId ||
-                                                               c.Map.Id != User.Map.Id || !InDialog))
+                if (target is Creature c && (target != Associate ||
+                                             pursuitId != CurrentPursuitId ||
+                                             c.Map.Id != User.Map.Id || !InDialog))
                 {
                     Log.Error(
                         $"{User.Name}: Failed dialog sanity check: target {c.Name}, current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
@@ -168,12 +168,16 @@ public class DialogState
 
                 break;
             }
-            case ItemObject:
+            case ItemObject io:
             {
-                if (target is ItemObject io && !User.Inventory.Contains(io))
-                    Log.Error(
-                        $"{User.Name}: Failed dialog sanity check: item {io.Name} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
-                        $"target map {io.Map.Id}, user map {User.Map.Id}, indialog {InDialog}");
+                if (User.ActiveDialogSession == null)
+                    if (!User.Inventory.Contains(io))
+                    {
+                        Log.Error(
+                            $"{User.Name}: Failed dialog sanity check: item {io.Name} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
+                            $"user map {User.Map.Id}, indialog {InDialog}");
+                        return false;
+                    }
             }
                 break;
         }

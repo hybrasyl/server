@@ -393,8 +393,7 @@ public class ItemObject : VisibleObject, IInteractable
                 return;
             }
 
-            var env = ScriptEnvironment.CreateWithOrigin(trigger);
-            env.Add("item", this);
+            var env = ScriptEnvironment.Create(("origin", this), ("source", trigger));
             invokeScript.ExecuteFunction("OnUse", env);
         }
 

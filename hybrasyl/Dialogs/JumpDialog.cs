@@ -1,5 +1,6 @@
 ﻿using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
+using Hybrasyl.Scripting;
 using Serilog;
 
 namespace Hybrasyl.Dialogs;
@@ -17,42 +18,36 @@ public class JumpDialog : Dialog
         NextSequence = nextSequence;
     }
 
-    public override void ShowTo(User invoker, IInteractable origin)
+    public override void ShowTo(DialogInvocation invocation)
     {
-        // Start the sequence in question
-        // Look for a local (tied to NPC/reactor) sequence first, then consult the global catalog
-        DialogSequence sequence;
-        // Depending on how this was registered, it may not have an associate; thankfully we always
-        // get a hint of one from the 0x3A packet
-        var associate = Sequence?.Associate ?? origin;
-        // Consult dialog state as last attempt to find our associate
-
         // We assume that a callback expression for a jump dialog is a simple one to award xp, set
         // a value, etc. If you use this functionality to modify dialog sequences / change active 
         // sequence you're likely to have strange results.
-        RunCallback(invoker, origin);
+        RunCallback(invocation);
         if (NextSequence.ToLower().Trim() == "mainmenu")
         {
             // Return to main menu (pursuits)
-            invoker.DialogState.EndDialog();
-            if (associate is IPursuitable pursuitable)
-                pursuitable.DisplayPursuits(invoker);
+            invocation.Target.DialogState.EndDialog();
+            if (invocation.Origin is IPursuitable pursuitable)
+                pursuitable.DisplayPursuits(invocation.Target);
             return;
         }
 
-        if (associate.SequenceIndex.TryGetValue(NextSequence, out sequence) ||
+        DialogSequence sequence;
+
+        if (invocation.Origin.SequenceIndex.TryGetValue(NextSequence, out sequence) ||
             Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence))
         {
             // End previous sequence
-            invoker.DialogState.EndDialog();
-            invoker.DialogState.StartDialog(origin, sequence);
-            sequence.ShowTo(invoker, origin);
+            invocation.Target.DialogState.EndDialog();
+            invocation.Target.DialogState.StartDialog(invocation.Origin, sequence);
+            sequence.ShowTo(invocation);
         }
         else
         {
             // We terminate our dialog state if we encounter an error
-            invoker.DialogState.EndDialog();
-            invoker.SendSystemMessage($"{origin.Name} seems confused ((scripting error!))...");
+            invocation.Target.DialogState.EndDialog();
+            invocation.Target.SendSystemMessage($"{invocation.Origin.Name} seems confused ((scripting error!))...");
             Log.Error("JumpDialog: sequence {NextSequence} not found!", NextSequence);
         }
     }

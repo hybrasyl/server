@@ -138,10 +138,6 @@
     </Compile>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Dialogs\" />
-  </ItemGroup>
-
   <PropertyGroup>
     <MSBuildGitHashCommand>git rev-parse --short HEAD</MSBuildGitHashCommand>
   </PropertyGroup>

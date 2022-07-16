@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Casting;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -35,7 +36,8 @@ public class HybrasylUser : HybrasylWorldObject
     internal User User => WorldObject as User;
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
-
+    public string Guid => User.Guid.ToString();
+    
     /// <summary>
     /// The item in the first inventory slot of the player.
     /// </summary>
@@ -486,43 +488,6 @@ public class HybrasylUser : HybrasylWorldObject
             mark.Timestamp = DateTime.Now;
         return true;
     }
-
-    ///// <summary>
-    ///// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
-    ///// player is required).
-    ///// </summary>
-    ///// <param name="sequence">The sequence name to start</param>
-    ///// <param name="invoker">The player invoking the asynchronous dialog.</param>
-    ///// <returns>Boolean indicating whether or not the request was successful.</returns>
-    //public bool RequestDialog(string sequence, string invoker = "")
-    //{
-    //    if (string.IsNullOrEmpty(sequence))
-    //    {
-    //        GameLog.ScriptingError("RequestDialog: {user} - sequence (first argument) was null or empty", User.Name);
-    //        return false;
-    //    }
-
-    //    DialogSequence sequenceObj = null;
-    //    IWorldObject invokerObj = null;
-
-    //    if (Game.World.TryGetActiveUser(invoker, out User user))
-    //        invokerObj = user;
-    //    else if (Game.World.WorldData.TryGetValue<Merchant>(invoker, out Merchant merchant))
-    //        invokerObj = merchant;
-
-    //    if (invokerObj != null)
-    //        invokerObj.SequenceIndex.TryGetValue(sequence, out sequenceObj);
-
-    //    if (sequenceObj == null)
-    //        // Try global catalog
-    //        Game.World.GlobalSequences.TryGetValue(sequence, out sequenceObj);
-
-    //    if (invokerObj != null && sequenceObj != null)
-    //        return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
-
-    //    GameLog.ScriptingWarning("RequestDialog: {user} - invoker {invoker} or sequence {sequence} not found", user, invoker, sequence);
-    //    return false;
-    //}
 
     /// <summary>
     /// Set a session cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string key). NPCs and other scripting functionality can 
@@ -1030,7 +995,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// Indicates whether the current player is in a guild.
     /// </summary>
     /// <returns>Boolean indicating whether or not current player is in a guild.</returns>
-    public bool IsInGuild() => User.GuildGuid != Guid.Empty;
+    public bool IsInGuild() => User.GuildGuid != System.Guid.Empty;
         
     /// <summary>
     /// Sends a whisper ("blue message") from a given name to the current player.
@@ -1053,6 +1018,7 @@ public class HybrasylUser : HybrasylWorldObject
     public void EndDialog()
     {
         User.DialogState.EndDialog();
+        User.ActiveDialogSession = null;
         User.SendCloseDialog();
         //GameLog.Info("Dialog: closed by script");
     }
@@ -1125,8 +1091,15 @@ public class HybrasylUser : HybrasylWorldObject
         }
 
         // Lastly, show the new dialog
-        User.DialogState.ActiveDialog.ShowTo(User, associate);
-
+        DialogInvocation invocation = associate switch
+        {
+            // Get the raw interactable (underlying unwrapped object) and use that to start the dialog
+            IScriptable {WorldObject: IInteractable interactable} => new DialogInvocation(interactable, User, User),
+            CastableObject => new DialogInvocation(associate, User, User),
+            _ => null
+        };
+        if (invocation is not null)
+            User.DialogState.ActiveDialog.ShowTo(invocation);
     }
 
     /// <summary>

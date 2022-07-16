@@ -204,7 +204,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             Script.AssociateScriptWithObject(this);
             // Clear existing pursuits, in case the OnSpawn crashes / has a bug
             (this as IPursuitable).ResetPursuits();            
-            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.CreateWithOrigin(this));
+            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.CreateWithTarget(this));
             Ready = ret.Result == ScriptResult.Success;
         }
         else
@@ -268,7 +268,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             OnSpawn();
 
         if (Script != null && Script.HasFunction("OnClick"))
-            Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithOrigin(invoker));
+            Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithTarget(invoker));
         else
            (this as IPursuitable).DisplayPursuits(invoker);
     }
@@ -278,7 +278,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         base.AoiEntry(obj);
         if (Script != null)
         {
-            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithOrigin(obj));
+            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithTarget(obj));
         }
     }
 
@@ -287,7 +287,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         base.AoiDeparture(obj);
         if (Script != null)
         {
-            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOrigin(obj));
+            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithTarget(obj));
         }
     }
 

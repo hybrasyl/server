@@ -151,6 +151,11 @@ public class VisibleObject : WorldObject, IVisible
             Constants.VIEWPORT_SIZE * 2);
     }
 
+    public int Distance(IVisible target)
+    {
+        return 3;
+    }
+
     public virtual void Show()
     {
         var withinViewport = Map.EntityTree.GetObjects(GetViewport());

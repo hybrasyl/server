@@ -42,7 +42,6 @@ public class DialogSequence
         set { _script = value; }
     }
 
-    public IInteractable Associate { get; private set; }
     public string PreDisplayCallback { get; private set; }
     public string MenuCheckExpression { get; private set; }
     public bool CloseOnEnd { get; set; }
@@ -66,41 +65,23 @@ public class DialogSequence
     /// <summary>
     /// Show a dialog sequence to a user.
     /// </summary>
-    /// <param name="invoker">The user who will receive the dialog.</param>
-    /// <param name="target">A target of the dialog; generally an associate (NPC/reactor tile)</param>
-    /// <param name="runCheck">Whether or not to run any pre display checks before displaying the sequence</param>
-    public void ShowTo(User invoker, IInteractable target = null, bool runCheck = true)
+    /// <param name="invocation">The DialogInvocation data associated with this current dialog</param>
+    public void ShowTo(DialogInvocation invocation, bool runCheck = true)
     {
-        // Either we must have an associate already known to us, one must be passed, or we must have a script defined
-        if (Associate == null && target == null && Script == null)
-        {
-            Log.Error("DialogSequence {0} has no known associate or script...?", Name);
-            // Need better error handling here
-            return;
-        }
         if (!string.IsNullOrEmpty(PreDisplayCallback) && runCheck)
         {
-            var env = ScriptEnvironment.CreateWithOrigin(invoker);
-            env.DialogPath = Name;
-            var ret = Script.ExecuteExpression(PreDisplayCallback, env);
+            invocation.Environment.DialogPath = Name;
+            var ret = invocation.ExecuteExpression(PreDisplayCallback);
             if (ret.Return.Equals(DynValue.True))
-                Dialogs.First().ShowTo(invoker, target);
+                Dialogs.First().ShowTo(invocation);
             else
                 // Error, generally speaking
-                invoker.ClearDialogState();
+                invocation.Target.ClearDialogState();
         }
         else
         {
-            Dialogs.First().ShowTo(invoker, target);
+            Dialogs.First().ShowTo(invocation);
         }
-    }
-    /// <summary>
-    /// Associate a dialog with an object in the world.
-    /// </summary>
-    /// <param name="obj"></param>
-    public void AssociateSequence(IInteractable obj)
-    {
-        Associate = obj;
     }
 
     public void AddDialog(Dialog dialog)
@@ -123,13 +104,11 @@ public class DialogSequence
     /// <summary>
     /// Skip to the specified index in a dialog sequence.
     /// </summary>
-    /// <param name="index"></param>
-    /// <param name="invoker"></param>
-    /// <param name="target"></param>
-    public void ShowByIndex(int index, User invoker, IInteractable target = null)
+    /// <param name="invocation">The DialogInvocation state associated with the current dialog session</param>
+    public void ShowByIndex(int index, DialogInvocation invocation)
     {
         if (index >= Dialogs.Count)
             return;
-        Dialogs[index].ShowTo(invoker, target);
+        Dialogs[index].ShowTo(invocation);
     }
 }

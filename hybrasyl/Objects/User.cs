@@ -187,7 +187,7 @@ public class User : Creature
     [JsonProperty] public Legend Legend;
     [JsonProperty] public string Title;
 
-
+    public AsyncDialogSession ActiveDialogSession { get; set; } = null;
     public DialogState DialogState { get; set; }
 
     // Used by reactors and certain other objects to set an associate, so that functions called

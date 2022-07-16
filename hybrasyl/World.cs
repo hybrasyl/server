@@ -89,18 +89,19 @@ public static class SampleStackExchangeRedisExtensions
 
 public partial class World : Server
 {
-    private static uint worldObjectID;
+    private static uint worldObjectId;
+    private static uint asyncSessionId;
+    private object asyncLock = new();
 
     private Dictionary<Xml.MessageType, List<IMessageHandler>> MessagePlugins = new Dictionary<Xml.MessageType, List<IMessageHandler>>();
 
-    private object _lock = new object();
+    private object _lock = new();
     public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
     public Dictionary<uint, WorldObject> Objects { get; set; }
 
     public Dictionary<string, string> Portraits { get; set; }
     public LocalizedStringGroup Strings { get; set; }
     public WorldDataStore WorldData { set; get; }
-
     public Nation DefaultNation
     {
         get
@@ -119,8 +120,6 @@ public partial class World : Server
 
     public static BlockingCollection<HybrasylMessage> MessageQueue;
     public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
-
-    public ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest> ActiveAsyncDialogs { get; set; }
 
     private Thread ConsumerThread { get; set; }
     private Thread ControlConsumerThread { get; set; }
@@ -202,7 +201,6 @@ public partial class World : Server
         MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
         ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
 
-        ActiveAsyncDialogs = new ConcurrentDictionary<Tuple<UInt32, UInt32>, AsyncDialogRequest>();
         WorldData = new WorldDataStore();
         CommandHandler = new ChatCommandHandler();
         DebugEnabled = false;
@@ -530,6 +528,7 @@ public partial class World : Server
                 var env = new ScriptEnvironment();
                 var associate = new HybrasylInteractable();
                 env.Add("associate", associate);
+                env.Add("origin", associate);
                 var result = script.ExecuteFunction("OnLoad", env);
                 if (result.Result == ScriptResult.Success)
                 {
@@ -742,6 +741,7 @@ public partial class World : Server
                 var env = new ScriptEnvironment();
                 var associate = new HybrasylInteractable();
                 env.Add("associate", associate);
+                env.Add("origin", associate);
                 var result = script.ExecuteFunction("OnLoad", env);
                 if (result.Result == ScriptResult.Success)
                 {
@@ -1495,26 +1495,26 @@ public partial class World : Server
             return false;
     }
 
-    public bool TryAsyncDialog(IInteractable invoker, User invokee, DialogSequence startSequence)
+    public void CloseAsyncDialog(AsyncDialogSession session)
     {
-        var request = new AsyncDialogRequest(startSequence, invoker, invokee);
-        if (request.CheckRequest())
-        {
-            var key = new Tuple<UInt32, UInt32>(invoker.Id, invokee.Id);
-            if (ActiveAsyncDialogs.TryAdd(key, request))
-            {
-                ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, request));
-                return true;
-            }
-            else
-            {
-                Log.Error($"Async dialog: enqueue request failed for {invoker.Name} -> {invokee.Name}, already exists?");
-                return false;
-            }
-        }
-        else
-            Log.Warning($"Async dialog: request denied for {invoker.Name} -> {invokee.Name}, status checks failed");
-        return false;
+        Game.World.WorldData.Remove<AsyncDialogSession>(session.Id);
+        session.Target.ActiveDialogSession = null;
+        session.Target.DialogState.EndDialog();
+        if (session.Source is not User user) return;
+        user.ActiveDialogSession = null;
+        user.DialogState.EndDialog();
+
+    }
+
+    public bool TryAsyncDialog(AsyncDialogSession session)
+    {
+        if (!session.Start()) return false;
+        lock (asyncLock)
+            asyncSessionId++;
+        session.Id = asyncSessionId;
+        Game.World.WorldData.Set(asyncSessionId, session);
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, asyncSessionId));
+        return true;
     }
 
     public override void Shutdown()
@@ -1724,8 +1724,10 @@ public partial class World : Server
 
     private void ControlMessage_DialogRequest(HybrasylControlMessage message)
     {
-        var asyncDialog = (AsyncDialogRequest)message.Arguments[0];
-        asyncDialog.ShowTo();
+        var asyncDialogId = (uint) message.Arguments[0];
+        if (WorldData.TryGetValue(asyncDialogId, out AsyncDialogSession ads))
+            ads.ShowTo();
+
     }
 
     private void ControlMessage_HandleDeath(HybrasylControlMessage message)
@@ -2096,12 +2098,15 @@ public partial class World : Server
             user.Save(true);
             DeleteUser(user.Name);
 
+            
+
             // Remove any active async dialog sessions
-            foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
-            {
-                if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
-                    request.End();
-            }
+            // TODO: async fix
+            //foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
+            //{
+            //    if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
+            //        request.End();
+            //}
                 
             GameLog.InfoFormat("{1} leaving world", user.Name);
         }
@@ -2357,7 +2362,7 @@ public partial class World : Server
                 }
 
                 Script script;
-                var env = ScriptEnvironment.CreateWithOrigin(user);
+                var env = ScriptEnvironment.CreateWithTarget(user);
 
                 if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) ||
                     message.ToLower().Contains("--clear--"))
@@ -3232,7 +3237,8 @@ public partial class World : Server
             GameLog.DebugFormat("{0}: showing initial dialog for Pursuit {1} ({2})",
                 ip.Name, pursuit.Id, pursuit.Name);
             user.DialogState.StartDialog(ip, pursuit);
-            pursuit.ShowTo(user, ip);
+            var invocation = new DialogInvocation(ip, user, user);
+            pursuit.ShowTo(invocation);
         }
         else
         {
@@ -3247,7 +3253,7 @@ public partial class World : Server
         var user = (User) obj;
 
         var header = packet.ReadDialogHeader();
-        var objectType = packet.ReadByte();
+        var objectType = (DialogObjectType) packet.ReadByte();
         var objectID = packet.ReadUInt32();
         var pursuitID = packet.ReadUInt16();
         var pursuitIndex = packet.ReadUInt16();
@@ -3259,30 +3265,43 @@ public partial class World : Server
             user.DialogState.CurrentPursuitId,
             user.DialogState.CurrentPursuitIndex);
 
-        AsyncDialogRequest request = null;
-        IInteractable source = null;
+        DialogInvocation invocation = null; 
+        WorldObject wobj = null;
+        IInteractable clickTarget;
+        AsyncDialogSession session = null;
 
-        // Is this an async dialog session (either one in progress, or one starting)
-        if (objectID == uint.MaxValue)
+        // Determine what is clicking / being clicked / etc
+        if (objectType == DialogObjectType.CastableObject && Game.World.WorldData.TryGetValue(objectID, out CastableObject castableObj))
         {
-            //// TODO: optimize
-            //var asynckeys = ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id);
-            //if (asynckeys.Count() == 1)
-            //{
-            //    if (!ActiveAsyncDialogs.TryGetValue(asynckeys.First(), out request))
-            //    {
-            //        GameLog.Error("WARNING: {Name}: Async count was nonzero but session could not be found", user.Name);
-            //        return;
-            //    }
-            //    // If we are processing an asynchronous dialog request, make sure the source is set
-            //    // to the other side of the session so it can be sent to callbacks
-            //    source = request.Target.Name == user.Name ? request.Source : request.Target;
-            //}
-            //else if (asynckeys.Count() > 1)
-            //{
-            //    GameLog.Fatal("WARNING: Multiple async sessions for {Name} detected", user.Name);
-            //    return;
-            //}
+            clickTarget = castableObj;
+            invocation = new DialogInvocation(castableObj, user, user);
+        }
+        // Is this an async dialog session (either one in progress, or one starting)
+        else if (objectType == DialogObjectType.Asynchronous && Game.World.WorldData.TryGetValue(objectID, out session))
+        {
+            clickTarget = session as IInteractable;
+            GameLog.Error($"Clicktarget set yo, clicktarget is {clickTarget}");
+            invocation = new DialogInvocation(session, session.Target, session.Source);
+        }
+        else if (user.World.Objects.TryGetValue(objectID, out wobj))
+        {
+            clickTarget = wobj as IInteractable;
+            invocation = new DialogInvocation(clickTarget, user, user);
+        }
+        else
+            clickTarget = null;
+
+        // Bogus ID
+        if (clickTarget == null)
+            return;
+
+        GameLog.Error($"0x3a: {user.Name}: Source - {invocation.Source.Name} Origin - {invocation.Origin.Name} Target - {invocation.Target.Name}");
+
+        if (objectType == DialogObjectType.Asynchronous)
+        {
+            // A few sanity checks for async dialogs
+            if (user.ActiveDialogSession == null || session == null) return;
+            if (!session.IsParticipant(user.Guid)) return;
         }
 
         if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
@@ -3290,35 +3309,17 @@ public partial class World : Server
             // If we get a packet back with the same index and ID, the dialog has been closed.
             GameLog.DebugFormat("Dialog closed, resetting dialog state");
             user.ClearDialogState();
-
-            // Check for open async dialogs that need to be closed. The async dialog session will be removed as well,
-            // but only if it's complete (both sides have clicked "Close" at some point)
-            if (request != null)
-                // Close our side of the session
-                request.Close(user.Id);
-            else
-                return;
+            user.ActiveDialogSession?.Close(user.Guid);
+            return;
         }
 
         if ((pursuitIndex > user.DialogState.CurrentPursuitIndex + 1) ||
             (pursuitIndex < user.DialogState.CurrentPursuitIndex - 1))
         {
-            GameLog.ErrorFormat("Dialog index is outside of acceptable limits (next/prev)");
+            GameLog.ErrorFormat($"{user.Name}: Dialog index is outside of acceptable limits (next/prev)");
             return;
         }
 
-        WorldObject wobj;
-        IInteractable clickTarget = null;
-
-        if (user.World.Objects.TryGetValue(objectID, out wobj))
-            clickTarget = wobj as IInteractable;
-
-        if (Game.World.WorldData.TryGetValue(objectID, out CastableObject castableObj))
-            clickTarget = castableObj;
-
-        // TODO: expand for new async implementation
-        if (clickTarget == null) 
-            return;
 
         // Was the previous button clicked? Handle that first
         if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
@@ -3328,7 +3329,7 @@ public partial class World : Server
 
             if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
             {
-                user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                user.DialogState.ActiveDialog.ShowTo(invocation);
                 return;
             }
         }
@@ -3349,7 +3350,7 @@ public partial class World : Server
 
             // If an error occurred in handling the response, it's generally safest to 
             // simply bail out 
-            if (!optionsDialog.HandleResponse(user, option, clickTarget))
+            if (!optionsDialog.HandleResponse(option, invocation))
             {
                 user.ClearDialogState();
                 return;
@@ -3368,7 +3369,7 @@ public partial class World : Server
         {
             var paramsLength = packet.ReadByte();
             var response = packet.ReadString8();
-            if (!textDialog.HandleResponse(user, response, clickTarget, source))
+            if (!textDialog.HandleResponse(response, invocation))
             {
                 user.ClearDialogState();
                 return;
@@ -3400,12 +3401,12 @@ public partial class World : Server
             switch (user.DialogState.ActiveDialog)
             {
                 case JumpDialog:
-                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                    user.DialogState.ActiveDialog.ShowTo(invocation);
                     return;
                 case FunctionDialog:
                 {
                     var currpid = user.DialogState.CurrentPursuitId;
-                    user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                    user.DialogState.ActiveDialog.ShowTo(invocation);
                     // Check to see if a script function changed the active dialog.
                     // If it did, we don't need to send a close dialog packet.
                     if (user.DialogState.CurrentPursuitId != currpid) return;
@@ -3432,11 +3433,11 @@ public partial class World : Server
             // Either way down here, reset the dialog state since we're done with the sequence
             user.DialogState.EndDialog();
             // If this is an asynchronous dialog, and we've reached here, also close the dialog
-            if (request != null)
-            {
-                request.Close(user.Id);
-                user.SendCloseDialog();
-            }
+            //if (request != null)
+            //{
+            //    request.Close(user.Id);
+            //    user.SendCloseDialog();
+            //}
 
             return;
         }
@@ -3445,7 +3446,7 @@ public partial class World : Server
         // the new sequence and make sure we clear the previous state.
         if (user.DialogState.PreviousPursuitId == pursuitID)
         {
-            user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+            user.DialogState.ActiveDialog.ShowTo(invocation);
             user.DialogState.PreviousPursuitId = null;
             return;
         }
@@ -3465,7 +3466,7 @@ public partial class World : Server
             {
                 var currpid = user.DialogState.CurrentPursuitId;
                 // ShowTo and go
-                user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+                user.DialogState.ActiveDialog.ShowTo(invocation);
                 // Check to see we're still in the same sequence.
                 if (currpid != user.DialogState.CurrentPursuitId)
                     return;
@@ -3481,7 +3482,7 @@ public partial class World : Server
 
             GameLog.DebugFormat("Pursuit index is now {0}", pursuitIndex);
 
-            user.DialogState.ActiveDialog.ShowTo(user, clickTarget);
+            user.DialogState.ActiveDialog.ShowTo(invocation);
         }
         else
         {
@@ -4117,7 +4118,7 @@ public partial class World : Server
 
     public void Insert(WorldObject obj)
     {
-        obj.Id = worldObjectID;
+        obj.Id = worldObjectId;
         obj.ServerGuid = Guid;
         obj.SendId();
 
@@ -4133,8 +4134,8 @@ public partial class World : Server
 
         lock (_lock)
         {
-            Objects.Add(worldObjectID, obj);
-            ++worldObjectID;
+            Objects.Add(worldObjectId, obj);
+            ++worldObjectId;
         }
         WorldData.SetWorldObject(obj.Guid, obj);
         obj.OnInsert();
@@ -4224,7 +4225,14 @@ public partial class World : Server
                                 sendRefresh = true;
                             }
                             else
+                            {
                                 systemMessage = "It cannot be done in your current state.";
+                                if (user.DialogState.InDialog)
+                                {
+                                    user.DialogState.EndDialog();
+                                    user.SendCloseDialog();
+                                }
+                            }
                             ignore = true;
                         }
 
