@@ -110,7 +110,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
             if (pursuit.MenuCheckExpression != string.Empty)
             {
-                var env = ScriptEnvironment.CreateWithTarget(invoker);
+                var env = ScriptEnvironment.CreateWithTargetAndSource(invoker, invoker);
                 env.DialogPath = $"{Name}:DisplayPursuits:MenuCheckExpression";
                 var ret = Script.ExecuteExpression(pursuit.MenuCheckExpression,
                     env);

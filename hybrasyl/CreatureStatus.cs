@@ -364,7 +364,7 @@ public class CreatureStatus : ICreatureStatus
 
         if (invokee.Script != null)
         {
-            invokee.Script.ExecuteFunction(handler.Function, ScriptEnvironment.CreateWithTarget(invoker));
+            invokee.Script.ExecuteFunction(handler.Function, ScriptEnvironment.CreateWithTargetAndSource(invoker, invokee));
             return;
         }
 

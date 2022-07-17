@@ -133,7 +133,7 @@ namespace Hybrasyl.Scripting
         }
 
         public void Add(string name, dynamic obj) =>
-            Variables.Add(name, obj);
+            Variables[name] = obj;
 
         public static ScriptEnvironment Create(params (string name, dynamic obj)[] variables)
         {

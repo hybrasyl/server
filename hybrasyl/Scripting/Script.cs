@@ -154,7 +154,7 @@ public class Script
     private string ExtractLuaSource(int linenumber)
     {
         var lines = RawSource.Split('\n').ToList();
-        if (lines.Count < linenumber)
+        if (lines.Count < linenumber || lines.Count < 3)
             return RawSource;
         var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber - 1]}\n";
         if (linenumber < lines.Count)

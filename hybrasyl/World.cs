@@ -2362,7 +2362,7 @@ public partial class World : Server
                 }
 
                 Script script;
-                var env = ScriptEnvironment.CreateWithTarget(user);
+                var env = ScriptEnvironment.CreateWithTargetAndSource(user,user);
 
                 if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) ||
                     message.ToLower().Contains("--clear--"))

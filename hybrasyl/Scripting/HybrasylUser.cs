@@ -1091,11 +1091,11 @@ public class HybrasylUser : HybrasylWorldObject
         }
 
         // Lastly, show the new dialog
-        DialogInvocation invocation = associate switch
+        var invocation = associate switch
         {
             // Get the raw interactable (underlying unwrapped object) and use that to start the dialog
             IScriptable {WorldObject: IInteractable interactable} => new DialogInvocation(interactable, User, User),
-            CastableObject => new DialogInvocation(associate, User, User),
+            not null => new DialogInvocation(associate, User, User),
             _ => null
         };
         if (invocation is not null)
