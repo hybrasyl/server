@@ -2051,26 +2051,15 @@ public partial class World : Server
     }
 
     private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
-    {   
-        if (obj is User user)
+    {
+        var user = (User)obj;
+        var missingObjId = packet.ReadUInt32();
+        if (user.World.Objects.TryGetValue(missingObjId, out WorldObject missingObj) &&
+            missingObj is VisibleObject missingVisibleObj &&
+            user.Map == missingVisibleObj.Map)
         {
-            var invis = packet.ReadUInt32();
-            Game.World.Objects.TryGetValue(invis, out var missingObj);
-            if (user.Map.Objects.Contains(missingObj))
-            {
-                if (missingObj is Monster mob)
-                {
-                    foreach (var entity in user.Map.EntityTree.GetObjects(mob.GetViewport()))
-                    {
-                        if (entity is User usr)
-                        {
-                            //GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", mob.Name, mob.Id, entity.Name);
-                            usr.AoiEntry(mob);
-                            mob.AoiEntry(usr);
-                        }
-                    }
-                }
-            }
+            //GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", missingVisibleObj.Name, missingVisibleObj.Id, user.Name);
+            user.AoiEntry(missingVisibleObj);
         }
     }
 
