@@ -19,6 +19,8 @@
  * 
  */
 
+using Hybrasyl.Interfaces;
+
 namespace Hybrasyl.Objects;
 
 public class Door : VisibleObject
@@ -46,10 +48,9 @@ public class Door : VisibleObject
         ShowTo(obj);
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
-        if (!(obj is User)) return;
-        var user = (User)obj;
+        if (obj is not User user) return;
         user.SendDoorUpdate(X, Y, Closed,
             IsLeftRight);
     }

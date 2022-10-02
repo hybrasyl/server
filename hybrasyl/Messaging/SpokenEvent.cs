@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Hybrasyl.Objects;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Messaging
 {

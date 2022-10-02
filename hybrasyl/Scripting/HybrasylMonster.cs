@@ -4,21 +4,12 @@ using MoonSharp.Interpreter;
 namespace Hybrasyl.Scripting;
 
 [MoonSharpUserData]
-public class HybrasylMonster
+public class HybrasylMonster : HybrasylWorldObject
 {
-    internal Monster Monster { get; set; }
+    internal Monster Monster => WorldObject as Monster;
+
     internal HybrasylWorld World { get; set; }
     internal HybrasylMap Map { get; set; }
-    public bool IsPlayer => false;
-
-    public string Name => Monster.Name;
-
-
-    public void DebugFunction(string x)
-    {
-        GameLog.ScriptingWarning(x);
-    }
-    public Xml.Direction Direction => Monster.Direction;
 
     public ThreatInfo ThreatInfo => Monster.ThreatInfo;
     public WorldObject Target => Monster.Target;
@@ -38,13 +29,11 @@ public class HybrasylMonster
     /// </summary>
     public StatInfo Stats => Monster.Stats;
 
-    public HybrasylMonster(Monster monster)
+    public HybrasylMonster(Monster monster) : base(monster)
     {
-        Monster = monster;
         World = new HybrasylWorld(monster.World);
         Map = new HybrasylMap(monster.Map);
     }
-    public void SystemMessage(string nil) {}
 
     /// <summary>
     /// Deal damage to the current player.
@@ -57,6 +46,14 @@ public class HybrasylMonster
     {
         Monster.Damage(damage, element, damageType);
     }
+
+    public void SetCreatureDisplaySprite(int displaySprite)
+    {
+            Monster.Sprite = (ushort)displaySprite;
+    }
+
+    public int GetCreatureDisplaySprite() => Monster.Sprite;
+
 
     public string GetGMMonsterInfo()
     {

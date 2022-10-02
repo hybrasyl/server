@@ -23,12 +23,14 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
+using Hybrasyl.Scripting;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
-public class VisibleObject : WorldObject
+public class VisibleObject : WorldObject, IVisible
 {
     [JsonProperty]
     public LocationInfo Location { get; set; }
@@ -54,23 +56,6 @@ public class VisibleObject : WorldObject
     public ushort Sprite { get; set; }
     public string Portrait { get; set; }
     public string DisplayText { get; set; }
-
-    protected Dictionary<string, string> Strings = new();
-    protected Dictionary<string, string> Responses = new();
-
-    public string GetLocalString(string key) => Strings.ContainsKey(key) ? Strings[key] : World.GetLocalString(key);
-
-    public string GetLocalString(string key, params (string Token, string Value)[] replacements)
-    {
-        var str = GetLocalString(key);
-        foreach (var repl in replacements)
-        {
-            str = str.Replace(repl.Token, repl.Value);
-        }
-
-        return str;
-    }
-
 
     // Whether or not to allow a ghost (a dead player) to interact with this object
     public bool AllowDead { get; set; }
@@ -144,8 +129,8 @@ public class VisibleObject : WorldObject
     public virtual void OnDeath() { }
     public virtual void OnDamage(DamageEvent damageEvent) { }
     public virtual void OnHeal(Creature healer, uint damage) { }
-
     public virtual void OnHear(SpokenEvent e) { }
+    public virtual void ShowTo(IVisible target) { }
 
     public Rectangle GetBoundingBox()
     {
@@ -170,6 +155,11 @@ public class VisibleObject : WorldObject
             Constants.VIEWPORT_SIZE * 2 + 1);
     }
 
+    public int Distance(IVisible target)
+    {
+        return 3;
+    }
+
     public virtual void Show()
     {
         var withinViewport = Map.EntityTree.GetObjects(GetViewport());
@@ -180,10 +170,6 @@ public class VisibleObject : WorldObject
             GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
             obj.AoiEntry(this);
         }
-    }
-
-    public virtual void ShowTo(VisibleObject obj)
-    {
     }
 
     public virtual void Hide()
@@ -290,104 +276,5 @@ public class VisibleObject : WorldObject
         return Xml.Direction.North;
     }
 
-    public void DisplayPursuits(User invoker)
-    {
-        var optionsCount = 0;
-        var options = new MerchantOptions
-        {
-            Options = new List<MerchantDialogOption>()
-        };
-        var merchant = this as Merchant;
-        if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
-        {
-            optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.BuyItemMenu, Text = "Buy"});
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.SellItemMenu, Text = "Sell" });
-        }
-        if (merchant?.Jobs.HasFlag(MerchantJob.Bank) ?? false)
-        {
-            optionsCount += 4;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.DepositGoldMenu, Text = "Deposit Gold" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.WithdrawGoldMenu, Text = "Withdraw Gold" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.DepositItemMenu, Text = "Deposit Item" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.WithdrawItemMenu, Text = "Withdraw Item" });
-        }
-        if (merchant?.Jobs.HasFlag(MerchantJob.Repair) ?? false)
-        {
-            optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.RepairItemMenu, Text = "Fix Item" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.RepairAllItems, Text = "Fix All Items" });
-                
-        }
-        if (merchant?.Jobs.HasFlag(MerchantJob.Skills) ?? false)
-        {
-            optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort) MerchantMenuItem.LearnSkillMenu, Text = "Learn Skill" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort) MerchantMenuItem.ForgetSkillMenu, Text = "Forget Skill" });
 
-        }
-        if (merchant?.Jobs.HasFlag(MerchantJob.Spells) ?? false)
-        {
-            optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.LearnSpellMenu, Text = "Learn Secret" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.ForgetSpellMenu, Text = "Forget Secret" });
-
-        }
-        if (merchant?.Jobs.HasFlag(MerchantJob.Post) ?? false)
-        {
-            if (invoker.HasParcels)
-            {
-                options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.ReceiveParcel, Text = "Receive Parcel" });
-                optionsCount++;
-            }
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.SendParcelMenu, Text = "Send Parcel" });
-            optionsCount++;
-
-            /* if user has item named "Letter"
-                 *     menupacket.WriteString8("Send Letter");
-                 *     menupacket.WriteUInt16((ushort)MerchantMenuItem.SendLetterMenu);
-                 *     pursuitCount++;
-                 * if user has incoming parcel
-                 *     menupacket.WriteString8("Receive Parcel");
-                 *     menupacket.WriteUInt16((ushort)MerchantMenuItem.ReceiveParcel);
-                 *     pursuitCount++;
-                 */
-        }
-
-        foreach (var pursuit in Pursuits)
-        {
-            GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
-            if (pursuit.MenuCheckExpression != string.Empty)
-            {
-                var ret = Script.ExecuteAndReturn(pursuit.MenuCheckExpression, invoker);
-                // If the menu check expression returns anything other than true, we don't include the 
-                // pursuit on the main menu that is sent to the user
-                if (!ret.CastToBool())
-                {
-                    GameLog.ScriptingDebug($"{pursuit.MenuCheckExpression} evaluated to {ret}");
-                    continue;
-                }
-            }
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name} );
-            optionsCount++;
-
-        }
-
-        var packet = new ServerPacketStructures.MerchantResponse()
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = Id,
-            Tile1 = (ushort)(0x4000 + Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + Sprite),
-            Color2 = 0,
-            PortraitType = 1,
-            Name = Name,
-            Text = GetLocalString("greeting"),
-            Options = options
-        };
-
-        invoker.Enqueue(packet.Packet());
-    }
 }

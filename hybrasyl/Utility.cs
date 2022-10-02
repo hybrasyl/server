@@ -185,10 +185,6 @@ namespace Hybrasyl
         public const int TICK_HEARTBEAT_INTERVAL = 60;
         public const int REAP_HEARTBEAT_INTERVAL = 5;
 
-        // The message a spirit gets when it tries to do things it cannot
-
-        public const string SPIRIT_FORBIDDEN = "Spirits cannot do that.";
-
         // Idle settings
         // A client counts as idle after IDLE_TIME seconds without any packet receipt (except for heartbeat opcodes)
         // The idle check job will run every IDLE_CHECK seconds
@@ -227,9 +223,6 @@ namespace Hybrasyl
                   {5, "monk"}
 
         };
-
-        public static string[] BONUS_ATTRS = { "hp", "mp", "str", "int", "wis", "con", "dex", "hit", 
-                                                "dmg", "ac", "mr", "regen" };
 
         public const int MESSAGE_RETURN_SIZE = 64;
         // You must wait this long in seconds before sending another board message

@@ -211,10 +211,61 @@
       <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1"/>
       <xs:element name="ClientSettings" type="hyb:ClientSettings" minOccurs="0" maxOccurs="1"/>
       <xs:element name="WorldDataDir" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Constants" type="hyb:ServerConstants" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
 
-  <xs:complexType name="Time">
+	<xs:complexType name="ServerConstants">
+		<xs:sequence>
+			<!-- The percentage of an item's value that will be paid to a player for selling an item.-->
+			<xs:element name="MerchantBuybackPercentage" type="xs:float" default="0.20"/>
+			<!-- The maximum level that a player can achieve -->
+			<xs:element name="PlayerMaxLevel" type="xs:int" default="99"/>
+			<!-- The size of the viewport, in tiles (client window size) -->
+			<xs:element name="ViewportSize" type="xs:int" default="24"/>
+			<xs:element name="PlayerMaxBookSize" type="xs:int" default="90"/>
+			<xs:element name="PlayerMaxDropDistance" type="xs:int" default="2"/>
+			<xs:element name="PlayerPickupDistance" type="xs:int" default="2"/>
+			<xs:element name="PlayerExchangeDistance" type="xs:int" default="2"/>
+			<xs:element name="PlayerMaximumGold" type="xs:int" default="1000000000"/>
+			<xs:element name="ItemVariantIdStart" type="xs:int" default="100000"/>
+			<xs:element name="LogDefaultLevels" type="xs:int" default="1"/>
+			<xs:element name="PlayerGroupSharingDistance" type="xs:int" default="20"/>
+			<xs:element name="PlayerAsyncDialogDistance" type="xs:int" default="10"/>
+			<xs:element name="LagMap" type="xs:int" default="1001"/>
+			<xs:element name="NationalSpawnTimeout" type="xs:int" default="10800"/>
+			<xs:element name="DeathpileGroupTimeout" type="xs:int" default="0"/>
+			<xs:element name="DeathpileOtherTimeout" type="xs:int" default="900"/>
+			<xs:element name="MonsterLootDropTimeout" type="xs:int" default="60"/>
+			<xs:element name="MonsterTaggingTimeout" type="xs:int" default="300"/>
+			<xs:element name="ByteHeartbeatInterval" type="xs:int" default="60"/>
+			<xs:element name="TickHeartbeatInterval" type="xs:int" default="60"/>
+			<xs:element name="ReapHeartbeatInterval" type="xs:int" default="5"/>
+			<xs:element name="PlayerIdleTime" type="xs:int" default="60"/>
+			<xs:element name="PlayerIdleCheck" type="xs:int" default="10"/>
+			<xs:element name="DialogSequenceShared" type="xs:int" default="5000"/>
+			<xs:element name="DialogSequencePursuits" type="xs:int" default="5100"/>
+			<xs:element name="DialogSequenceAsync" type="xs:int" default="65000"/>
+			<xs:element name="DialogSequenceHardcoded" type="xs:int" default="65280"/>
+            <xs:element name="BoardMessageResponseSize" type="xs:int" default="64"/>
+            <xs:element name="BoardMessageCooldown" type="xs:int" default="60"/>
+			<xs:element name="MailMessageCooldown" type="xs:int" default="60"/>
+            <xs:element name="PlayerMinStat" type="xs:int" default="1"/>
+			<xs:element name="PlayerMaxStat" type="xs:int" default="255"/>
+			<xs:element name="PlayerMinBaseHpMp" type="xs:int" default="1"/>
+			<xs:element name="PlayerMaxBaseHpMp" type="xs:unsignedInt" default="4294967295"/>
+            <xs:element name="PlayerMinDmg" type="xs:float" default="-16.0"/>
+			<xs:element name="PlayerMaxDmg" type="xs:float" default="-16.0"/>
+			<xs:element name="PlayerMinHit" type="xs:float" default="-16.0"/>
+			<xs:element name="PlayerMaxHit" type="xs:float" default="-16.0"/>
+			<xs:element name="PlayerMinMr" type="xs:float" default="-16.0"/>
+			<xs:element name="PlayerMaxMr" type="xs:float" default="-16.0"/>
+			<xs:element name="PlayerMinAc" type="xs:float" default="-90"/>
+			<xs:element name="PlayerMaxAc" type="xs:float" default="100"/>
+		</xs:sequence>
+	</xs:complexType>
+                    
+	<xs:complexType name="Time">
     <xs:sequence>
       <xs:element name="Ages" type="hyb:HybrasylAges" minOccurs="0" maxOccurs="1"/>
       <xs:element name="ServerStart" type="hyb:ServerStart" minOccurs="0" maxOccurs="1"/>

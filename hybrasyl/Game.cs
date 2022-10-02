@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -37,6 +38,8 @@ using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Sentry;
 using App.Metrics;
+using Hybrasyl.Xml;
+using Sentry.Protocol;
 
 namespace Hybrasyl;
 
@@ -172,6 +175,7 @@ public static class Game
                 Log.Information("Configuration file {file} loaded", hybConfig);
                 Config = gameConfig;
                 Config.InitializeClientSettings();
+                Config.Constants ??= new ServerConstants();
                 dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
                     ? StartupDirectory
                     : Config.WorldDataDir;
@@ -232,6 +236,9 @@ public static class Game
             WriteTo.Map("LogType", "General", (name, wt) => wt.File($"{Path.Combine(dataDirectory, "logs")}/{name}-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true)).
             WriteTo.Logger(lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
             .CreateLogger();
+
+        // We don't want any of NCalc's garbage 
+        System.Diagnostics.Trace.Listeners.RemoveAt(0);
 
         Log.Logger = log;
         Log.Information("Hybrasyl log begin");
@@ -365,6 +372,8 @@ public static class Game
                     else
                         stipulationWriter.Write(Config.Motd);
                 }
+
+                stipulationWriter.Write("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
             }
 
             NotificationCrc = ~Crc32.Calculate(stipulationStream.ToArray());

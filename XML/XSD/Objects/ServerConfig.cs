@@ -40,6 +40,7 @@ public partial class ServerConfig
     private ServerPlugins _plugins;
     private List<ClientSetting> _clientSettings;
     private string _worldDataDir;
+    private ServerConstants _constants;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -194,6 +195,18 @@ public partial class ServerConfig
         set
         {
             _worldDataDir = value;
+        }
+    }
+    
+    public ServerConstants Constants
+    {
+        get
+        {
+            return _constants;
+        }
+        set
+        {
+            _constants = value;
         }
     }
     

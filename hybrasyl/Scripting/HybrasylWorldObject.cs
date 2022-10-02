@@ -27,66 +27,50 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
+using Hybrasyl.Interfaces;
+using System;
+using Hybrasyl.Casting;
 
 namespace Hybrasyl.Scripting;
 
-/// <summary>
-/// A Lua wrapper object representing a Hybrasyl non-player world object (merchant, item, reactor, etc)
-/// </summary>
+
 [MoonSharpUserData]
-public class HybrasylWorldObject
+public class HybrasylWorldObject : IScriptable
 {
-    internal WorldObject Obj { get; set; }
-    // TODO: create HybrasylItemObject pls
-    public static bool IsPlayer => false;
+    public IWorldObject WorldObject { get; set; }
+    public WorldObject Obj => WorldObject as WorldObject;
+    public string Name => WorldObject.Name;
+    public string Type => Obj.GetType().Name;
+    //public Xml.Direction Direction => WorldObject.Direction;
+    public string Guid => Obj.Guid.ToString();
 
     public void DebugFunction(string x)
     {
         GameLog.ScriptingWarning(x);
     }
-    internal List<string> Categories
-    {
-        get
-        {
-            if (Obj is ItemObject itm)
-                return itm.Categories;
-            return new List<string>();
-        }
-    }
 
-    // TODO: determine a better way to do this in lua via moonsharp
     /// <summary>
-    /// A string representing the underlying object type (merchant, reactor, item, monster, etc)
+    /// Set the default sprite for this world object to a specified creature sprite.
     /// </summary>
-    public string Type
+    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
+    public void SetNpcDisplaySprite(int displaySprite)
     {
-        get
-        {
-            return Obj switch
-            {
-                Merchant => "merchant",
-                Reactor => "reactor",
-                ItemObject => "item",
-                Monster => "monster",
-                User => "user",
-                Gold => "gold",
-                _ => "idk"
-            };
-        }
+        if (Obj is VisibleObject vobj)
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
+        else
+            GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
     }
 
-    // TODO: see above and also interface / subclass this, because this is gross
-    public StatInfo Stats 
+    /// <summary>
+    /// Set the default sprite for this world object to a specified item sprite.
+    /// </summary>
+    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
+    public void SetItemDisplaySprite(int displaySprite)
     {
-        get
-        {
-            return Obj switch
-            {
-                Creature c => c.Stats,
-                ItemObject i => i.Stats,
-                _ => null
-            };
-        }
+        if (Obj is VisibleObject vobj)
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
+        else
+            GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
     }
 
     /// <summary>
@@ -96,8 +80,8 @@ public class HybrasylWorldObject
     /// <returns>The localized string for a given key</returns>
     public string GetLocalString(string key)
     {
-        if (Obj is Merchant m)
-            return m.GetLocalString(key);
+        if (Obj is IResponseCapable m)
+            return m.DefaultGetLocalString(key);
         return Game.World.GetLocalString(key);
     }
 
@@ -112,19 +96,6 @@ public class HybrasylWorldObject
     }
 
     /// <summary>
-    /// The name of the object.
-    /// </summary>
-    public string Name
-    {
-        get
-        {
-            if (Obj is ItemObject item)
-                return item.Name;
-            else
-                return Obj.Name;
-        }
-    }
-    /// <summary>
     /// The current X coordinate location of the object.
     /// </summary>
     public byte X => Obj.X;
@@ -133,9 +104,9 @@ public class HybrasylWorldObject
     /// </summary>
     public byte Y => Obj.Y;
 
-    public HybrasylWorldObject(WorldObject obj)
+    public HybrasylWorldObject(IWorldObject obj)
     {
-        Obj = obj;
+        WorldObject = obj;
     }
 
     /// <summary>
@@ -149,15 +120,8 @@ public class HybrasylWorldObject
             GameLog.ScriptingError("DisplayPursuits: invoker was null, ignoring");
             return;
         }
-        if (Obj is Merchant || Obj is Reactor)
-        {
-            var merchant = Obj as VisibleObject;
-            if (invoker is HybrasylUser hybUser)
-            {
-                merchant.DisplayPursuits(hybUser.User);
-            }
-        }
-
+        if (Obj is IPursuitable pursuitable && invoker is HybrasylUser hybUser)
+            pursuitable.DisplayPursuits(hybUser.User);
     }
 
     /// <summary>
@@ -179,13 +143,13 @@ public class HybrasylWorldObject
     {
         if (hybrasylSequence is null || hybrasylSequence.Sequence.Dialogs.Count == 0)
         {
-            GameLog.ScriptingError("AddPursuit: Dialog sequence (first argument) was null or sequence was empty (no dialogs)");
+            GameLog.ScriptingError(
+                "AddPursuit: Dialog sequence (first argument) was null or sequence was empty (no dialogs)");
+            return;
         }
-        if (Obj is VisibleObject && !(Obj is User))
-        {
-            var vobj = Obj as VisibleObject;
-            vobj.AddPursuit(hybrasylSequence.Sequence);
-        }
+
+        if (Obj is IPursuitable pursuitable)
+            pursuitable.AddPursuit(hybrasylSequence.Sequence);
     }
 
     /// <summary>
@@ -200,10 +164,13 @@ public class HybrasylWorldObject
     {
         if (string.IsNullOrEmpty(key) || value is null)
         {
-            GameLog.ScriptingError("SetEphemeral: key (first argument) or value (second argument) was null or empty, ignoring");
+            GameLog.ScriptingError(
+                "SetEphemeral: key (first argument) or value (second argument) was null or empty, ignoring");
             return;
         }
-        Obj.SetEphemeral(key, value);
+
+        if (Obj is not IEphemeral ephemeral) return;
+        ephemeral.SetEphemeral(key, value);
         GameLog.ScriptingInfo("{Function}: {Name}, stored key {Key} with value {Value}",
             MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value);
     }
@@ -224,7 +191,9 @@ public class HybrasylWorldObject
             GameLog.ScriptingError("SetEphemeral: user (first argument) or key (second argument) or value (third argument) was null or empty, ignoring");
             return;
         }
-        Obj.SetEphemeral($"{user.ToLower()}:{key}", value);
+
+        if (Obj is not IEphemeral ephemeral) return;
+        ephemeral.SetEphemeral($"{user.ToLower()}:{key}", value);
         GameLog.ScriptingInfo("{Function}: {Name}, stored scoped key {Key} with value {Value} for {user}",
             MethodInfo.GetCurrentMethod().Name, Obj.Name, key, value, user);
     }
@@ -233,15 +202,15 @@ public class HybrasylWorldObject
     /// Remove the specified key from the object's ephemeral store.
     /// </summary>
     /// <param name="key"></param>
-    public void ClearEphemeral(string key) 
+    public void ClearEphemeral(string key)
     {
         if (string.IsNullOrEmpty(key))
         {
             GameLog.ScriptingError("ClearEphemeral: key (first argument) was null or empty, ignoring");
             return;
         }
-        Obj.ClearEphemeral(key);
-
+        if (Obj is not IEphemeral ephemeral) return;
+        ephemeral.ClearEphemeral(key);
     }
 
     /// <summary>
@@ -256,9 +225,9 @@ public class HybrasylWorldObject
             GameLog.ScriptingError("GetEphemeral: key (first argument) was null or empty, returning nil");
             return DynValue.Nil;
         }
-        if (Obj.TryGetEphemeral(key, out dynamic value))
-            return value;
-        else return DynValue.Nil;
+
+        if (Obj is not IEphemeral ephemeral) return DynValue.Nil;
+        return ephemeral.TryGetEphemeral(key, out dynamic value) ? value : DynValue.Nil;
     }
 
     /// <summary>
@@ -274,10 +243,9 @@ public class HybrasylWorldObject
             GameLog.ScriptingError("GetScopedEphemeral: user (first argument) or key (second argument) was null or empty, returning nil");
             return DynValue.Nil;
         }
-        if (Obj.TryGetEphemeral($"{user.ToLower()}:{key}", out dynamic value))
-            return value;
-        else
-            return DynValue.Nil;
+
+        if (Obj is not IEphemeral ephemeral) return DynValue.Nil;
+        return ephemeral.TryGetEphemeral($"{user.ToLower()}:{key}", out dynamic value) ? value : DynValue.Nil;
     }
 
     /// <summary>
@@ -290,13 +258,10 @@ public class HybrasylWorldObject
         if (hybrasylSequence is null || hybrasylSequence.Sequence.Dialogs.Count == 0)
         {
             GameLog.Error("RegisterSequence: sequence (first argument) was null or contained no dialogs, ignoring");
-            return;       
+            return;
         }
-        if (Obj is VisibleObject && !(Obj is User))
-        {
-            var vobj = Obj as VisibleObject;
-            vobj.RegisterDialogSequence(hybrasylSequence.Sequence);
-        }
+        if (Obj is IInteractable interactable)
+            interactable.RegisterDialogSequence(hybrasylSequence.Sequence);
     }
 
     /// <summary>
@@ -326,76 +291,52 @@ public class HybrasylWorldObject
         return -1;
     }
 
-    // TODO: refactor and collapse, also add dialog sprite
-
-    /// <summary>
-    /// Set the default sprite for this world object to a specified creature sprite.
-    /// </summary>
-    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
-    public void SetNpcDisplaySprite(int displaySprite)
+    ///// <summary>
+    ///// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
+    ///// </summary>
+    ///// <param name="targetUser">The logged-in player that will receive the dialog</param>
+    ///// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
+    ///// <param name="sequenceName">The sequence that will be started for the target player</param>
+    ///// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
+    ///// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
+    ///// <returns>Boolean indicating success</returns>
+    public bool RequestDialog(string targetUser, string sourceGuid, string sequenceName, string originGuid, bool requireLocal = true)
     {
-        if (Obj is VisibleObject vobj)
-            vobj.Sprite = (ushort)(0x4000 + displaySprite);
-        else
-            GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
-    }
-
-    /// <summary>
-    /// Set the default sprite for this world object to a specified item sprite.
-    /// </summary>
-    /// <param name="displaySprite">Integer referencing a creature sprite in the client datfiles.</param>
-    public void SetItemDisplaySprite(int displaySprite)
-    {
-        if (Obj is VisibleObject vobj)
-            vobj.Sprite = (ushort)(0x4000 + displaySprite);
-        else
-            GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
-    }
-
-    public void SetCreatureDisplaySprite(int displaySprite)
-    {
-        if (Obj is Monster monster)
-            monster.Sprite = (ushort)displaySprite;
-        else
-            GameLog.ScriptingError("SetCreatureDisplaySprite: underlying object is not a monster, ignoring");
-    }
-
-    public int GetCreatureDisplaySprite()
-    {
-        if (Obj is Monster monster)
-            return monster.Sprite;
-        return 0;
-    }
-
-
-    /// <summary>
-    /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
-    /// </summary>
-    /// <param name="player">The logged-in player that will receive the dialog</param>
-    /// <param name="sequence">The sequence that will be started for the target player.</param>
-    /// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
-    /// <returns>Boolean indicating success</returns>
-    public bool RequestDialog(string player, string sequence, bool requireLocal = true)
-    {
-        if (string.IsNullOrEmpty(player) || string.IsNullOrEmpty(sequence))
-        {
-            GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty, returning false");
+        IInteractable originInteractable = null;
+        WorldObject originObj = null;
+        CastableObject originCastable = null;
+        if (string.IsNullOrEmpty(sequenceName) || string.IsNullOrEmpty(targetUser)) {
+            GameLog.ScriptingError("RequestDialog: player (first argument) or sequence (second argument) was null or empty");
+            return false;
+        }
+        if (!System.Guid.TryParse(sourceGuid, out Guid source) || !System.Guid.TryParse(originGuid, out Guid origin)) {
+            GameLog.ScriptingError($"RequestDialog: source or origin guid {sourceGuid} / {originGuid} is invalid");
+            return false;
+        }
+        if (!Game.World.TryGetActiveUser(targetUser, out User user)) {
+            GameLog.ScriptingWarning($"RequestDialog: {targetUser} is not online");
             return false;
         }
 
-        DialogSequence seq;
-        if (Game.World.TryGetActiveUser(player, out User user))
+        if (!Game.World.WorldData.TryGetWorldObject(origin, out originObj) && !Game.World.WorldData.TryGetValueByIndex(origin, out originCastable))
         {
-            if (Obj.SequenceCatalog.TryGetValue(sequence, out seq) ||
-                Game.World.GlobalSequences.TryGetValue(sequence, out seq))
-                // TODO: fix this awful object hierarchy nonsense
-                return Game.World.TryAsyncDialog(Obj as VisibleObject, user, seq);
-            else
-                GameLog.ScriptingError("RequestDialog: {player} - sequence {sequence} was not found", user.Name, sequence);
+            GameLog.ScriptingWarning($"RequestDialog: {originGuid} not found");
+            return false;
         }
-        else
-            GameLog.ScriptingWarning("RequestDialog: {player} is not online", user.Name);
-        return false;
+
+        originInteractable = originObj == null ? originCastable : originObj as IInteractable;
+
+        if (!originInteractable.SequenceIndex.ContainsKey(sequenceName) && !Game.World.GlobalSequences.ContainsKey(sequenceName)) {
+            GameLog.ScriptingError($"RequestDialog: {targetUser} - sequence {sequenceName} was not found");
+            return false;
+        }
+        if (!Game.World.WorldData.TryGetWorldObject(source, out WorldObject worldObj)) {
+            GameLog.ScriptingError($"RequestDialog: source guid {sourceGuid} could not be found");
+            return false;
+        }
+
+        var session = new AsyncDialogSession(sequenceName, originInteractable, worldObj as IVisible, user);
+        return Game.World.TryAsyncDialog(session);
     }
 
     /// <summary>
@@ -464,4 +405,6 @@ public class HybrasylWorldObject
         }
         else return false;
     }
+
+
 }

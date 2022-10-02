@@ -28,7 +28,7 @@ class GroupCommand : ChatCommand
     public new static string Command = "group";
     public new static string ArgumentText = "<string username>";
     public new static string HelpText = "Invite the specified player to your group.";
-    public new static bool Privileged = false;
+    public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
