@@ -403,19 +403,6 @@ public class HybrasylWorld
     }
 
     /// <summary>
-    /// do not use.
-    /// </summary>
-    /// <param name="creaturename"></param>
-    /// <param name="spawnname"></param>
-    /// <returns></returns>
-    public HybrasylSpawn NewSpawn(string creaturename, string spawnname)
-    {
-        //var spawn = new HybrasylSpawn(creaturename, spawnname);
-        //return spawn;
-        return null;
-    }
-
-    /// <summary>
     /// Register a dialog sequence as a "global" sequence, meaning any object in the game can reference and use it.
     /// </summary>
     /// <param name="globalSequence">The dialog sequence to be registered as a global seqeunce.</param>

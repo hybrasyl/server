@@ -81,6 +81,8 @@ namespace Hybrasyl.Xml
             }
         }
 
+        public Guid Guid { get; set; }
+
         // Helper functions to deal with xml vagaries
         public List<AddStatus> AddStatuses => Effects.Statuses?.Add ?? new List<AddStatus>();
         public List<string> RemoveStatuses => Effects.Statuses?.Remove ?? new List<string>();

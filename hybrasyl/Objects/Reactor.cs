@@ -20,12 +20,16 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Objects;
 
-public class Reactor : VisibleObject
+public class Reactor : VisibleObject, IPursuitable
 {
     public DateTime CreatedAt { get; set; }
     public DateTime Expiration { get; set; } = default;
@@ -33,6 +37,11 @@ public class Reactor : VisibleObject
     public Guid CreatedBy { get; set; }
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
     public bool OnTakeCapable => Ready && !Expired && Script.HasFunction("OnTake");
+    public List<DialogSequence> Pursuits { get; set; } = new();
+    public Dictionary<string, string> Strings { get; set; } = new();
+    public Dictionary<string, string> Responses { get; set; } = new();
+    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
+    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
     public bool Ready
     {
@@ -54,6 +63,7 @@ public class Reactor : VisibleObject
     {
         X = reactor.X;
         Y = reactor.Y;
+        DialogSequences = new List<DialogSequence>();
     }
 
     public async Task OnExpiration()
@@ -91,7 +101,7 @@ public class Reactor : VisibleObject
         {
             Script = myScript;
             Script.AssociateScriptWithObject(this);
-            _ready = Script.Run(false);
+            _ready = Script.Run(false).Result == ScriptResult.Success;
         }
         else
         {
@@ -112,7 +122,7 @@ public class Reactor : VisibleObject
                 return;
         }
         if (Ready)
-            Script.ExecuteFunction("OnEntry", obj, this);
+            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -120,14 +130,14 @@ public class Reactor : VisibleObject
         if (Expired) return;
         base.AoiEntry(obj);
         if (Ready)
-            Script.ExecuteFunction("AoiEntry", obj, this);
+            Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public virtual void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
-            Script.ExecuteFunction("OnLeave", obj, this);
+            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
         if (obj is User user)
             user.LastAssociate = null;
     }
@@ -137,34 +147,35 @@ public class Reactor : VisibleObject
         if (Expired) return;
         base.AoiDeparture(obj);
         if (Ready)
-            Script.ExecuteFunction("AoiDeparture", obj, this);
+            Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this,obj,obj));
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
-        if (Ready)
-            Script.ExecuteFunction("OnDrop", obj, this,
-                dropped);
+        if (!Ready) return;
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, dropped);
+        env.Add("item", dropped);
+        Script.ExecuteFunction("OnDrop", env);
     }
-
 
     public void OnMove(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready)
-            Script.ExecuteFunction("OnMove", obj, this);
+            Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
     {
         if (Expired) return;
-        if (Ready)
-            Script.ExecuteFunction("OnDrop", obj, this,
-                taken);
+        if (!Ready) return;
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, taken);
+        env.Add("item", taken);
+        Script.ExecuteFunction("OnTake", env);
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public override void ShowTo(IVisible obj)
     {
         if (Expired) return;
         if (obj is not User user) return;

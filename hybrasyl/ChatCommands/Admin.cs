@@ -25,6 +25,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using Hybrasyl.Interfaces;
 
 namespace Hybrasyl.ChatCommands;
 // Various admin commands are implemented here.
@@ -165,7 +166,7 @@ class ShowEphemeral : ChatCommand
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
             string ephemerals = $"Mundane {merchant.Name} Ephemeral Store\n\n";
-            foreach (var kv in merchant.GetEphemeralValues())
+            foreach (var kv in (merchant as IEphemeral).GetEphemeralValues())
                 ephemerals = $"{ephemerals}\n{kv.Item1} : {kv.Item2}\n";
             return Success($"{ephemerals}", MessageTypes.SLATE_WITH_SCROLLBAR);
         }
@@ -184,7 +185,7 @@ class SetEphemeral : ChatCommand
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
-            merchant.SetEphemeral(args[1], args[2]);
+            (merchant as IEphemeral).SetEphemeral(args[1], args[2]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
         }
         else return Fail($"NPC {args[0]} not found.");
@@ -202,7 +203,7 @@ class ClearEphemeral : ChatCommand
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
-            merchant.ClearEphemeral(args[1]);
+            (merchant as IEphemeral).ClearEphemeral(args[1]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
         }
         else return Fail($"NPC {args[0]} not found.");
@@ -481,64 +482,64 @@ class ShutdownCommand : ChatCommand
     }
 }
 
-class ScriptingCommand : ChatCommand
+//class ScriptingCommand : ChatCommand
+//{
+//    public new static string Command = "scripting";
+//    public new static string ArgumentText = "<reload|disable|enable|status> <string scriptname>";
+//    public new static string HelpText = "Reload, disable, enable or request status on the specified script.";
+//    public new static bool Privileged = true;
+
+//    public new static ChatCommandResult Run(User user, params string[] args)
+//    {
+
+//        if (Game.World.ScriptProcessor.TryGetScript(args[1].Trim(), out Script script))
+//        {
+//            switch (args[0].ToLower())
+//            {
+//                case "reload":
+//                {
+//                    script.Disabled = true;
+//                    if (script.Run().Result != ScriptResult.Success)
+//                        return Fail($"Script {script.Name}: load/parse error, check scripting log.");
+//                    script.Disabled = false;
+//                    return Success($"Script {script.Name}: reloaded.");
+
+//                }
+//                case "enable":
+//                    script.Disabled = false;
+//                    return Success($"Script {script.Name}: enabled.");
+//                case "disable":
+//                    script.Disabled = true;
+//                    return Success($"Script {script.Name}: disabled.");
+//                case "status":
+//                {
+//                    var scriptStatus = string.Format("{0}:", script.Name);
+//                    string errorSummary = "--- Error Summary ---\n";
+
+//                    errorSummary = script.LastExecutionResult.Result == ScriptResult.Success ? 
+//                        $"{errorSummary} no errors": $"{errorSummary} result {script.LastExecutionResult.Result}, {script.LastExecutionResult.Error}";
+
+//                    // Report to the end user
+//                    return Success($"{scriptStatus}\n\n{errorSummary}", MessageTypes.SLATE_WITH_SCROLLBAR);
+//                }
+//            }
+//        }
+//        return Fail($"Script {args[1].Trim()}: not found.");
+//    }
+//}
+
+class NpcstatusCommand : ChatCommand
 {
-    public new static string Command = "scripting";
-    public new static string ArgumentText = "<reload|disable|enable|status> <string scriptname>";
-    public new static string HelpText = "Reload, disable, enable or request status on the specified script.";
+    public new static string Command = "npcstatus";
+    public new static string ArgumentText = "<string npcname>";
+    public new static string HelpText = "Display detailed debugging info for the given NPC";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-
-        if (Game.World.ScriptProcessor.TryGetScript(args[1].Trim(), out Script script))
-        {
-            if (args[0].ToLower() == "reload")
-            {
-                script.Disabled = true;
-                if (script.Run())
-                {
-                    script.Disabled = false;
-                    return Success($"Script {script.Name}: reloaded.");
-                }
-                else
-                {
-                    return Fail($"Script {script.Name}: load/parse error, check scripting log.");
-                }
-            }
-            else if (args[0].ToLower() == "enable")
-            {
-                script.Disabled = false;
-                return Success($"Script {script.Name}: enabled.");
-            }
-            else if (args[0].ToLower() == "disable")
-            {
-                script.Disabled = true;
-                return Success($"Script {script.Name}: disabled.");
-            }
-            else if (args[0].ToLower() == "status")
-            {
-                var scriptStatus = string.Format("{0}:", script.Name);
-                string errorSummary = "--- Error Summary ---\n";
-
-                if (script.LastRuntimeError == string.Empty &&
-                    script.CompilationError == string.Empty)
-                    errorSummary = string.Format("{0} no errors", errorSummary);
-                else
-                {
-                    if (script.CompilationError != string.Empty)
-                        errorSummary = string.Format("{0} compilation error: {1}", errorSummary,
-                            script.CompilationError);
-                    if (script.LastRuntimeError != string.Empty)
-                        errorSummary = string.Format("{0} runtime error: {1}", errorSummary,
-                            script.LastRuntimeError);
-                }
-
-                // Report to the end user
-                return Success($"{scriptStatus}\n\n{errorSummary}", MessageTypes.SLATE_WITH_SCROLLBAR);
-            }
-        }
-        return Fail($"Script {args[1].Trim()}: not found.");
+        return Game.World.WorldData.TryGetValue(args[0], out Merchant merchant)
+            ? Success(merchant.Status(), (byte) MessageType.SlateScrollbar)
+            : Fail($"NPC {args[0]} not found.");
     }
 }
 

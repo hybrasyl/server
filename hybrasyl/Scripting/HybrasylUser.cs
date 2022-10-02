@@ -21,24 +21,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Casting;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
 
 [MoonSharpUserData]
-public class HybrasylUser
+public class HybrasylUser : HybrasylWorldObject
 {
-    public void DebugFunction(string x)
-    {
-        GameLog.ScriptingWarning(x);
-    }
-    internal User User { get; set; }
+    internal User User => WorldObject as User;
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
-
+    public string Guid => User.Guid.ToString();
+    
     /// <summary>
     /// The item in the first inventory slot of the player.
     /// </summary>
@@ -51,21 +50,6 @@ public class HybrasylUser
         }
     }
 
-    /// <summary>
-    /// The name of the player.
-    /// </summary>
-    public string Name => User.Name;
-    /// <summary>
-    /// The current X coordinate of the player.
-    /// </summary>
-    public byte X => User.X;
-    /// <summary>
-    /// The current Y coordinate of the player.
-    /// </summary>
-    public byte Y => User.Y;
-    /// <summary>
-    /// The user's class (e.g. Rogue, Warrior, etc)
-    /// </summary>
     public Xml.Class Class => User.Class;
 
     public string MapName => User.Map?.Name ?? "Unknown Kadath";
@@ -75,20 +59,7 @@ public class HybrasylUser
     /// </summary>
     public Xml.Class PreviousClass => User.PreviousClass;
 
-    // TODO: determine a better way to do this in lua via moonsharp
-    /// <summary>
-    /// The type of object this is. This is a shortcut to reference in scripting as evaluating type is annoying; so you can check the Type property instead.
-    /// e.g. invoker.Type == "player"
-    /// </summary>
-    public static string Type => "player";
-
-    // TODO: object inheritance for scripting objects
     public static bool IsPlayer => true;
-    /// <summary>
-    /// The direction this object is facing.
-    /// </summary>
-    public Xml.Direction Direction => User.Direction;
-
 
     /// <summary>
     /// The gender of the player. For Darkages purpose, this will evaluate to Male or Female.
@@ -186,9 +157,8 @@ public class HybrasylUser
 
     public bool SetNation(string nationName) => User.ChangeCitizenship(nationName);
 
-    public HybrasylUser(User user)
+    public HybrasylUser(User user) : base(user)
     {
-        User = user;
         World = new HybrasylWorld(user.World);
         Map = new HybrasylMap(user.Map);
     }
@@ -247,15 +217,6 @@ public class HybrasylUser
     {
         var facing = (Monster)(User.GetFacingObjects().Where(X => X is Monster).FirstOrDefault());
         return facing != null ? new HybrasylMonster(facing) : null;
-    }
-
-    /// <summary>
-    /// Get the direction the user is facing.
-    /// </summary>
-    /// <returns>A string representation of the user's direction.</returns>
-    public string GetDirection()
-    {
-        return Enum.GetName(typeof(Xml.Direction), User.Direction);
     }
 
     /// <summary>
@@ -528,42 +489,6 @@ public class HybrasylUser
         return true;
     }
 
-    /// <summary>
-    /// Request a sequence between two players. This is primarily used to start asynchronous dialog sequences (for things like mentoring or religion where confirmation from a second
-    /// player is required).
-    /// </summary>
-    /// <param name="sequence">The sequence name to start</param>
-    /// <param name="invoker">The player invoking the asynchronous dialog.</param>
-    /// <returns>Boolean indicating whether or not the request was successful.</returns>
-    public bool RequestDialog(string sequence, string invoker = "")
-    {
-        if (string.IsNullOrEmpty(sequence))
-        {
-            GameLog.ScriptingError("RequestDialog: {user} - sequence (first argument) was null or empty", User.Name);
-            return false;
-        }
-
-        DialogSequence sequenceObj = null;
-        VisibleObject invokerObj = null;
-
-        if (Game.World.TryGetActiveUser(invoker, out User user))
-            invokerObj = user as VisibleObject;
-        else if (Game.World.WorldData.TryGetValue<Merchant>(invoker, out Merchant merchant))
-            invokerObj = merchant as VisibleObject;
-
-        if (invokerObj != null)
-            invokerObj.SequenceCatalog.TryGetValue(sequence, out sequenceObj);
-
-        if (sequenceObj == null)
-            // Try global catalog
-            Game.World.GlobalSequences.TryGetValue(sequence, out sequenceObj);
-
-        if (invokerObj != null && sequenceObj != null)
-            return Game.World.TryAsyncDialog(invokerObj, User, sequenceObj);
-
-        GameLog.ScriptingWarning("RequestDialog: {user} - invoker {invoker} or sequence {sequence} not found", user, invoker, sequence);
-        return false;
-    }
     /// <summary>
     /// Set a session cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string key). NPCs and other scripting functionality can 
     /// use this to store independent state to track quest progress / etc. Session cookies are deleted when a player is logged out.
@@ -1070,7 +995,7 @@ public class HybrasylUser
     /// Indicates whether the current player is in a guild.
     /// </summary>
     /// <returns>Boolean indicating whether or not current player is in a guild.</returns>
-    public bool IsInGuild() => User.GuildGuid != Guid.Empty;
+    public bool IsInGuild() => User.GuildGuid != System.Guid.Empty;
         
     /// <summary>
     /// Sends a whisper ("blue message") from a given name to the current player.
@@ -1081,12 +1006,6 @@ public class HybrasylUser
         User.SendWhisper(name, message);
 
     /// <summary>
-    /// Say something as the user.
-    /// </summary>
-    /// <param name="message">The message to speak aloud.</param>
-    public void Say(string message) => User.Say(message);
-
-    /// <summary>
     /// Shout something as the user.
     /// </summary>
     /// <param name="message">The message to shout.</param>
@@ -1094,35 +1013,24 @@ public class HybrasylUser
 
     public void SendMessage(string message, int type) => User.SendMessage(message, (byte)type);
 
-    /// <summary>
-    /// Sends an in-game mail to the current player. NOT TESTED.
-    /// </summary>
-    /// <param name="name">The name to be used for the mail sender (who it is from)</param>
-    /// <param name="subject">The message.</param>
-    /// <param name="message">The message.</param>
-    public void Mail(string name, string subject, string message)
-    {
-        GameLog.ScriptingFatal("Mail: not currently implemented");
-    }
-
     /// Close any active dialogs for the current player.
     /// </summary>
     public void EndDialog()
     {
         User.DialogState.EndDialog();
+        User.ActiveDialogSession = null;
         User.SendCloseDialog();
         //GameLog.Info("Dialog: closed by script");
     }
 
-
+    // Helper override 
 
     /// <summary>
     /// Start a dialog sequence for the current player. This will display the first dialog in the sequence to the player.
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
-    /// <param name="associateOverride">An object to associate with the dialog as the invokee.</param>
-    // The use of dynamic here is a temporary offense before god
-    public void StartSequence(string sequenceName, dynamic associateOverride = null)
+    /// <param name="associateOverride">An IInteractable to associate with the dialog as the origin.</param>
+    public void StartSequence(string sequenceName, IInteractable associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1130,7 +1038,7 @@ public class HybrasylUser
             return;
         }
         DialogSequence sequence = null;
-        VisibleObject associate = null;
+        IInteractable associate = null;
         GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
         // First: is this a global sequence?
@@ -1140,16 +1048,17 @@ public class HybrasylUser
         if (associateOverride == null)
         {
             if (User.DialogState.Associate != null)
-                associate = User.DialogState.Associate as VisibleObject;
+                associate = User.DialogState.Associate;
             else if (User.LastAssociate != null)
                 associate = User.LastAssociate;
         }
         else
-            associate = associateOverride.Obj as VisibleObject;
+            associate = associateOverride;
 
-        // If we didn't get a sequence before, try with our associate
+        // If we didn't get a sequence before, try with our associate. Either we know it implements an Interactable 
+        // interface or it's null
         if (sequence == null && associate != null)
-            associate.SequenceCatalog.TryGetValue(sequenceName, out sequence);
+            associate.SequenceIndex.TryGetValue(sequenceName, out sequence);
 
         // We should hopefully have a sequence now...
         if (sequence == null)
@@ -1160,8 +1069,8 @@ public class HybrasylUser
             User.DialogState.EndDialog();
             // If the user was previously talking to a merchant, and we can't find a sequence,
             // simply display the main menu again. If it's a reactor....oh well.
-            if (associate is Merchant)
-                associate.DisplayPursuits(User);
+            if (associate is IPursuitable ip)
+                ip.DisplayPursuits(User);
             return;
         }
 
@@ -1182,17 +1091,16 @@ public class HybrasylUser
         }
 
         // Lastly, show the new dialog
-        User.DialogState.ActiveDialog.ShowTo(User, associate);
-
+        var invocation = associate switch
+        {
+            // Get the raw interactable (underlying unwrapped object) and use that to start the dialog
+            IScriptable {WorldObject: IInteractable interactable} => new DialogInvocation(interactable, User, User),
+            not null => new DialogInvocation(associate, User, User),
+            _ => null
+        };
+        if (invocation is not null)
+            User.DialogState.ActiveDialog.ShowTo(invocation);
     }
-
-    /// <summary>
-    /// Calculate the Manhattan distance (distance between two points measured along axes at right angles) 
-    /// between the current player and a target object.
-    /// </summary>
-    /// <param name="target">The target object</param>
-    /// <returns>The numeric distance</returns>
-    public int Distance(HybrasylWorldObject target) => User.Distance(target.Obj);
 
     /// <summary>
     /// Set a user's hairstyle from a script

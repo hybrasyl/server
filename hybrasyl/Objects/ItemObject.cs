@@ -24,12 +24,17 @@ using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using Hybrasyl.ChatCommands;
 using Hybrasyl.Xml;
+using Hybrasyl.Dialogs;
+using Hybrasyl.Interfaces;
+using Serilog.Debugging;
 
 namespace Hybrasyl.Objects;
 
-public class ItemObject : VisibleObject
+public class ItemObject : VisibleObject, IInteractable
 {
     public string TemplateId { get; private set; }
 
@@ -81,7 +86,7 @@ public class ItemObject : VisibleObject
             return false;
         }
 
-        if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight/2)
+        if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight / 2)
         {
             message = World.GetLocalString("item_equip_too_heavy");
             return false;
@@ -89,7 +94,8 @@ public class ItemObject : VisibleObject
 
         // Check if user is equipping a shield while holding a two-handed weapon
 
-        if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null && userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
+        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon != null &&
+            userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
         {
             message = World.GetLocalString("item_equip_shield_2h");
             return false;
@@ -97,7 +103,9 @@ public class ItemObject : VisibleObject
 
         // Check if user is equipping a two-handed weapon while holding a shield
 
-        if (EquipmentSlot == (byte) ItemSlots.Weapon && (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) && userobj.Equipment.Shield != null)
+        if (EquipmentSlot == (byte) ItemSlots.Weapon &&
+            (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) &&
+            userobj.Equipment.Shield != null)
         {
             message = World.GetLocalString("item_equip_2h_shield");
             return false;
@@ -114,7 +122,9 @@ public class ItemObject : VisibleObject
 
         foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
         {
-            var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty ? "item_equip_slot_restriction" : restriction.Message);
+            var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty
+                ? "item_equip_slot_restriction"
+                : restriction.Message);
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
@@ -146,7 +156,9 @@ public class ItemObject : VisibleObject
         var items = userobj.Equipment.Where(x => x.Template.Properties.Restrictions?.SlotRestrictions != null);
         foreach (var restriction in items.SelectMany(x => x.Template.Properties.Restrictions.SlotRestrictions))
         {
-            var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty ? "item_equip_slot_restriction" : restriction.Message);
+            var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty
+                ? "item_equip_slot_restriction"
+                : restriction.Message);
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
@@ -165,7 +177,9 @@ public class ItemObject : VisibleObject
             else
             {
                 if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
-                     userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.LGauntlet != null || userobj.Equipment.RGauntlet != null)
+                     userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                                                          userobj.Equipment.LGauntlet != null ||
+                                                          userobj.Equipment.RGauntlet != null)
                                                       || EquipmentSlot != (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
@@ -188,6 +202,7 @@ public class ItemObject : VisibleObject
                     hasCast = true;
                 }
             }
+
             if (!hasCast && Template.Properties.Restrictions.Castables.Count > 0)
             {
                 message = World.GetLocalString("item_equip_missing_castable");
@@ -201,6 +216,7 @@ public class ItemObject : VisibleObject
             message = World.GetLocalString("item_equip_not_master");
             return false;
         }
+
         return true;
     }
 
@@ -208,10 +224,7 @@ public class ItemObject : VisibleObject
 
     public Xml.Item Template
     {
-        get
-        {
-            return _template ?? World.WorldData.Get<Item>(TemplateId);
-        }
+        get { return _template ?? World.WorldData.Get<Item>(TemplateId); }
         set => _template = value;
     }
 
@@ -222,7 +235,9 @@ public class ItemObject : VisibleObject
     public bool Usable => Template.Properties.Use != null;
     public Xml.Use Use => Template.Properties.Use;
 
-    public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0 ? Template.Properties.Appearance.Sprite : Template.Properties.Appearance.EquipSprite;
+    public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0
+        ? Template.Properties.Appearance.Sprite
+        : Template.Properties.Appearance.EquipSprite;
 
     public ItemObjectType ItemObjectType
     {
@@ -239,7 +254,11 @@ public class ItemObject : VisibleObject
     public Xml.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
     public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
     public string SlotName => Enum.GetName(typeof(Xml.EquipmentSlot), EquipmentSlot) ?? "None";
-    public int Weight => Template.Properties.Physical.Weight > int.MaxValue ? int.MaxValue : Convert.ToInt32(Template.Properties.Physical.Weight);
+
+    public int Weight => Template.Properties.Physical.Weight > int.MaxValue
+        ? int.MaxValue
+        : Convert.ToInt32(Template.Properties.Physical.Weight);
+
     public int MaximumStack => Template.MaximumStack;
     public bool Stackable => Template.Stackable;
 
@@ -257,7 +276,7 @@ public class ItemObject : VisibleObject
                 return Durability == 0 ? Value : (uint) ((Durability / MaximumDurability) * Value);
             return 0;
         }
-    } 
+    }
 
     // For future use / expansion re: unidentified items.
     // Should pull from template and only allow false to be set when
@@ -322,6 +341,7 @@ public class ItemObject : VisibleObject
     public Xml.Variant CurrentVariant => Template.CurrentVariant;
 
     private Lockable<int> _count { get; set; }
+
     public int Count
     {
         get { return _count.Value; }
@@ -373,22 +393,25 @@ public class ItemObject : VisibleObject
                 return;
             }
 
-            invokeScript.ExecuteFunction("OnUse", trigger, null, this, true);
-        }            
+            var env = ScriptEnvironment.Create(("origin", this), ("source", trigger));
+            invokeScript.ExecuteFunction("OnUse", env);
+        }
 
         if (Use?.Effect != null)
         {
-            trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed); 
+            trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed);
         }
-        
+
         if (Use?.Sound != null)
         {
             trigger.SendSound((byte) Use.Sound.Id);
         }
+
         if (Use?.Teleport != null)
         {
             trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
         }
+
         if (Consumable)
         {
             Count--;
@@ -427,12 +450,27 @@ public class ItemObject : VisibleObject
         Guid = Guid.NewGuid();
     }
 
-    public override void ShowTo(VisibleObject obj)
+    public new void ShowTo(IVisible obj)
     {
-        if (obj is User)
-        {
-            var user = obj as User;
-            user.SendVisibleItem(this);
-        }
+        if (obj is not User user) return;
+        user.SendVisibleItem(this);
+    }
+
+    public virtual List<DialogSequence> DialogSequences
+    {
+        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
+        set => throw new NotImplementedException();
+    }
+
+    public virtual Dictionary<string, DialogSequence> SequenceIndex
+    {
+        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
+        set => throw new NotImplementedException();
+    }
+
+    public virtual Script Script
+    {
+        get => Game.World.ScriptProcessor.TryGetScript(Use.Script, out var script) ? script : null;
+        set => throw new NotImplementedException();
     }
 }

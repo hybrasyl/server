@@ -114,6 +114,7 @@ public partial class Item
             x.Type == SlotRestrictionType.ItemProhibited);
 
     public string Id => GenerateId(Name, Gender);
+    public int IdInt => int.Parse(Id, System.Globalization.NumberStyles.HexNumber);
 
     public Item Clone()
     {
