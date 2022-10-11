@@ -42,6 +42,7 @@ public class HybrasylFixture : IDisposable
             Path.Combine(submoduleDir[0], "HybrasylTests", "world"), true);
 
         Game.World.CompileScripts();
+        Game.World.SetPacketHandlers();
         if (!Game.World.LoadData())
             throw new InvalidDataException("LoadData encountered errors");
 

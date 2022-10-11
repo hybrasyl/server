@@ -20,6 +20,7 @@
  */
 
 using System;
+using App.Metrics.Gauge;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
@@ -413,7 +414,6 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
     public double BonusMr
     {
         get { lock (_lock) { return _bonusMr; } }
@@ -632,7 +632,6 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
     public double BonusLifeSteal
     {
         get { lock (_lock) { return _bonusLifeSteal; } }
@@ -747,206 +746,87 @@ public class StatInfo
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 
-
-    private static long BindToRange(long val, long min, long max) => val > max ? max : val < min ? min : val;
-
-    private static double BindToRange(double val, double min, double max) => val > max ? max : val < min ? min : val;
+    [FormulaVariable]
+    public uint MaximumHp => (uint)Math.Clamp(BaseHp+BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
 
     [FormulaVariable]
-    public uint MaximumHp
+    public uint MaximumMp => (uint)Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+
+    [FormulaVariable] 
+    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+
+    [FormulaVariable]
+    public byte Int => (byte) Math.Clamp(BaseInt + BonusInt, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    
+    [FormulaVariable]
+    public byte Wis => (byte) Math.Clamp(BaseWis + BonusWis, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    
+    [FormulaVariable]
+    public byte Con => (byte) Math.Clamp(BaseCon + BonusCon, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+
+    [FormulaVariable]
+    public byte Dex => (byte) Math.Clamp(BaseDex + BonusDex, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+
+
+    [FormulaVariable]
+    public double Dmg => (byte)Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
+
+    // These are for the client 0x08, specifically, which has some annoying limitations.
+    // MR in particular can only be displayed as multiples of 10% and no negatives can be
+    // expressed by MR/DMG/HIT. 
+    // We use a rating-esque system where 1280% / 128 / 128 is base, below is debuff, above is buff
+
+    public byte MrRating
     {
         get
         {
-            var value = BaseHp + BonusHp;
+            return Mr switch
+            {
+                < 0 => (byte) (128 + Math.Max(Mr * 8, -128)),
+                > 0 => (byte) (128 + Math.Min(Mr * 8, 127)),
+                _ => 128
+            };
+        }
+    }
 
-            if (value > uint.MaxValue)
-                return uint.MaxValue;
+    public byte DmgRating
+    {
+        get
+        {
+            return Dmg switch
+            {
+                < 0 => (byte) (128 + Math.Max(Dmg * 8, -128)),
+                > 0 => (byte) (128 + Math.Min(Dmg * 8, 127)),
+                _ => 128
+            };
+        }
+    }
 
-            if (value < uint.MinValue)
-                return 1;
-
-            return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+    public byte HitRating
+    {
+        get
+        {
+            return Hit switch
+            {
+                < 0 => (byte) (128 + Math.Max(Hit * 8, -128)),
+                > 0 => (byte) (128 + Math.Min(Hit * 8, 127)),
+                _ => 128
+            };
         }
     }
 
     [FormulaVariable]
-    public uint MaximumMp
-    {
-        get
-        {
-            var value = BaseMp + BonusMp;
-
-            if (value > uint.MaxValue)
-                return uint.MaxValue;
-
-            if (value < uint.MinValue)
-                return 1;
-
-            return (uint)BindToRange(value, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
-        }
-    }
+    public double Hit => (byte)Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
 
     [FormulaVariable]
-    public byte Str
-    {
-        get
-        {
-            var value = BaseStr + BonusStr;
-
-            if (value > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (value < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-        }
-    }
+    public sbyte Ac => (sbyte)Math.Clamp((BaseAc - Level / 3) + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
 
     [FormulaVariable]
-    public byte Int
-    {
-        get
-        {
-            var value = BaseInt + BonusInt;
-
-            if (value > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (value < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-        }
-    }
+    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
 
     [FormulaVariable]
-    public byte Wis
-    {
-        get
-        {
-            var value = BaseWis + BonusWis;
+    public double Regen => Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN);
 
-            if (value > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (value < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-        }
-    }
-
-    [FormulaVariable]
-    public byte Con
-    {
-        get
-        {
-            var value = BaseCon + BonusCon;
-
-            if (value > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (value < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-        }
-    }
-
-    [FormulaVariable]
-    public byte Dex
-    {
-        get
-        {
-            var value = BaseDex + BonusDex;
-
-            if (value > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (value < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(value, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-        }
-    }
-
-    [FormulaVariable]
-    public double Dmg
-    {
-        get
-        {
-            if (BonusDmg > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (BonusDmg < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
-        }
-    }
-
-    [FormulaVariable]
-    public double Hit
-    {
-        get
-        {
-            if (BonusHit > byte.MaxValue)
-                return byte.MaxValue;
-
-            if (BonusHit < byte.MinValue)
-                return byte.MinValue;
-
-            return (byte)BindToRange(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
-        }
-    }
-
-    [FormulaVariable]
-    public sbyte Ac
-    {
-        get
-        {
-            var value = (BaseAc - Level / 3) + BonusAc;
-
-            if (value > sbyte.MaxValue)
-                return sbyte.MaxValue;
-
-            if (value < sbyte.MinValue)
-                return sbyte.MinValue;
-
-            return (sbyte)BindToRange(value, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
-        }
-    }
-
-    [FormulaVariable]
-    public double Mr
-    {
-        get
-        {
-            if (BonusMr > sbyte.MaxValue)
-                return sbyte.MaxValue;
-
-            if (BonusMr < sbyte.MinValue)
-                return sbyte.MinValue;
-
-            return (sbyte)BindToRange(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
-        }
-    }
-
-    [FormulaVariable]
-    public double Regen
-    {
-        get
-        {
-            if (BonusRegen > sbyte.MaxValue)
-                return sbyte.MaxValue;
-
-            if (BonusRegen < sbyte.MinValue)
-                return sbyte.MinValue;
-
-            return (sbyte)BonusRegen;
-        }
-    }
     #region Functions
 
     /// <summary>
@@ -962,13 +842,13 @@ public class StatInfo
         var hp = (long) Hp;
         hp += si1.DeltaHp;
         if (hp < 0) hp = 0;
-        Hp = (uint) BindToRange(hp, 0, uint.MaxValue);
+        Hp = (uint) Math.Clamp(hp, 0, uint.MaxValue);
         var mp = (long) Mp;
         mp += si1.DeltaMp;
         if (mp < 0) mp = 0;
-        Mp = (uint) BindToRange(mp, 0, uint.MaxValue);
+        Mp = (uint) Math.Clamp(mp, 0, uint.MaxValue);
         var gold = Gold + si1.Gold;
-        Gold = (uint) BindToRange(gold, 0, uint.MaxValue);
+        Gold = (uint) Math.Clamp(gold, 0, uint.MaxValue);
 
         BonusHp += si1.BonusHp;
         BonusMp += si1.BonusMp;

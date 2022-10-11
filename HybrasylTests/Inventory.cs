@@ -4,6 +4,8 @@ using Hybrasyl.Xml;
 using Hybrasyl.Objects;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using App.Metrics.Logging;
 using Xunit;
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -190,6 +192,39 @@ public class Inventory
             "First slot: Inventory contains an item but it isn't a test item");
         Assert.True(Fixture.TestUser.Inventory[5].Name == "Test Item",
             "Fifth slot: Inventory contains an item but it isn't a test item");
+    }
+
+    [Theory]
+    [MemberData(nameof(XmlItems))]
+    public void DropItemPacket(params Item[] items)
+    {
+        Fixture.TestUser.Inventory.Clear();
+        foreach (var item in items)
+        {
+            Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+        }
+
+        var guid = Fixture.TestUser.Inventory[1].Guid;
+        var testPacket = new Hybrasyl.ClientPackets.DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
+            (uint) Fixture.TestUser.Inventory[1].Count);
+
+        var handler = Game.World.PacketHandlers[0x08];
+        Assert.NotNull(handler);
+        handler(Fixture.TestUser, (ClientPacket) testPacket);
+
+        // Assert X,Y contains the item we just dropped
+
+        var tileContents = Fixture.TestUser.Map.GetTileContents(Fixture.TestUser.X, Fixture.TestUser.Y);
+        var tileGuids = tileContents.Select(x => x.Guid);
+        // Tile should contain the user and the dropped object
+        Assert.True(tileContents.Count == 2);
+        // Tile should contain the test user
+        Assert.Contains(Fixture.TestUser, tileContents);
+        // Inventory slot should be empty
+        Assert.Null(Fixture.TestUser.Inventory[1]);
+        // Tile should contain objects with same guid as the user and the item
+        Assert.Contains(Fixture.TestUser.Guid, tileGuids);
+        Assert.Contains(guid, tileGuids);
     }
 
     [Theory]

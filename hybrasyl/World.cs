@@ -509,7 +509,7 @@ public partial class World : Server
                         foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
                         {
                             var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                            GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
+                            //GameLog.InfoFormat("ItemObject {0}: variantgroup {1}, subvariant {2}", variantItem.Name, targetGroup, variant.Name);
                             if (WorldData.ContainsKey<Item>(variantItem.Id))
                             {
                                 GameLog.ErrorFormat("Item already exists with Key {0} : {1}. Cannot add {2}", variantItem.Id, WorldData.Get<Item>(variantItem.Id).Name, variantItem.Name);
@@ -935,8 +935,6 @@ public partial class World : Server
                 var weight = item.Properties.Physical.Weight;
                 var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
                 var defaultDesc = item.Properties?.StatModifiers != null ? item.Properties.StatModifiers.BonusString : "";
-                if (!string.IsNullOrEmpty(defaultDesc))
-                    GameLog.Error($"{item.Name}: {defaultDesc}");
                 if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
                 var desc = "";
@@ -1604,20 +1602,28 @@ public partial class World : Server
         {
             hpRegen = (uint)Math.Min(user.Stats.MaximumHp * (0.1 + Math.Max(user.Stats.Con, (user.Stats.Con - user.Stats.Level)) * 0.01),
                 user.Stats.MaximumHp * 0.20);
-        }               
+        }
+        
         if (user.Stats.Mp != user.Stats.MaximumMp)
         {
-            mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 + Math.Max(user.Stats.Int, (user.Stats.Int - user.Stats.Level)) * 0.01),
+            mpRegen = (uint)Math.Ceiling(Math.Min(user.Stats.MaximumMp * (0.1 + Math.Max(user.Stats.Wis, (user.Stats.Wis - user.Stats.Level)) * 0.01),
                 user.Stats.MaximumMp * 0.20));
         }
-        GameLog.DebugFormat("User {0}: regen HP {1}, MP {2}", user.Name,
-            hpRegen, mpRegen);
 
-        if (user.Stats.Regen != 0)
+        switch (user.Stats.Regen)
         {
-            hpRegen = (uint) (hpRegen + hpRegen * (user.Stats.Regen / 100));
-            mpRegen = (uint) (hpRegen + hpRegen * (user.Stats.Regen / 100));
+            case > 0:
+                hpRegen += (uint)(hpRegen * (user.Stats.Regen / 100));
+                mpRegen += (uint)(mpRegen * (user.Stats.Regen / 100));
+                break;
+            case < 0:
+                hpRegen -= (uint)(hpRegen * (user.Stats.Regen / 100) * -1);
+                mpRegen -= (uint)(mpRegen * (user.Stats.Regen / 100) * -1);
+                break;
         }
+
+        GameLog.UserActivityInfo(
+            $"User {user.Name}: regen HP {hpRegen}, MP {mpRegen}, regen bonus {user.Stats.Regen}%");
         user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
         user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
         user.UpdateAttributes(StatUpdateFlags.Current);

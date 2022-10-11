@@ -1123,14 +1123,14 @@ public class Creature : VisibleObject
         // without mitigation.
         if (Stats.ReflectMagical > 0 && damageType == DamageType.Magical && attacker != null)
         {
-            var reflected = Stats.ReflectMagical * normalized;
+            var reflected = (Stats.ReflectMagical / 100) * normalized;
             if (reflected > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaHp = (long) (reflected * -1)});
         }
 
         if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
         {
-            var reflected = Stats.ReflectPhysical * normalized;
+            var reflected = (Stats.ReflectPhysical / 100) * normalized;
             if (reflected > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaHp = (long) reflected * -1});
 
@@ -1138,7 +1138,7 @@ public class Creature : VisibleObject
 
         if (attacker != null && attacker.Stats.LifeSteal > 0)
         {
-            var stolen = normalized * Stats.LifeSteal;
+            var stolen = normalized * (Stats.LifeSteal/100);
             if (stolen > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaHp = (long) stolen});
 
@@ -1146,7 +1146,7 @@ public class Creature : VisibleObject
 
         if (attacker != null && attacker.Stats.ManaSteal > 0)
         {
-            var stolen = normalized * Stats.ManaSteal;
+            var stolen = normalized * (Stats.ManaSteal/100);
             if (stolen > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaMp = (long) stolen});
         }
@@ -1155,7 +1155,7 @@ public class Creature : VisibleObject
 
         if (attacker != null && Stats.InboundDamageToMp > 0)
         {
-            var redirected = Stats.InboundDamageToMp * normalized;
+            var redirected = (Stats.InboundDamageToMp/100) * normalized;
             if (redirected > 0)
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo {DeltaMp = (long) redirected});
         }

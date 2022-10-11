@@ -100,6 +100,20 @@ public class User : Creature
     public SentMail SentMailbox => Game.World.WorldData.GetOrCreateByGuid<SentMail>(Guid, Name);
     public Vault Vault => Game.World.WorldData.GetOrCreateByGuid<Vault>(AccountGuid == Guid.Empty ? Guid : AccountGuid);
     public ParcelStore ParcelStore => Game.World.WorldData.GetOrCreateByGuid<ParcelStore>(Guid, Name);
+
+    public MailFlags MailStatus 
+    {
+        get
+        {
+            var ret = MailFlags.None;
+            if (UnreadMail)
+                ret |= MailFlags.Mail;
+            if (HasParcels)
+                ret |= MailFlags.Parcel;
+            return ret;
+        }
+    }
+
     public bool UnreadMail => Mailbox.HasUnreadMessages;
     public bool HasParcels => ParcelStore.Items.Count > 0;
        
@@ -809,17 +823,52 @@ public class User : Creature
                 default:
                     break;
             }
-            GiveExperience(exp);
+            GiveExperience(exp, true);
         }
     }
 
-    /**
-         * Provides experience directly to the user that will not be distributed to
-         * other members of the group (for example, for finishing a part of a quest).
-         */
-    public void GiveExperience(uint exp)
+
+    /// <summary>
+    /// Calculate the amount of gold to be given to a user, taking bonuses into account
+    /// </summary>
+    /// <param name="exp">The amount of gold to be given.</param>
+    public uint CalculateGold(uint gold)
     {
-        Client.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
+            switch (Stats.ExtraGold)
+            {
+                case < 0:
+                    gold -= (uint)(gold * (Stats.ExtraXp / 100) * -1);
+                    break;
+                case > 0:
+                    gold += (uint)(gold * (Stats.ExtraXp / 100));
+                    break;
+            }
+
+            return gold;
+    }
+
+    /// <summary>
+    /// Give a user experience, potentially applying any local bonuses.
+    /// </summary>
+    /// <param name="exp">The amount of experience to be given.</param>
+    /// <param name="ApplyBonus">Whether or not to apply XP bonuses from items / etc (ExtraXp stat)</param>
+    public void GiveExperience(uint exp, bool applyBonus=false)
+    {
+        Client?.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
+
+        if (applyBonus)
+        {
+            switch (Stats.ExtraXp)
+            {
+                case < 0:
+                    exp -= (uint) (exp * (Stats.ExtraXp / 100) * -1);
+                    break;
+                case > 0:
+                    exp += (uint) (exp * (Stats.ExtraXp / 100));
+                    break;
+            }
+        }
+
         if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
         {
             if (uint.MaxValue - Stats.Experience >= exp)
@@ -869,8 +918,8 @@ public class User : Creature
 
             if (levelsGained > 0)
             {
-                Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
-                Client.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
+                Client?.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
+                Client?.SendMessage("A rush of insight fills you!", MessageTypes.SYSTEM);
                 Effect(50, 100);
                 UpdateAttributes(StatUpdateFlags.Full);
             }
@@ -1556,10 +1605,9 @@ public class User : Creature
         equipPacket.WriteUInt32(itemObject.DisplayDurability);
         equipPacket.DumpPacket();
         Enqueue(equipPacket);
-        if (itemObject.EquipmentSlot == (byte)EquipmentSlot.Weapon)
-            SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name}");
-        else
-            SendSystemMessage($"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
+        SendSystemMessage(itemObject.EquipmentSlot == (byte) EquipmentSlot.Weapon
+            ? $"Equipped {itemObject.SlotName}: {itemObject.Name}"
+            : $"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
     }
 
     /// <summary>
@@ -1798,23 +1846,19 @@ public class User : Creature
         }
         if (flags.HasFlag(StatUpdateFlags.Secondary))
         {
-            x08.WriteByte(0); //Unknown
+            x08.WriteByte(0); // Unknown
             x08.WriteByte((byte)(Condition.Blinded ? 0x08 : 0x00));
             x08.WriteByte(0); // Unknown
             x08.WriteByte(0); // Unknown
             x08.WriteByte(0); // Unknown
-            x08.WriteByte((byte)(Mailbox.HasUnreadMessages ? 0x10 : 0x00));
-            x08.WriteByte((byte)Stats.BaseOffensiveElement);
-            x08.WriteByte((byte)Stats.BaseDefensiveElement);
-            // Client peculiarity means MR is only displayed in increments of 10.
-            // We do 0-64% which translates to 0-80 on client side
-            x08.WriteSByte((sbyte)(Math.Floor(Stats.Mr / 8)*10)); 
-            x08.WriteByte(0);
+            x08.WriteByte((byte) MailStatus);
+            x08.WriteByte((byte) Stats.BaseOffensiveElement);
+            x08.WriteByte((byte) Stats.BaseDefensiveElement);
+            x08.WriteByte(Stats.MrRating); 
+            x08.WriteByte(0); // "fast move"
             x08.WriteSByte(Stats.Ac);
-            // Translate percentages back into 0-128s, unfortunately negatives just have to
-            // display as 255
-            x08.WriteByte((byte) (Stats.Dmg > 0 ? Math.Max(Stats.Dmg * 8, 128) : 255));
-            x08.WriteByte((byte) (Stats.Hit > 0 ? Math.Max(Stats.Hit * 8, 128) : 255));
+            x08.WriteByte(Stats.DmgRating);
+            x08.WriteByte(Stats.HitRating);
         }
         Enqueue(x08);
     }

@@ -567,13 +567,10 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>string representation of the cookie value</returns>
     public string GetCookie(string cookieName)
     {
-        if (string.IsNullOrEmpty(cookieName))
-        {
-            GameLog.ScriptingError("GetCookie: {user} - cookie name (first argument) was null or empty - returning nil", User.Name);
-            return null;
-        }
+        if (!string.IsNullOrEmpty(cookieName)) return User.GetCookie(cookieName);
+        GameLog.ScriptingError("GetCookie: {user} - cookie name (first argument) was null or empty - returning nil", User.Name);
+        return null;
 
-        return User.GetCookie(cookieName);
     }
     /// <summary>
     /// Check to see if a player has a specified cookie or not.
@@ -582,13 +579,10 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>Boolean indicating whether or not the named cookie exists</returns>
     public bool HasCookie(string cookieName)
     {
-        if (string.IsNullOrEmpty(cookieName))
-        {
-            GameLog.ScriptingError("HasCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
-            return false;
-        }
+        if (!string.IsNullOrEmpty(cookieName)) return User.HasCookie(cookieName);
+        GameLog.ScriptingError("HasCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
+        return false;
 
-        return User.HasCookie(cookieName);
     }
     /// <summary>
     /// Check to see if a player has a specified session cookie or not.
@@ -597,13 +591,10 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>Boolean indicating whether or not the named cookie exists</returns>
     public bool HasSessionCookie(string cookieName)
     {
-        if (string.IsNullOrEmpty(cookieName))
-        {
-            GameLog.ScriptingError("HasSessionCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
-            return false;
-        }
+        if (!string.IsNullOrEmpty(cookieName)) return User.HasSessionCookie(cookieName);
+        GameLog.ScriptingError("HasSessionCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
+        return false;
 
-        return User.HasSessionCookie(cookieName);
     }
 
     /// <summary>
@@ -613,12 +604,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns></returns>
     public bool DeleteCookie(string cookieName)
     {
-        if (string.IsNullOrEmpty(cookieName))
-        {
-            GameLog.ScriptingError("DeleteCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
-            return false;
-        }
-        return User.DeleteCookie(cookieName);
+        if (!string.IsNullOrEmpty(cookieName)) return User.DeleteCookie(cookieName);
+        GameLog.ScriptingError("DeleteCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
+        return false;
     }
     /// <summary>
     /// Permanently remove a session cookie from a player.
@@ -627,13 +615,10 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns></returns>
     public bool DeleteSessionCookie(string cookieName)
     {
-        if (string.IsNullOrEmpty(cookieName))
-        {
-            GameLog.ScriptingError("DeleteSessionCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
-            return false;
-        }
+        if (!string.IsNullOrEmpty(cookieName)) return User.DeleteSessionCookie(cookieName);
+        GameLog.ScriptingError("DeleteSessionCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
+        return false;
 
-        return User.DeleteSessionCookie(cookieName);
     }
 
     /// <summary>

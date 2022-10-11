@@ -137,7 +137,7 @@ public static class HybrasylUtility
         if (ret)
             userObj.Mailbox.Save();
         if (!userObj.AuthInfo.IsLoggedIn) return ret;
-        userObj.UpdateAttributes(StatUpdateFlags.UnreadMail);
+        userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         return ret;
     }
 
@@ -167,7 +167,7 @@ public static class HybrasylUtility
         if (userObj.AuthInfo.IsLoggedIn)
         {
             userObj.SendSystemMessage(Game.World.GetLocalString("send_parcel_system_msg", ("$NAME", from)));
-            userObj.UpdateAttributes(StatUpdateFlags.UnreadMail);
+            userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         }
 
         userObj.ParcelStore.AddItem(from, itemName, (uint)quantity);

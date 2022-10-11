@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Enums;
@@ -280,6 +281,44 @@ public class Equipment
     [Fact]
     public void EquipRestrictionMastership()
     {}
+
+    [Fact]
+    public void EquipNegativeXpBonus()
+    {
+        Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        ring.Name = "I Give Bad Bonuses";
+        ring.Properties.StatModifiers = new StatModifiers {BonusExtraXp = "-3"};
+        
+        var ringObj = Game.World.CreateItem(ring);
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.Stats.ExtraXp == -3.0);
+
+        Fixture.TestUser.GiveExperience(10000, true);
+        // Test User has 1000xp to start, so -3% of 10k is 9700 + 1000 base = 10700
+        Assert.True(Fixture.TestUser.Stats.Experience == 10700); 
+    }
+
+    [Fact]
+    public void EquipPositiveXpBonus()
+    {
+        Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        ring.Name = "I Give Ok Bonuses";
+        ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "3" };
+
+        var ringObj = Game.World.CreateItem(ring);
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.Stats.ExtraXp == 3.0);
+
+        Fixture.TestUser.GiveExperience(10000, true);
+        // Test User has 1000xp to start, then +3% of 10k is 10300 + 1000 base = 11300
+        Assert.True(Fixture.TestUser.Stats.Experience == 11300);
+    }
 
     [Fact]
     public void EquipEquipmentBonuses()

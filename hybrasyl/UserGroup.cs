@@ -219,10 +219,10 @@ public class UserGroup
         Dictionary<uint, uint> share = ExperienceDistributionFunc(source, exp);
         var inRange = MembersWithinRange(source);
         var difference = AverageLevel - mobLevel;
-        for (int i = 0; i < inRange.Count; i++)
+        foreach (var t in inRange)
         {
             // Note: this will only work for positive numbers at this point.
-            inRange[i].GiveExperience(ScaleExperience(share[inRange[i].Id],  mobLevel));
+            t.GiveExperience(ScaleExperience(share[t.Id],  mobLevel), true);
         }
     }
 

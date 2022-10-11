@@ -450,7 +450,7 @@ public class ItemObject : VisibleObject, IInteractable
         Guid = Guid.NewGuid();
     }
 
-    public new void ShowTo(IVisible obj)
+    public override void ShowTo(IVisible obj)
     {
         if (obj is not User user) return;
         user.SendVisibleItem(this);

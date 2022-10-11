@@ -385,6 +385,14 @@ namespace Hybrasyl
             ProhibitCast = (InExchange | InDialog | Casting)
         }
 
+        [Flags]
+        public enum MailFlags : byte
+        {
+            None = 0,
+            Parcel = 0x01,
+            Mail = 0x10
+        }
+
         public enum CleanupType : int
         {
             ByConnectionId = 0,

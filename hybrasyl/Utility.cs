@@ -256,6 +256,8 @@ namespace Hybrasyl
         public static long MAX_AC = 100;
         public static double MIN_MR = -16.0;
         public static double MAX_MR = 16.0;
+        public static double MIN_REGEN = -16.0;
+        public static double MAX_REGEN = 16.0;
     }
 
     static class DialogTypes

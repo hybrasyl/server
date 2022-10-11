@@ -226,17 +226,13 @@ public class Monster : Creature, ICloneable, IEphemeral
 
                 hitter.ShareExperience(LootableXP, Stats.Level);
                 if (hitter.Stats.ExtraXp > 0)
-                    hitter.GiveExperience((uint) (LootableXP * hitter.Stats.ExtraXp));
+                    hitter.GiveExperience((uint) LootableXP, true);
 
                 var itemDropTime = DateTime.Now;
 
                 if (LootableGold > 0)
                 {
-                    uint gold = 0;
-                    gold = hitter.Stats.ExtraGold > 0
-                        ? (uint) (LootableGold + LootableGold * hitter.Stats.ExtraGold)
-                        : LootableGold;
-                    var goldObj = new Gold(gold)
+                    var goldObj = new Gold(hitter.CalculateGold(LootableGold))
                     {
                         ItemDropType = ItemDropType.MonsterLootPile,
                         ItemDropAllowedLooters = ItemDropAllowedLooters,

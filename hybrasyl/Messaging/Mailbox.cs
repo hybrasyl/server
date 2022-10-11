@@ -33,6 +33,6 @@ public class Mailbox : MessageStore
 
     public bool HasUnreadMessages
     {
-        get { return Messages.Where(m => m.Read == false).Count() > 0; }
+        get { return Messages.Any(m => m.Read == false); }
     }
 }
