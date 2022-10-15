@@ -774,16 +774,22 @@ public class User : Creature
     {
         Client?.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
 
-        if (applyBonus)
+        uint bonus = 0;
+
+        if (applyBonus) 
             switch (Stats.ExtraXp)
             {
                 case < 0:
-                    exp -= (uint) (exp * (Stats.ExtraXp / 100) * -1);
+                    bonus = Convert.ToUInt32(exp * (Stats.ExtraXp / 100));
+                    Client?.SendMessage($"{bonus} penalty experience...", MessageTypes.SYSTEM);
                     break;
                 case > 0:
-                    exp += (uint) (exp * (Stats.ExtraXp / 100));
+                    bonus = Convert.ToUInt32(exp * (Stats.ExtraXp / 100));
+                    Client?.SendMessage($"{bonus} bonus experience!", MessageTypes.SYSTEM);
                     break;
             }
+
+                       exp += bonus;
 
         if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
         {
