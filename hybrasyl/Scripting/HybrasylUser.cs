@@ -376,7 +376,7 @@ public class HybrasylUser : HybrasylWorldObject
             matches = matches.Where(predicate: x => x.Timestamp >= ts);
         }
 
-        return matches.Count() > quantity;
+        return matches.Count() >= quantity;
     }
 
     /// <summary>
