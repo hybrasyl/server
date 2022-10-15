@@ -2730,7 +2730,7 @@ public partial class World : Server
                 if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
                     user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
                 else
-                    user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.CastToString()}");
+                    user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
 
                 return;
 
