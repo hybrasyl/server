@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
@@ -86,7 +87,7 @@ public class VisibleObject : WorldObject, IVisible
     public string DisplayText { get; set; }
     public virtual void ShowTo(IVisible target) { }
 
-    public int Distance(IVisible target) => 3;
+    public int Distance(IVisible target) => Point.Distance(this, target);
 
     public virtual void AoiEntry(VisibleObject obj)
     {

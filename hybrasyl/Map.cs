@@ -26,6 +26,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using C3;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 using Creature = Hybrasyl.Objects.Creature;
@@ -847,7 +848,7 @@ public struct Point
 {
     public static int Distance(int x1, int y1, int x2, int y2) => Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
 
-    public static int Distance(VisibleObject obj1, VisibleObject obj2) => Distance(obj1.X, obj1.Y, obj2.X, obj2.Y);
+    public static int Distance(IVisible obj1, IVisible obj2) => Distance(obj1.Location.X, obj1.Location.Y, obj2.Location.X, obj2.Location.Y);
 
-    public static int Distance(VisibleObject obj, int x, int y) => Distance(obj.X, obj.Y, x, y);
+    public static int Distance(IVisible obj, int x, int y) => Distance(obj.Location.X, obj.Location.Y, x, y);
 }
