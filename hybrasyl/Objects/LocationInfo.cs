@@ -18,7 +18,8 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
+using Hybrasyl.Xml;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -31,7 +32,7 @@ public class LocationInfo
 
     public Map Map
     {
-        get { return _map; }
+        get => _map;
         set
         {
             _map = value;
@@ -42,7 +43,7 @@ public class LocationInfo
 
     public Map DeathMap
     {
-        get { return _deathmap; }
+        get => _deathmap;
         set
         {
             _deathmap = value;
@@ -56,7 +57,11 @@ public class LocationInfo
     [JsonProperty]
     public ushort MapId
     {
-        get { if (Map != null) return Map.Id; else return _mapId; }
+        get
+        {
+            if (Map != null) return Map.Id;
+            return _mapId;
+        }
         set
         {
             if (Game.World.WorldData.TryGetValue(value, out Map map))
@@ -70,7 +75,11 @@ public class LocationInfo
     [JsonProperty]
     public ushort DeathMapId
     {
-        get { if (DeathMap != null) return DeathMap.Id; else return _deathmapId; }
+        get
+        {
+            if (DeathMap != null) return DeathMap.Id;
+            return _deathmapId;
+        }
         set
         {
             if (Game.World.WorldData.TryGetValue(value, out Map map))
@@ -79,17 +88,15 @@ public class LocationInfo
         }
     }
 
-    [JsonProperty]
-    public Xml.Direction Direction { get; set; }
-    [JsonProperty]
-    public byte X { get; set; }
-    [JsonProperty]
-    public byte Y { get; set; }
-    [JsonProperty]
-    public bool WorldMap { get; set; }
+    [JsonProperty] public Direction Direction { get; set; }
 
-    [JsonProperty]
-    public byte DeathMapX { get; set; }
-    [JsonProperty]
-    public byte DeathMapY { get; set; }
+    [JsonProperty] public byte X { get; set; }
+
+    [JsonProperty] public byte Y { get; set; }
+
+    [JsonProperty] public bool WorldMap { get; set; }
+
+    [JsonProperty] public byte DeathMapX { get; set; }
+
+    [JsonProperty] public byte DeathMapY { get; set; }
 }

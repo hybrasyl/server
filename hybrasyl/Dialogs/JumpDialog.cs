@@ -1,13 +1,13 @@
 ﻿using Hybrasyl.Interfaces;
-using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using Serilog;
 
 namespace Hybrasyl.Dialogs;
 
 /// <summary>
-/// A JumpDialog is a dialog that actually starts a new sequence. It's particularly useful for when you want a selected option to start a new
-/// conversational fork without resorting to using a FunctionDialog.
+///     A JumpDialog is a dialog that actually starts a new sequence. It's particularly useful for when you want a selected
+///     option to start a new
+///     conversational fork without resorting to using a FunctionDialog.
 /// </summary>
 public class JumpDialog : Dialog
 {

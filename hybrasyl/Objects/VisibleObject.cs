@@ -25,22 +25,38 @@ using System.Drawing;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
-using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
 public class VisibleObject : WorldObject, IVisible
 {
-    [JsonProperty]
-    public LocationInfo Location { get; set; }
+    public VisibleObject()
+    {
+        DisplayText = string.Empty;
+        DeathPileOwner = string.Empty;
+        ItemDropAllowedLooters = new List<string>();
+        ItemDropTime = null;
+        viewportUsers = new HashSet<User>();
+        Location = new LocationInfo();
+        ItemDropType = ItemDropType.Normal;
+        AllowDead = false;
+    }
+
     // TODO: Clean these up later and simply use Location instead
-    public Map Map { get => Location.Map;
+    public Map Map
+    {
+        get => Location.Map;
         set => Location.Map = value;
     }
-    public Xml.Direction Direction { get => Location.Direction;
+
+    public Direction Direction
+    {
+        get => Location.Direction;
         set => Location.Direction = value;
     }
+
     public override byte X
     {
         get => Location?.X ?? 0;
@@ -53,10 +69,6 @@ public class VisibleObject : WorldObject, IVisible
         set => Location.Y = value;
     }
 
-    public ushort Sprite { get; set; }
-    public string Portrait { get; set; }
-    public string DisplayText { get; set; }
-
     // Whether or not to allow a ghost (a dead player) to interact with this object
     public bool AllowDead { get; set; }
 
@@ -67,17 +79,14 @@ public class VisibleObject : WorldObject, IVisible
 
     public HashSet<User> viewportUsers { get; private set; }
 
-    public VisibleObject()
-    {
-        DisplayText = string.Empty;
-        DeathPileOwner = string.Empty;
-        ItemDropAllowedLooters = new List<string>();
-        ItemDropTime = null;
-        viewportUsers = new HashSet<User>();
-        Location = new LocationInfo();
-        ItemDropType = ItemDropType.Normal;
-        AllowDead = false;
-    }
+    [JsonProperty] public LocationInfo Location { get; set; }
+
+    public ushort Sprite { get; set; }
+    public string Portrait { get; set; }
+    public string DisplayText { get; set; }
+    public virtual void ShowTo(IVisible target) { }
+
+    public int Distance(IVisible target) => 3;
 
     public virtual void AoiEntry(VisibleObject obj)
     {
@@ -108,8 +117,9 @@ public class VisibleObject : WorldObject, IVisible
         var timeDropDifference = (DateTime.Now - ItemDropTime.Value).TotalSeconds;
 
         // Check if the item is a normal dropped item, monster loot or deathpile
-        if (ItemDropType == ItemDropType.Normal) { return true; }
-        else if (ItemDropType == ItemDropType.MonsterLootPile)
+        if (ItemDropType == ItemDropType.Normal) return true;
+
+        if (ItemDropType == ItemDropType.MonsterLootPile)
         {
             if (ItemDropAllowedLooters.Contains(username)) return true;
             if (timeDropDifference > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
@@ -117,9 +127,11 @@ public class VisibleObject : WorldObject, IVisible
         else // (ItemDropType == ItemDropType.UserDeathPile)
         {
             if (DeathPileOwner.Equals(username)) return true;
-            if (ItemDropAllowedLooters.Contains(username) && timeDropDifference > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
+            if (ItemDropAllowedLooters.Contains(username) &&
+                timeDropDifference > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
             if (timeDropDifference > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
         }
+
         error = "These items are cursed.";
 
         return false;
@@ -130,35 +142,22 @@ public class VisibleObject : WorldObject, IVisible
     public virtual void OnDamage(DamageEvent damageEvent) { }
     public virtual void OnHeal(Creature healer, uint damage) { }
     public virtual void OnHear(SpokenEvent e) { }
-    public virtual void ShowTo(IVisible target) { }
 
-    public Rectangle GetBoundingBox()
-    {
-        return new Rectangle(X, Y, 1, 1);
-    }
+    public Rectangle GetBoundingBox() => new(X, Y, 1, 1);
 
-    public Rectangle GetViewport()
-    {
-        return new Rectangle(
-            (X - Constants.VIEWPORT_SIZE / 2),
-            (Y - Constants.VIEWPORT_SIZE / 2),
+    public Rectangle GetViewport() =>
+        new(
+            X - Constants.VIEWPORT_SIZE / 2,
+            Y - Constants.VIEWPORT_SIZE / 2,
             Constants.VIEWPORT_SIZE + 1,
             Constants.VIEWPORT_SIZE + 1);
-    }
 
-    public Rectangle GetShoutViewport()
-    {
-        return new Rectangle(
-            (X - Constants.VIEWPORT_SIZE),
-            (Y - Constants.VIEWPORT_SIZE),
+    public Rectangle GetShoutViewport() =>
+        new(
+            X - Constants.VIEWPORT_SIZE,
+            Y - Constants.VIEWPORT_SIZE,
             Constants.VIEWPORT_SIZE * 2 + 1,
             Constants.VIEWPORT_SIZE * 2 + 1);
-    }
-
-    public int Distance(IVisible target)
-    {
-        return 3;
-    }
 
     public virtual void Show()
     {
@@ -172,13 +171,9 @@ public class VisibleObject : WorldObject, IVisible
         }
     }
 
-    public virtual void Hide()
-    {
-    }
+    public virtual void Hide() { }
 
-    public virtual void HideFrom(VisibleObject obj)
-    {
-    }
+    public virtual void HideFrom(VisibleObject obj) { }
 
     public virtual void Teleport(ushort mapid, byte x, byte y)
     {
@@ -196,49 +191,34 @@ public class VisibleObject : WorldObject, IVisible
         targetMap.Insert(this, x, y);
     }
 
-    public virtual void SendMapInfo()
+    public virtual void SendMapInfo() { }
+
+    public virtual void SendLocation() { }
+
+    public virtual void Say(string message, string from = "")
     {
+        foreach (var obj in Map.EntityTree.GetObjects(GetViewport())) obj.OnHear(new SpokenEvent(this, message, from));
     }
 
-    public virtual void SendLocation()
+    public virtual void Shout(string message, string from = "")
     {
-    }
-
-    public virtual void Say(string message, string from="")
-    {
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
-        {
-            obj.OnHear(new SpokenEvent(this, message, from));
-        }
-    }
-
-    public virtual void Shout(string message, string from="")
-    {           
         foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
-        {
             obj.OnHear(new SpokenEvent(this, message, from, true));
-        }
     }
 
     public virtual void Effect(short x, short y, ushort effect, short speed)
     {
-        foreach (var user in viewportUsers)
-        {
-            user.SendEffect(x, y, effect, speed);
-        }
+        foreach (var user in viewportUsers) user.SendEffect(x, y, effect, speed);
     }
 
     public virtual void Effect(ushort effect, short speed)
     {
-        foreach (var user in viewportUsers)
-        {
-            user.SendEffect(Id, effect, speed);
-        }
+        foreach (var user in viewportUsers) user.SendEffect(Id, effect, speed);
     }
 
     public virtual void PlaySound(byte Id)
     {
-        var soundPacket = new ServerPacketStructures.PlaySound() { Sound = Id };
+        var soundPacket = new ServerPacketStructures.PlaySound { Sound = Id };
 
         foreach (var user in viewportUsers)
         {
@@ -247,34 +227,33 @@ public class VisibleObject : WorldObject, IVisible
         }
     }
 
-    public Xml.Direction GetIntentDirection(Xml.IntentDirection intentDirection)
+    public Direction GetIntentDirection(IntentDirection intentDirection)
     {
         switch (intentDirection)
         {
-            case Xml.IntentDirection.Back:
-                if (Direction == Xml.Direction.North) return Xml.Direction.South;
-                if (Direction == Xml.Direction.South) return Xml.Direction.North;
-                if (Direction == Xml.Direction.East) return Xml.Direction.West;
-                if (Direction == Xml.Direction.West) return Xml.Direction.East;
+            case IntentDirection.Back:
+                if (Direction == Direction.North) return Direction.South;
+                if (Direction == Direction.South) return Direction.North;
+                if (Direction == Direction.East) return Direction.West;
+                if (Direction == Direction.West) return Direction.East;
                 break;
-            case Xml.IntentDirection.Front:
+            case IntentDirection.Front:
                 return Direction;
-            case Xml.IntentDirection.Left:
-                if (Direction == Xml.Direction.North) return Xml.Direction.West;
-                if (Direction == Xml.Direction.South) return Xml.Direction.East;
-                if (Direction == Xml.Direction.East) return Xml.Direction.North;
-                if (Direction == Xml.Direction.West) return Xml.Direction.South;
+            case IntentDirection.Left:
+                if (Direction == Direction.North) return Direction.West;
+                if (Direction == Direction.South) return Direction.East;
+                if (Direction == Direction.East) return Direction.North;
+                if (Direction == Direction.West) return Direction.South;
                 break;
-            case Xml.IntentDirection.Right:
-                if (Direction == Xml.Direction.North) return Xml.Direction.East;
-                if (Direction == Xml.Direction.South) return Xml.Direction.West;
-                if (Direction == Xml.Direction.East) return Xml.Direction.South;
-                if (Direction == Xml.Direction.West) return Xml.Direction.North;
+            case IntentDirection.Right:
+                if (Direction == Direction.North) return Direction.East;
+                if (Direction == Direction.South) return Direction.West;
+                if (Direction == Direction.East) return Direction.South;
+                if (Direction == Direction.West) return Direction.North;
                 break;
         }
+
         // We shouldn't be here
-        return Xml.Direction.North;
+        return Direction.North;
     }
-
-
 }

@@ -19,20 +19,19 @@
  * 
  */
 
-using Hybrasyl.Enums;
-using Hybrasyl.Objects;
 using System;
 using System.Timers;
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl.Jobs;
 
 /// <summary>
-/// This job reaps connections that haven't responded to either tick or byte based heartbeats
-/// in REAP_HEARTBEAT_TIME.
+///     This job reaps connections that haven't responded to either tick or byte based heartbeats
+///     in REAP_HEARTBEAT_TIME.
 /// </summary>
 public static class HeartbeatReaperJob
 {
-
     public static readonly int Interval = Constants.REAP_HEARTBEAT_INTERVAL;
 
     public static void Execute(object obj, ElapsedEventArgs args)
@@ -46,7 +45,6 @@ public static class HeartbeatReaperJob
                 var connectionId = connection.Key;
                 User user;
                 if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
-                {
                     if (client.IsHeartbeatExpired())
                     {
                         GameLog.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
@@ -55,7 +53,6 @@ public static class HeartbeatReaperJob
                         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser,
                             CleanupType.ByConnectionId, connectionId));
                     }
-                }
             }
         }
         catch (Exception e)

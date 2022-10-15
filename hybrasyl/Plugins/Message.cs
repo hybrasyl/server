@@ -3,11 +3,10 @@
 // TODO: interface
 public class Message
 {
-    public string Sender = string.Empty;
     public string Recipient = string.Empty;
-    public Xml.MessageType Type { get; set; }
-    public string Text = string.Empty;
+    public string Sender = string.Empty;
     public string Subject = string.Empty;
+    public string Text = string.Empty;
 
     public Message(Xml.MessageType type, string sender, string recipient, string subject, string body)
     {
@@ -19,4 +18,5 @@ public class Message
     }
 
     public Message() { }
+    public Xml.MessageType Type { get; set; }
 }

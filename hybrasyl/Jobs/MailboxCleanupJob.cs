@@ -19,10 +19,10 @@
  * 
  */
 
-using Hybrasyl.Messaging;
 using System;
 using System.Linq;
 using System.Timers;
+using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Jobs;
 
@@ -38,8 +38,7 @@ public static class MailboxCleanupJob
             GameLog.Debug("Job starting");
 
             var now = DateTime.Now.Ticks;
-            foreach (var mailbox in Game.World.WorldData.Values<Mailbox>().Where(mb => mb.Full))
-            {
+            foreach (var mailbox in Game.World.WorldData.Values<Mailbox>().Where(predicate: mb => mb.Full))
                 try
                 {
                     mailbox.Cleanup();
@@ -49,9 +48,8 @@ public static class MailboxCleanupJob
                     Game.ReportException(e);
                     GameLog.ErrorFormat("{0}: mailbox locked during cleanup...?", mailbox.Name);
                 }
-            }
-            foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Full))
-            {
+
+            foreach (var board in Game.World.WorldData.Values<Board>().Where(predicate: mb => mb.Full))
                 try
                 {
                     board.Cleanup();
@@ -61,7 +59,7 @@ public static class MailboxCleanupJob
                     Game.ReportException(e);
                     GameLog.ErrorFormat("{0}: board locked during cleanup...?", board.Name);
                 }
-            }
+
             GameLog.Debug("Job complete");
         }
         catch (Exception e)

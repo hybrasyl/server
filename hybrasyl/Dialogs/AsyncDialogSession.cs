@@ -4,28 +4,76 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
-using Serilog;
 
 namespace Hybrasyl.Dialogs;
 
 /// <summary>
-/// An AsyncDialogSession is a dialog sequence that is showed to a player based on asynchronous input 
-/// from another script, player, or event (such as a mentoring request). 
+///     An AsyncDialogSession is a dialog sequence that is showed to a player based on asynchronous input
+///     from another script, player, or event (such as a mentoring request).
 /// </summary>
-public class AsyncDialogSession : IInteractable 
+public class AsyncDialogSession : IInteractable
 {
-    public IInteractable Origin { get; set; }
     public IVisible Source;
+
+    private bool sourceClosed;
     public User Target;
+    private bool targetClosed;
+
+    public AsyncDialogSession(string sequence, IInteractable origin, IVisible source, User target,
+        bool requireLocal = true)
+    {
+        if (!origin.SequenceIndex.ContainsKey(sequence) && !Game.World.GlobalSequences.ContainsKey(sequence))
+            throw new ArgumentException($"Sequence {sequence} does not exist");
+        StartSequence = sequence;
+        Origin = origin;
+        Source = source;
+        Target = target;
+        RequireLocal = requireLocal;
+    }
+
+    public IInteractable Origin { get; set; }
     public Guid Guid { get; set; } = Guid.NewGuid();
-    
-    public string Name => Origin.Name;
-    public uint Id { get; set; }
     public bool RequireLocal { get; set; }
-    public Script Script => Origin.Script;
-    public bool AllowDead => Origin.AllowDead;
 
     public string StartSequence { get; set; }
+
+    public bool Complete
+    {
+        get
+        {
+            if (Source is User)
+                return sourceClosed && targetClosed;
+            return targetClosed;
+        }
+    }
+
+    public bool Ready => sourceReady && targetReady;
+
+    private bool targetReady => (!Target.Condition.Comatose
+                                 && !Target.Condition.Casting
+                                 && !Target.Condition.InExchange
+                                 && !Target.Condition.Flags.HasFlag(PlayerFlags.InBoard)
+                                 && !(Target.DialogState?.InDialog ?? false)
+                                 && Target.ActiveDialogSession == null) || Target.ActiveDialogSession.Guid == Guid;
+
+    private bool sourceReady
+    {
+        get
+        {
+            if (Source is User user)
+                return (!user.Condition.Comatose
+                        && !user.Condition.Casting
+                        && !user.Condition.InExchange
+                        && !user.Condition.Flags.HasFlag(PlayerFlags.InBoard)
+                        && user.ActiveDialogSession == null) || user.ActiveDialogSession.Guid == Guid;
+            return true;
+        }
+    }
+
+    public string Name => Origin.Name;
+    public uint Id { get; set; }
+    public Script Script => Origin.Script;
+    public bool AllowDead => Origin.AllowDead;
 
     public ushort Sprite
     {
@@ -44,53 +92,8 @@ public class AsyncDialogSession : IInteractable
         get => Origin.SequenceIndex;
         set => throw new NotImplementedException();
     }
+
     public ushort DialogSprite => Origin.DialogSprite;
-
-    private bool sourceClosed;
-    private bool targetClosed;
-
-    public bool Complete
-    {
-        get
-        {
-            if (Source is User)
-                return sourceClosed && targetClosed;
-            return targetClosed;
-        }
-    } 
-
-    public bool Ready => sourceReady && targetReady;
-
-    private bool targetReady => !Target.Condition.Comatose
-        && !Target.Condition.Casting
-        && !Target.Condition.InExchange
-        && !Target.Condition.Flags.HasFlag(PlayerFlags.InBoard)
-        && !(Target.DialogState?.InDialog ?? false)
-        && Target.ActiveDialogSession == null || Target.ActiveDialogSession.Guid == Guid;
-
-    private bool sourceReady
-    {
-        get
-        {
-            if (Source is User user)
-                return !user.Condition.Comatose
-                    && !user.Condition.Casting
-               && !user.Condition.InExchange
-               && !user.Condition.Flags.HasFlag(PlayerFlags.InBoard)
-               && user.ActiveDialogSession == null || user.ActiveDialogSession.Guid == Guid;
-            return true;
-        }
-    }
-    public AsyncDialogSession(string sequence, IInteractable origin, IVisible source, User target, bool requireLocal = true)
-    {
-        if (!origin.SequenceIndex.ContainsKey(sequence) && !Game.World.GlobalSequences.ContainsKey(sequence))
-            throw new ArgumentException($"Sequence {sequence} does not exist");
-        StartSequence = sequence;
-        Origin = origin;
-        Source = source;
-        Target = target;
-        RequireLocal = requireLocal;
-    }
 
     public bool IsParticipant(Guid guid) => Target.Guid == guid || Source.Guid == guid;
 
@@ -113,7 +116,7 @@ public class AsyncDialogSession : IInteractable
     public void Close(Guid guid)
     {
         if (Target.Guid == guid)
-        { 
+        {
             targetClosed = true;
             Target.ActiveDialogSession = null;
             Target.ClearDialogState();
@@ -129,7 +132,6 @@ public class AsyncDialogSession : IInteractable
 
     public bool CheckRequest()
     {
-
         // The sequence exists, now we do some checks.
         //
         // Do basic checks first.
@@ -175,8 +177,5 @@ public class AsyncDialogSession : IInteractable
         Target.DialogState.StartDialog(this, sequenceObj);
         sequenceObj.ShowTo(invocation);
         return true;
-
     }
 }
-
-

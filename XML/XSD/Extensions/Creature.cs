@@ -13,10 +13,9 @@ public partial class Creature : HybrasylLoadable, IHybrasylLoadable<Creature>
         var ret = new XmlLoadResponse<Creature>();
 
         foreach (var xml in GetXmlFiles(Path.Join(baseDir, Directory)))
-        {
             try
             {
-                Creature c = LoadFromFile(xml);
+                var c = LoadFromFile(xml);
                 // Resolve subtypes
                 foreach (var subtype in c.Types)
                 {
@@ -27,6 +26,7 @@ public partial class Creature : HybrasylLoadable, IHybrasylLoadable<Creature>
                     else
                         ret.Results.Add(c);
                 }
+
                 if (!string.IsNullOrEmpty(c.Name))
                     ret.Results.Add(c);
                 else
@@ -36,7 +36,7 @@ public partial class Creature : HybrasylLoadable, IHybrasylLoadable<Creature>
             {
                 ret.Errors.Add(xml, e.ToString());
             }
-        }
+
         return ret;
     }
 

@@ -2,13 +2,13 @@
 
 public class InputDialog : Dialog
 {
-    protected string Handler { get; private set; }
-
     public InputDialog(int dialogType, string displayText)
         : base(dialogType, displayText)
     {
         Handler = null;
     }
+
+    protected string Handler { get; private set; }
 
     public void SetInputHandler(string handler)
     {

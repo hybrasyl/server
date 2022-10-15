@@ -1,4 +1,5 @@
 ﻿using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
@@ -6,6 +7,12 @@ namespace Hybrasyl.Scripting;
 [MoonSharpUserData]
 public class HybrasylMonster : HybrasylWorldObject
 {
+    public HybrasylMonster(Monster monster) : base(monster)
+    {
+        World = new HybrasylWorld(monster.World);
+        Map = new HybrasylMap(monster.Map);
+    }
+
     internal Monster Monster => WorldObject as Monster;
 
     internal HybrasylWorld World { get; set; }
@@ -21,35 +28,36 @@ public class HybrasylMonster : HybrasylWorldObject
     public WorldObject LastHitter => Monster.LastHitter;
     public string LastHitTime => Monster.LastHitTime.ToString();
 
-    public void ForceThreatChange(HybrasylUser invoker) => Monster.ThreatInfo.ForceThreatChange(invoker.User);
-    public void MakeHostile() => Monster.MakeHostile();
-
     /// <summary>
-    /// Access the StatInfo of the specified user directly (all stats).
+    ///     Access the StatInfo of the specified user directly (all stats).
     /// </summary>
     public StatInfo Stats => Monster.Stats;
 
-    public HybrasylMonster(Monster monster) : base(monster)
+    public void ForceThreatChange(HybrasylUser invoker)
     {
-        World = new HybrasylWorld(monster.World);
-        Map = new HybrasylMap(monster.Map);
+        Monster.ThreatInfo.ForceThreatChange(invoker.User);
+    }
+
+    public void MakeHostile()
+    {
+        Monster.MakeHostile();
     }
 
     /// <summary>
-    /// Deal damage to the current player.
+    ///     Deal damage to the current player.
     /// </summary>
     /// <param name="damage">Integer amount of damage to deal.</param>
     /// <param name="element">Element of the damage (e.g. fire, air)</param>
     /// <param name="damageType">Type of damage (direct, magical, etc)</param>
-    public void Damage(int damage, Xml.ElementType element = Xml.ElementType.None,
-        Xml.DamageType damageType = Xml.DamageType.Direct)
+    public void Damage(int damage, ElementType element = ElementType.None,
+        DamageType damageType = DamageType.Direct)
     {
         Monster.Damage(damage, element, damageType);
     }
 
     public void SetCreatureDisplaySprite(int displaySprite)
     {
-            Monster.Sprite = (ushort)displaySprite;
+        Monster.Sprite = (ushort) displaySprite;
     }
 
     public int GetCreatureDisplaySprite() => Monster.Sprite;
@@ -61,16 +69,20 @@ public class HybrasylMonster : HybrasylWorldObject
 
         ////this is for debug only
         s += $"Name: {Monster.Name} | Id: {Monster.Id}\n";
-        s += $"Level: {Monster.Stats.Level}  Health: {Monster.Stats.Hp}/{Monster.Stats.MaximumHp}  Mana: {Monster.Stats.Mp} / {Monster.Stats.MaximumMp}\n";
-        s += $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
+        s +=
+            $"Level: {Monster.Stats.Level}  Health: {Monster.Stats.Hp}/{Monster.Stats.MaximumHp}  Mana: {Monster.Stats.Mp} / {Monster.Stats.MaximumMp}\n";
+        s +=
+            $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
         s += $"Experience: {Monster.LootableXP}\n\n";
         s += "Castables:\n";
 
         foreach (var rotation in Monster.CastableController)
         {
-            s += $"  Set Type: {rotation.CastingSet.Type}, {rotation.Interval} second timer, target priority {rotation.CastingSet.TargetPriority} \n  Rotation:\n";
+            s +=
+                $"  Set Type: {rotation.CastingSet.Type}, {rotation.Interval} second timer, target priority {rotation.CastingSet.TargetPriority} \n  Rotation:\n";
             foreach (var entry in rotation)
-                s += $"    Castable: {entry.Name}, {entry.Directive} second timer, {entry.Threshold}% health, UseOnce: {entry.UseOnce}, Triggered: {entry.ThresholdTriggered}";
+                s +=
+                    $"    Castable: {entry.Name}, {entry.Directive} second timer, {entry.Threshold}% health, UseOnce: {entry.UseOnce}, Triggered: {entry.ThresholdTriggered}";
         }
 
         s += $"AbsoluteImmortal: {Monster.AbsoluteImmortal}\n";
@@ -85,11 +97,10 @@ public class HybrasylMonster : HybrasylWorldObject
         if (Monster.LastHitTime != default) s += $"LastHitTime: {Monster.LastHitTime}\n";
         if (Monster.ThreatInfo != null)
         {
-            s += $"ThreatInfo:\n";
+            s += "ThreatInfo:\n";
             foreach (var user in Monster.ThreatInfo.ThreatTableByCreature)
-            {
-                s += $"Name: {Game.World.WorldData.GetWorldObject<VisibleObject>(user.Key)?.Name ?? "unknown"} | Threat: {user.Value}\n";
-            }
+                s +=
+                    $"Name: {Game.World.WorldData.GetWorldObject<VisibleObject>(user.Key)?.Name ?? "unknown"} | Threat: {user.Value}\n";
         }
 
         return s;

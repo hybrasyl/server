@@ -34,14 +34,12 @@ public static class CheckpointerJob
         {
             GameLog.Debug("Job starting");
             foreach (var client in GlobalConnectionManifest.WorldClients)
-            {
                 // Insert a "save client" message onto the queue for each client.
                 // We do this rather than sending a "checkpoint" message so we don't
                 // randomly have a packet occupying shitloads of CPU time blocking
                 // everything else.
 
                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
-            }
             GameLog.Debug("Job complete");
         }
         catch (Exception e)

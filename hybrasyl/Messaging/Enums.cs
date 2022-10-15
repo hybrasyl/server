@@ -25,8 +25,8 @@ public enum BoardAccessLevel
 {
     Read,
     Write,       // N.B. Write implies read
-    Moderate,    // Moderator implies r/w access
-};
+    Moderate    // Moderator implies r/w access
+}
 
 public enum BoardResponseType : byte
 {

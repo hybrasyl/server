@@ -32,16 +32,13 @@ public static class MetricsJob
         if (Game.MetricsStore.Options.ReportingEnabled)
         {
             // Store queue depth before we run our report
-            Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.QueueDepth, 
+            Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.QueueDepth,
                 World.MessageQueue.Count);
             Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.ControlQueueDepth,
                 World.MessageQueue.Count);
 
             // this shouldn't be how this happens, but it doesn't work otherwise
-            foreach (var a in Game.MetricsStore.ReportRunner.RunAllAsync())
-            {
-                a.Wait();
-            }
+            foreach (var a in Game.MetricsStore.ReportRunner.RunAllAsync()) a.Wait();
         }
     }
 }

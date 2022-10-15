@@ -1,394 +1,393 @@
-<?xml version="1.0" encoding="utf-8"?>
-<xs:schema
-    xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
-    xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
-    xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
-    elementFormDefault="qualified">
-  <xs:annotation>
-    <xs:documentation xml:lang="en">
-      This file is part of Project Hybrasyl.
+<?xml version="1.0"
+      encoding="utf-8"?>
 
-      This program is free software; you can redistribute it and/or modify
-      it under the terms of the Affero General Public License as published by
-      the Free Software Foundation, version 3.
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+           xmlns:hyb="http://www.hybrasyl.com/XML/Hybrasyl/2020-02"
+           xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02" elementFormDefault="qualified">
+    <xs:annotation>
+        <xs:documentation xml:lang="en">
+            This file is part of Project Hybrasyl.
 
-      This program is distributed in the hope that it will be useful, but
-      without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-      or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
-      for more details.
+            This program is free software; you can redistribute it and/or modify
+            it under the terms of the Affero General Public License as published by
+            the Free Software Foundation, version 3.
 
-      You should have received a copy of the Affero General Public License along
-      with this program. If not, see http://www.gnu.org/licenses/ .
+            This program is distributed in the hope that it will be useful, but
+            without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+            or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+            for more details.
 
-      (C) 2020 ERISCO, LLC
+            You should have received a copy of the Affero General Public License along
+            with this program. If not, see http://www.gnu.org/licenses/ .
 
-      For contributors and individual authors please refer to CONTRIBUTORS.MD.
-    </xs:documentation>
-  </xs:annotation>
+            (C) 2020 ERISCO, LLC
 
-  <xs:complexType name="DataStore">
-    <xs:sequence>
-      <xs:element name="Username" type="xs:token" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Password" type="xs:token" minOccurs="0" maxOccurs="1" />
-    </xs:sequence>
-    <xs:attribute name="Type" type="xs:token" default="redis" />
-    <xs:attribute name="Host" type="xs:token" default="localhost" />
-    <xs:attribute name="Port" type="xs:unsignedShort" default="6379" />
-    <xs:attribute name="Database" type="xs:int" default="0"/>
-  </xs:complexType>
+            For contributors and individual authors please refer to CONTRIBUTORS.MD.
+        </xs:documentation>
+    </xs:annotation>
 
-  <xs:complexType name="NetworkInfo">
-    <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
-    <xs:attribute name="ExternalAddress" type="hyb:IpAddress" />
-    <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
-  </xs:complexType>
+    <xs:complexType name="DataStore">
+        <xs:sequence>
+            <xs:element name="Username" type="xs:token" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Password" type="xs:token" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="Type" type="xs:token" default="redis" />
+        <xs:attribute name="Host" type="xs:token" default="localhost" />
+        <xs:attribute name="Port" type="xs:unsignedShort" default="6379" />
+        <xs:attribute name="Database" type="xs:int" default="0" />
+    </xs:complexType>
 
-  <xs:complexType name="NetworkInfoSsl">
-    <xs:sequence>
-      <xs:element name="ChainCertificateFile" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="ServerCertificateFile" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="ServerKeyFile" type="xs:string" minOccurs="1" maxOccurs="1" />       
-    </xs:sequence>
-    <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
-    <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
-  </xs:complexType>
+    <xs:complexType name="NetworkInfo">
+        <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
+        <xs:attribute name="ExternalAddress" type="hyb:IpAddress" />
+        <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
+    </xs:complexType>
 
-  <xs:complexType name="TargetUrl">
-    <xs:attribute name="Url" type="xs:anyURI"/>
-  </xs:complexType>
+    <xs:complexType name="NetworkInfoSsl">
+        <xs:sequence>
+            <xs:element name="ChainCertificateFile" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="ServerCertificateFile" type="xs:string" minOccurs="1" maxOccurs="1" />
+            <xs:element name="ServerKeyFile" type="xs:string" minOccurs="1" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="BindAddress" type="hyb:IpAddress" default="127.0.0.1" />
+        <xs:attribute name="Port" type="xs:unsignedShort" use="required" />
+    </xs:complexType>
 
-  <xs:complexType name="WebUrl">
-    <xs:attribute name="Url" type="xs:anyURI"/>
-  </xs:complexType>
+    <xs:complexType name="TargetUrl">
+        <xs:attribute name="Url" type="xs:anyURI" />
+    </xs:complexType>
 
-  <xs:complexType name="Network">
-    <xs:sequence>
-      <xs:element name="Lobby" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Login" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="World" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Grpc" type="hyb:NetworkInfoSsl" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="WebUrl">
+        <xs:attribute name="Url" type="xs:anyURI" />
+    </xs:complexType>
 
-  <xs:complexType name="ApiEndpoints">
-    <xs:sequence>
-      <xs:element name="ControlService" type="hyb:NetworkInfo" />
-      <xs:element name="RemoteAdminHost" type="hyb:TargetUrl" />
-      <xs:element name="EncryptionEndpoint" type="hyb:TargetUrl" maxOccurs="1" minOccurs="0" />
-      <xs:element name="ValidationEndpoint" type="hyb:TargetUrl" minOccurs="0" maxOccurs="1" />
-      <xs:element name="MetricsEndpoint" type="hyb:MetricsEndpoint" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Sentry" minOccurs="0" maxOccurs="1" type="hyb:TargetUrl"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="Network">
+        <xs:sequence>
+            <xs:element name="Lobby" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Login" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1" />
+            <xs:element name="World" type="hyb:NetworkInfo" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Grpc" type="hyb:NetworkInfoSsl" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:simpleType name="LogLevel">
-    <xs:restriction base="xs:token">
-      <xs:enumeration value="All" />
-      <xs:enumeration value="Debug" />
-      <xs:enumeration value="Info" />
-      <xs:enumeration value="Warn" />
-      <xs:enumeration value="Error" />
-      <xs:enumeration value="Fatal" />
-      <xs:enumeration value="None" />
-    </xs:restriction>
-  </xs:simpleType>
+    <xs:complexType name="ApiEndpoints">
+        <xs:sequence>
+            <xs:element name="ControlService" type="hyb:NetworkInfo" />
+            <xs:element name="RemoteAdminHost" type="hyb:TargetUrl" />
+            <xs:element name="EncryptionEndpoint" type="hyb:TargetUrl" maxOccurs="1" minOccurs="0" />
+            <xs:element name="ValidationEndpoint" type="hyb:TargetUrl" minOccurs="0" maxOccurs="1" />
+            <xs:element name="MetricsEndpoint" type="hyb:MetricsEndpoint" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Sentry" minOccurs="0" maxOccurs="1" type="hyb:TargetUrl" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="Access">
-    <xs:sequence>
-      <xs:element name="Privileged" minOccurs="0" maxOccurs="1">
-        <xs:simpleType>
-          <xs:list itemType="xs:token" />
-        </xs:simpleType>
-      </xs:element>
-      <xs:element name="Reserved" minOccurs="0" maxOccurs="1">
-        <xs:simpleType>
-          <xs:list itemType="xs:token"/>
-        </xs:simpleType>
-      </xs:element>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:simpleType name="LogLevel">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="All" />
+            <xs:enumeration value="Debug" />
+            <xs:enumeration value="Info" />
+            <xs:enumeration value="Warn" />
+            <xs:enumeration value="Error" />
+            <xs:enumeration value="Fatal" />
+            <xs:enumeration value="None" />
+        </xs:restriction>
+    </xs:simpleType>
 
-  <xs:complexType name="GlobalBoards">
-    <xs:sequence>
-      <xs:element name="Board" type="hyb:GlobalBoard" minOccurs="0" maxOccurs="unbounded" />
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="Access">
+        <xs:sequence>
+            <xs:element name="Privileged" minOccurs="0" maxOccurs="1">
+                <xs:simpleType>
+                    <xs:list itemType="xs:token" />
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="Reserved" minOccurs="0" maxOccurs="1">
+                <xs:simpleType>
+                    <xs:list itemType="xs:token" />
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="GlobalBoard">
-    <xs:sequence>
-      <xs:element name="AccessList" type="hyb:GlobalBoardAccessList" minOccurs="0" maxOccurs="1" />
-    </xs:sequence>
-    <xs:attribute name="Name" type="xs:token" use="required" />
-    <xs:attribute name="DisplayName" type="hyb:String8" use="required" />
-  </xs:complexType>
+    <xs:complexType name="GlobalBoards">
+        <xs:sequence>
+            <xs:element name="Board" type="hyb:GlobalBoard" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="GlobalBoardAccessList">
-    <xs:sequence minOccurs="0" maxOccurs="unbounded">
-      <xs:element name="Read" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
-      <xs:element name="Write" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
-      <xs:element name="Moderate" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="GlobalBoard">
+        <xs:sequence>
+            <xs:element name="AccessList" type="hyb:GlobalBoardAccessList" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="Name" type="xs:token" use="required" />
+        <xs:attribute name="DisplayName" type="hyb:String8" use="required" />
+    </xs:complexType>
 
-  <xs:complexType name="LogConfig">
-    <xs:attribute name="Type" type="xs:string" default="file" />
-    <xs:attribute name="Target" type="xs:string" default="hybrasyl.log" />
-    <xs:attribute name="Level" type="hyb:LogLevel" default="Info" />
-  </xs:complexType>
+    <xs:complexType name="GlobalBoardAccessList">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="Read" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="Write" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="Moderate" type="hyb:CharacterName" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="MessagePluginTargets">
-    <xs:sequence>
-      <xs:element name="Target" type="xs:token" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="LogConfig">
+        <xs:attribute name="Type" type="xs:string" default="file" />
+        <xs:attribute name="Target" type="xs:string" default="hybrasyl.log" />
+        <xs:attribute name="Level" type="hyb:LogLevel" default="Info" />
+    </xs:complexType>
 
-  <xs:complexType name="PluginConfig">
-    <xs:attribute name="Key" type="xs:token" use="required"/>
-    <xs:attribute name="Value" type="xs:token" use="required"/>
-  </xs:complexType>
+    <xs:complexType name="MessagePluginTargets">
+        <xs:sequence>
+            <xs:element name="Target" type="xs:token" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="PluginConfiguration">
-    <xs:sequence>
-      <xs:element name="Config" type="PluginConfig" minOccurs="1" maxOccurs="unbounded"/>
-   </xs:sequence>
-  </xs:complexType>
-  
-  <xs:complexType name="MessagePlugin">
-    <xs:sequence>
-      <xs:element name="Configuration" type="hyb:PluginConfiguration" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Targets" type="hyb:MessagePluginTargets" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="Type" type="hyb:MessageType" use="required"/>
-    <xs:attribute name="Passthrough" type="xs:boolean" use="required"/>
-    <xs:attribute name="Name" type="xs:token" use="required"/>
-  </xs:complexType>
+    <xs:complexType name="PluginConfig">
+        <xs:attribute name="Key" type="xs:token" use="required" />
+        <xs:attribute name="Value" type="xs:token" use="required" />
+    </xs:complexType>
 
-  <xs:complexType name="MessagePlugins">
-    <xs:sequence>
-      <xs:element name="Plugin" type="hyb:MessagePlugin" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
-  
-  <xs:complexType name="ServerPlugins">
-    <xs:sequence>
-      <xs:element name="Message" type="hyb:MessagePlugins" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="PluginConfiguration">
+        <xs:sequence>
+            <xs:element name="Config" type="PluginConfig" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="ClientSetting">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute type="xs:unsignedByte" name="Number" use="required"/>
-        <xs:attribute type="xs:token" name="Key" use="required"/>
-        <xs:attribute type="xs:boolean" name="Default" default="false"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
-    
-  <xs:complexType name="ClientSettings">
-    <xs:sequence>
-      <xs:element name="Setting" type="hyb:ClientSetting" minOccurs="1" maxOccurs="8"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="MessagePlugin">
+        <xs:sequence>
+            <xs:element name="Configuration" type="hyb:PluginConfiguration" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Targets" type="hyb:MessagePluginTargets" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="Type" type="hyb:MessageType" use="required" />
+        <xs:attribute name="Passthrough" type="xs:boolean" use="required" />
+        <xs:attribute name="Name" type="xs:token" use="required" />
+    </xs:complexType>
 
-  <xs:complexType name="MetricsEndpoint">
-    <xs:attribute type="xs:string" name="ApiKey" use="required"/>
-    <xs:attribute name="Url" type="xs:anyURI" use="required"/>
-  </xs:complexType>
+    <xs:complexType name="MessagePlugins">
+        <xs:sequence>
+            <xs:element name="Plugin" type="hyb:MessagePlugin" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="ServerConfig">
-    <xs:sequence>
-      <xs:element name="Logging" type="hyb:LogConfig" minOccurs="0" maxOccurs="1" />
-      <xs:element name="DataStore" type="hyb:DataStore" minOccurs="1" maxOccurs="1" />
-      <xs:element name="Network" type="hyb:Network" minOccurs="1" maxOccurs="1" />
-      <xs:element name="ApiEndpoints" type="hyb:ApiEndpoints" minOccurs="1" maxOccurs="1" />
-      <xs:element name="Access" type="hyb:Access" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Boards" type="hyb:GlobalBoards" minOccurs="0" maxOccurs="1" />
-      <xs:element name="Time" type="hyb:Time" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Handlers" type="hyb:Handlers" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="ClientSettings" type="hyb:ClientSettings" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="WorldDataDir" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="Constants" type="hyb:ServerConstants" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="ServerPlugins">
+        <xs:sequence>
+            <xs:element name="Message" type="hyb:MessagePlugins" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
 
-	<xs:complexType name="ServerConstants">
-		<xs:sequence>
-			<!-- The percentage of an item's value that will be paid to a player for selling an item.-->
-			<xs:element name="MerchantBuybackPercentage" type="xs:float" default="0.20"/>
-			<!-- The maximum level that a player can achieve -->
-			<xs:element name="PlayerMaxLevel" type="xs:int" default="99"/>
-			<!-- The size of the viewport, in tiles (client window size) -->
-			<xs:element name="ViewportSize" type="xs:int" default="24"/>
-			<xs:element name="PlayerMaxBookSize" type="xs:int" default="90"/>
-			<xs:element name="PlayerMaxDropDistance" type="xs:int" default="2"/>
-			<xs:element name="PlayerPickupDistance" type="xs:int" default="2"/>
-			<xs:element name="PlayerExchangeDistance" type="xs:int" default="2"/>
-			<xs:element name="PlayerMaximumGold" type="xs:int" default="1000000000"/>
-			<xs:element name="ItemVariantIdStart" type="xs:int" default="100000"/>
-			<xs:element name="LogDefaultLevels" type="xs:int" default="1"/>
-			<xs:element name="PlayerGroupSharingDistance" type="xs:int" default="20"/>
-			<xs:element name="PlayerAsyncDialogDistance" type="xs:int" default="10"/>
-			<xs:element name="LagMap" type="xs:int" default="1001"/>
-			<xs:element name="NationalSpawnTimeout" type="xs:int" default="10800"/>
-			<xs:element name="DeathpileGroupTimeout" type="xs:int" default="0"/>
-			<xs:element name="DeathpileOtherTimeout" type="xs:int" default="900"/>
-			<xs:element name="MonsterLootDropTimeout" type="xs:int" default="60"/>
-			<xs:element name="MonsterTaggingTimeout" type="xs:int" default="300"/>
-			<xs:element name="ByteHeartbeatInterval" type="xs:int" default="60"/>
-			<xs:element name="TickHeartbeatInterval" type="xs:int" default="60"/>
-			<xs:element name="ReapHeartbeatInterval" type="xs:int" default="5"/>
-			<xs:element name="PlayerIdleTime" type="xs:int" default="60"/>
-			<xs:element name="PlayerIdleCheck" type="xs:int" default="10"/>
-			<xs:element name="DialogSequenceShared" type="xs:int" default="5000"/>
-			<xs:element name="DialogSequencePursuits" type="xs:int" default="5100"/>
-			<xs:element name="DialogSequenceAsync" type="xs:int" default="65000"/>
-			<xs:element name="DialogSequenceHardcoded" type="xs:int" default="65280"/>
-            <xs:element name="BoardMessageResponseSize" type="xs:int" default="64"/>
-            <xs:element name="BoardMessageCooldown" type="xs:int" default="60"/>
-			<xs:element name="MailMessageCooldown" type="xs:int" default="60"/>
-            <xs:element name="PlayerMinStat" type="xs:int" default="1"/>
-			<xs:element name="PlayerMaxStat" type="xs:int" default="255"/>
-			<xs:element name="PlayerMinBaseHpMp" type="xs:int" default="1"/>
-			<xs:element name="PlayerMaxBaseHpMp" type="xs:unsignedInt" default="4294967295"/>
-            <xs:element name="PlayerMinDmg" type="xs:float" default="-16.0"/>
-			<xs:element name="PlayerMaxDmg" type="xs:float" default="-16.0"/>
-			<xs:element name="PlayerMinHit" type="xs:float" default="-16.0"/>
-			<xs:element name="PlayerMaxHit" type="xs:float" default="-16.0"/>
-			<xs:element name="PlayerMinMr" type="xs:float" default="-16.0"/>
-			<xs:element name="PlayerMaxMr" type="xs:float" default="-16.0"/>
-			<xs:element name="PlayerMinAc" type="xs:float" default="-90"/>
-			<xs:element name="PlayerMaxAc" type="xs:float" default="100"/>
-		</xs:sequence>
-	</xs:complexType>
-                    
-	<xs:complexType name="Time">
-    <xs:sequence>
-      <xs:element name="Ages" type="hyb:HybrasylAges" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="ServerStart" type="hyb:ServerStart" minOccurs="0" maxOccurs="1"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="ClientSetting">
+        <xs:simpleContent>
+            <xs:extension base="hyb:String8">
+                <xs:attribute type="xs:unsignedByte" name="Number" use="required" />
+                <xs:attribute type="xs:token" name="Key" use="required" />
+                <xs:attribute type="xs:boolean" name="Default" default="false" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
 
-  <xs:complexType name="ServerStart">
-    <xs:simpleContent>
-      <xs:extension base="xs:dateTime">
-        <xs:attribute name="DefaultAge" type="hyb:String5" default="Hybrasyl"/>
-        <xs:attribute name="DefaultYear" type="xs:int" default="1"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+    <xs:complexType name="ClientSettings">
+        <xs:sequence>
+            <xs:element name="Setting" type="hyb:ClientSetting" minOccurs="1" maxOccurs="8" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="HybrasylAge">
-    <xs:attribute name="Name" type="hyb:String5" use="required"/>
-    <xs:attribute name="StartDate" type="xs:dateTime" use="required"/>
-    <xs:attribute name="EndDate" type="xs:dateTime" use="optional"/>
-    <xs:attribute name="StartYear" type="xs:int" default="1"/>
-  </xs:complexType>
+    <xs:complexType name="MetricsEndpoint">
+        <xs:attribute type="xs:string" name="ApiKey" use="required" />
+        <xs:attribute name="Url" type="xs:anyURI" use="required" />
+    </xs:complexType>
 
-  <xs:complexType name="HybrasylAges">
-    <xs:sequence>
-      <xs:element name="Age" minOccurs="1" maxOccurs="unbounded" type="hyb:HybrasylAge">
-      </xs:element>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="ServerConfig">
+        <xs:sequence>
+            <xs:element name="Logging" type="hyb:LogConfig" minOccurs="0" maxOccurs="1" />
+            <xs:element name="DataStore" type="hyb:DataStore" minOccurs="1" maxOccurs="1" />
+            <xs:element name="Network" type="hyb:Network" minOccurs="1" maxOccurs="1" />
+            <xs:element name="ApiEndpoints" type="hyb:ApiEndpoints" minOccurs="1" maxOccurs="1" />
+            <xs:element name="Access" type="hyb:Access" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Boards" type="hyb:GlobalBoards" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Time" type="hyb:Time" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Handlers" type="hyb:Handlers" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Motd" type="hyb:String16" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Plugins" type="hyb:ServerPlugins" minOccurs="0" maxOccurs="1" />
+            <xs:element name="ClientSettings" type="hyb:ClientSettings" minOccurs="0" maxOccurs="1" />
+            <xs:element name="WorldDataDir" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Constants" type="hyb:ServerConstants" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="MessageHandler">
-    <xs:sequence>
-      <xs:element name="Target" minOccurs="0" maxOccurs="unbounded" type="xs:token"/>
-    </xs:sequence>
-    <xs:attribute name="Handler" use="required" type="xs:token"/>
-    <xs:attribute name="Passthrough" default="false"/>
-  </xs:complexType>
+    <xs:complexType name="ServerConstants">
+        <xs:sequence>
+            <!-- The percentage of an item's value that will be paid to a player for selling an item.-->
+            <xs:element name="MerchantBuybackPercentage" type="xs:float" default="0.20" />
+            <!-- The maximum level that a player can achieve -->
+            <xs:element name="PlayerMaxLevel" type="xs:int" default="99" />
+            <!-- The size of the viewport, in tiles (client window size) -->
+            <xs:element name="ViewportSize" type="xs:int" default="24" />
+            <xs:element name="PlayerMaxBookSize" type="xs:int" default="90" />
+            <xs:element name="PlayerMaxDropDistance" type="xs:int" default="2" />
+            <xs:element name="PlayerPickupDistance" type="xs:int" default="2" />
+            <xs:element name="PlayerExchangeDistance" type="xs:int" default="2" />
+            <xs:element name="PlayerMaximumGold" type="xs:int" default="1000000000" />
+            <xs:element name="ItemVariantIdStart" type="xs:int" default="100000" />
+            <xs:element name="LogDefaultLevels" type="xs:int" default="1" />
+            <xs:element name="PlayerGroupSharingDistance" type="xs:int" default="20" />
+            <xs:element name="PlayerAsyncDialogDistance" type="xs:int" default="10" />
+            <xs:element name="LagMap" type="xs:int" default="1001" />
+            <xs:element name="NationalSpawnTimeout" type="xs:int" default="10800" />
+            <xs:element name="DeathpileGroupTimeout" type="xs:int" default="0" />
+            <xs:element name="DeathpileOtherTimeout" type="xs:int" default="900" />
+            <xs:element name="MonsterLootDropTimeout" type="xs:int" default="60" />
+            <xs:element name="MonsterTaggingTimeout" type="xs:int" default="300" />
+            <xs:element name="ByteHeartbeatInterval" type="xs:int" default="60" />
+            <xs:element name="TickHeartbeatInterval" type="xs:int" default="60" />
+            <xs:element name="ReapHeartbeatInterval" type="xs:int" default="5" />
+            <xs:element name="PlayerIdleTime" type="xs:int" default="60" />
+            <xs:element name="PlayerIdleCheck" type="xs:int" default="10" />
+            <xs:element name="DialogSequenceShared" type="xs:int" default="5000" />
+            <xs:element name="DialogSequencePursuits" type="xs:int" default="5100" />
+            <xs:element name="DialogSequenceAsync" type="xs:int" default="65000" />
+            <xs:element name="DialogSequenceHardcoded" type="xs:int" default="65280" />
+            <xs:element name="BoardMessageResponseSize" type="xs:int" default="64" />
+            <xs:element name="BoardMessageCooldown" type="xs:int" default="60" />
+            <xs:element name="MailMessageCooldown" type="xs:int" default="60" />
+            <xs:element name="PlayerMinStat" type="xs:int" default="1" />
+            <xs:element name="PlayerMaxStat" type="xs:int" default="255" />
+            <xs:element name="PlayerMinBaseHpMp" type="xs:int" default="1" />
+            <xs:element name="PlayerMaxBaseHpMp" type="xs:unsignedInt" default="4294967295" />
+            <xs:element name="PlayerMinDmg" type="xs:float" default="-16.0" />
+            <xs:element name="PlayerMaxDmg" type="xs:float" default="-16.0" />
+            <xs:element name="PlayerMinHit" type="xs:float" default="-16.0" />
+            <xs:element name="PlayerMaxHit" type="xs:float" default="-16.0" />
+            <xs:element name="PlayerMinMr" type="xs:float" default="-16.0" />
+            <xs:element name="PlayerMaxMr" type="xs:float" default="-16.0" />
+            <xs:element name="PlayerMinAc" type="xs:float" default="-90" />
+            <xs:element name="PlayerMaxAc" type="xs:float" default="100" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="MessageHandlers">
-    <xs:sequence>
-      <xs:element name="Mail" minOccurs="0" maxOccurs="unbounded" type="MessageHandler"/>
-      <xs:element name="Board" minOccurs="0" maxOccurs="unbounded" type="MessageHandler"/>
-    </xs:sequence>    
-  </xs:complexType>
-    
-  <xs:complexType name="Handlers">
-    <xs:sequence>
-      <xs:element name="Death" minOccurs="0" maxOccurs="1" type="hyb:Death" />
-      <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="hyb:Chat"/>
-      <xs:element name="NewPlayer" minOccurs="1" maxOccurs="1" type="hyb:NewPlayer"/>
-      <xs:element name="Messaging" minOccurs="0" maxOccurs="1" type="hyb:MessageHandlers"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="Time">
+        <xs:sequence>
+            <xs:element name="Ages" type="hyb:HybrasylAges" minOccurs="0" maxOccurs="1" />
+            <xs:element name="ServerStart" type="hyb:ServerStart" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="Chat">
-    <xs:attribute name="CommandsEnabled" type="xs:boolean" default="true"/>
-    <xs:attribute name="CommandPrefix" type="xs:string" default="/"/>
-  </xs:complexType>
+    <xs:complexType name="ServerStart">
+        <xs:simpleContent>
+            <xs:extension base="xs:dateTime">
+                <xs:attribute name="DefaultAge" type="hyb:String5" default="Hybrasyl" />
+                <xs:attribute name="DefaultYear" type="xs:int" default="1" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
 
-  <xs:complexType name="Death">
-    <xs:sequence>
-      <xs:element name="Map" type="hyb:DeathMap" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Coma" type="hyb:DeathComa" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="Penalty" type="hyb:DeathPenalty" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="LegendMark" type="hyb:DeathLegendMark" minOccurs="0" maxOccurs="1"/>
+    <xs:complexType name="HybrasylAge">
+        <xs:attribute name="Name" type="hyb:String5" use="required" />
+        <xs:attribute name="StartDate" type="xs:dateTime" use="required" />
+        <xs:attribute name="EndDate" type="xs:dateTime" use="optional" />
+        <xs:attribute name="StartYear" type="xs:int" default="1" />
+    </xs:complexType>
 
-    </xs:sequence>
-    <xs:attribute name="Active" type="xs:boolean" default="true" use="optional"/>
-    <xs:attribute name="Perishable" type="xs:boolean" default="true" use="optional"/>
-    <xs:attribute name="GroupNotify" type="xs:boolean" default="true" use="optional"/>
-  </xs:complexType>
+    <xs:complexType name="HybrasylAges">
+        <xs:sequence>
+            <xs:element name="Age" minOccurs="1" maxOccurs="unbounded" type="hyb:HybrasylAge">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="DeathMap">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
-        <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+    <xs:complexType name="MessageHandler">
+        <xs:sequence>
+            <xs:element name="Target" minOccurs="0" maxOccurs="unbounded" type="xs:token" />
+        </xs:sequence>
+        <xs:attribute name="Handler" use="required" type="xs:token" />
+        <xs:attribute name="Passthrough" default="false" />
+    </xs:complexType>
 
-  <xs:complexType name="DeathComa">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="Timeout" type="xs:int" default="30"/>
-        <xs:attribute name="Effect" type="xs:unsignedShort" default="24"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+    <xs:complexType name="MessageHandlers">
+        <xs:sequence>
+            <xs:element name="Mail" minOccurs="0" maxOccurs="unbounded" type="MessageHandler" />
+            <xs:element name="Board" minOccurs="0" maxOccurs="unbounded" type="MessageHandler" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="DeathPenalty">
-    <xs:attribute name="Xp" type="xs:string" default="0.05"/>
-    <xs:attribute name="Hp" type="xs:string" default="0.05"/>
-  </xs:complexType>
+    <xs:complexType name="Handlers">
+        <xs:sequence>
+            <xs:element name="Death" minOccurs="0" maxOccurs="1" type="hyb:Death" />
+            <xs:element name="Chat" minOccurs="0" maxOccurs="1" type="hyb:Chat" />
+            <xs:element name="NewPlayer" minOccurs="1" maxOccurs="1" type="hyb:NewPlayer" />
+            <xs:element name="Messaging" minOccurs="0" maxOccurs="1" type="hyb:MessageHandlers" />
+        </xs:sequence>
+    </xs:complexType>
 
-  <xs:complexType name="DeathLegendMark">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="Prefix" type="hyb:String8" default="deaths"/>
-        <xs:attribute name="Increment" type="xs:boolean" default="true"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+    <xs:complexType name="Chat">
+        <xs:attribute name="CommandsEnabled" type="xs:boolean" default="true" />
+        <xs:attribute name="CommandPrefix" type="xs:string" default="/" />
+    </xs:complexType>
 
-  <xs:complexType name="NewPlayer">
-    <xs:sequence>
-      <xs:element name="StartMaps" minOccurs="1" maxOccurs="1" type="hyb:StartMaps"/>
-    </xs:sequence>
-  </xs:complexType>
+    <xs:complexType name="Death">
+        <xs:sequence>
+            <xs:element name="Map" type="hyb:DeathMap" minOccurs="1" maxOccurs="1" />
+            <xs:element name="Coma" type="hyb:DeathComa" minOccurs="1" maxOccurs="1" />
+            <xs:element name="Penalty" type="hyb:DeathPenalty" minOccurs="1" maxOccurs="1" />
+            <xs:element name="LegendMark" type="hyb:DeathLegendMark" minOccurs="0" maxOccurs="1" />
 
-  <xs:complexType name="StartMaps">
-    <xs:sequence>
-      <xs:element name="StartMap" minOccurs="1" maxOccurs="unbounded" type="hyb:StartMap"/>
-    </xs:sequence>
-  </xs:complexType>
+        </xs:sequence>
+        <xs:attribute name="Active" type="xs:boolean" default="true" use="optional" />
+        <xs:attribute name="Perishable" type="xs:boolean" default="true" use="optional" />
+        <xs:attribute name="GroupNotify" type="xs:boolean" default="true" use="optional" />
+    </xs:complexType>
 
-  <xs:complexType name="StartMap">
-    <xs:simpleContent>
-      <xs:extension base="hyb:String8">
-        <xs:attribute name="X" type="xs:unsignedByte" use="required"/>
-        <xs:attribute name="Y" type="xs:unsignedByte" use="required"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+    <xs:complexType name="DeathMap">
+        <xs:simpleContent>
+            <xs:extension base="hyb:String8">
+                <xs:attribute name="X" type="xs:unsignedByte" use="required" />
+                <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
 
-  <xs:element name="ServerConfig" type="hyb:ServerConfig" />
+    <xs:complexType name="DeathComa">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="Timeout" type="xs:int" default="30" />
+                <xs:attribute name="Effect" type="xs:unsignedShort" default="24" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="DeathPenalty">
+        <xs:attribute name="Xp" type="xs:string" default="0.05" />
+        <xs:attribute name="Hp" type="xs:string" default="0.05" />
+    </xs:complexType>
+
+    <xs:complexType name="DeathLegendMark">
+        <xs:simpleContent>
+            <xs:extension base="hyb:String8">
+                <xs:attribute name="Prefix" type="hyb:String8" default="deaths" />
+                <xs:attribute name="Increment" type="xs:boolean" default="true" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="NewPlayer">
+        <xs:sequence>
+            <xs:element name="StartMaps" minOccurs="1" maxOccurs="1" type="hyb:StartMaps" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="StartMaps">
+        <xs:sequence>
+            <xs:element name="StartMap" minOccurs="1" maxOccurs="unbounded" type="hyb:StartMap" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="StartMap">
+        <xs:simpleContent>
+            <xs:extension base="hyb:String8">
+                <xs:attribute name="X" type="xs:unsignedByte" use="required" />
+                <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:element name="ServerConfig" type="hyb:ServerConfig" />
 </xs:schema>

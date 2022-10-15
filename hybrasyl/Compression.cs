@@ -18,7 +18,7 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
 using System.IO;
 using System.IO.Compression;
 
@@ -46,12 +46,12 @@ public static class ZlibCompression
             originalStream.CopyTo(compressionStream);
         }
 
-        compressedStream.Write(new byte[]
+        compressedStream.Write(new[]
         {
-            (byte)(checksum >> 24),
-            (byte)(checksum >> 16),
-            (byte)(checksum >> 8),
-            (byte)checksum
+            (byte) (checksum >> 24),
+            (byte) (checksum >> 16),
+            (byte) (checksum >> 8),
+            (byte) checksum
         }, 0, 4);
     }
 
@@ -62,31 +62,31 @@ public static class ZlibCompression
         {
             decompressionStream.CopyTo(decompressedStream);
         }
+
         originalStream.Seek(4, SeekOrigin.Current);
     }
 }
 
 public static class Adler32
 {
-    public static uint ComputeHash(byte[] buffer) =>
-        ComputeHash(buffer, 0, buffer.Length);
+    public static uint ComputeHash(byte[] buffer) => ComputeHash(buffer, 0, buffer.Length);
 
     public static uint ComputeHash(byte[] buffer, int offset, int count)
     {
         uint checksum = 1;
 
         int n;
-        uint s1 = checksum & 0xFFFF;
-        uint s2 = checksum >> 16;
+        var s1 = checksum & 0xFFFF;
+        var s2 = checksum >> 16;
 
         while (count > 0)
         {
-            n = (3800 > count) ? count : 3800;
+            n = 3800 > count ? count : 3800;
             count -= n;
 
             while (--n >= 0)
             {
-                s1 = s1 + (uint)(buffer[offset++] & 0xFF);
+                s1 = s1 + (uint) (buffer[offset++] & 0xFF);
                 s2 = s2 + s1;
             }
 

@@ -19,11 +19,10 @@
  * 
  */
 
-using Hybrasyl.Objects;
-using Hybrasyl.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Plugins;
 
 namespace Hybrasyl.Messaging;
 
@@ -45,26 +44,26 @@ internal static class MessagingController
         // We also store a special mailbox called sent messages, which has all of the 
         // user's stored messages
 
-        boards.Add(((ushort)ushort.MaxValue - 1, $"{userRef.UserName}'s Sent Messages"));
+        boards.Add((ushort.MaxValue - 1, $"{userRef.UserName}'s Sent Messages"));
 
-        foreach (var board in Game.World.WorldData.Values<Board>().Where(mb => mb.Global &&
-                                                                               mb.CheckAccessLevel(userRef.UserName, BoardAccessLevel.Read)))
-        {
-            boards.Add(((ushort)board.Id, board.DisplayName));
-        }
+        foreach (var board in Game.World.WorldData.Values<Board>().Where(predicate: mb => mb.Global &&
+                     mb.CheckAccessLevel(userRef.UserName,
+                         BoardAccessLevel.Read)))
+            boards.Add(((ushort) board.Id, board.DisplayName));
 
-        return new ServerPacketStructures.MessagingResponse()
+        return new ServerPacketStructures.MessagingResponse
         {
             ResponseType = BoardResponseType.DisplayList,
             Boards = boards
         };
     }
 
-    public static ServerPacketStructures.MessagingResponse GetMessageList(GuidReference userRef, ushort boardId, short startPostId, bool isClick = false)
+    public static ServerPacketStructures.MessagingResponse GetMessageList(GuidReference userRef, ushort boardId,
+        short startPostId, bool isClick = false)
     {
         MessageStore store;
         var displayname = string.Empty;
-        BoardResponseType responseType = BoardResponseType.GetBoardIndex;
+        var responseType = BoardResponseType.GetBoardIndex;
         if (boardId == 0)
         {
             store = Game.World.WorldData.GetOrCreate<Mailbox>(userRef);
@@ -85,7 +84,7 @@ internal static class MessagingController
             }
             else
             {
-                return new ServerPacketStructures.MessagingResponse()
+                return new ServerPacketStructures.MessagingResponse
                 {
                     ResponseString = "Board not found.",
                     ResponseType = BoardResponseType.EndResult,
@@ -94,7 +93,7 @@ internal static class MessagingController
             }
         }
 
-        return new ServerPacketStructures.MessagingResponse()
+        return new ServerPacketStructures.MessagingResponse
         {
             ResponseType = responseType,
             isClick = isClick,
@@ -104,21 +103,26 @@ internal static class MessagingController
         };
     }
 
-    public static ServerPacketStructures.MessagingResponse GetMessage(GuidReference userRef, short postId, sbyte offset, ushort boardId)
+    public static ServerPacketStructures.MessagingResponse GetMessage(GuidReference userRef, short postId, sbyte offset,
+        ushort boardId)
     {
         Message message = null;
-        string error = "An unknown error occured.";
+        var error = "An unknown error occured.";
         MessageStore store;
         if (boardId == 0)
+        {
             store = Game.World.WorldData.GetOrCreate<Mailbox>(userRef);
+        }
         else if (boardId == ushort.MaxValue - 1)
+        {
             store = Game.World.WorldData.GetOrCreate<SentMail>(userRef);
+        }
         else
         {
             if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
             {
                 if (!board.CheckAccessLevel(userRef.UserName, BoardAccessLevel.Read))
-                    return new ServerPacketStructures.MessagingResponse()
+                    return new ServerPacketStructures.MessagingResponse
                     {
                         ResponseType = BoardResponseType.EndResult,
                         ResponseString = "Access denied.",
@@ -127,12 +131,15 @@ internal static class MessagingController
                 store = board;
             }
             else
-                return new ServerPacketStructures.MessagingResponse()
+            {
+                return new ServerPacketStructures.MessagingResponse
                 {
                     ResponseType = BoardResponseType.EndResult,
                     ResponseString = "That message store was not found."
                 };
+            }
         }
+
         var messageId = postId - 1;
         switch (offset)
         {
@@ -150,12 +157,14 @@ internal static class MessagingController
                 // Client clicked "prev", which hilariously means "newer"
                 // postId in this case is the next message
                 if (postId > store.Messages.Count)
+                {
                     error = "There are no newer messages.";
+                }
                 else
                 {
                     var messageList = store.Messages.GetRange(messageId,
                         store.Messages.Count - messageId);
-                    message = messageList.Find(m => m.Deleted == false);
+                    message = messageList.Find(match: m => m.Deleted == false);
 
                     if (message == null)
                         error = "There are no newer messages.";
@@ -167,12 +176,14 @@ internal static class MessagingController
                 // Client clicked "next", which means "older"
                 // postId is previous message
                 if (postId < 0)
+                {
                     error = "There are no older messages.";
+                }
                 else
                 {
                     var messageList = store.Messages.GetRange(0, postId);
                     messageList.Reverse();
-                    message = messageList.Find(m => m.Deleted == false);
+                    message = messageList.Find(match: m => m.Deleted == false);
                     if (message == null)
                         error = "There are no older messages.";
                 }
@@ -185,19 +196,21 @@ internal static class MessagingController
             }
                 break;
         }
+
         if (message != null)
         {
             message.Read = true;
             //                    Mailbox.Save();
             //                    user.UpdateAttributes(StatUpdateFlags.Secondary);
-            return new ServerPacketStructures.MessagingResponse()
+            return new ServerPacketStructures.MessagingResponse
             {
                 BoardId = 0,
                 Messages = message.InfoAsList,
                 ResponseType = store is Mailbox ? BoardResponseType.GetMailMessage : BoardResponseType.GetBoardMessage
             };
         }
-        return new ServerPacketStructures.MessagingResponse()
+
+        return new ServerPacketStructures.MessagingResponse
         {
             ResponseType = BoardResponseType.EndResult,
             ResponseSuccess = false,
@@ -205,7 +218,8 @@ internal static class MessagingController
         };
     }
 
-    public static ServerPacketStructures.MessagingResponse DeleteMessage(GuidReference userRef, ushort boardId, ushort postId)
+    public static ServerPacketStructures.MessagingResponse DeleteMessage(GuidReference userRef, ushort boardId,
+        ushort postId)
     {
         var response = string.Empty;
         var success = false;
@@ -225,16 +239,20 @@ internal static class MessagingController
                 success = true;
             }
             else
+            {
                 response = "The message could not be found.";
+            }
         }
         else if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
         {
-            if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out AuthInfo ainfo))
+            if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out var ainfo))
             {
                 var delmsg = board.GetMessage(messageId);
 
                 if (delmsg == null)
+                {
                     response = "That message could not be found.";
+                }
 
                 else if (ainfo.IsPrivileged || board.CheckAccessLevel(ainfo.Username, BoardAccessLevel.Moderate) ||
                          delmsg.Sender.ToLower() == userRef.UserName.ToLower())
@@ -245,18 +263,26 @@ internal static class MessagingController
                         success = true;
                     }
                     else
+                    {
                         response = "Sorry, an error occurred.";
+                    }
                 }
                 else
+                {
                     response = "You can't do that.";
+                }
             }
             else
+            {
                 response = "Authentication information could not be verified.";
+            }
         }
         else
+        {
             response = "Board not found.";
+        }
 
-        return new ServerPacketStructures.MessagingResponse()
+        return new ServerPacketStructures.MessagingResponse
         {
             ResponseType = BoardResponseType.DeleteMessage,
             ResponseSuccess = success,
@@ -264,7 +290,8 @@ internal static class MessagingController
         };
     }
 
-    public static ServerPacketStructures.MessagingResponse SendMessage(GuidReference senderRef, ushort boardId, string recipient, string subject, string body)
+    public static ServerPacketStructures.MessagingResponse SendMessage(GuidReference senderRef, ushort boardId,
+        string recipient, string subject, string body)
     {
         var response = string.Empty;
         var success = true;
@@ -296,10 +323,8 @@ internal static class MessagingController
         // Handle plugin response
 
         if (!Game.World.TryGetActiveUser(senderRef.UserName, out _))
-        {
             // Currently a user must be online to send mail, so if we get here, something really wacky is happening
             return UnknownError;
-        }
         try
         {
             IMessageHandler handler;
@@ -321,17 +346,18 @@ internal static class MessagingController
                 {
                     // TODO: implement cast / resolve duplication
                     var hmsg = new Message(recipient, senderRef.UserName, subject, body);
-                    senderSentMail.ReceiveMessage((Message)hmsg);
+                    senderSentMail.ReceiveMessage(hmsg);
 
                     // Plugin is "last destination" for message
-                    return new ServerPacketStructures.MessagingResponse()
+                    return new ServerPacketStructures.MessagingResponse
                     {
                         ResponseType = BoardResponseType.EndResult,
                         ResponseSuccess = resp.Success,
                         ResponseString = resp.PluginResponse
                     };
                 }
-                else if (resp.Transformed)
+
+                if (resp.Transformed)
                 {
                     // Update message if transformed, and keep going
                     recipient = resp.Message.Recipient;
@@ -363,7 +389,8 @@ internal static class MessagingController
                 var msg = new Message(recipient, senderRef.UserName, subject, body);
                 try
                 {
-                    if ((DateTime.Now - senderSentMail.LastMailMessageSent).TotalSeconds < Constants.MAIL_MESSAGE_COOLDOWN &&
+                    if ((DateTime.Now - senderSentMail.LastMailMessageSent).TotalSeconds <
+                        Constants.MAIL_MESSAGE_COOLDOWN &&
                         senderSentMail.LastMailRecipient == recipient)
                     {
                         success = false;
@@ -381,7 +408,8 @@ internal static class MessagingController
                     else
                     {
                         success = false;
-                        response = $"{recipient}'s mailbox is full or locked. A copy was kept in your sent mailbox. Sorry!";
+                        response =
+                            $"{recipient}'s mailbox is full or locked. A copy was kept in your sent mailbox. Sorry!";
                     }
                 }
                 catch (MessageStoreLocked e)
@@ -390,14 +418,15 @@ internal static class MessagingController
                     success = false;
                     response = $"{recipient} cannot receive mail at this time. Sorry!";
                 }
-                senderSentMail.ReceiveMessage((Message) msg.Clone()) ;
+
+                senderSentMail.ReceiveMessage((Message) msg.Clone());
             }
         }
         else if (success)
         {
             if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
             {
-                if (Game.World.WorldData.TryGetAuthInfo(senderRef.UserName, out AuthInfo ainfo))
+                if (Game.World.WorldData.TryGetAuthInfo(senderRef.UserName, out var ainfo))
                 {
                     if (ainfo.IsPrivileged || board.CheckAccessLevel(ainfo.Username, BoardAccessLevel.Write))
                     {
@@ -406,24 +435,32 @@ internal static class MessagingController
                         {
                             response = "The message was sent.";
                             success = true;
-                            var sentMsg = (Message)msg.Clone();
+                            var sentMsg = (Message) msg.Clone();
                             sentMsg.Recipient = board.DisplayName;
                             senderSentMail.ReceiveMessage(sentMsg);
                         }
                         else
+                        {
                             response = "The message could not be sent.";
+                        }
                     }
                     else
+                    {
                         response = "You don't have permission to do that.";
+                    }
                 }
                 else
+                {
                     response = "Authentication information could not be verified.";
+                }
             }
             else
+            {
                 response = "Board not found.";
+            }
         }
 
-        return new ServerPacketStructures.MessagingResponse()
+        return new ServerPacketStructures.MessagingResponse
         {
             ResponseType = BoardResponseType.EndResult,
             ResponseString = response,
@@ -431,38 +468,43 @@ internal static class MessagingController
         };
     }
 
-    public static ServerPacketStructures.MessagingResponse HighlightMessage(GuidReference userRef, ushort boardId, short postId)
+    public static ServerPacketStructures.MessagingResponse HighlightMessage(GuidReference userRef, ushort boardId,
+        short postId)
     {
-        string response = string.Empty;
+        var response = string.Empty;
         var success = false;
         Board board;
         var messageId = postId - 1;
 
-        if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out AuthInfo ainfo) && ainfo.IsPrivileged)
+        if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out var ainfo) && ainfo.IsPrivileged)
         {
             if (Game.World.WorldData.TryGetValueByIndex(boardId, out board))
             {
-                if (board.ToggleHighlight((short)messageId))
+                if (board.ToggleHighlight((short) messageId))
                 {
                     response = "The message was highlighted.";
                     success = true;
                 }
                 else
+                {
                     response = "Message not found.";
+                }
             }
             else
+            {
                 response = "Board not found.";
+            }
         }
         else
+        {
             response = "You cannot highlight this message.";
+        }
 
-        return new ServerPacketStructures.MessagingResponse()
+        return new ServerPacketStructures.MessagingResponse
         {
             ResponseType = BoardResponseType.HighlightMessage,
             ResponseString = response,
             ResponseSuccess = success
-
         };
     }
-
 }

@@ -18,17 +18,14 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
 using System;
 using System.Threading;
 using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
-public interface IThrottleData
-{
-
-}
+public interface IThrottleData { }
 
 public interface IPacketThrottleData : IThrottleData
 {
@@ -39,54 +36,59 @@ public interface IPacketThrottleData : IThrottleData
 
 public class PacketThrottleData : IPacketThrottleData
 {
-    public Client Client { get; set; }
-    public ClientPacket Packet { get; set; }
-    public byte Opcode => Packet.Opcode;
-
     public PacketThrottleData(Client client, ClientPacket packet)
     {
         Client = client;
         Packet = packet;
     }
+
+    public Client Client { get; set; }
+    public ClientPacket Packet { get; set; }
+    public byte Opcode => Packet.Opcode;
 }
 
 public interface IThrottle
 {
     /// <summary>
-    /// Whether or not a throttle supports squelching.
+    ///     Whether or not a throttle supports squelching.
     /// </summary>
 
     bool SupportSquelch { get; set; }
 
     /// <summary>
-    /// Process a given packet to check throttling / squelching.
+    ///     Process a given packet to check throttling / squelching.
     /// </summary>
     /// <param name="packet"></param>
     /// <returns>ThrottleResult indicating the result of processing.</returns>
     ThrottleResult ProcessThrottle(IThrottleData throttleData);
+
     /// <summary>
-    /// A function that runs when a throttle starts.
+    ///     A function that runs when a throttle starts.
     /// </summary>
     /// <param name="throttledClient"></param>
     void OnThrottleStart(IThrottleTrigger trigger);
+
     /// <summary>
-    /// A function that runs when a throttle stops (ends).
+    ///     A function that runs when a throttle stops (ends).
     /// </summary>
     /// <param name="throttledClient"></param>
     void OnThrottleStop(IThrottleTrigger trigger);
+
     /// <summary>
-    /// A function that runs when a squelch begins.
+    ///     A function that runs when a squelch begins.
     /// </summary>
     /// <param name="squelchedClient"></param>
     void OnSquelchStart(IThrottleTrigger trigger);
+
     /// <summary>
-    /// A function that runs when a squelch stops (ends).
+    ///     A function that runs when a squelch stops (ends).
     /// </summary>
     /// <param name="squelchedClient"></param>
     void OnSquelchStop(IThrottleTrigger trigger);
+
     /// <summary>
-    /// A function that runs when a throttle's disconnect threshold (number of throttled packets)
-    /// is exceeded.
+    ///     A function that runs when a throttle's disconnect threshold (number of throttled packets)
+    ///     is exceeded.
     /// </summary>
     /// <param name="squelchedClient"></param>
     void OnDisconnectThreshold(IThrottleTrigger trigger);
@@ -94,13 +96,13 @@ public interface IThrottle
 
 public interface IPacketThrottle
 {
-    ThrottleResult ProcessThrottle(IPacketThrottleData throttleData);
     byte Opcode { get; }
+    ThrottleResult ProcessThrottle(IPacketThrottleData throttleData);
 }
 
 public interface IThrottleTrigger
 {
-    Int64 Id { get; }
+    long Id { get; }
 }
 
 public interface IClientTrigger : IThrottleTrigger
@@ -110,28 +112,20 @@ public interface IClientTrigger : IThrottleTrigger
 
 public class ClientTrigger : IClientTrigger
 {
-    public Client Client { get; private set; }
-    public Int64 Id => Client.ConnectionId;
-
     public ClientTrigger(Client client)
     {
         Client = client;
     }
+
+    public Client Client { get; }
+    public long Id => Client.ConnectionId;
 }
 
 /// <summary>
-/// An abstract class for Throttles.
+///     An abstract class for Throttles.
 /// </summary>
 public abstract class Throttle : IThrottle
 {
-    public int Interval { get; set; }
-    public int SquelchCount { get; set; }    
-    public int SquelchInterval { get; set; }
-    public int SquelchDuration { get; set; }
-    public int ThrottleDisconnectThreshold { get; set; }
-    public bool SupportSquelch { get; set; }
-    public int ThrottleDuration { get; set; }
-
     protected Throttle(int interval, int duration, int disconnectthreshold)
     {
         Interval = interval;
@@ -140,7 +134,8 @@ public abstract class Throttle : IThrottle
         SupportSquelch = false;
     }
 
-    protected Throttle(int interval, int duration, int squelchcount, int squelchinterval, int squelchduration, int disconnectthreshold)
+    protected Throttle(int interval, int duration, int squelchcount, int squelchinterval, int squelchduration,
+        int disconnectthreshold)
     {
         Interval = interval;
         ThrottleDuration = duration;
@@ -150,6 +145,14 @@ public abstract class Throttle : IThrottle
         ThrottleDisconnectThreshold = disconnectthreshold;
         SupportSquelch = true;
     }
+
+    public int Interval { get; set; }
+    public int SquelchCount { get; set; }
+    public int SquelchInterval { get; set; }
+    public int SquelchDuration { get; set; }
+    public int ThrottleDisconnectThreshold { get; set; }
+    public int ThrottleDuration { get; set; }
+    public bool SupportSquelch { get; set; }
 
     public abstract ThrottleResult ProcessThrottle(IThrottleData throttleObject);
 
@@ -173,61 +176,67 @@ public abstract class Throttle : IThrottle
         GameLog.Debug($"Client {trigger.Id}: squelch expired");
     }
 
-    public void OnDisconnectThreshold(IThrottleTrigger trigger)
-    {         
-    }
+    public void OnDisconnectThreshold(IThrottleTrigger trigger) { }
 }
 
-
 /// <summary>
-/// A generic throttler that can be used for any packet. It implements a simple throttle with no
-/// squelching.
+///     A generic throttler that can be used for any packet. It implements a simple throttle with no
+///     squelching.
 /// </summary>
 public class GenericPacketThrottle : Throttle, IPacketThrottle
 {
-
-    public byte Opcode { get; private set; }
     /// <summary>
-    /// Constructor for a throttle without squelch.
+    ///     Constructor for a throttle without squelch.
     /// </summary>
     /// <param name="opcode">The packet opcode to be inspected.</param>
     /// <param name="interval">The minimum acceptable interval between accepted packets, in milliseconds. </param>
     /// <param name="duration">The duration of this throttle, once applied.</param>
-    /// <param name="disconnectthreshold">Maximum number of packets that can be sent during a throttle before a client is forcibly disconnected.</param>
-    public GenericPacketThrottle(byte opcode, int interval, int duration, int disconnectthreshold) : base(interval, duration, disconnectthreshold)
+    /// <param name="disconnectthreshold">
+    ///     Maximum number of packets that can be sent during a throttle before a client is
+    ///     forcibly disconnected.
+    /// </param>
+    public GenericPacketThrottle(byte opcode, int interval, int duration, int disconnectthreshold) : base(interval,
+        duration, disconnectthreshold)
     {
         Opcode = opcode;
     }
+
     /// <summary>
-    /// Constructor for a throttle with squelch.
+    ///     Constructor for a throttle with squelch.
     /// </summary>
     /// <param name="opcode">The packet opcode to be inspected.</param>
     /// <param name="interval">The minimum acceptable interval between accepted packets, in milliseconds. </param>
     /// <param name="duration">The duration of this throttle, once applied.</param>
-    /// <param name="disconnectthreshold">Maximum number of packets that can be sent during a throttle before a client is forcibly disconnected.</param>
+    /// <param name="disconnectthreshold">
+    ///     Maximum number of packets that can be sent during a throttle before a client is
+    ///     forcibly disconnected.
+    /// </param>
     /// <param name="squelchcount">Number of times the same object can be seen in a specified interval.</param>
     /// <param name="squelchinterval">The time window to consider for squelching.</param>
     /// <param name="squelchduration">The duration of a squelch, once applied.</param>
-    public GenericPacketThrottle(byte opcode, int interval, int duration, int squelchcount, int squelchinterval, int squelchduration, int disconnectthreshold) :
-        base(interval, duration, squelchcount, squelchinterval, squelchduration, disconnectthreshold) {
+    public GenericPacketThrottle(byte opcode, int interval, int duration, int squelchcount, int squelchinterval,
+        int squelchduration, int disconnectthreshold) :
+        base(interval, duration, squelchcount, squelchinterval, squelchduration, disconnectthreshold)
+    {
         Opcode = opcode;
     }
+
+    public byte Opcode { get; }
+
+    public ThrottleResult ProcessThrottle(IPacketThrottleData throttleData) =>
+        ProcessThrottle(throttleData.Client, throttleData.Packet);
 
     public override ThrottleResult ProcessThrottle(IThrottleData throttleData)
     {
         var packetData = throttleData as IPacketThrottleData;
-        if (packetData == null) { return ThrottleResult.Error; }
+        if (packetData == null) return ThrottleResult.Error;
         return ProcessThrottle(packetData);
-    }
-    public ThrottleResult ProcessThrottle(IPacketThrottleData throttleData)
-    {
-        return ProcessThrottle(throttleData.Client, throttleData.Packet);
     }
 
     public ThrottleResult ProcessThrottle(Client client, ClientPacket packet)
     {
         ThrottleInfo info;
-        ThrottleResult result = ThrottleResult.Error;
+        var result = ThrottleResult.Error;
 
         if (!client.ThrottleState.TryGetValue(packet.Opcode, out info))
         {
@@ -239,19 +248,21 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
 
         try
         {
-            DateTime rightnow = DateTime.Now;
+            var rightnow = DateTime.Now;
             //GameLog.Warning($"Right now is {rightnow}");
-            var transmitInterval = (rightnow - info.LastReceived);
-            var acceptedInterval = (rightnow - info.LastAccepted);
+            var transmitInterval = rightnow - info.LastReceived;
+            var acceptedInterval = rightnow - info.LastAccepted;
             info.PreviousReceived = info.LastReceived;
             info.LastReceived = rightnow;
             info.TotalReceived++;
-            GameLog.Debug($"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
+            GameLog.Debug(
+                $"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
 
             if (info.Throttled)
             {
                 result = ThrottleResult.Throttled;
-                if (acceptedInterval.TotalMilliseconds >= ThrottleDuration && acceptedInterval.TotalMilliseconds >= Interval)
+                if (acceptedInterval.TotalMilliseconds >= ThrottleDuration &&
+                    acceptedInterval.TotalMilliseconds >= Interval)
                 {
                     //GameLog.Error($"Unthrottled: {acceptedInterval.TotalMilliseconds} > {ThrottleDuration} and {Interval}");
                     info.Throttled = false;
@@ -278,7 +289,8 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
             {
                 if (acceptedInterval.TotalMilliseconds <= Interval && info.LastAccepted != DateTime.MinValue)
                 {
-                    GameLog.Debug($"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
+                    GameLog.Debug(
+                        $"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
                     info.Throttled = true;
                     OnThrottleStart(new ClientTrigger(client));
                     result = ThrottleResult.Throttled;
@@ -297,39 +309,34 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
         {
             Monitor.Exit(info);
         }
+
         return result;
     }
 
     public void OnDisconnectThreshold(IClientTrigger trigger)
     {
-        trigger.Client.SendMessage("You have been automatically disconnected due to server abuse. Goodbye!", MessageTypes.SYSTEM_WITH_OVERHEAD);
+        trigger.Client.SendMessage("You have been automatically disconnected due to server abuse. Goodbye!",
+            MessageTypes.SYSTEM_WITH_OVERHEAD);
         GameLog.Warning($"Client {trigger.Id}: disconnected due to packet spam");
         trigger.Client.Disconnect();
-
     }
-
 }
 
 // TODO: add other types of throttles
 
 public class ThrottleInfo
 {
-    public DateTime PreviousReceived;
+    public DateTime LastAccepted;
     public DateTime LastReceived;
 
     public DateTime PreviousAccepted;
-    public DateTime LastAccepted;
+    public DateTime PreviousReceived;
+    public long SquelchCount;
+    public long TotalAccepted;
 
-    public Int64 TotalReceived;
-    public Int64 TotalAccepted;
-    public Int64 TotalSquelched;
-    public Int64 TotalThrottled;
-    public Int64 SquelchCount;
-
-    public string SquelchObject { get; set; }
-
-    public bool Squelched { get; set; }
-    public bool Throttled { get; set; }
+    public long TotalReceived;
+    public long TotalSquelched;
+    public long TotalThrottled;
 
     public ThrottleInfo()
     {
@@ -345,4 +352,8 @@ public class ThrottleInfo
         Squelched = false;
     }
 
+    public string SquelchObject { get; set; }
+
+    public bool Squelched { get; set; }
+    public bool Throttled { get; set; }
 }

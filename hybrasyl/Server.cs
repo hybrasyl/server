@@ -19,7 +19,6 @@
  * 
  */
 
-using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -27,6 +26,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
@@ -34,31 +34,15 @@ public delegate void LobbyPacketHandler(Client client, ClientPacket packet);
 
 public delegate void LoginPacketHandler(Client client, ClientPacket packet);
 
-public delegate void WorldPacketHandler(Object obj, ClientPacket packet);
+public delegate void WorldPacketHandler(object obj, ClientPacket packet);
 
 public delegate void ControlMessageHandler(HybrasylControlMessage message);
 
 public class Server
 {
-
-    public int Port { get; private set; }
-    public bool Default { get; set; } = false;
-    public Socket Listener { get; private set; }
-    public WorldPacketHandler[] PacketHandlers { get; private set; }
-    public Dictionary<byte, IPacketThrottle> Throttles { get; private set; }
-
-    public ControlMessageHandler[] ControlMessageHandlers { get; private set; }
-    public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; private set; }
-
-    public CancellationToken StopToken { get; set; }
-
-    public bool Active { get; protected set; }
-
-    public static ManualResetEvent AllDone = new ManualResetEvent(false);
+    public static ManualResetEvent AllDone = new(false);
 
     public ConcurrentDictionary<IntPtr, Client> Clients;
-
-    public Guid Guid { get; } = new();
 
 
     public Server(int port, bool isDefault = false)
@@ -69,12 +53,27 @@ public class Server
         ControlMessageHandlers = new ControlMessageHandler[64];
         Throttles = new Dictionary<byte, IPacketThrottle>();
         ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
-        for (int i = 0; i < 256; ++i)
+        for (var i = 0; i < 256; ++i)
             PacketHandlers[i] = (c, p) => GameLog.Warning($"{GetType().Name}: Unhandled opcode 0x{p.Opcode:X2}");
         Default = isDefault;
         Task.Run(ProcessOutbound);
         Game.RegisterServer(this);
     }
+
+    public int Port { get; }
+    public bool Default { get; set; }
+    public Socket Listener { get; private set; }
+    public WorldPacketHandler[] PacketHandlers { get; }
+    public Dictionary<byte, IPacketThrottle> Throttles { get; }
+
+    public ControlMessageHandler[] ControlMessageHandlers { get; }
+    public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; }
+
+    public CancellationToken StopToken { get; set; }
+
+    public bool Active { get; protected set; }
+
+    public Guid Guid { get; } = new();
 
     public async void ProcessOutbound()
     {
@@ -85,13 +84,12 @@ public class Server
                 var ptr = kvp.Key;
                 var client = kvp.Value;
                 if (client.Connected && client.ClientState.SendBufferDepth > 0)
-                {
                     //GameLog.ErrorFormat($"Server {this.GetType().Name} Client {client.ConnectionId}: buffer sending");
-                    await Task.Run(() => client.FlushSendBuffer());
-                }
+                    await Task.Run(action: () => client.FlushSendBuffer());
                 if (!client.Connected)
-                    Clients.TryRemove(ptr, out Client _);
+                    Clients.TryRemove(ptr, out var _);
             }
+
             // TODO: configurable?
             await Task.Delay(50);
         }
@@ -106,9 +104,7 @@ public class Server
     {
         IPacketThrottle throttle;
         if (Throttles.TryGetValue(packet.Opcode, out throttle))
-        {
             return throttle.ProcessThrottle(new PacketThrottleData(client, packet));
-        }
         return ThrottleResult.OK;
     }
 
@@ -126,8 +122,9 @@ public class Server
                 Active = false;
                 return;
             }
+
             AllDone.Reset();
-            Listener.BeginAccept(new AsyncCallback(AcceptConnection), Listener);
+            Listener.BeginAccept(AcceptConnection, Listener);
             AllDone.WaitOne();
         }
     }
@@ -141,7 +138,7 @@ public class Server
         Socket clientSocket;
         try
         {
-            clientSocket = (Socket)ar.AsyncState;
+            clientSocket = (Socket) ar.AsyncState;
             handler = clientSocket.EndAccept(ar);
         }
         catch (ObjectDisposedException e)
@@ -149,10 +146,11 @@ public class Server
             GameLog.Error($"Disposed socket {e.Message}");
             return;
         }
-        Client client = new Client(handler, this);
+
+        var client = new Client(handler, this);
         Clients.TryAdd(handler.Handle, client);
         GlobalConnectionManifest.RegisterClient(client);
-            
+
         if (this is Lobby)
         {
             var x7E = new ServerPacket(0x7E);
@@ -172,12 +170,13 @@ public class Server
             GameLog.DebugFormat("World: AcceptConnection occuring");
             GameLog.DebugFormat("World: cid is {0}", client.ConnectionId);
         }
+
         try
         {
             handler.BeginReceive(client.ClientState.Buffer, 0, client.ClientState.Buffer.Length, 0,
-                new AsyncCallback(ReadCallback), client.ClientState);
+                ReadCallback, client.ClientState);
             GameLog.DebugFormat("AcceptConnection returning");
-            clientSocket.BeginAccept(new AsyncCallback(AcceptConnection), clientSocket);
+            clientSocket.BeginAccept(AcceptConnection, clientSocket);
         }
         catch (SocketException e)
         {
@@ -188,13 +187,14 @@ public class Server
 
     public void ReadCallback(IAsyncResult ar)
     {
-        ClientState state = (ClientState)ar.AsyncState;
+        var state = (ClientState) ar.AsyncState;
         Client client;
-        SocketError errorCode = SocketError.SocketError;
-        int bytesRead = 0;
+        var errorCode = SocketError.SocketError;
+        var bytesRead = 0;
         ClientPacket receivedPacket;
-          
-        GameLog.Debug($"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
+
+        GameLog.Debug(
+            $"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
         GameLog.Debug("Running read callback");
 
         if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
@@ -208,6 +208,7 @@ public class Server
                 state.WorkSocket.Dispose();
                 return;
             }
+
             client = redirect.Client;
             client.ClientState = state;
             if (client.EncryptionKey == null)
@@ -223,6 +224,7 @@ public class Server
                 GameLog.Error($"bytesRead: {bytesRead}, errorCode: {errorCode}");
                 client.Disconnect();
             }
+
             client.ClientState.BytesReceived += bytesRead;
         }
         catch (Exception e)
@@ -235,16 +237,14 @@ public class Server
         try
         {
             // TODO: improve / refactor
-            while (client.ClientState.TryGetPacket(out receivedPacket))
-            {
-                client.Enqueue(receivedPacket);
-            }
+            while (client.ClientState.TryGetPacket(out receivedPacket)) client.Enqueue(receivedPacket);
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.Error("ReadCallback error: {e}", e);
         }
+
         ContinueReceiving(state, client);
     }
 
@@ -253,8 +253,9 @@ public class Server
         // Continue getting dem bytes
         try
         {
-            state.WorkSocket.BeginReceive(state.Buffer, state.BytesReceived, state.Buffer.Length - state.BytesReceived, 0,
-                new AsyncCallback(this.ReadCallback), state);
+            state.WorkSocket.BeginReceive(state.Buffer, state.BytesReceived, state.Buffer.Length - state.BytesReceived,
+                0,
+                ReadCallback, state);
             GameLog.DebugFormat("Triggering receive callback");
         }
         catch (ObjectDisposedException e)
@@ -273,23 +274,15 @@ public class Server
 
     public virtual void Shutdown()
     {
-        GameLog.WarningFormat("{ServerType}: shutting down", this.GetType().ToString());
+        GameLog.WarningFormat("{ServerType}: shutting down", GetType().ToString());
         Listener?.Close();
-        GameLog.WarningFormat("{ServerType}: shutdown complete", this.GetType().ToString());
+        GameLog.WarningFormat("{ServerType}: shutdown complete", GetType().ToString());
     }
 }
 
 public class Redirect
 {
     private static uint id;
-
-    public uint Id { get; set; }
-    public Client Client { get; set; }
-    public Server Source { get; set; }
-    public Server Destination { get; set; }
-    public string Name { get; set; }
-    public byte[] EncryptionKey { get; set; }
-    public byte EncryptionSeed { get; set; }
 
     public Redirect(Client client, Server source, Server destination, string name, byte seed, byte[] key)
     {
@@ -302,16 +295,22 @@ public class Redirect
         EncryptionKey = key;
     }
 
+    public uint Id { get; set; }
+    public Client Client { get; set; }
+    public Server Source { get; set; }
+    public Server Destination { get; set; }
+    public string Name { get; set; }
+    public byte[] EncryptionKey { get; set; }
+    public byte EncryptionSeed { get; set; }
+
     public bool Matches(string name, byte[] key, byte seed)
     {
         if (key.Length != EncryptionKey.Length || name != Name || seed != EncryptionSeed)
             return false;
 
-        for (int i = 0; i < key.Length; ++i)
-        {
+        for (var i = 0; i < key.Length; ++i)
             if (key[i] != EncryptionKey[i])
                 return false;
-        }
 
         return true;
     }

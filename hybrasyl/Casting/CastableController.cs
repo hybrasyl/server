@@ -2,22 +2,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hybrasyl;
-using Hybrasyl.Casting;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
-using Microsoft.VisualBasic;
 
 namespace Hybrasyl.Casting;
 
 public class CastableController : IEnumerable<Rotation>
 {
+    private readonly HashSet<CreatureCastingSet> CastingSets = new();
+    private readonly Dictionary<CreatureCastingSet, Rotation> Rotations = new();
+    private readonly HashSet<RotationEntry> ThresholdCasts = new();
+
+    public CastableController(Guid id)
+    {
+        MonsterGuid = id;
+    }
+
     public BookSlot LastCastableUsed { get; set; }
-    private Dictionary<CreatureCastingSet, Rotation> Rotations = new();
-    private HashSet<CreatureCastingSet> CastingSets = new();
-    private HashSet<RotationEntry> ThresholdCasts = new();
     public Dictionary<string, BookSlot> Castables { get; set; } = new();
 
     public Guid MonsterGuid { get; set; }
@@ -26,20 +27,20 @@ public class CastableController : IEnumerable<Rotation>
 
     public bool Enabled { get; set; }
 
-    private string DebugLogHeader => $"{MonsterObj.Name} ({MonsterObj.Map?.Name ?? "Unknown"}@{MonsterObj.X},{MonsterObj.Y})";
+    private string DebugLogHeader =>
+        $"{MonsterObj.Name} ({MonsterObj.Map?.Name ?? "Unknown"}@{MonsterObj.X},{MonsterObj.Y})";
 
-    public CastableController(Guid id)
-    {
-        MonsterGuid = id;
-    }
+    public IEnumerator<Rotation> GetEnumerator() => Rotations.Values.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public bool ContainsCastable(string castable) => Castables.ContainsKey(castable);
 
     public bool TryGetCastable(string castable, out BookSlot slot) => Castables.TryGetValue(castable, out slot);
 
     /// <summary>
-    /// Given an already specified behaviorset for the monster, learn all the castables possible at 
-    /// their level; or the castables specifically enumerated in the set.
+    ///     Given an already specified behaviorset for the monster, learn all the castables possible at
+    ///     their level; or the castables specifically enumerated in the set.
     /// </summary>
     public void LearnCastables()
     {
@@ -50,72 +51,61 @@ public class CastableController : IEnumerable<Rotation>
         if (MonsterObj?.BehaviorSet == null) return;
 
         // Default to automatic assignation if unset
-        if (MonsterObj.BehaviorSet.Castables.Auto == true)
+        if (MonsterObj.BehaviorSet.Castables.Auto)
         {
             // If categories are present, use those. Otherwise, learn everything we can
             foreach (var category in MonsterObj.BehaviorSet.LearnSpellCategories)
-            {
-                foreach (var castable in Game.World.WorldData.GetSpells(MonsterObj.Stats.BaseStr,
-                             MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
-                             MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
-                {
-                    if (!Castables.ContainsKey(castable.Name))
-                        Castables.Add(castable.Name, new BookSlot {Castable = castable});
-                }
-            }
+            foreach (var castable in Game.World.WorldData.GetSpells(MonsterObj.Stats.BaseStr,
+                         MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
+                         MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
+                if (!Castables.ContainsKey(castable.Name))
+                    Castables.Add(castable.Name, new BookSlot { Castable = castable });
 
             foreach (var category in MonsterObj.BehaviorSet.LearnSkillCategories)
-            {
-                foreach (var castable in Game.World.WorldData.GetSkills(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
-                             MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
-                {
-                    if (!Castables.ContainsKey(castable.Name))
-                        Castables.Add(castable.Name, new BookSlot { Castable = castable});
-                }
-            }
+            foreach (var castable in Game.World.WorldData.GetSkills(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt,
+                         MonsterObj.Stats.BaseWis,
+                         MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
+                if (!Castables.ContainsKey(castable.Name))
+                    Castables.Add(castable.Name, new BookSlot { Castable = castable });
 
-            if (MonsterObj.BehaviorSet.LearnSkillCategories.Count == 0 && MonsterObj.BehaviorSet.LearnSpellCategories.Count == 0)
-            {
+            if (MonsterObj.BehaviorSet.LearnSkillCategories.Count == 0 &&
+                MonsterObj.BehaviorSet.LearnSpellCategories.Count == 0)
                 // Auto add according to stats
-                foreach (var castable in Game.World.WorldData.GetCastables(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
+                foreach (var castable in Game.World.WorldData.GetCastables(MonsterObj.Stats.BaseStr,
+                             MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
                              MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex))
-                {
                     if (!Castables.ContainsKey(castable.Name))
                     {
-
                         if (castable.IsSkill)
-                            Castables.Add(castable.Name, new BookSlot {Castable = castable});
+                            Castables.Add(castable.Name, new BookSlot { Castable = castable });
                         else
-                            Castables.Add(castable.Name, new BookSlot {Castable = castable});
+                            Castables.Add(castable.Name, new BookSlot { Castable = castable });
                     }
-                }
-            }
         }
 
         // Handle any specific additions. Note that specific additions *ignore stat requirements*, 
         // to allow a variety of complex behaviors.
         foreach (var castable in MonsterObj.BehaviorSet.Castables.Castable)
-        {
             if (Game.World.WorldData.TryGetValueByIndex(castable, out Castable xmlCastable))
             {
                 if (Castables.ContainsKey(xmlCastable.Name)) continue;
                 if (xmlCastable.IsSkill)
-                    Castables.Add(xmlCastable.Name, new BookSlot {Castable = xmlCastable});
+                    Castables.Add(xmlCastable.Name, new BookSlot { Castable = xmlCastable });
                 else
-                    Castables.Add(xmlCastable.Name, new BookSlot {Castable = xmlCastable});
+                    Castables.Add(xmlCastable.Name, new BookSlot { Castable = xmlCastable });
             }
             else
+            {
                 GameLog.SpawnError($"{MonsterObj.Name}: Castable {castable} defined, but does not exist");
-        }
+            }
 
         foreach (var kvp in Castables)
             GameLog.SpawnInfo($"{MonsterObj.Name}: CastableController: learned {kvp.Key}");
-
     }
 
 
     /// <summary>
-    /// Given a list of creature casting sets, process each one into a rotation.  
+    ///     Given a list of creature casting sets, process each one into a rotation.
     /// </summary>
     /// <param name="sets">A list of CreatureCastingSets which will be evaluated and stored as rotations</param>
     public void ProcessCastingSets(List<CreatureCastingSet> sets)
@@ -125,13 +115,13 @@ public class CastableController : IEnumerable<Rotation>
             Enabled = false;
             return;
         }
+
         foreach (var set in sets)
         {
             CastingSets.Add(set);
             if (set.Type == RotationType.Assail) HasAssailSkills = true;
             var newRotation = new Rotation(set);
             foreach (var entry in set.Castable)
-            {
                 if (Castables.TryGetValue(entry.Value, out var slot))
                 {
                     var newEntry = new RotationEntry(slot, entry);
@@ -141,22 +131,22 @@ public class CastableController : IEnumerable<Rotation>
                         ThresholdCasts.Add(newEntry);
                 }
                 else
+                {
                     GameLog.SpawnError($"{MonsterObj.Name}: processing rotation: missing castable {entry.Value}");
-            }
+                }
 
             // Now add categories
             foreach (var category in set.CategoryList)
             {
-                var castableMatches = Castables.Where(x => x.Value.Castable.CategoryList.Contains(category));
+                var castableMatches = Castables.Where(predicate: x => x.Value.Castable.CategoryList.Contains(category));
                 foreach (var match in castableMatches)
                 {
-
                     var directive = new CreatureCastable
                     {
                         Value = match.Value.Castable.Name,
                         HealthPercentage = set.HealthPercentage,
                         Interval = set.Interval,
-                        TargetPriority = set.TargetPriority,
+                        TargetPriority = set.TargetPriority
                     };
                     newRotation.Add(new RotationEntry(match.Value, directive));
                 }
@@ -169,15 +159,18 @@ public class CastableController : IEnumerable<Rotation>
     }
 
     /// <summary>
-    /// Calculate the next castable to be used.
+    ///     Calculate the next castable to be used.
     /// </summary>
-    /// <returns>A RotationEntry structure indicating the rotation and castable to be used next (along with targeting), or null, if no castable is to be used.</returns>
+    /// <returns>
+    ///     A RotationEntry structure indicating the rotation and castable to be used next (along with targeting), or
+    ///     null, if no castable is to be used.
+    /// </returns>
     public RotationEntry GetNextCastable(RotationType? type = null)
     {
         // Evaluate all UseOnce castables to see if one has triggered. If it has, return that immediately
         // If no UseOnce triggered, order rotations by priority(SecondsSinceLastUse - Interval) and select top rotation. 
         // For winning rotation, find RotationEntry with GetNextCastable()
-        
+
         // Rotations have been pre-calculated to include categories / etc, so if there's nothing here we can't do anything
 
         if (Rotations.Count == 0 || Castables.Count == 0)
@@ -187,21 +180,21 @@ public class CastableController : IEnumerable<Rotation>
         }
 
         // Find the "most expired" rotation
-        var rotations = Rotations.Values.Where(x => x.Active && x.Priority >= 0);
-            
-        if (type != null)
-            rotations = rotations.Where(x => x.Type == type);
+        var rotations = Rotations.Values.Where(predicate: x => x.Active && x.Priority >= 0);
 
-        var rotation = rotations.OrderByDescending(y => y.Priority).FirstOrDefault();
+        if (type != null)
+            rotations = rotations.Where(predicate: x => x.Type == type);
+
+        var rotation = rotations.OrderByDescending(keySelector: y => y.Priority).FirstOrDefault();
 
         if (rotation == null)
         {
             GameLog.SpawnDebug($"{DebugLogHeader}: no active rotations or not enough time elapsed since last use");
             return null;
         }
-        
+
         // Always handle UseOnce trigger thresholds (Rule #1)
-        foreach (var threshold in ThresholdCasts.Where(c =>
+        foreach (var threshold in ThresholdCasts.Where(predicate: c =>
                      c.Directive.HealthPercentage > 0 && c.Directive.HealthPercentage <= MonsterObj.Stats.HpPercentage))
         {
             if (!Castables.ContainsKey(threshold.Name))
@@ -216,7 +209,7 @@ public class CastableController : IEnumerable<Rotation>
             threshold.ThresholdTriggered = true;
             return threshold;
         }
-        
+
         // Monsters have to be active longer than the casting time of a castable in order to use it, exception is assail rotations
         if (type == RotationType.Assail) return rotation.CurrentCastable;
         return MonsterObj.ActiveSeconds > rotation.CurrentCastable.CastingTime ? rotation.CurrentCastable : null;
@@ -224,13 +217,18 @@ public class CastableController : IEnumerable<Rotation>
 
     public bool CanCast(string castable) => Castables.ContainsKey(castable);
 
-    public Rotation GetNextRotation() => Rotations.Count == 0 ? null : Rotations.Values.Where(x => x.Active && x.SecondsSinceLastUse >= x.Interval).OrderByDescending(x => x.Priority).FirstOrDefault();
+    public Rotation GetNextRotation()
+    {
+        return Rotations.Count == 0
+            ? null
+            : Rotations.Values.Where(predicate: x => x.Active && x.SecondsSinceLastUse >= x.Interval)
+                .OrderByDescending(keySelector: x => x.Priority).FirstOrDefault();
+    }
 
-    public Rotation GetAssailRotation() => Rotations.Values.FirstOrDefault(x => x.Type == RotationType.Assail);
+    public Rotation GetAssailRotation()
+    {
+        return Rotations.Values.FirstOrDefault(predicate: x => x.Type == RotationType.Assail);
+    }
 
     public RotationEntry GetNextAssail() => GetNextCastable(RotationType.Assail);
-
-    public IEnumerator<Rotation> GetEnumerator() => Rotations.Values.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

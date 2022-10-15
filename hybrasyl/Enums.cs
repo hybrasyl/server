@@ -26,8 +26,9 @@ namespace Hybrasyl
     namespace Enums
     {
         #region Colors and display enumerations
+
         /// <summary>
-        /// how big is ye lantern
+        ///     how big is ye lantern
         /// </summary>
         public enum LanternSize : byte
         {
@@ -37,7 +38,7 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// Rest positions (standing / sitting / reclining)
+        ///     Rest positions (standing / sitting / reclining)
         /// </summary>
         public enum RestPosition : byte
         {
@@ -46,10 +47,10 @@ namespace Hybrasyl
             RestPosition1 = 0x01,
             RestPosition2 = 0x02,
             MaximumChill = 0x03
-        }   
+        }
 
         /// <summary>
-        /// Name display style (on overhead view)
+        ///     Name display style (on overhead view)
         /// </summary>
         public enum NameDisplayStyle : byte
         {
@@ -60,7 +61,7 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// The icon used by a legend mark (the icon is displayed to the left of the legend mark in a player's legend).
+        ///     The icon used by a legend mark (the icon is displayed to the left of the legend mark in a player's legend).
         /// </summary>
         public enum LegendIcon
         {
@@ -75,7 +76,7 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// The color of a legend mark. There are a variety of colors not defined here, but the most common ones are.
+        ///     The color of a legend mark. There are a variety of colors not defined here, but the most common ones are.
         /// </summary>
         public enum LegendColor
         {
@@ -101,9 +102,9 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// The color of text. There are a variety of colors not defined here, most common ones are.
+        ///     The color of text. There are a variety of colors not defined here, most common ones are.
         /// </summary>
-        public enum TextColor : int
+        public enum TextColor
         {
             Red = 62,
             Yellow = 63,
@@ -123,9 +124,9 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// Skin colors for a user (player). Some of these are taken from translations.
+        ///     Skin colors for a user (player). Some of these are taken from translations.
         /// </summary>
-        public enum SkinColor : int
+        public enum SkinColor
         {
             Basic = 0,
             White = 1,
@@ -140,7 +141,7 @@ namespace Hybrasyl
         }
 
         /// <summary>
-        /// The color of a status bar (buff/debuff)
+        ///     The color of a status bar (buff/debuff)
         /// </summary>
         public enum StatusBarColor : byte
         {
@@ -170,6 +171,7 @@ namespace Hybrasyl
         #endregion
 
         #region Opcode enumerations
+
         internal static class ExchangeActions
         {
             public const byte Initiate = 0x00;
@@ -280,10 +282,12 @@ namespace Hybrasyl
             public const byte TownMap = 0x7E;
             public const byte QuestInfo = 0x8A;
         }
+
         #endregion
 
         #region Messaging types
-        public enum PrivateMessageType : int
+
+        public enum PrivateMessageType
         {
             Whisper = 0,
             ServerMessage = 1,
@@ -294,7 +298,7 @@ namespace Hybrasyl
             UpperRight = 12
         }
 
-        public enum PublicMessageType : int
+        public enum PublicMessageType
         {
             Say = 0,
             Shout = 1,
@@ -303,14 +307,15 @@ namespace Hybrasyl
 
         #endregion
 
-        public enum LogType : int
+        public enum LogType
         {
             General = 0,
             Scripting = 1,
             GmActivity = 2,
             UserActivity = 3,
             Spawn = 4,
-            Packet = 5
+            Packet = 5,
+            XmlData = 6
         }
 
         public enum UserStatus : byte
@@ -367,13 +372,13 @@ namespace Hybrasyl
         {
             Normal,
             UserDeathPile,
-            MonsterLootPile            
+            MonsterLootPile
         }
 
         #endregion
 
         [Flags]
-        public enum PlayerFlags : int
+        public enum PlayerFlags
         {
             Alive = 1,
             InExchange = 2,
@@ -381,8 +386,8 @@ namespace Hybrasyl
             Casting = 8,
             Pvp = 16,
             InBoard = 32,
-            AliveExchange = (Alive | InExchange),
-            ProhibitCast = (InExchange | InDialog | Casting)
+            AliveExchange = Alive | InExchange,
+            ProhibitCast = InExchange | InDialog | Casting
         }
 
         [Flags]
@@ -393,7 +398,7 @@ namespace Hybrasyl
             Mail = 0x10
         }
 
-        public enum CleanupType : int
+        public enum CleanupType
         {
             ByConnectionId = 0,
             ByName = 1
@@ -410,12 +415,12 @@ namespace Hybrasyl
             Primary = 0x20,
             GameMasterA = 0x40,
             GameMasterB = 0x80,
-            Swimming = (GameMasterA | GameMasterB),
-            Stats = (Primary | Current | Secondary),
-            Full = (Primary | Current | Experience | Secondary | GameMasterA | GameMasterB)
+            Swimming = GameMasterA | GameMasterB,
+            Stats = Primary | Current | Secondary,
+            Full = Primary | Current | Experience | Secondary | GameMasterA | GameMasterB
         }
 
-        public enum ThrottleResult : int
+        public enum ThrottleResult
         {
             OK = 0,
             Throttled = 1,
@@ -441,7 +446,7 @@ namespace Hybrasyl
             ItemObject = 0x02,
             Reactor = 0x04,
             CastableObject = 0x05,
-            Asynchronous = 0xFE,
+            Asynchronous = 0xFE
         }
 
         public class EnumUtil
@@ -452,12 +457,10 @@ namespace Hybrasyl
                 if (string.IsNullOrEmpty(value)) return defaultValue;
 
                 foreach (T item in Enum.GetValues(typeof(T)))
-                {
-                    if (item.ToString().ToLower().Equals(value.Trim().ToLower())) return item;
-                }
+                    if (item.ToString().ToLower().Equals(value.Trim().ToLower()))
+                        return item;
                 return defaultValue;
             }
         }
     }
-
 }

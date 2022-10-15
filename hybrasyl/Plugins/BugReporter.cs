@@ -6,18 +6,17 @@ using Discord.Webhook;
 namespace Hybrasyl.Plugins;
 
 /// <summary>
-/// A message handler plugin 
+///     A message handler plugin
 /// </summary>
 public class BugReporter : MessagePlugin, IProcessingMessageHandler
 {
-    private string WebhookUrl = string.Empty;
-    private string OutputDir = string.Empty;
-       
     private DiscordWebhookClient client;
+    private string OutputDir = string.Empty;
+    private string WebhookUrl = string.Empty;
 
     public override bool Initialize(IHandlerConfiguration config)
     {
-        if (config.TryGetValue("WebhookUrl", out string url) && config.TryGetValue("OutputDir", out string dir))
+        if (config.TryGetValue("WebhookUrl", out var url) && config.TryGetValue("OutputDir", out var dir))
         {
             WebhookUrl = url;
             OutputDir = Path.Join(Game.StartupDirectory, dir);
@@ -25,22 +24,10 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
             Disabled = false;
             return true;
         }
-        else
-            throw new ArgumentException("Initialize: needed WebhookUrl and OutputDir to be defined, aborting");
+
+        throw new ArgumentException("Initialize: needed WebhookUrl and OutputDir to be defined, aborting");
     }
 
-    private async void SaveToDisk(string sender, string id, string text)
-    {
-        try
-        {
-            await File.WriteAllTextAsync(Path.Join(OutputDir, $"bugreport-{sender}-{id}.txt"), text);
-        }
-        catch (Exception e)
-        {
-            GameLog.Error("BugReporter: failure to write out log: {e}, plugin disabled", e);
-            Disabled = true;
-        }
-    }
     public IMessagePluginResponse Process(Message inbound)
     {
         var resp = new MessagePluginResponse();
@@ -57,17 +44,31 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
         // Transmit message to discord, also save locally
 
         var now = DateTime.Now;
-        string text = $"**Bug Report Submission**\n\n**Bug ID**: {id}\n**From**: {inbound.Sender}\n**Date**: {now.ToString()}\n\n**Subject**: {inbound.Subject}";
+        var text =
+            $"**Bug Report Submission**\n\n**Bug ID**: {id}\n**From**: {inbound.Sender}\n**Date**: {now.ToString()}\n\n**Subject**: {inbound.Subject}";
 
         if (inbound.Text.Length > 1800)
             text = $"{text}\n\n{inbound.Text.Substring(0, 1800)} ...\n(Truncated. Full message on server)";
         else
             text = $"{text}\n\n{inbound.Text}";
 
-        Task.Run(() => client.SendMessageAsync(text));
-        Task.Run(() => SaveToDisk(inbound.Sender, id, text));
+        Task.Run(function: () => client.SendMessageAsync(text));
+        Task.Run(action: () => SaveToDisk(inbound.Sender, id, text));
         resp.Success = true;
         resp.PluginResponse = $"Thank you for your bug submission (BUG-{id}). It has been received.";
         return resp;
+    }
+
+    private async void SaveToDisk(string sender, string id, string text)
+    {
+        try
+        {
+            await File.WriteAllTextAsync(Path.Join(OutputDir, $"bugreport-{sender}-{id}.txt"), text);
+        }
+        catch (Exception e)
+        {
+            GameLog.Error("BugReporter: failure to write out log: {e}, plugin disabled", e);
+            Disabled = true;
+        }
     }
 }

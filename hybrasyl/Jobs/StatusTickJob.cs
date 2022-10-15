@@ -19,8 +19,8 @@
  * 
  */
 
-using Hybrasyl.Objects;
 using System.Timers;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl.Jobs;
 
@@ -35,20 +35,16 @@ public static class StatusTickJob
         {
             User user;
             if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
-            {
                 if (user.ActiveStatusCount > 0 && user.Condition.Alive)
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, user.Id));
-            }
         }
+
         foreach (var wobj in Game.World.ActiveStatuses)
-        {
             if (wobj is Creature creature)
                 if (creature.Condition.Alive)
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.StatusTick, wobj.Id));
                 else
                     Game.World.ActiveStatuses.Remove(wobj);
-        }
         GameLog.Debug("Status tick job ending");
-
     }
 }

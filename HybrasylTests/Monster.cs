@@ -9,12 +9,12 @@ namespace HybrasylTests;
 [Collection("Hybrasyl")]
 public class Monsters
 {
-    public HybrasylFixture Fixture { get; set; }
-
     public Monsters(HybrasylFixture fixture)
     {
         Fixture = fixture;
     }
+
+    public HybrasylFixture Fixture { get; set; }
 
     [Fact]
     public void MonsterLearnCastables()
@@ -24,18 +24,17 @@ public class Monsters
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
         Assert.NotNull(monster.BehaviorSet);
         Game.World.Insert(monster);
-        var assails = Game.World.WorldData.FindCastables(x => x.IsAssail);
+        var assails = Game.World.WorldData.FindCastables(condition: x => x.IsAssail);
 
         foreach (var skill in assails)
-        {
-            Assert.True(monster.CastableController.ContainsCastable(skill.Name), $"Skills: Should know {skill.Name} but doesn't");
-        }
+            Assert.True(monster.CastableController.ContainsCastable(skill.Name),
+                $"Skills: Should know {skill.Name} but doesn't");
 
         foreach (var spellCategory in monster.BehaviorSet.LearnSpellCategories)
-        {
-            foreach (var spell in Game.World.WorldData.FindCastables(x => x.CategoryList.Contains(spellCategory)))
-                Assert.True(monster.CastableController.ContainsCastable(spell.Name), $"Spells: Should know {spell.Name} but doesn't");
-        }
+        foreach (var spell in
+                 Game.World.WorldData.FindCastables(condition: x => x.CategoryList.Contains(spellCategory)))
+            Assert.True(monster.CastableController.ContainsCastable(spell.Name),
+                $"Spells: Should know {spell.Name} but doesn't");
     }
 
     [Fact]
@@ -62,16 +61,17 @@ public class Monsters
         entry = monster.CastableController.GetNextCastable();
         Assert.NotNull(entry);
         var rot = entry.Parent;
-        Assert.Contains(rot, x => x.Name == "Wind Blade" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
-        Assert.Contains(rot, x => x.Name == "puinsein" && x.CurrentPriority == CreatureTargetPriority.AttackingCaster);
-        Assert.Contains(rot, x => x.Name == "Paralyze" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
-        foreach (var castable in Game.World.WorldData.FindCastables(x => x.CategoryList.Contains("ElementST")))
-        {
-            Assert.Contains(rot, x => x.Name == castable.Name && x.CurrentPriority == rot.TargetPriority);
-        }
+        Assert.Contains(rot,
+            filter: x => x.Name == "Wind Blade" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
+        Assert.Contains(rot,
+            filter: x => x.Name == "puinsein" && x.CurrentPriority == CreatureTargetPriority.AttackingCaster);
+        Assert.Contains(rot,
+            filter: x => x.Name == "Paralyze" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
+        foreach (var castable in
+                 Game.World.WorldData.FindCastables(condition: x => x.CategoryList.Contains("ElementST")))
+            Assert.Contains(rot, filter: x => x.Name == castable.Name && x.CurrentPriority == rot.TargetPriority);
 
         entry = monster.CastableController.GetNextCastable();
-
     }
 
     [Fact]
@@ -87,9 +87,9 @@ public class Monsters
         var rot = monster.CastableController.GetAssailRotation();
         Assert.NotNull(rot);
         Assert.True(rot.Count == 3);
-        Assert.Contains(rot, x => x.Name == "Assail" && x.CurrentPriority == CreatureTargetPriority.Attacker);
-        Assert.Contains(rot, x => x.Name == "Assault" && x.CurrentPriority == CreatureTargetPriority.Attacker);
-        Assert.Contains(rot, x => x.Name == "Clobber" && x.CurrentPriority == CreatureTargetPriority.Attacker);
+        Assert.Contains(rot, filter: x => x.Name == "Assail" && x.CurrentPriority == CreatureTargetPriority.Attacker);
+        Assert.Contains(rot, filter: x => x.Name == "Assault" && x.CurrentPriority == CreatureTargetPriority.Attacker);
+        Assert.Contains(rot, filter: x => x.Name == "Clobber" && x.CurrentPriority == CreatureTargetPriority.Attacker);
     }
 
     [Fact]
@@ -152,8 +152,8 @@ public class Monsters
         entry2 = monster.CastableController.GetNextCastable();
         // This should be a threshold cast, but can be any of three spells at random
         Assert.NotNull(entry2);
-        Assert.True(entry2.Name == "mor athar gar" || entry2.Name == "mor athar meall" || entry2.Name == "mor athar lamh");
+        Assert.True(entry2.Name == "mor athar gar" || entry2.Name == "mor athar meall" ||
+                    entry2.Name == "mor athar lamh");
         Assert.True(entry2.CurrentPriority == CreatureTargetPriority.AttackingHealer);
-
     }
 }

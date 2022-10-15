@@ -20,52 +20,68 @@
  */
 
 using System;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
-using System.Runtime.Remoting;
 using System.Text.RegularExpressions;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
-using Sentry;
 using Serilog;
-using StackExchange.Redis;
-using User = Hybrasyl.Objects.User;
+using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Scripting;
 
 /// <summary>
-/// A logging class that can be used by scripts natively in Lua.
+///     A logging class that can be used by scripts natively in Lua.
 /// </summary>
 [MoonSharpUserData]
-    
 public class ScriptLogger
 {
-        
-    public string ScriptName { get; set; }
-
     public ScriptLogger(string name)
     {
         ScriptName = name;
     }
 
-    public void Info(string message) => Log.Information("{ScriptName} : {Message}", ScriptName, message);
-    public void Error(string message) => Log.Error("{ScriptName} : {Message}", ScriptName, message);
+    public string ScriptName { get; set; }
+
+    public void Info(string message)
+    {
+        Log.Information("{ScriptName} : {Message}", ScriptName, message);
+    }
+
+    public void Error(string message)
+    {
+        Log.Error("{ScriptName} : {Message}", ScriptName, message);
+    }
 }
 
 public class Script
 {
-    static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
+    private static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
+
+    public Script(string path, ScriptProcessor processor)
+    {
+        FullPath = path;
+        Name = Path.GetFileName(path).ToLower();
+        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
+        RawSource = string.Empty;
+        Processor = processor;
+    }
+
+    public Script(string script, string name)
+    {
+        FullPath = string.Empty;
+        Name = name;
+        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
+        RawSource = script;
+    }
 
     public string RawSource { get; set; }
 
     public string Name { get; set; }
-    public string FullPath { get; private set; }
+    public string FullPath { get; }
     public string FileName => Path.GetFileName(FullPath);
 
     public ScriptProcessor Processor { get; set; }
@@ -83,23 +99,6 @@ public class Script
         // only once per script (aka this.Compiled) lifetime
         clone.Run(false);
         return clone;
-    }
-
-    public Script(string path, ScriptProcessor processor)
-    {
-        FullPath = path;
-        Name = Path.GetFileName(path).ToLower();
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        RawSource = string.Empty;
-        Processor = processor;
-    }
-
-    public Script(string script, string name)
-    {
-        FullPath = string.Empty;
-        Name = name;
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        RawSource = script;
     }
 
     public void AssociateScriptWithObject(WorldObject obj)
@@ -122,7 +121,7 @@ public class Script
     }
 
     /// <summary>
-    /// Function to dynamically make the right UserData wrapper for a given object.
+    ///     Function to dynamically make the right UserData wrapper for a given object.
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
@@ -179,7 +178,9 @@ public class Script
                 ret.Error = matches.Groups[5].Value;
             }
             else
+            {
                 ret.Error = ie.DecoratedMessage;
+            }
 
             var summary = !string.IsNullOrEmpty(ret.Filename)
                 ? $"Line {ret.LineNumber}: {ret.Error}\n{ExtractLuaSource(ret.LineNumber)}"
@@ -203,29 +204,28 @@ public class Script
         }
 
         // C# or other exception
-        ret.HumanizedError = $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
+        ret.HumanizedError =
+            $"\nC# exception, perhaps caused by Lua script code: STACK: {ex.StackTrace}\n ERR:{ex.Message}";
         ret.ErrorType = ScriptErrorType.CSharpError;
         if (ex.InnerException != null)
-            ret.HumanizedError = $"{ret.HumanizedError}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
+            ret.HumanizedError =
+                $"{ret.HumanizedError}\nINNER STACK TRACE: {ex.InnerException.StackTrace}\n INNER ERR: {ex.InnerException.Message}";
         return ret;
     }
 
     /// <summary>
-    /// Check to see if a script implements a given function.
+    ///     Check to see if a script implements a given function.
     /// </summary>
     /// <param name="name">The function name to check</param>
     /// <returns></returns>
-    public bool HasFunction(string name)
-    {
-        return !Equals(Compiled.Globals.Get(name), DynValue.Nil);
-    }
+    public bool HasFunction(string name) => !Equals(Compiled.Globals.Get(name), DynValue.Nil);
 
     public void SetGlobals()
     {
-        Compiled.Globals["Gender"] = UserData.CreateStatic<Xml.Gender>();
+        Compiled.Globals["Gender"] = UserData.CreateStatic<Gender>();
         Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
         Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
-        Compiled.Globals["Class"] = UserData.CreateStatic<Xml.Class>();
+        Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
         Compiled.Globals["utility"] = typeof(HybrasylUtility);
         Compiled.Globals.Set("world", UserData.Create(Processor.World));
         Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
@@ -233,7 +233,7 @@ public class Script
     }
 
     /// <summary>
-    /// Load the script from disk and execute it.
+    ///     Load the script from disk and execute it.
     /// </summary>
     /// <param name="onLoad">Whether or not to execute OnLoad() if it exists in the script.</param>
     /// <returns>boolean indicating whether the script was reloaded or not</returns>
@@ -271,15 +271,12 @@ public class Script
     public void ProcessEnvironment(ScriptEnvironment env)
     {
         if (env is null) return;
-        foreach (var (key, value) in env.Variables)
-        {
-            Compiled.Globals.Set(key, GetUserDataValue(value));
-        }
+        foreach (var (key, value) in env.Variables) Compiled.Globals.Set(key, GetUserDataValue(value));
     }
 
     /// <summary>
-    /// Execute a Lua expression in the context of an associated world object.
-    /// Primarily used for dialog callbacks.
+    ///     Execute a Lua expression in the context of an associated world object.
+    ///     Primarily used for dialog callbacks.
     /// </summary>
     /// <param name="expr">The javascript expression, in string form.</param>
     /// <param name="invoker">The invoker (caller).</param>
@@ -289,8 +286,11 @@ public class Script
     {
         var result = new ScriptExecutionResult
         {
-            Result = ScriptResult.Disabled, Return = DynValue.Nil, ExecutedExpression = expr,
-            Location = environment?.DialogPath, ExecutionTime = DateTime.Now
+            Result = ScriptResult.Disabled,
+            Return = DynValue.Nil,
+            ExecutedExpression = expr,
+            Location = environment?.DialogPath,
+            ExecutionTime = DateTime.Now
         };
 
 
@@ -315,6 +315,7 @@ public class Script
             GameLog.ScriptingError(
                 $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {environment}\n{result.Error}");
         }
+
         if (Associate != null)
             Associate.Obj.LastExecutionResult = result;
 
@@ -325,8 +326,11 @@ public class Script
     {
         var result = new ScriptExecutionResult
         {
-            Result = ScriptResult.Disabled, Return = DynValue.Nil, ExecutedExpression = functionName,
-            Location = environment?.DialogPath, ExecutionTime = DateTime.Now
+            Result = ScriptResult.Disabled,
+            Return = DynValue.Nil,
+            ExecutedExpression = functionName,
+            Location = environment?.DialogPath,
+            ExecutionTime = DateTime.Now
         };
 
         if (Disabled)
@@ -357,11 +361,9 @@ public class Script
             GameLog.ScriptingError(
                 $"ExecuteFunction: Error executing expression {functionName} in {FileName}: Variables: {environment}\n{result.Error}");
         }
+
         if (Associate != null)
             Associate.Obj.LastExecutionResult = result;
         return result;
-
     }
-
-
 }

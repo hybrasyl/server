@@ -18,14 +18,15 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Objects;
-using System.Text.RegularExpressions;
+
 using System.Linq;
+using System.Text.RegularExpressions;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.ChatCommands;
 
-class MotionCommand : ChatCommand
+internal class MotionCommand : ChatCommand
 {
     public new static string Command = "motion";
     public new static string ArgumentText = "<byte motion> [<short speed>]";
@@ -35,18 +36,19 @@ class MotionCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         short speed = 20;
-        if (byte.TryParse(args[0], out byte motion))
+        if (byte.TryParse(args[0], out var motion))
         {
             if (args.Length > 1)
                 short.TryParse(args[1], out speed);
             user.Motion(motion, speed);
             return Success($"Displayed motion {motion}.");
         }
+
         return Fail("The value you specified could not be parsed (byte)");
     }
 }
 
-class HairstyleCommand : ChatCommand
+internal class HairstyleCommand : ChatCommand
 {
     public new static string Command = "hairstyle";
     public new static string ArgumentText = "<ushort hairstyle> [<byte haircolor>]";
@@ -55,7 +57,7 @@ class HairstyleCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (ushort.TryParse(args[0], out ushort hairstyle))
+        if (ushort.TryParse(args[0], out var hairstyle))
         {
             byte haircolor = 0;
             if (args.Length > 1 && byte.TryParse(args[1], out haircolor))
@@ -64,12 +66,12 @@ class HairstyleCommand : ChatCommand
             user.SendUpdateToUser();
             return Success($"Hair color and/or style updated to style:{user.HairStyle} color:{user.HairColor}.");
         }
+
         return Fail("The value you specified could not be parsed (byte)");
     }
 }
 
-
-class EffectCommand : ChatCommand
+internal class EffectCommand : ChatCommand
 {
     public new static string Command = "effect";
     public new static string ArgumentText = "<ushort effect>";
@@ -79,18 +81,19 @@ class EffectCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         short speed = 20;
-        if (ushort.TryParse(args[0], out ushort effect))
+        if (ushort.TryParse(args[0], out var effect))
         {
             if (args.Length > 1)
                 short.TryParse(args[1], out speed);
             user.Effect(effect, speed);
             return Success($"Displayed effect {effect}.");
         }
+
         return Fail("The value you specified could not be parsed (byte)");
     }
 }
 
-class SoundCommand : ChatCommand
+internal class SoundCommand : ChatCommand
 {
     public new static string Command = "sound";
     public new static string ArgumentText = "<byte sound>";
@@ -99,7 +102,7 @@ class SoundCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (byte.TryParse(args[0], out byte sound))
+        if (byte.TryParse(args[0], out var sound))
         {
             user.SendSound(sound);
             return Success($"Played sound {sound}.");
@@ -109,7 +112,7 @@ class SoundCommand : ChatCommand
     }
 }
 
-class MusicCommand : ChatCommand
+internal class MusicCommand : ChatCommand
 
 {
     public new static string Command = "music";
@@ -119,20 +122,18 @@ class MusicCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (byte.TryParse(args[0], out byte track))
+        if (byte.TryParse(args[0], out var track))
         {
             user.Map.Music = track;
-            foreach (var mapuser in user.Map.Users.Values)
-            {
-                mapuser.SendMusic(track);
-            }
+            foreach (var mapuser in user.Map.Users.Values) mapuser.SendMusic(track);
             return Success($"Music track changed to {track} for all users on {user.Map.Name}.");
         }
+
         return Fail("The value you specified could not be parsed (byte)");
     }
 }
 
-class ItemCommand : ChatCommand
+internal class ItemCommand : ChatCommand
 {
     public new static string Command = "item";
     public new static string ArgumentText = "<string itemName> [<uint quantity>]";
@@ -141,10 +142,10 @@ class ItemCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValueByIndex(args[0], out Xml.Item template))
+        if (Game.World.WorldData.TryGetValueByIndex(args[0], out Item template))
         {
             var item = Game.World.CreateItem(template.Id);
-            if (args.Length == 2 && int.TryParse(args[1], out int count) && count <= item.MaximumStack)
+            if (args.Length == 2 && int.TryParse(args[1], out var count) && count <= item.MaximumStack)
                 item.Count = count;
             else
                 item.Count = item.MaximumStack;
@@ -152,11 +153,12 @@ class ItemCommand : ChatCommand
             user.AddItem(item);
             return Success($"Item {args[0]} generated.");
         }
+
         return Fail($"Item {args[0]} not found");
     }
 }
 
-class ItemListCommand : ChatCommand
+internal class ItemListCommand : ChatCommand
 {
     public new static string Command = "itemlist";
     public new static string ArgumentText = "<string searchTerm>";
@@ -172,11 +174,11 @@ class ItemListCommand : ChatCommand
         try
         {
             var term = new Regex($"{searchstring}");
-            var queryItems = from aitem in Game.World.WorldData.Values<Xml.Item>()
+            var queryItems = from aitem in Game.World.WorldData.Values<Item>()
                 where term.IsMatch(aitem.Name)
                 select aitem;
 
-            var result = queryItems.Aggregate("", (current, item) => current + $"{item.Name}\n");
+            var result = queryItems.Aggregate("", func: (current, item) => current + $"{item.Name}\n");
             if (result.Length > 65400)
                 result = $"{result.Substring(0, 65400)}\n(Results truncated)";
 
@@ -190,7 +192,7 @@ class ItemListCommand : ChatCommand
     }
 }
 
-class MapmsgCommand : ChatCommand
+internal class MapmsgCommand : ChatCommand
 {
     public new static string Command = "mapmsg";
     public new static string ArgumentText = "<string message>";
@@ -200,15 +202,12 @@ class MapmsgCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         user.Map.Message = args[0];
-        foreach (var mapuser in user.Map.Users.Values)
-        {
-            mapuser.SendMessage(args[0], 18);
-        }
+        foreach (var mapuser in user.Map.Users.Values) mapuser.SendMessage(args[0], 18);
         return Success("Map message sent.");
     }
 }
 
-class WorldmsgCommand : ChatCommand
+internal class WorldmsgCommand : ChatCommand
 {
     public new static string Command = "worldmsg";
     public new static string ArgumentText = "<string message>";
@@ -219,9 +218,7 @@ class WorldmsgCommand : ChatCommand
     {
         user.Map.Message = args[0];
         foreach (var connectedUser in Game.World.WorldData.Values<User>())
-        {
             connectedUser.SendWorldMessage(user.Name, args[0]);
-        }
         return Success("World message sent.");
     }
 }

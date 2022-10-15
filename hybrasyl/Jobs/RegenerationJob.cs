@@ -30,8 +30,6 @@ public static class RegenerationJob
     public static void Execute(object obj, ElapsedEventArgs args)
     {
         foreach (var connId in GlobalConnectionManifest.WorldClients.Keys)
-        {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RegenUser, connId));
-        }
     }
 }

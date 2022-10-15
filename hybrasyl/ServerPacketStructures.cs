@@ -18,12 +18,13 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
 using System;
 using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl;
 
@@ -35,8 +36,7 @@ internal interface IPacket
 
 public class ServerPacketStructures
 {
-
-    internal partial class AddSpell
+    internal class AddSpell
     {
         private static byte OpCode;
 
@@ -67,7 +67,7 @@ public class ServerPacketStructures
     }
 
 
-    internal partial class UseSkill
+    internal class UseSkill
     {
         private static byte OpCode;
 
@@ -79,24 +79,24 @@ public class ServerPacketStructures
         internal byte Slot { get; set; }
     }
 
-    internal partial class StatusBar
+    internal class StatusBar
     {
-        private static byte OpCode = OpCodes.StatusBar;
+        private static readonly byte OpCode = OpCodes.StatusBar;
+        internal StatusBarColor BarColor;
 
         internal ushort Icon;
-        internal StatusBarColor BarColor;
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(Icon);
-            packet.WriteByte((byte)BarColor);
+            packet.WriteByte((byte) BarColor);
             return packet;
         }
     }
 
 
-    internal partial class CancelCast
+    internal class CancelCast
     {
         private static byte OpCode;
 
@@ -107,35 +107,34 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(0);
             return packet;
         }
     }
 
-    internal partial class Cooldown
+    internal class Cooldown
     {
-        private static byte OpCode = OpCodes.Cooldown;
+        private static readonly byte OpCode = OpCodes.Cooldown;
+        internal uint Length;
 
         internal byte Pane;
         internal byte Slot;
-        internal uint Length;
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Pane);
             packet.WriteByte(Slot);
             packet.WriteUInt32(Length);
 
             return packet;
         }
-
     }
 
-    internal partial class PlayerAnimation
+    internal class PlayerAnimation
     {
-        private byte OpCode = OpCodes.PlayerAnimation;
+        private readonly byte OpCode = OpCodes.PlayerAnimation;
 
         internal uint UserId { get; set; }
         internal short Speed { get; set; }
@@ -143,36 +142,36 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt32(UserId);
             packet.WriteByte(Animation);
             packet.WriteInt16(Speed);
             packet.WriteByte(byte.MaxValue);
             return packet;
         }
-
     }
 
-    internal partial class Exchange
+    internal class Exchange
     {
-        private static byte OpCode =
+        internal const string CancelMessage = "Exchange was cancelled.";
+        internal const string ConfirmMessage = "You exchanged.";
+
+        private static readonly byte OpCode =
             OpCodes.Exchange;
 
         internal byte Action;
         internal uint Gold;
-        internal bool Side;
-        internal string RequestorName;
-        internal uint RequestorId;
-        internal byte ItemSlot;
-        internal ushort ItemSprite;
         internal byte ItemColor;
         internal string ItemName;
-        internal const string CancelMessage = "Exchange was cancelled.";
-        internal const string ConfirmMessage = "You exchanged.";
+        internal byte ItemSlot;
+        internal ushort ItemSprite;
+        internal uint RequestorId;
+        internal string RequestorName;
+        internal bool Side;
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Action);
             switch (Action)
             {
@@ -189,40 +188,40 @@ public class ServerPacketStructures
                     break;
                 case ExchangeActions.ItemUpdate:
                 {
-                    packet.WriteByte((byte)(Side ? 0 : 1));
+                    packet.WriteByte((byte) (Side ? 0 : 1));
                     packet.WriteByte(ItemSlot);
-                    packet.WriteUInt16((ushort)(0x8000 + ItemSprite));
+                    packet.WriteUInt16((ushort) (0x8000 + ItemSprite));
                     packet.WriteByte(ItemColor);
                     packet.WriteString8(ItemName);
                 }
                     break;
                 case ExchangeActions.GoldUpdate:
                 {
-                    packet.WriteByte((byte)(Side ? 0 : 1));
+                    packet.WriteByte((byte) (Side ? 0 : 1));
                     packet.WriteUInt32(Gold);
                 }
                     break;
                 case ExchangeActions.Cancel:
                 {
-                    packet.WriteByte((byte)(Side ? 0 : 1));
+                    packet.WriteByte((byte) (Side ? 0 : 1));
                     packet.WriteString8(CancelMessage);
-
                 }
                     break;
                 case ExchangeActions.Confirm:
                 {
-                    packet.WriteByte((byte)(Side ? 0 : 1));
+                    packet.WriteByte((byte) (Side ? 0 : 1));
                     packet.WriteString8(ConfirmMessage);
                 }
                     break;
             }
+
             return packet;
         }
     }
 
-    internal partial class CastLine
+    internal class CastLine
     {
-        private byte OpCode;
+        private readonly byte OpCode;
 
         internal CastLine()
         {
@@ -233,6 +232,7 @@ public class ServerPacketStructures
         internal byte ChatType { get; set; }
         internal uint TargetId { get; set; }
         internal byte LineLength { get; set; }
+
         internal ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
@@ -247,9 +247,9 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class PlaySound
+    internal class PlaySound
     {
-        private byte OpCode;
+        private readonly byte OpCode;
 
         internal PlaySound()
         {
@@ -260,15 +260,15 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Sound);
             return packet;
         }
     }
 
-    internal partial class HealthBar
+    internal class HealthBar
     {
-        private byte OpCode;
+        private readonly byte OpCode;
 
         internal HealthBar()
         {
@@ -282,7 +282,7 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt32(ObjId);
             packet.WriteByte(0);
             packet.WriteByte(CurrentPercent);
@@ -290,12 +290,11 @@ public class ServerPacketStructures
 
             return packet;
         }
-
     }
 
-    internal partial class EffectAnimation
+    internal class EffectAnimation
     {
-        private byte OpCode;
+        private readonly byte OpCode;
 
         internal EffectAnimation()
         {
@@ -310,32 +309,101 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
-            int position = packet.Position;
+            var packet = new ServerPacket(OpCode);
+            var position = packet.Position;
             packet.WriteUInt32(TargetId);
             packet.WriteUInt32(SourceId ?? 0);
-            packet.WriteUInt16((ushort)TargetAnimation);
-            packet.WriteUInt16((ushort)(SourceAnimation ?? 0));
+            packet.WriteUInt16((ushort) TargetAnimation);
+            packet.WriteUInt16((ushort) (SourceAnimation ?? 0));
             packet.WriteInt16(Speed);
             packet.WriteInt32(0);
             return packet;
         }
     }
 
-    internal partial class DisplayUser
+    internal class DisplayUser
     {
-        private byte OpCode;
+        private readonly byte OpCode;
 
         internal DisplayUser()
         {
             OpCode = OpCodes.DisplayUser;
+        }
+        // General notes about this god awful packet:
+
+        /* Offsets:
+           00-0F: no human body + pants
+           10-1F: male human body + pants
+           20-2F: female human body, no pants
+           30-3F: male spirit + pants
+           40-4F: female spirit, no pants
+           50-5F: invisible male body + pants
+           60-6F: invisible female body, no pants
+           70-7F: male doll body + pants
+           80-8F: male mounted body + pants
+           90-9F: female mounted body, no pants
+           A0-FF: no human body + pants
+        */
+
+        internal ServerPacket Packet()
+        {
+            var packet = new ServerPacket(OpCode);
+            packet.WriteUInt16(X);
+            packet.WriteUInt16(Y);
+            packet.WriteByte((byte) Direction);
+            packet.WriteUInt32(Id);
+            packet.WriteUInt16(Helmet);
+
+            if (!DisplayAsMonster)
+            {
+                packet.WriteByte((byte) ((byte) Gender * 16 + BodySpriteOffset));
+                packet.WriteUInt16(Armor);
+                packet.WriteByte(Boots);
+                packet.WriteUInt16(Armor);
+                packet.WriteByte(Shield);
+                packet.WriteUInt16(Weapon);
+                packet.WriteByte(HairColor);
+                packet.WriteByte(BootsColor);
+                packet.WriteByte(FirstAccColor);
+                packet.WriteUInt16(FirstAcc);
+                packet.WriteByte(SecondAccColor);
+                packet.WriteUInt16(SecondAcc);
+                packet.WriteByte(ThirdAccColor);
+                packet.WriteUInt16(ThirdAcc);
+                packet.WriteByte((byte) LanternSize);
+                packet.WriteByte((byte) RestPosition);
+                packet.WriteUInt16(Overcoat);
+                packet.WriteByte(OvercoatColor);
+                packet.WriteByte((byte) SkinColor);
+                packet.WriteBoolean(Invisible);
+                packet.WriteByte(FaceShape);
+            }
+            else
+            {
+                packet.WriteUInt16(MonsterSprite);
+                packet.WriteByte(HairColor);
+                packet.WriteByte(BootsColor);
+                // Unknown
+                packet.WriteByte(0x00);
+                packet.WriteByte(0x00);
+                packet.WriteByte(0x00);
+                packet.WriteByte(0x00);
+                packet.WriteByte(0x00);
+                packet.WriteByte(0x00);
+            }
+
+            packet.WriteByte((byte) NameStyle);
+            packet.WriteString8(Name ?? string.Empty);
+            packet.WriteString8(GroupName ?? string.Empty);
+
+            return packet;
         }
 
         #region Location information
 
         internal byte X { get; set; }
         internal byte Y { get; set; }
-        internal Xml.Direction Direction { get; set; }
+        internal Direction Direction { get; set; }
         internal uint Id { get; set; }
 
         #endregion
@@ -343,7 +411,7 @@ public class ServerPacketStructures
         #region Appearance
 
         internal string Name { get; set; }
-        internal Xml.Gender Gender { get; set; }
+        internal Gender Gender { get; set; }
         internal ushort Helmet { get; set; }
         internal byte BodySpriteOffset { get; set; }
         internal ushort Armor { get; set; }
@@ -371,88 +439,25 @@ public class ServerPacketStructures
         internal ushort MonsterSprite { get; set; }
 
         #endregion
-        // General notes about this god awful packet:
-
-        /* Offsets:
-           00-0F: no human body + pants
-           10-1F: male human body + pants
-           20-2F: female human body, no pants
-           30-3F: male spirit + pants
-           40-4F: female spirit, no pants
-           50-5F: invisible male body + pants
-           60-6F: invisible female body, no pants
-           70-7F: male doll body + pants
-           80-8F: male mounted body + pants
-           90-9F: female mounted body, no pants
-           A0-FF: no human body + pants
-        */
-
-        internal ServerPacket Packet()
-        {
-            ServerPacket packet = new ServerPacket(OpCode);
-            packet.WriteUInt16(X);
-            packet.WriteUInt16(Y);
-            packet.WriteByte((byte)Direction);
-            packet.WriteUInt32(Id);
-            packet.WriteUInt16(Helmet);
-
-            if (!DisplayAsMonster)
-            {
-                packet.WriteByte((byte)(((byte)Gender * 16) + BodySpriteOffset));
-                packet.WriteUInt16(Armor);
-                packet.WriteByte(Boots);
-                packet.WriteUInt16(Armor);
-                packet.WriteByte(Shield);
-                packet.WriteUInt16(Weapon);
-                packet.WriteByte(HairColor);
-                packet.WriteByte(BootsColor);
-                packet.WriteByte(FirstAccColor);
-                packet.WriteUInt16(FirstAcc);
-                packet.WriteByte(SecondAccColor);
-                packet.WriteUInt16(SecondAcc);
-                packet.WriteByte(ThirdAccColor);
-                packet.WriteUInt16(ThirdAcc);
-                packet.WriteByte((byte)LanternSize);
-                packet.WriteByte((byte)RestPosition);
-                packet.WriteUInt16(Overcoat);
-                packet.WriteByte(OvercoatColor);
-                packet.WriteByte((byte)SkinColor);
-                packet.WriteBoolean(Invisible);
-                packet.WriteByte(FaceShape);
-            }
-            else
-            {
-                packet.WriteUInt16(MonsterSprite);
-                packet.WriteByte(HairColor);
-                packet.WriteByte(BootsColor);
-                // Unknown
-                packet.WriteByte(0x00);
-                packet.WriteByte(0x00);
-                packet.WriteByte(0x00);
-                packet.WriteByte(0x00);
-                packet.WriteByte(0x00);
-                packet.WriteByte(0x00);
-            }
-            packet.WriteByte((byte)NameStyle);
-            packet.WriteString8(Name ?? string.Empty);
-            packet.WriteString8(GroupName ?? string.Empty);
-
-            return packet;
-        }
-
-
     }
 
-    internal partial class MerchantResponse
+    internal class MerchantResponse
     {
-        private byte OpCode;
+        private readonly byte OpCode;
+        private byte Unknow4 = 2;
+        internal byte Unknow7 = 1;
+
+
+        internal MerchantResponse()
+        {
+            OpCode = OpCodes.NpcReply;
+        }
+
         internal MerchantDialogType MerchantDialogType { get; set; }
         internal MerchantDialogObjectType MerchantDialogObjectType { get; set; }
         internal uint ObjectId { get; set; }
-        private byte Unknow4 = 2;
         internal ushort Tile1 { get; set; }
         internal byte Color1 { get; set; } //affect items only
-        internal byte Unknow7 = 1;
         internal ushort Tile2 { get; set; }
         internal byte Color2 { get; set; } //affect item only
         internal byte PortraitType { get; set; } //portrait style. 0 = anime 1 = sprite
@@ -474,23 +479,17 @@ public class ServerPacketStructures
         internal UserSkillBook UserSkills { get; set; }
         internal UserSpellBook UserSpells { get; set; }
 
-
-        internal MerchantResponse()
-        {
-            OpCode = OpCodes.NpcReply;
-        }
-
         internal ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
-            packet.WriteByte((byte)MerchantDialogType);
-            packet.WriteByte((byte)MerchantDialogObjectType);
+            packet.WriteByte((byte) MerchantDialogType);
+            packet.WriteByte((byte) MerchantDialogObjectType);
             packet.WriteUInt32(ObjectId);
             packet.WriteByte(0);
-            packet.WriteInt16((short)Tile1);
+            packet.WriteInt16((short) Tile1);
             packet.WriteByte(0);
             packet.WriteByte(1);
-            packet.WriteInt16((short)Tile1);
+            packet.WriteInt16((short) Tile1);
             packet.WriteByte(0);
             packet.WriteByte(0);
             packet.WriteString8(Name);
@@ -504,6 +503,7 @@ public class ServerPacketStructures
                     packet.WriteUInt16(opt.Id);
                 }
             }
+
             if (MerchantDialogType == MerchantDialogType.OptionsWithArgument)
             {
                 packet.WriteString8(OptionsWithArgument.Argument);
@@ -514,15 +514,14 @@ public class ServerPacketStructures
                     packet.WriteUInt16(opt.Id);
                 }
             }
-            if (MerchantDialogType == MerchantDialogType.Input)
-            {
-                packet.WriteUInt16(Input.Id);
-            }
+
+            if (MerchantDialogType == MerchantDialogType.Input) packet.WriteUInt16(Input.Id);
             if (MerchantDialogType == MerchantDialogType.InputWithArgument)
             {
                 packet.WriteString8(InputWithArgument.Argument);
                 packet.WriteUInt16(InputWithArgument.Id);
             }
+
             if (MerchantDialogType == MerchantDialogType.MerchantShopItems)
             {
                 packet.WriteUInt16(ShopItems.Id);
@@ -536,6 +535,7 @@ public class ServerPacketStructures
                     packet.WriteString8(item.Description);
                 }
             }
+
             if (MerchantDialogType == MerchantDialogType.MerchantSkills)
             {
                 packet.WriteUInt16(Skills.Id);
@@ -548,6 +548,7 @@ public class ServerPacketStructures
                     packet.WriteString8(skill.Name);
                 }
             }
+
             if (MerchantDialogType == MerchantDialogType.MerchantSpells)
             {
                 packet.WriteUInt16(Spells.Id);
@@ -560,29 +561,21 @@ public class ServerPacketStructures
                     packet.WriteString8(spell.Name);
                 }
             }
-            if (MerchantDialogType == MerchantDialogType.UserSkillBook)
-            {
-                packet.WriteUInt16(UserSkills.Id);
-            }
-            if (MerchantDialogType == MerchantDialogType.UserSpellBook)
-            {
-                packet.WriteUInt16(UserSpells.Id);
-            }
+
+            if (MerchantDialogType == MerchantDialogType.UserSkillBook) packet.WriteUInt16(UserSkills.Id);
+            if (MerchantDialogType == MerchantDialogType.UserSpellBook) packet.WriteUInt16(UserSpells.Id);
             if (MerchantDialogType == MerchantDialogType.UserInventoryItems)
             {
                 packet.WriteUInt16(UserInventoryItems.Id);
                 packet.WriteByte(UserInventoryItems.InventorySlotsCount);
-                foreach (var slot in UserInventoryItems.InventorySlots)
-                {
-                    packet.WriteByte(slot);
-                }
+                foreach (var slot in UserInventoryItems.InventorySlots) packet.WriteByte(slot);
             }
 
             return packet;
         }
     }
 
-    internal partial class Turn
+    internal class Turn
     {
         private readonly byte OpCode;
 
@@ -596,14 +589,14 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt32(Id);
             packet.WriteByte(Direction);
             return packet;
         }
     }
 
-    internal partial class PlayerProfile
+    internal class PlayerProfile
     {
         private readonly byte OpCode;
 
@@ -611,6 +604,7 @@ public class ServerPacketStructures
         {
             OpCode = OpCodes.SelfProfile;
         }
+
         internal User Player { get; set; }
         internal byte NationFlag { get; set; }
         internal string GuildRank { get; set; }
@@ -626,22 +620,24 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(NationFlag);
             packet.WriteString8(GuildRank);
             packet.WriteString8(CurrentTitle);
-            if (!IsGrouped) packet.WriteString8("Adventuring Alone");
+            if (!IsGrouped)
+            {
+                packet.WriteString8("Adventuring Alone");
+            }
             else
             {
                 var ret = "Group members\n";
                 foreach (var member in Group.Members)
-                {
                     ret += member == Group.Founder ? $"* {member.Name}\n" : $"  {member.Name}\n";
-                }
                 ret += $"Total {Group.Members.Count}";
 
                 packet.WriteString8(ret);
             }
+
             packet.WriteBoolean(CanGroup);
             packet.WriteBoolean(GroupRecruit != null);
             GroupRecruit?.WriteInfo(packet);
@@ -650,14 +646,15 @@ public class ServerPacketStructures
             packet.WriteByte(0x00);
             packet.WriteString8(Player.IsMaster ? "Master" : Player.Class.ToString());
             packet.WriteString8(GuildName ?? string.Empty);
-            packet.WriteByte((byte)(Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
+            packet.WriteByte((byte) (Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
             foreach (var mark in Player.Legend)
             {
-                packet.WriteByte((byte)mark.Icon);
-                packet.WriteByte((byte)mark.Color);
+                packet.WriteByte((byte) mark.Icon);
+                packet.WriteByte((byte) mark.Color);
                 packet.WriteString8(mark.Prefix);
                 packet.WriteString8(mark.ToString());
             }
+
             packet.WriteByte(0x00);
             packet.WriteUInt16(PlayerDisplay);
             packet.WriteByte(0x02);
@@ -667,32 +664,29 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class RemoveWorldObject
+    internal class RemoveWorldObject
     {
         private readonly byte OpCode;
-
-        internal uint Id { get; set; }
 
         internal RemoveWorldObject()
         {
             OpCode = OpCodes.RemoveWorldObject;
         }
 
+        internal uint Id { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt32(Id);
 
             return packet;
         }
     }
 
-    internal partial class Location
+    internal class Location
     {
         private readonly byte OpCode;
-
-        internal ushort X { get; set; }
-        internal ushort Y { get; set; }
 
 
         internal Location()
@@ -700,9 +694,12 @@ public class ServerPacketStructures
             OpCode = OpCodes.Location;
         }
 
+        internal ushort X { get; set; }
+        internal ushort Y { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(X);
             packet.WriteUInt16(Y);
             packet.WriteUInt16(11);
@@ -711,46 +708,48 @@ public class ServerPacketStructures
             return packet;
         }
     }
-    internal partial class UserId
+
+    internal class UserId
     {
         private readonly byte OpCode;
-
-        internal User User { get; set; }
 
         internal UserId()
         {
             OpCode = OpCodes.UserId;
         }
 
+        internal User User { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt32(User.Id);
             packet.WriteByte((byte) User.Direction);
             packet.WriteByte(213);
-            packet.WriteByte((byte)User.Class);
+            packet.WriteByte((byte) User.Class);
             packet.WriteUInt16(0);
 
             return packet;
         }
     }
 
-    internal partial class MapInfo
+    internal class MapInfo
     {
         private readonly byte OpCode;
 
-        internal User User { get; set; }
         internal MapInfo()
         {
             OpCode = OpCodes.MapInfo;
         }
 
+        internal User User { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(User.Map.Id);
-            packet.WriteByte((byte)(User.Map.X % 256));
-            packet.WriteByte((byte)(User.Map.Y % 256));
+            packet.WriteByte((byte) (User.Map.X % 256));
+            packet.WriteByte((byte) (User.Map.Y % 256));
             byte flags = 0;
             //if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
             //    flags |= 1;
@@ -761,17 +760,17 @@ public class ServerPacketStructures
             //if ((User.Map.Flags & MapFlags.Winter) == MapFlags.Winter)
             //    flags |= 128;
             packet.WriteByte(flags);
-            packet.WriteByte((byte)(User.Map.X / 256));
-            packet.WriteByte((byte)(User.Map.Y / 256));
-            packet.WriteByte((byte)(User.Map.Checksum % 256));
-            packet.WriteByte((byte)(User.Map.Checksum / 256));
+            packet.WriteByte((byte) (User.Map.X / 256));
+            packet.WriteByte((byte) (User.Map.Y / 256));
+            packet.WriteByte((byte) (User.Map.Checksum % 256));
+            packet.WriteByte((byte) (User.Map.Checksum / 256));
             packet.WriteString8(User.Map.Name);
 
             return packet;
         }
     }
 
-    internal partial class MapLoadComplete
+    internal class MapLoadComplete
     {
         private readonly byte OpCode;
 
@@ -782,23 +781,23 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(0);
 
             return packet;
         }
     }
 
-    internal partial class MapData
+    internal class MapData
     {
         private readonly byte OpCode;
-
-        internal Map Map { get; set; }
 
         internal MapData()
         {
             OpCode = OpCodes.MapData;
         }
+
+        internal Map Map { get; set; }
 
         internal List<ServerPacket> Packets()
         {
@@ -806,36 +805,38 @@ public class ServerPacketStructures
             var tile = 0;
             for (var row = 0; row < Map.Y; row++)
             {
-                ServerPacket packet = new ServerPacket(OpCode);
+                var packet = new ServerPacket(OpCode);
 
-                packet.WriteUInt16((ushort)row);
-                for (int column = 0; column < Map.X * 6; column += 2)
+                packet.WriteUInt16((ushort) row);
+                for (var column = 0; column < Map.X * 6; column += 2)
                 {
                     packet.WriteByte(Map.RawData[tile + 1]);
                     packet.WriteByte(Map.RawData[tile]);
                     tile += 2;
                 }
+
                 ret.Add(packet);
             }
+
             return ret;
         }
     }
 
-    internal partial class LoginMessage
+    internal class LoginMessage
     {
         private readonly byte OpCode;
-
-        internal byte Type { get; set; }
-        internal string Message { get; set; }
 
         internal LoginMessage()
         {
             OpCode = OpCodes.LoginMessage;
         }
 
+        internal byte Type { get; set; }
+        internal string Message { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Type);
             packet.WriteString8(Message);
 
@@ -843,28 +844,28 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class SystemMessage
+    internal class SystemMessage
     {
         private readonly byte OpCode;
-
-        internal byte Type { get; set; }
-        internal string Message { get; set; }
 
         internal SystemMessage()
         {
             OpCode = OpCodes.SystemMessage;
         }
 
+        internal byte Type { get; set; }
+        internal string Message { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Type);
             packet.WriteString16(Message);
             return packet;
         }
     }
 
-    internal partial class SettingsMessage
+    internal class SettingsMessage
     {
         private readonly byte OpCode = OpCodes.SystemMessage;
         internal byte Type = 0x07;
@@ -873,21 +874,26 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Type);
             // Unusually, this message length includes the settings number above,
             // and is not just the string length...
             packet.WriteByte(00);
-            packet.WriteByte((byte)(DisplayString.Length + 1));
-            packet.WriteByte((byte)(Number + 0x30));
+            packet.WriteByte((byte) (DisplayString.Length + 1));
+            packet.WriteByte((byte) (Number + 0x30));
             packet.WriteString(DisplayString);
             return packet;
         }
     }
 
-    internal partial class SpellAnimation
+    internal class SpellAnimation
     {
         private readonly byte OpCode;
+
+        internal SpellAnimation()
+        {
+            OpCode = OpCodes.SpellAnimation;
+        }
 
         internal uint Id { get; set; }
         internal uint SenderId { get; set; }
@@ -897,16 +903,9 @@ public class ServerPacketStructures
         internal ushort X { get; set; }
         internal ushort Y { get; set; }
 
-        internal SpellAnimation()
-        {
-            OpCode = OpCodes.SpellAnimation;
-        }
-
         internal ServerPacket Packet()
         {
-
-
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(0x00);
             if (Id != 0)
             {
@@ -925,23 +924,25 @@ public class ServerPacketStructures
                 packet.WriteUInt16(X);
                 packet.WriteUInt16(Y);
             }
+
             return packet;
         }
     }
 
-    internal partial class RemoveSpell
+    internal class RemoveSpell
     {
         private readonly byte OpCode;
 
-        internal byte Slot { get; set; }
         internal RemoveSpell()
         {
             OpCode = OpCodes.RemoveSpell;
         }
 
+        internal byte Slot { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Slot);
             packet.WriteByte(0x00);
 
@@ -949,19 +950,20 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class RemoveSkill
+    internal class RemoveSkill
     {
         private readonly byte OpCode;
 
-        internal byte Slot { get; set; }
         internal RemoveSkill()
         {
             OpCode = OpCodes.RemoveSkill;
         }
 
+        internal byte Slot { get; set; }
+
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(Slot);
             packet.WriteByte(0x00);
 
@@ -969,7 +971,7 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class Refresh
+    internal class Refresh
     {
         private readonly byte OpCode;
 
@@ -980,16 +982,22 @@ public class ServerPacketStructures
 
         internal ServerPacket Packet()
         {
-            ServerPacket packet = new ServerPacket(OpCode);
+            var packet = new ServerPacket(OpCode);
             packet.WriteByte(0x00);
 
             return packet;
         }
     }
 
-    internal partial class Manufacture
+    internal class Manufacture
     {
         private readonly byte OpCode;
+
+        internal Manufacture()
+        {
+            OpCode = OpCodes.Manufacture;
+        }
+
         public bool IsInitial { get; set; }
         public byte RecipeCount { get; set; }
         public byte Index { get; set; }
@@ -997,10 +1005,6 @@ public class ServerPacketStructures
         public string RecipeName { get; set; }
         public string RecipeDescription { get; set; }
         public Dictionary<string, int> RecipeIngredients { get; set; }
-        internal Manufacture()
-        {
-            OpCode = OpCodes.Manufacture;
-        }
 
         internal ServerPacket Packet()
         {
@@ -1022,10 +1026,7 @@ public class ServerPacketStructures
                 packet.WriteString16(RecipeDescription);
 
                 var ing = "Ingredients: \n";
-                foreach (var ingredient in RecipeIngredients)
-                {
-                    ing += $"{ingredient.Value} {ingredient.Key}\n";
-                }
+                foreach (var ingredient in RecipeIngredients) ing += $"{ingredient.Value} {ingredient.Key}\n";
                 packet.WriteString16(ing);
                 packet.WriteByte(0x01);
                 packet.WriteByte(0x00);
@@ -1035,16 +1036,16 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class ManufactureCursor
+    internal class ManufactureCursor
     {
         private readonly byte OpCode;
-
-        public bool Complete { get; set; }
 
         internal ManufactureCursor()
         {
             OpCode = OpCodes.BlockInput;
         }
+
+        public bool Complete { get; set; }
 
         internal ServerPacket Packet()
         {
@@ -1055,20 +1056,20 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class PlayerShop
+    internal class PlayerShop
     {
         private readonly byte OpCode;
+
+        internal PlayerShop()
+        {
+            OpCode = OpCodes.PlayerShop;
+        }
 
         public uint ShopId { get; set; }
         public uint ShopGold { get; set; }
         public string ShopName { get; set; }
         public bool NameOnly { get; set; }
         public (uint id, ItemObject item, ushort count, uint price)[] ShopItems { get; set; }
-
-        internal PlayerShop()
-        {
-            OpCode = OpCodes.PlayerShop;
-        }
 
         public ServerPacket Packet()
         {
@@ -1085,7 +1086,7 @@ public class ServerPacketStructures
                 packet.WriteByte(0x00);
                 packet.WriteUInt32(ShopGold);
                 packet.WriteByte(0x64); // unknown
-                packet.WriteByte((byte)ShopItems.Length);
+                packet.WriteByte((byte) ShopItems.Length);
                 foreach (var listing in ShopItems)
                 {
                     packet.WriteUInt32(listing.id);
@@ -1098,29 +1099,31 @@ public class ServerPacketStructures
                     packet.WriteUInt32(0);
                 }
             }
+
             return packet;
         }
     }
 
-    internal partial class EditablePaper
+    internal class EditablePaper
     {
         private readonly byte OpCode;
-        public PaperType Type { get; set; }
-        public byte Width { get; set; }
-        public byte Height { get; set; }
-        public string Text { get; set; }
-        public byte Slot { get; set; }
 
         public EditablePaper()
         {
             OpCode = OpCodes.EditablePaper;
         }
 
+        public PaperType Type { get; set; }
+        public byte Width { get; set; }
+        public byte Height { get; set; }
+        public string Text { get; set; }
+        public byte Slot { get; set; }
+
         public ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
             packet.WriteByte(Slot);
-            packet.WriteByte((byte)Type);
+            packet.WriteByte((byte) Type);
             packet.WriteByte(Width);
             packet.WriteByte(Height);
             packet.WriteString16(Text);
@@ -1129,24 +1132,25 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class ReadonlyPaper
+    internal class ReadonlyPaper
     {
         private readonly byte OpCode;
-        public PaperType Type { get; set; }
-        public byte Width { get; set; }
-        public byte Height { get; set; }
-        public string Text { get; set; }
-        public bool Centered { get; set; }
 
         public ReadonlyPaper()
         {
             OpCode = OpCodes.ReadonlyPaper;
         }
 
+        public PaperType Type { get; set; }
+        public byte Width { get; set; }
+        public byte Height { get; set; }
+        public string Text { get; set; }
+        public bool Centered { get; set; }
+
         public ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
-            packet.WriteByte((byte)Type);
+            packet.WriteByte((byte) Type);
             packet.WriteByte(Width);
             packet.WriteByte(Height);
             packet.WriteBoolean(Centered);
@@ -1156,17 +1160,9 @@ public class ServerPacketStructures
         }
     }
 
-    internal partial class MessagingResponse
+    internal class MessagingResponse
     {
         private readonly byte OpCode;
-        public BoardResponseType ResponseType { get; set; }
-        public List<(ushort Id, string Name)> Boards { get; set; }
-        public List<MessageInfo> Messages { get; set; }
-        public bool isClick { get; set; }
-        public ushort BoardId { get; set; }
-        public string BoardName { get; set; }
-        public string ResponseString { get; set; }
-        public bool ResponseSuccess { get; set; }
 
         public MessagingResponse()
         {
@@ -1177,12 +1173,21 @@ public class ServerPacketStructures
             BoardName = "Mail";
         }
 
+        public BoardResponseType ResponseType { get; set; }
+        public List<(ushort Id, string Name)> Boards { get; set; }
+        public List<MessageInfo> Messages { get; set; }
+        public bool isClick { get; set; }
+        public ushort BoardId { get; set; }
+        public string BoardName { get; set; }
+        public string ResponseString { get; set; }
+        public bool ResponseSuccess { get; set; }
+
         public ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
-                
-            if (ResponseType == BoardResponseType.EndResult || 
-                ResponseType == BoardResponseType.DeleteMessage || 
+
+            if (ResponseType == BoardResponseType.EndResult ||
+                ResponseType == BoardResponseType.DeleteMessage ||
                 ResponseType == BoardResponseType.HighlightMessage)
             {
                 packet.WriteByte((byte) ResponseType);
@@ -1200,33 +1205,35 @@ public class ServerPacketStructures
                 else
                 {
                     packet.WriteByte(0x02);
-                    packet.WriteByte((byte)(isClick == true ? 0x02 : 0x01));
+                    packet.WriteByte((byte) (isClick ? 0x02 : 0x01));
                 }
+
                 packet.WriteUInt16(BoardId);
                 packet.WriteString8(BoardName);
-                packet.WriteByte((byte)Messages.Count);
+                packet.WriteByte((byte) Messages.Count);
                 foreach (var message in Messages)
                 {
                     packet.WriteBoolean(message.Highlight);
-                    packet.WriteInt16((short)message.Id);
+                    packet.WriteInt16(message.Id);
                     packet.WriteString8(message.Sender);
                     packet.WriteByte(message.Month);
                     packet.WriteByte(message.Day);
                     packet.WriteString8(message.Subject);
                 }
             }
-                
+
             else if (ResponseType == BoardResponseType.DisplayList)
             {
-                packet.WriteByte((byte)0x01);
-                packet.WriteUInt16((ushort)(Boards.Count + 1));
+                packet.WriteByte(0x01);
+                packet.WriteUInt16((ushort) (Boards.Count + 1));
                 packet.WriteUInt16(0);
                 packet.WriteString8("Mail");
                 foreach (var (Id, Name) in Boards)
                 {
-                    packet.WriteUInt16((ushort)Id);
+                    packet.WriteUInt16(Id);
                     packet.WriteString8(Name);
                 }
+
                 // This is required to correctly display the messaging pane
                 packet.TransmitDelay = 600;
             }
@@ -1248,13 +1255,15 @@ public class ServerPacketStructures
                     packet.WriteByte(0x00);
                     packet.WriteBoolean(message.Highlight);
                 }
-                packet.WriteUInt16((ushort)message.Id);
+
+                packet.WriteUInt16((ushort) message.Id);
                 packet.WriteString8(message.Sender);
-                packet.WriteByte((byte)message.Month);
-                packet.WriteByte((byte)message.Day);
+                packet.WriteByte(message.Month);
+                packet.WriteByte(message.Day);
                 packet.WriteString8(message.Subject);
                 packet.WriteString16(message.Body);
             }
+
             return packet;
         }
     }

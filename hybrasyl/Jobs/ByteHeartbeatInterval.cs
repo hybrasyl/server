@@ -35,10 +35,8 @@ public static class ByteHeartbeatJob
             GameLog.Debug("Job starting");
 
             foreach (var client in GlobalConnectionManifest.WorldClients.Values)
-            {
                 // Send the 0x3B heartbeat to logged in clients
                 client.SendByteHeartbeat();
-            }
             GameLog.Debug("Job complete");
         }
         catch (Exception e)

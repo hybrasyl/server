@@ -25,20 +25,19 @@ namespace Hybrasyl;
 
 public class Lobby : Server
 {
-    public new LobbyPacketHandler[] PacketHandlers { get; private set; }
-
     public Lobby(int port, bool isDefault = false)
         : base(port, isDefault)
     {
         GameLog.InfoFormat("LobbyConstructor: port is {0}", port);
 
         PacketHandlers = new LobbyPacketHandler[256];
-        for (int i = 0; i < 256; ++i)
+        for (var i = 0; i < 256; ++i)
             PacketHandlers[i] = (c, p) => GameLog.WarningFormat("Lobby: Unhandled opcode 0x{0:X2}", p.Opcode);
         PacketHandlers[0x00] = PacketHandler_0x00_ClientVersion;
         PacketHandlers[0x57] = PacketHandler_0x57_ServerTable;
-
     }
+
+    public new LobbyPacketHandler[] PacketHandlers { get; }
 
     private void PacketHandler_0x00_ClientVersion(Client client, ClientPacket packet)
     {
@@ -46,10 +45,11 @@ public class Lobby : Server
         x00.WriteByte(0x00);
         x00.WriteUInt32(Game.ServerTableCrc);
         x00.WriteByte(client.EncryptionSeed);
-        x00.WriteByte((byte)client.EncryptionKey.Length);
+        x00.WriteByte((byte) client.EncryptionKey.Length);
         x00.Write(client.EncryptionKey);
         client.Enqueue(x00);
     }
+
     private void PacketHandler_0x57_ServerTable(Client client, ClientPacket packet)
     {
         var mismatch = packet.ReadByte();
@@ -57,7 +57,7 @@ public class Lobby : Server
         if (mismatch == 1)
         {
             var x56 = new ServerPacket(0x56);
-            x56.WriteUInt16((ushort)Game.ServerTable.Length);
+            x56.WriteUInt16((ushort) Game.ServerTable.Length);
             x56.Write(Game.ServerTable);
             GameLog.InfoFormat("ServerTable: Sent: {0}", BitConverter.ToString(x56.ToArray()));
             client.Enqueue(x56);
@@ -65,7 +65,8 @@ public class Lobby : Server
         else
         {
             var server = packet.ReadByte();
-            var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed, client.EncryptionKey);
+            var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed,
+                client.EncryptionKey);
             client.Redirect(redirect);
         }
     }

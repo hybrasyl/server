@@ -21,6 +21,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -32,13 +33,16 @@ public enum EncryptMethod
     Normal,
     MD5Key
 }
+
 [Serializable]
 public abstract class Packet
 {
-    protected static byte[][] SaltTable = new byte[][]
+    protected static byte[][] SaltTable =
     {
         #region Seed 00
-        new byte[] {
+
+        new byte[]
+        {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
             0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
@@ -56,9 +60,13 @@ public abstract class Packet
             0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
             0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
         },
+
         #endregion
+
         #region Seed 01
-        new byte[] {
+
+        new byte[]
+        {
             0x80, 0x7F, 0x81, 0x7E, 0x82, 0x7D, 0x83, 0x7C, 0x84, 0x7B, 0x85, 0x7A, 0x86, 0x79, 0x87, 0x78,
             0x88, 0x77, 0x89, 0x76, 0x8A, 0x75, 0x8B, 0x74, 0x8C, 0x73, 0x8D, 0x72, 0x8E, 0x71, 0x8F, 0x70,
             0x90, 0x6F, 0x91, 0x6E, 0x92, 0x6D, 0x93, 0x6C, 0x94, 0x6B, 0x95, 0x6A, 0x96, 0x69, 0x97, 0x68,
@@ -76,9 +84,13 @@ public abstract class Packet
             0xF0, 0x0F, 0xF1, 0x0E, 0xF2, 0x0D, 0xF3, 0x0C, 0xF4, 0x0B, 0xF5, 0x0A, 0xF6, 0x09, 0xF7, 0x08,
             0xF8, 0x07, 0xF9, 0x06, 0xFA, 0x05, 0xFB, 0x04, 0xFC, 0x03, 0xFD, 0x02, 0xFE, 0x01, 0xFF, 0x00
         },
+
         #endregion
+
         #region Seed 02
-        new byte[] {
+
+        new byte[]
+        {
             0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8, 0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0,
             0xEF, 0xEE, 0xED, 0xEC, 0xEB, 0xEA, 0xE9, 0xE8, 0xE7, 0xE6, 0xE5, 0xE4, 0xE3, 0xE2, 0xE1, 0xE0,
             0xDF, 0xDE, 0xDD, 0xDC, 0xDB, 0xDA, 0xD9, 0xD8, 0xD7, 0xD6, 0xD5, 0xD4, 0xD3, 0xD2, 0xD1, 0xD0,
@@ -96,9 +108,13 @@ public abstract class Packet
             0x1F, 0x1E, 0x1D, 0x1C, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10,
             0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
         },
+
         #endregion
+
         #region Seed 03
-        new byte[] {
+
+        new byte[]
+        {
             0xFF, 0x01, 0xFE, 0x02, 0xFD, 0x03, 0xFC, 0x04, 0xFB, 0x05, 0xFA, 0x06, 0xF9, 0x07, 0xF8, 0x08,
             0xF7, 0x09, 0xF6, 0x0A, 0xF5, 0x0B, 0xF4, 0x0C, 0xF3, 0x0D, 0xF2, 0x0E, 0xF1, 0x0F, 0xF0, 0x10,
             0xEF, 0x11, 0xEE, 0x12, 0xED, 0x13, 0xEC, 0x14, 0xEB, 0x15, 0xEA, 0x16, 0xE9, 0x17, 0xE8, 0x18,
@@ -116,9 +132,13 @@ public abstract class Packet
             0x8F, 0x71, 0x8E, 0x72, 0x8D, 0x73, 0x8C, 0x74, 0x8B, 0x75, 0x8A, 0x76, 0x89, 0x77, 0x88, 0x78,
             0x87, 0x79, 0x86, 0x7A, 0x85, 0x7B, 0x84, 0x7C, 0x83, 0x7D, 0x82, 0x7E, 0x81, 0x7F, 0x80, 0x80
         },
+
         #endregion
+
         #region Seed 04
-        new byte[] {
+
+        new byte[]
+        {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
             0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
@@ -136,9 +156,13 @@ public abstract class Packet
             0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4, 0xC4,
             0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1
         },
+
         #endregion
+
         #region Seed 05
-        new byte[] {
+
+        new byte[]
+        {
             0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
             0x20, 0x22, 0x24, 0x26, 0x28, 0x2A, 0x2C, 0x2E, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3A, 0x3C, 0x3E,
             0x40, 0x42, 0x44, 0x46, 0x48, 0x4A, 0x4C, 0x4E, 0x50, 0x52, 0x54, 0x56, 0x58, 0x5A, 0x5C, 0x5E,
@@ -156,9 +180,13 @@ public abstract class Packet
             0xC0, 0xC2, 0xC4, 0xC6, 0xC8, 0xCA, 0xCC, 0xCE, 0xD0, 0xD2, 0xD4, 0xD6, 0xD8, 0xDA, 0xDC, 0xDE,
             0xE0, 0xE2, 0xE4, 0xE6, 0xE8, 0xEA, 0xEC, 0xEE, 0xF0, 0xF2, 0xF4, 0xF6, 0xF8, 0xFA, 0xFC, 0xFE
         },
+
         #endregion
+
         #region Seed 06
-        new byte[] {
+
+        new byte[]
+        {
             0xFF, 0xFD, 0xFB, 0xF9, 0xF7, 0xF5, 0xF3, 0xF1, 0xEF, 0xED, 0xEB, 0xE9, 0xE7, 0xE5, 0xE3, 0xE1,
             0xDF, 0xDD, 0xDB, 0xD9, 0xD7, 0xD5, 0xD3, 0xD1, 0xCF, 0xCD, 0xCB, 0xC9, 0xC7, 0xC5, 0xC3, 0xC1,
             0xBF, 0xBD, 0xBB, 0xB9, 0xB7, 0xB5, 0xB3, 0xB1, 0xAF, 0xAD, 0xAB, 0xA9, 0xA7, 0xA5, 0xA3, 0xA1,
@@ -176,9 +204,13 @@ public abstract class Packet
             0x3F, 0x3D, 0x3B, 0x39, 0x37, 0x35, 0x33, 0x31, 0x2F, 0x2D, 0x2B, 0x29, 0x27, 0x25, 0x23, 0x21,
             0x1F, 0x1D, 0x1B, 0x19, 0x17, 0x15, 0x13, 0x11, 0x0F, 0x0D, 0x0B, 0x09, 0x07, 0x05, 0x03, 0x01
         },
+
         #endregion
+
         #region Seed 07
-        new byte[] {
+
+        new byte[]
+        {
             0xFF, 0xFD, 0xFB, 0xF9, 0xF7, 0xF5, 0xF3, 0xF1, 0xEF, 0xED, 0xEB, 0xE9, 0xE7, 0xE5, 0xE3, 0xE1,
             0xDF, 0xDD, 0xDB, 0xD9, 0xD7, 0xD5, 0xD3, 0xD1, 0xCF, 0xCD, 0xCB, 0xC9, 0xC7, 0xC5, 0xC3, 0xC1,
             0xBF, 0xBD, 0xBB, 0xB9, 0xB7, 0xB5, 0xB3, 0xB1, 0xAF, 0xAD, 0xAB, 0xA9, 0xA7, 0xA5, 0xA3, 0xA1,
@@ -196,9 +228,13 @@ public abstract class Packet
             0xC0, 0xC2, 0xC4, 0xC6, 0xC8, 0xCA, 0xCC, 0xCE, 0xD0, 0xD2, 0xD4, 0xD6, 0xD8, 0xDA, 0xDC, 0xDE,
             0xE0, 0xE2, 0xE4, 0xE6, 0xE8, 0xEA, 0xEC, 0xEE, 0xF0, 0xF2, 0xF4, 0xF6, 0xF8, 0xFA, 0xFC, 0xFE
         },
+
         #endregion
+
         #region Seed 08
-        new byte[] {
+
+        new byte[]
+        {
             0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
             0x20, 0x22, 0x24, 0x26, 0x28, 0x2A, 0x2C, 0x2E, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3A, 0x3C, 0x3E,
             0x40, 0x42, 0x44, 0x46, 0x48, 0x4A, 0x4C, 0x4E, 0x50, 0x52, 0x54, 0x56, 0x58, 0x5A, 0x5C, 0x5E,
@@ -216,9 +252,13 @@ public abstract class Packet
             0x3F, 0x3D, 0x3B, 0x39, 0x37, 0x35, 0x33, 0x31, 0x2F, 0x2D, 0x2B, 0x29, 0x27, 0x25, 0x23, 0x21,
             0x1F, 0x1D, 0x1B, 0x19, 0x17, 0x15, 0x13, 0x11, 0x0F, 0x0D, 0x0B, 0x09, 0x07, 0x05, 0x03, 0x01
         },
+
         #endregion
+
         #region Seed 09
-        new byte[] {
+
+        new byte[]
+        {
             0xFF, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B,
             0x3B, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x6F, 0x6F, 0x6F, 0x6F, 0x6F, 0x6F, 0x6F,
             0x6F, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x86, 0x9B, 0x9B, 0x9B, 0x9B, 0x9B, 0x9B, 0x9B,
@@ -236,41 +276,36 @@ public abstract class Packet
             0x6F, 0x6F, 0x6F, 0x6F, 0x6F, 0x6F, 0x6F, 0x6F, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56, 0x56,
             0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E
         }
+
         #endregion
     };
 
-    public byte Opcode { get; protected set; }
-    public byte Ordinal { get; set; }
-    public int TransmitDelay { get; set; }
+    private static SHA256 hashAlgorithm = SHA256.Create();
+    protected int _position;
 
     protected byte[] Data;
-    protected int _position;
 
     protected Packet()
     {
         TransmitDelay = 0;
     }
 
-    private static SHA256 hashAlgorithm = SHA256.Create();
+    public byte Opcode { get; protected set; }
+    public byte Ordinal { get; set; }
+    public int TransmitDelay { get; set; }
+
+    public int Position => _position;
+
+    public abstract EncryptMethod EncryptMethod { get; }
+
+    public abstract bool ShouldEncrypt { get; }
+    public abstract bool UseDefaultKey { get; }
 
     public string Hash()
     {
         var hash = hashAlgorithm.ComputeHash(Data);
-        return BitConverter.ToString(hash)[..8];          
+        return BitConverter.ToString(hash)[..8];
     }
-
-    public int Position
-    {
-        get { return _position; }
-    }
-
-    public abstract EncryptMethod EncryptMethod
-    {
-        get;
-    }
-
-    public abstract bool ShouldEncrypt { get; }
-    public abstract bool UseDefaultKey { get; }
 
     public void DumpPacket()
     {
@@ -284,8 +319,8 @@ public abstract class Packet
         var shouldEncrypt = ShouldEncrypt ? 5 : 4;
         var buffer = new byte[Data.Length + shouldEncrypt];
         buffer[0] = 0xAA;
-        buffer[1] = (byte)((buffer.Length - 3) / 256);
-        buffer[2] = (byte)(buffer.Length - 3);
+        buffer[1] = (byte) ((buffer.Length - 3) / 256);
+        buffer[2] = (byte) (buffer.Length - 3);
         buffer[3] = Opcode;
         buffer[4] = Ordinal;
 
@@ -301,16 +336,13 @@ public abstract class Packet
         {
             Array.Copy(Data, 0, buffer, shouldEncrypt, Data.Length);
         }
+
         return buffer;
     }
-    public static explicit operator byte[] (Packet packet)
-    {
-        return packet.ToArray();
-    }
-    public override string ToString()
-    {
-        return BitConverter.ToString(ToArray());
-    }
+
+    public static explicit operator byte[](Packet packet) => packet.ToArray();
+
+    public override string ToString() => BitConverter.ToString(ToArray());
 
     public int Seek(int offset, PacketSeekOrigin origin)
     {
@@ -324,11 +356,11 @@ public abstract class Packet
 
     public object Clone()
     {
-        MemoryStream ms = new MemoryStream();
-        System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+        var ms = new MemoryStream();
+        var bf = new BinaryFormatter();
         bf.Serialize(ms, this);
         ms.Position = 0;
-        object obj = bf.Deserialize(ms);
+        var obj = bf.Deserialize(ms);
         ms.Close();
         return obj;
     }
@@ -340,11 +372,13 @@ public enum PacketSeekOrigin
     Current,
     End
 }
+
 [Serializable]
 public class ClientPacket : Packet
 {
     #region Dialog Crc Table
-    protected static ushort[] DialogCrcTable = new ushort[]
+
+    protected static ushort[] DialogCrcTable =
     {
         0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
         0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
@@ -379,13 +413,33 @@ public class ClientPacket : Packet
         0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8,
         0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
     };
+
     #endregion
+
+    public ClientPacket(byte[] buffer)
+    {
+        Opcode = buffer[3];
+        if (ShouldEncrypt)
+        {
+            Ordinal = buffer[4];
+            Data = new byte[buffer.Length - 5];
+            Array.Copy(buffer, 5, Data, 0, Data.Length);
+        }
+        else
+        {
+            Data = new byte[buffer.Length - 4];
+            Array.Copy(buffer, 4, Data, 0, Data.Length);
+        }
+    }
 
     public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10;
 
-    public override bool UseDefaultKey => Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B || Opcode == 0x26
-                                          || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 || Opcode == 0x4B
-                                          || Opcode == 0x57 || Opcode == 0x62 || Opcode == 0x68 || Opcode == 0x71 || Opcode == 0x73
+    public override bool UseDefaultKey => Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B ||
+                                          Opcode == 0x26
+                                          || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 ||
+                                          Opcode == 0x4B
+                                          || Opcode == 0x57 || Opcode == 0x62 || Opcode == 0x68 || Opcode == 0x71 ||
+                                          Opcode == 0x73
                                           || Opcode == 0x7B;
 
 
@@ -409,31 +463,19 @@ public class ClientPacket : Packet
                         case 0x04:
                             return EncryptMethod.Normal;
                         default:
-                            if (opcode == 0x0A)
-                            {
-                                return EncryptMethod.Normal;
-                            }
-                            if (opcode != 0x10)
-                            {
-                                return EncryptMethod.MD5Key;
-                            }
+                            if (opcode == 0x0A) return EncryptMethod.Normal;
+                            if (opcode != 0x10) return EncryptMethod.MD5Key;
                             break;
                     }
                 }
                 else if (opcode <= 0x2D)
                 {
-                    if (opcode != 0x26 && opcode != 0x2D)
-                    {
-                        return EncryptMethod.MD5Key;
-                    }
+                    if (opcode != 0x26 && opcode != 0x2D) return EncryptMethod.MD5Key;
                     return EncryptMethod.Normal;
                 }
                 else
                 {
-                    if (opcode == 0x3A)
-                    {
-                        return EncryptMethod.Normal;
-                    }
+                    if (opcode == 0x3A) return EncryptMethod.Normal;
                     switch (opcode)
                     {
                         case 0x42:
@@ -447,18 +489,12 @@ public class ClientPacket : Packet
             else if (opcode <= 0x57)
             {
                 if (opcode == 0x48) return EncryptMethod.None;
-                if (opcode != 0x4B && opcode != 0x57)
-                {
-                    return EncryptMethod.MD5Key;
-                }
+                if (opcode != 0x4B && opcode != 0x57) return EncryptMethod.MD5Key;
                 return EncryptMethod.Normal;
             }
             else if (opcode <= 0x68)
             {
-                if (opcode != 0x62 && opcode != 0x68)
-                {
-                    return EncryptMethod.MD5Key;
-                }
+                if (opcode != 0x62 && opcode != 0x68) return EncryptMethod.MD5Key;
                 return EncryptMethod.Normal;
             }
             else
@@ -474,23 +510,8 @@ public class ClientPacket : Packet
                         return opcode != 0x7B ? EncryptMethod.MD5Key : EncryptMethod.Normal;
                 }
             }
-            return EncryptMethod.None;
-        }
-    }
 
-    public ClientPacket(byte[] buffer)
-    {
-        Opcode = buffer[3];
-        if (ShouldEncrypt)
-        {
-            Ordinal = buffer[4];
-            Data = new byte[buffer.Length - 5];
-            Array.Copy(buffer, 5, Data, 0, Data.Length);
-        }
-        else
-        {
-            Data = new byte[buffer.Length - 4];
-            Array.Copy(buffer, 4, Data, 0, Data.Length);
+            return EncryptMethod.None;
         }
     }
 
@@ -507,10 +528,8 @@ public class ClientPacket : Packet
         return buffer;
     }
 
-    public byte[] ReadDialogHeader()
-    {
-        return Read(6); // Read six bytes
-    }
+    public byte[] ReadDialogHeader() => Read(6); // Read six bytes
+
     public byte ReadByte()
     {
         if (_position + 1 > Data.Length)
@@ -518,13 +537,15 @@ public class ClientPacket : Packet
 
         return Data[_position++];
     }
+
     public sbyte ReadSByte()
     {
         if (_position + 1 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (sbyte)Data[_position++];
+        return (sbyte) Data[_position++];
     }
+
     public bool ReadBoolean()
     {
         if (_position + 1 > Data.Length)
@@ -538,14 +559,15 @@ public class ClientPacket : Packet
         if (_position + 2 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (short)(Data[_position++] << 8 | Data[_position++]);
+        return (short) ((Data[_position++] << 8) | Data[_position++]);
     }
+
     public ushort ReadUInt16()
     {
         if (_position + 2 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (ushort)(Data[_position++] << 8 | Data[_position++]);
+        return (ushort) ((Data[_position++] << 8) | Data[_position++]);
     }
 
     public int ReadInt32()
@@ -553,14 +575,16 @@ public class ClientPacket : Packet
         if (_position + 4 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return Data[_position++] << 24 | Data[_position++] << 16 | Data[_position++] << 8 | Data[_position++];
+        return (Data[_position++] << 24) | (Data[_position++] << 16) | (Data[_position++] << 8) | Data[_position++];
     }
+
     public uint ReadUInt32()
     {
         if (_position + 4 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (uint)(Data[_position++] << 24 | Data[_position++] << 16 | Data[_position++] << 8 | Data[_position++]);
+        return (uint) ((Data[_position++] << 24) | (Data[_position++] << 16) | (Data[_position++] << 8) |
+                       Data[_position++]);
     }
 
     public string ReadString8()
@@ -580,12 +604,13 @@ public class ClientPacket : Packet
 
         return Encoding.ASCII.GetString(buffer);
     }
+
     public string ReadString16()
     {
         if (_position + 1 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        var length = Data[_position] << 8 | Data[_position + 1];
+        var length = (Data[_position] << 8) | Data[_position + 1];
 
         if (_position + 2 + length > Data.Length)
             throw new IndexOutOfRangeException();
@@ -602,61 +627,54 @@ public class ClientPacket : Packet
     {
         ushort crc = 0;
         for (var i = 0; i < Data.Length - 6; i++)
-        {
-            crc = (ushort)(Data[6 + i] ^ ((ushort)(crc << 8) ^ DialogCrcTable[(crc >> 8)]));
-        }
-        Data[0] = (byte)Random.Shared.Next();
-        Data[1] = (byte)Random.Shared.Next();
-        Data[2] = (byte)((Data.Length - 4) / 256);
-        Data[3] = (byte)((Data.Length - 4) % 256);
-        Data[4] = (byte)(crc / 256);
-        Data[5] = (byte)(crc % 256);
+            crc = (ushort) (Data[6 + i] ^ (ushort) (crc << 8) ^ DialogCrcTable[crc >> 8]);
+        Data[0] = (byte) Random.Shared.Next();
+        Data[1] = (byte) Random.Shared.Next();
+        Data[2] = (byte) ((Data.Length - 4) / 256);
+        Data[3] = (byte) ((Data.Length - 4) % 256);
+        Data[4] = (byte) (crc / 256);
+        Data[5] = (byte) (crc % 256);
     }
+
     public void EncryptDialog()
     {
-        var length = Data[2] << 8 | Data[3];
-        byte xPrime = (byte)(Data[0] - 0x2D);
-        byte x = (byte)(Data[1] ^ xPrime);
-        byte y = (byte)(x + 0x72);
-        byte z = (byte)(x + 0x28);
+        var length = (Data[2] << 8) | Data[3];
+        var xPrime = (byte) (Data[0] - 0x2D);
+        var x = (byte) (Data[1] ^ xPrime);
+        var y = (byte) (x + 0x72);
+        var z = (byte) (x + 0x28);
         Data[2] ^= y;
-        Data[3] ^= (byte)((y + 1) % 256);
-        for (int i = 0; i < length; i++)
-        {
-            Data[4 + i] ^= (byte)((z + i) % 256);
-        }
+        Data[3] ^= (byte) ((y + 1) % 256);
+        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte) ((z + i) % 256);
     }
+
     public void DecryptDialog()
     {
-        byte xPrime = (byte)(Data[0] - 0x2D);
-        byte x = (byte)(Data[1] ^ xPrime);
-        byte y = (byte)(x + 0x72);
-        byte z = (byte)(x + 0x28);
+        var xPrime = (byte) (Data[0] - 0x2D);
+        var x = (byte) (Data[1] ^ xPrime);
+        var y = (byte) (x + 0x72);
+        var z = (byte) (x + 0x28);
         Data[2] ^= y;
-        Data[3] ^= (byte)((y + 1) % 256);
-        var length = Data[2] << 8 | Data[3];
-        for (int i = 0; i < length; i++)
-        {
-            Data[4 + i] ^= (byte)((z + i) % 256);
-        }
+        Data[3] ^= (byte) ((y + 1) % 256);
+        var length = (Data[2] << 8) | Data[3];
+        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte) ((z + i) % 256);
     }
+
     public void Decrypt(Client client)
     {
         var length = Data.Length - 3;
 
-        var bRand = (ushort)((Data[length + 2] << 8 | Data[length]) ^ 0x7470);
-        var sRand = (byte)(Data[length + 1] ^ 0x23);
+        var bRand = (ushort) (((Data[length + 2] << 8) | Data[length]) ^ 0x7470);
+        var sRand = (byte) (Data[length + 1] ^ 0x23);
 
-        var key = (UseDefaultKey) ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
+        var key = UseDefaultKey ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
 
         for (var i = 0; i < length; i++)
         {
             Data[i] ^= key[i % key.Length];
-            Data[i] ^= SaltTable[client.EncryptionSeed][(i / key.Length) % SaltTable[client.EncryptionSeed].Length];
-            if ((i / key.Length) % SaltTable[client.EncryptionSeed].Length != Ordinal)
-            {
+            Data[i] ^= SaltTable[client.EncryptionSeed][i / key.Length % SaltTable[client.EncryptionSeed].Length];
+            if (i / key.Length % SaltTable[client.EncryptionSeed].Length != Ordinal)
                 Data[i] ^= SaltTable[client.EncryptionSeed][Ordinal];
-            }
         }
     }
 
@@ -671,12 +689,20 @@ public class ClientPacket : Packet
     //    return (ClientPacket)obj;
     //}
 }
+
 [Serializable]
 public class ServerPacket : Packet
 {
-    public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E;//&& Opcode != 0x0D;
+    public ServerPacket(byte opcode)
+    {
+        Opcode = opcode;
+        Data = new byte[0];
+    }
 
-    public override bool UseDefaultKey => Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 || Opcode == 0x60
+    public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E; //&& Opcode != 0x0D;
+
+    public override bool UseDefaultKey => Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 ||
+                                          Opcode == 0x60
                                           || Opcode == 0x62 || Opcode == 0x66; //(|| Opcode == 0x6F;)
 
     public override EncryptMethod EncryptMethod
@@ -687,7 +713,6 @@ public class ServerPacket : Packet
             if (opcode <= 0x56)
             {
                 if (opcode <= 0x0A)
-                {
                     switch (opcode)
                     {
                         case 0x00:
@@ -699,11 +724,7 @@ public class ServerPacket : Packet
                         default:
                             return opcode != 0x0A ? EncryptMethod.MD5Key : EncryptMethod.Normal;
                     }
-                }
-                else if (opcode != 0x40)
-                {
-                    return opcode != 0x56 ? EncryptMethod.MD5Key : EncryptMethod.Normal;
-                }
+                else if (opcode != 0x40) return opcode != 0x56 ? EncryptMethod.MD5Key : EncryptMethod.Normal;
             }
             else if (opcode <= 0x66)
             {
@@ -720,14 +741,8 @@ public class ServerPacket : Packet
             }
             else
             {
-                if (opcode == 0x6F)
-                {
-                    return EncryptMethod.Normal;
-                }
-                if (opcode != 0x7E)
-                {
-                    return EncryptMethod.MD5Key;
-                }
+                if (opcode == 0x6F) return EncryptMethod.Normal;
+                if (opcode != 0x7E) return EncryptMethod.MD5Key;
             }
 
             //if (opcode == 0x1a) return EncryptMethod.Normal;
@@ -735,97 +750,68 @@ public class ServerPacket : Packet
         }
     }
 
-    public ServerPacket(byte opcode)
-    {
-        Opcode = opcode;
-        Data = new byte[0];
-    }
-
     public void Write(byte[] buffer)
     {
-        if (_position + buffer.Length > Data.Length)
-        {
-            Array.Resize(ref Data, _position + buffer.Length);
-        }
+        if (_position + buffer.Length > Data.Length) Array.Resize(ref Data, _position + buffer.Length);
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
 
     public void WriteByte(byte value)
     {
-        if (_position + 1 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 1);
-        }
+        if (_position + 1 > Data.Length) Array.Resize(ref Data, _position + 1);
         Data[_position++] = value;
     }
+
     public void WriteSByte(sbyte value)
     {
-        if (_position + 1 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 1);
-        }
-        Data[_position++] = (byte)value;
+        if (_position + 1 > Data.Length) Array.Resize(ref Data, _position + 1);
+        Data[_position++] = (byte) value;
     }
+
     public void WriteBoolean(bool value)
     {
-        if (_position + 1 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 1);
-        }
-        Data[_position++] = (byte)(value ? 1 : 0);
+        if (_position + 1 > Data.Length) Array.Resize(ref Data, _position + 1);
+        Data[_position++] = (byte) (value ? 1 : 0);
     }
 
     public void WriteInt16(short value)
     {
-        if (_position + 2 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 2);
-        }
-        Data[_position++] = (byte)(value >> 8);
-        Data[_position++] = (byte)value;
+        if (_position + 2 > Data.Length) Array.Resize(ref Data, _position + 2);
+        Data[_position++] = (byte) (value >> 8);
+        Data[_position++] = (byte) value;
     }
+
     public void WriteUInt16(ushort value)
     {
-        if (_position + 2 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 2);
-        }
-        Data[_position++] = (byte)(value >> 8);
-        Data[_position++] = (byte)value;
+        if (_position + 2 > Data.Length) Array.Resize(ref Data, _position + 2);
+        Data[_position++] = (byte) (value >> 8);
+        Data[_position++] = (byte) value;
     }
 
     public void WriteInt32(int value)
     {
-        if (_position + 4 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 4);
-        }
-        Data[_position++] = (byte)(value >> 24);
-        Data[_position++] = (byte)(value >> 16);
-        Data[_position++] = (byte)(value >> 8);
-        Data[_position++] = (byte)value;
+        if (_position + 4 > Data.Length) Array.Resize(ref Data, _position + 4);
+        Data[_position++] = (byte) (value >> 24);
+        Data[_position++] = (byte) (value >> 16);
+        Data[_position++] = (byte) (value >> 8);
+        Data[_position++] = (byte) value;
     }
+
     public void WriteUInt32(uint value)
     {
-        if (_position + 4 > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 4);
-        }
-        Data[_position++] = (byte)(value >> 24);
-        Data[_position++] = (byte)(value >> 16);
-        Data[_position++] = (byte)(value >> 8);
-        Data[_position++] = (byte)value;
+        if (_position + 4 > Data.Length) Array.Resize(ref Data, _position + 4);
+        Data[_position++] = (byte) (value >> 24);
+        Data[_position++] = (byte) (value >> 16);
+        Data[_position++] = (byte) (value >> 8);
+        Data[_position++] = (byte) value;
     }
 
     public void WriteStringWithLength(string value)
     {
-        WriteByte((byte)value.Length);
+        WriteByte((byte) value.Length);
         var buffer = Encoding.ASCII.GetBytes(value);
-        if (_position + buffer.Length > Data.Length)
-        {
-            Array.Resize(ref Data, _position + buffer.Length);
-        }
+        if (_position + buffer.Length > Data.Length) Array.Resize(ref Data, _position + buffer.Length);
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
@@ -833,41 +819,34 @@ public class ServerPacket : Packet
     public void WriteString(string value)
     {
         var buffer = Encoding.ASCII.GetBytes(value);
-        if (_position + buffer.Length > Data.Length)
-        {
-            Array.Resize(ref Data, _position + buffer.Length);
-        }
+        if (_position + buffer.Length > Data.Length) Array.Resize(ref Data, _position + buffer.Length);
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
+
     public void WriteString8(string value)
     {
         value = value ?? string.Empty;
         var buffer = Encoding.ASCII.GetBytes(value);
-        if (_position + 1 + buffer.Length > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 1 + buffer.Length);
-        }
-        Data[_position++] = (byte)buffer.Length;
+        if (_position + 1 + buffer.Length > Data.Length) Array.Resize(ref Data, _position + 1 + buffer.Length);
+        Data[_position++] = (byte) buffer.Length;
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
+
     public void WriteString16(string value)
     {
         var buffer = Encoding.ASCII.GetBytes(value);
-        if (_position + 2 + buffer.Length > Data.Length)
-        {
-            Array.Resize(ref Data, _position + 2 + buffer.Length);
-        }
-        Data[_position++] = (byte)(buffer.Length >> 8);
-        Data[_position++] = (byte)buffer.Length;
+        if (_position + 2 + buffer.Length > Data.Length) Array.Resize(ref Data, _position + 2 + buffer.Length);
+        Data[_position++] = (byte) (buffer.Length >> 8);
+        Data[_position++] = (byte) buffer.Length;
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
 
     public void GenerateFooter()
     {
-        int length = Data.Length;
+        var length = Data.Length;
 
         if (UseDefaultKey)
         {
@@ -883,6 +862,7 @@ public class ServerPacket : Packet
 
         Array.Resize(ref Data, length + 3);
     }
+
     public void Encrypt(Client client)
     {
         var length = Data.Length - 3;
@@ -890,10 +870,10 @@ public class ServerPacket : Packet
         //var bRand = (ushort)(rand.Next() % 65277 + 256);
         var bRand = (ushort) (Random.Shared.Next(65277) + 256);
         //var sRand = (byte)(rand.Next() % 155 + 100);
-        var sRand = (byte)(Random.Shared.Next(155) + 100);
+        var sRand = (byte) (Random.Shared.Next(155) + 100);
 
         byte[] key;
-        switch (this.EncryptMethod)
+        switch (EncryptMethod)
         {
             case EncryptMethod.Normal:
                 key = client.EncryptionKey;
@@ -910,16 +890,14 @@ public class ServerPacket : Packet
         for (var i = 0; i < length; i++)
         {
             Data[i] ^= key[i % key.Length];
-            Data[i] ^= SaltTable[client.EncryptionSeed][(i / key.Length) % SaltTable[client.EncryptionSeed].Length];
-            if ((i / key.Length) % SaltTable[client.EncryptionSeed].Length != Ordinal)
-            {
+            Data[i] ^= SaltTable[client.EncryptionSeed][i / key.Length % SaltTable[client.EncryptionSeed].Length];
+            if (i / key.Length % SaltTable[client.EncryptionSeed].Length != Ordinal)
                 Data[i] ^= SaltTable[client.EncryptionSeed][Ordinal];
-            }
         }
 
-        Data[length] = (byte)(bRand % 256 ^ 0x74);
-        Data[length + 1] = (byte)(sRand ^ 0x24);
-        Data[length + 2] = (byte)((bRand >> 8) % 256 ^ 0x64);
+        Data[length] = (byte) ((bRand % 256) ^ 0x74);
+        Data[length + 1] = (byte) (sRand ^ 0x24);
+        Data[length + 2] = (byte) (((bRand >> 8) % 256) ^ 0x64);
     }
 
     //public override object Clone()

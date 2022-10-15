@@ -15,21 +15,22 @@ public class Tile
     public bool IsAdjacent(int x1, int y1)
     {
         if (X == x1)
-            return (y1 + 1 == Y || y1 - 1 == Y);
+            return y1 + 1 == Y || y1 - 1 == Y;
         if (Y == y1)
-            return (x1 + 1 == X || x1 - 1 == X);
+            return x1 + 1 == X || x1 - 1 == X;
         return false;
     }
 
     public override string ToString()
     {
-        string ret = string.Empty;
-        Tile start = this;
+        var ret = string.Empty;
+        var start = this;
         while (start.Parent != null)
         {
             ret += $"{start.X}, {start.Y} -> {start.Parent.X}, {start.Parent.Y}  ";
             start = start.Parent;
         }
+
         return ret;
     }
 }

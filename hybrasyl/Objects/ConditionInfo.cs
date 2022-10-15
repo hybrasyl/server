@@ -18,8 +18,9 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
 using Hybrasyl.Enums;
+using Hybrasyl.Xml;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -27,21 +28,19 @@ namespace Hybrasyl.Objects;
 [JsonObject(MemberSerialization.OptIn)]
 public class ConditionInfo
 {
-    public Creature Creature { get; set; }
-    public User User => Creature as User;
-
-    [JsonProperty]
-    public Xml.CreatureCondition Conditions { get; set; }
-
-    [JsonProperty]
-    public PlayerFlags Flags { get; set; }
-
-    public ConditionInfo(Creature owner, Xml.CreatureCondition condition = 0, PlayerFlags flags=PlayerFlags.Alive)
+    public ConditionInfo(Creature owner, CreatureCondition condition = 0, PlayerFlags flags = PlayerFlags.Alive)
     {
         Creature = owner;
         Conditions = condition;
         Flags = flags;
     }
+
+    public Creature Creature { get; set; }
+    public User User => Creature as User;
+
+    [JsonProperty] public CreatureCondition Conditions { get; set; }
+
+    [JsonProperty] public PlayerFlags Flags { get; set; }
 
     public bool CastingAllowed
     {
@@ -70,8 +69,6 @@ public class ConditionInfo
         {
             if (User != null)
                 return PvpEnabled;
-            else
-                // TODO: expand / refactor? We may want non-merchant mobs that can't be attacked?
             if (Creature is Merchant) return false;
             return true;
         }
@@ -92,50 +89,50 @@ public class ConditionInfo
 
     public bool Frozen
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Freeze);
+        get => Conditions.HasFlag(CreatureCondition.Freeze);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Freeze;
+                Conditions &= ~CreatureCondition.Freeze;
             else
-                Conditions |= Xml.CreatureCondition.Freeze;
+                Conditions |= CreatureCondition.Freeze;
         }
     }
 
     public bool Asleep
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Sleep);
+        get => Conditions.HasFlag(CreatureCondition.Sleep);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Sleep;
+                Conditions &= ~CreatureCondition.Sleep;
             else
-                Conditions |= Xml.CreatureCondition.Freeze;
+                Conditions |= CreatureCondition.Freeze;
         }
     }
 
     public bool Paralyzed
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Paralyze);
+        get => Conditions.HasFlag(CreatureCondition.Paralyze);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Paralyze;
+                Conditions &= ~CreatureCondition.Paralyze;
             else
-                Conditions |= Xml.CreatureCondition.Paralyze;
+                Conditions |= CreatureCondition.Paralyze;
             User?.UpdateAttributes(StatUpdateFlags.Secondary);
         }
     }
 
     public bool Blinded
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Blind);
+        get => Conditions.HasFlag(CreatureCondition.Blind);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Blind;
+                Conditions &= ~CreatureCondition.Blind;
             else
-                Conditions |= Xml.CreatureCondition.Blind;
+                Conditions |= CreatureCondition.Blind;
             User?.UpdateAttributes(StatUpdateFlags.Secondary);
         }
     }
@@ -166,61 +163,61 @@ public class ConditionInfo
 
     public bool Muted
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Mute);
+        get => Conditions.HasFlag(CreatureCondition.Mute);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Mute;
+                Conditions &= ~CreatureCondition.Mute;
             else
-                Conditions |= Xml.CreatureCondition.Mute;
+                Conditions |= CreatureCondition.Mute;
         }
     }
 
     public bool SeeInvisible
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Sight);
+        get => Conditions.HasFlag(CreatureCondition.Sight);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Sight;
+                Conditions &= ~CreatureCondition.Sight;
             else
-                Conditions |= Xml.CreatureCondition.Sight;
+                Conditions |= CreatureCondition.Sight;
         }
     }
 
     public bool IsInvisible
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Invisible);
+        get => Conditions.HasFlag(CreatureCondition.Invisible);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Invisible;
+                Conditions &= ~CreatureCondition.Invisible;
             else
-                Conditions |= Xml.CreatureCondition.Invisible;
+                Conditions |= CreatureCondition.Invisible;
         }
     }
 
     public bool IsInvulnerable
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Invulnerable);
+        get => Conditions.HasFlag(CreatureCondition.Invulnerable);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Invulnerable;
+                Conditions &= ~CreatureCondition.Invulnerable;
             else
-                Conditions |= Xml.CreatureCondition.Invulnerable;
+                Conditions |= CreatureCondition.Invulnerable;
         }
     }
 
     public bool Disoriented
     {
-        get => Conditions.HasFlag(Xml.CreatureCondition.Disoriented);
+        get => Conditions.HasFlag(CreatureCondition.Disoriented);
         set
         {
             if (value == false)
-                Conditions &= ~Xml.CreatureCondition.Invulnerable;
+                Conditions &= ~CreatureCondition.Invulnerable;
             else
-                Conditions |= Xml.CreatureCondition.Invulnerable;
+                Conditions |= CreatureCondition.Invulnerable;
         }
     }
 
@@ -228,16 +225,14 @@ public class ConditionInfo
 
     public bool Comatose
     {
-        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.Coma);
+        get => User != null && Conditions.HasFlag(CreatureCondition.Coma);
         set
         {
             if (User == null) return;
             if (value == false)
-            {
-                Conditions &= ~Xml.CreatureCondition.Coma;
-            }
+                Conditions &= ~CreatureCondition.Coma;
             else
-                Conditions |= Xml.CreatureCondition.Coma;
+                Conditions |= CreatureCondition.Coma;
         }
     }
 
@@ -256,66 +251,66 @@ public class ConditionInfo
 
     public bool IsItemUseProhibited
     {
-        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitItemUse);
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitItemUse);
         set
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= Xml.CreatureCondition.ProhibitItemUse;
+                Conditions &= CreatureCondition.ProhibitItemUse;
             else
-                Conditions |= Xml.CreatureCondition.ProhibitItemUse;
+                Conditions |= CreatureCondition.ProhibitItemUse;
         }
     }
 
     public bool IsSayProhibited
     {
-        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitSpeech);
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitSpeech);
         set
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= Xml.CreatureCondition.ProhibitSpeech;
+                Conditions &= CreatureCondition.ProhibitSpeech;
             else
-                Conditions |= Xml.CreatureCondition.ProhibitSpeech;
+                Conditions |= CreatureCondition.ProhibitSpeech;
         }
     }
 
     public bool IsShoutProhibited
     {
-        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitEquipChange);
         set
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= Xml.CreatureCondition.ProhibitShout;
+                Conditions &= CreatureCondition.ProhibitShout;
             else
-                Conditions |= Xml.CreatureCondition.ProhibitShout;
+                Conditions |= CreatureCondition.ProhibitShout;
         }
     }
 
     public bool IsWhisperProhibited
     {
-        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitWhisper);
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitWhisper);
         set
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= Xml.CreatureCondition.ProhibitWhisper;
+                Conditions &= CreatureCondition.ProhibitWhisper;
             else
-                Conditions |= Xml.CreatureCondition.ProhibitWhisper;
+                Conditions |= CreatureCondition.ProhibitWhisper;
         }
     }
 
     public bool IsEquipmentChangeProhibited
     {
-        get => User != null && Conditions.HasFlag(Xml.CreatureCondition.ProhibitEquipChange);
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitEquipChange);
         set
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= Xml.CreatureCondition.ProhibitEquipChange;
+                Conditions &= CreatureCondition.ProhibitEquipChange;
             else
-                Conditions |= Xml.CreatureCondition.ProhibitEquipChange;
+                Conditions |= CreatureCondition.ProhibitEquipChange;
         }
     }
 

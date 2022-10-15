@@ -1,28 +1,9 @@
 ﻿using System;
-using System.Reflection.Metadata.Ecma335;
-
 
 namespace Hybrasyl.Xml;
 
 public partial class StatModifiers
 {
-
-    public static string FormatBonusPct(string bonus, string name, float scale=1)
-    {
-        if (string.IsNullOrEmpty(bonus)) return string.Empty;
-        if (!double.TryParse(bonus, out var num)) return $"??? {name} \n";
-        num /= scale;
-        return num == 0 ? string.Empty : $"{(num > 0 ? "+" + num + "%" : num + "%")} {name} \n";
-    }
-    
-    public static string FormatBonusNum(string bonus, string name)
-    {
-        if (string.IsNullOrEmpty(bonus)) return string.Empty;
-        if (!long.TryParse(bonus, out var num)) return $"??? {name} \n";
-        return num == 0 ? string.Empty : $"{(num > 0 ? "+" + num : num)} {name} \n";
-
-    }
-
     public string BonusString
     {
         get
@@ -39,10 +20,10 @@ public partial class StatModifiers
             defaultDesc += FormatBonusPct(BonusCrit, "Crit");
             defaultDesc += FormatBonusPct(BonusMagicCrit, "Magic Crit");
             defaultDesc += FormatBonusPct(BonusDmg, "Dmg", 8);
-            defaultDesc += FormatBonusPct(BonusHit, "Hit",8);
+            defaultDesc += FormatBonusPct(BonusHit, "Hit", 8);
             defaultDesc += FormatBonusNum(BonusAc, "Ac");
             defaultDesc += FormatBonusPct(BonusMr, "Mr");
-            defaultDesc += FormatBonusPct(BonusRegen, "Regen",8);
+            defaultDesc += FormatBonusPct(BonusRegen, "Regen", 8);
             defaultDesc += FormatBonusPct(BonusReflectMagical, "Reflect Magic");
             defaultDesc += FormatBonusPct(BonusReflectPhysical, "Reflect Phys");
             defaultDesc += FormatBonusPct(BonusExtraGold, "Gold");
@@ -54,6 +35,21 @@ public partial class StatModifiers
             defaultDesc += FormatBonusPct(BonusManaSteal, "Mana Steal");
             return defaultDesc;
         }
+    }
+
+    public static string FormatBonusPct(string bonus, string name, float scale = 1)
+    {
+        if (string.IsNullOrEmpty(bonus)) return string.Empty;
+        if (!double.TryParse(bonus, out var num)) return $"??? {name} \n";
+        num /= scale;
+        return num == 0 ? string.Empty : $"{(num > 0 ? "+" + num + "%" : num + "%")} {name} \n";
+    }
+
+    public static string FormatBonusNum(string bonus, string name)
+    {
+        if (string.IsNullOrEmpty(bonus)) return string.Empty;
+        if (!long.TryParse(bonus, out var num)) return $"??? {name} \n";
+        return num == 0 ? string.Empty : $"{(num > 0 ? "+" + num : num)} {name} \n";
     }
 
     public static string Combine(string sm1, string sm2)
@@ -68,7 +64,6 @@ public partial class StatModifiers
         if (string.IsNullOrEmpty(sm2)) return sm1;
         if (string.IsNullOrEmpty(sm1)) return sm2;
         return $"{sm1} + {sm2}";
-
     }
 
     public static StatModifiers operator +(StatModifiers sm1, StatModifiers sm2)
@@ -134,4 +129,3 @@ public partial class StatModifiers
         return sm1;
     }
 }
-

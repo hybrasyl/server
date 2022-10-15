@@ -23,57 +23,57 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
 
 public class ScriptProcessor
 {
-
-    public HybrasylWorld World { get; private set; }
-    public Dictionary<string, List<Script>> _scripts { get; private set; }
-
     public ScriptProcessor(World world)
     {
         World = new HybrasylWorld(world);
         // Register UserData types for MoonScript
         UserData.RegisterAssembly(typeof(Game).Assembly);
-        UserData.RegisterType<Xml.Gender>();
+        UserData.RegisterType<Gender>();
         UserData.RegisterType<LegendIcon>();
         UserData.RegisterType<LegendColor>();
         UserData.RegisterType<LegendMark>();
         UserData.RegisterType<DateTime>();
         UserData.RegisterType<TimeSpan>();
-        _scripts = new Dictionary<string, List<Script>>();            
+        _scripts = new Dictionary<string, List<Script>>();
     }
 
+    public HybrasylWorld World { get; }
+    public Dictionary<string, List<Script>> _scripts { get; }
+
     // "Ri OnA.lua" => riona
-    private string SanitizeName(string scriptName) => Regex.Replace(Regex.Replace(scriptName.ToLower().Normalize(), @"\s+",""), ".lua$", "");
+    private string SanitizeName(string scriptName) =>
+        Regex.Replace(Regex.Replace(scriptName.ToLower().Normalize(), @"\s+", ""), ".lua$", "");
 
     private bool TryGetScriptInstances(string scriptName, out List<Script> scriptList)
     {
         scriptList = null;
         var wef = SanitizeName(scriptName);
-        if (_scripts.TryGetValue(wef, out scriptList))
-        {
-            return true;
-        }
+        if (_scripts.TryGetValue(wef, out scriptList)) return true;
         return false;
     }
+
     public bool TryGetScript(string scriptName, out Script script)
     {
         script = null;
-        if (TryGetScriptInstances(scriptName, out List<Script> s))
+        if (TryGetScriptInstances(scriptName, out var s))
             // Note that a request for RiOnA.lua == Riona == riona as long as
             // riona exists
         {
             script = s[0].Clone();
             return true;
         }
+
         return false;
     }
 
-    public void RegisterScript(Script script, bool run=true)
+    public void RegisterScript(Script script, bool run = true)
     {
         if (script.Processor == null)
             script.Processor = this;
@@ -82,34 +82,35 @@ public class ScriptProcessor
             script.Run();
 
         var name = SanitizeName(script.Name);
-        if (!_scripts.ContainsKey(name))
-        {
-            _scripts[name] = new List<Script>();
-        }
+        if (!_scripts.ContainsKey(name)) _scripts[name] = new List<Script>();
         _scripts[name].Add(script);
     }
 
     public bool DeregisterScript(string scriptName)
     {
-        if (TryGetScriptInstances(scriptName, out List<Script> scriptList))
+        if (TryGetScriptInstances(scriptName, out var scriptList))
         {
             _scripts[scriptName] = new List<Script>();
             return true;
         }
+
         return false;
     }
 
     public bool Reload(string scriptName)
     {
-        if (TryGetScriptInstances(SanitizeName(scriptName), out List<Script> s))
+        if (TryGetScriptInstances(SanitizeName(scriptName), out var s))
         {
             foreach (var instance in s)
             {
                 instance.Reload();
-                GameLog.ScriptingInfo($"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
+                GameLog.ScriptingInfo(
+                    $"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
             }
+
             return true;
         }
+
         return false;
     }
 }

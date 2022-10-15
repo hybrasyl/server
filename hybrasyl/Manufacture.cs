@@ -19,30 +19,24 @@
  * 
  */
 
-using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 
 public class ManufactureState
 {
-    const int NonInventorySlot = 60;
+    private const int NonInventorySlot = 60;
 
     public ManufactureState(User user)
-        : this(user, NonInventorySlot, Array.Empty<ManufactureRecipe>())
-    {
-    }
+        : this(user, NonInventorySlot, Array.Empty<ManufactureRecipe>()) { }
 
     public ManufactureState(User user, int slot)
-        : this(user, slot, Array.Empty<ManufactureRecipe>())
-    {
-    }
+        : this(user, slot, Array.Empty<ManufactureRecipe>()) { }
 
     public ManufactureState(User user, IEnumerable<ManufactureRecipe> recipes)
-        : this(user, NonInventorySlot, recipes)
-    {
-    }
+        : this(user, NonInventorySlot, recipes) { }
 
     public ManufactureState(User user, int slot, IEnumerable<ManufactureRecipe> recipes)
     {
@@ -65,33 +59,24 @@ public class ManufactureState
 
     public void ProcessManufacturePacket(ClientPacket packet)
     {
-        var manufactureType = (ManufactureType)packet.ReadByte();
+        var manufactureType = (ManufactureType) packet.ReadByte();
         var slotIndex = packet.ReadByte();
 
-        if (manufactureType != Type || slotIndex != Slot)
-        {
-            return;
-        }
+        if (manufactureType != Type || slotIndex != Slot) return;
 
-        var manufacturePacketType = (ManufactureClientPacketType)packet.ReadByte();
+        var manufacturePacketType = (ManufactureClientPacketType) packet.ReadByte();
 
         switch (manufacturePacketType)
         {
             case ManufactureClientPacketType.RequestPage:
                 var pageIndex = packet.ReadByte();
-                if (Math.Abs(SelectedIndex - pageIndex) > 1 || pageIndex >= Recipes.Count)
-                {
-                    return;
-                }
+                if (Math.Abs(SelectedIndex - pageIndex) > 1 || pageIndex >= Recipes.Count) return;
                 ShowPage(pageIndex);
                 break;
             case ManufactureClientPacketType.Make:
                 var recipeName = packet.ReadString8();
                 var addSlotIndex = packet.ReadByte();
-                if (recipeName != SelectedRecipe.Name)
-                {
-                    return;
-                }
+                if (recipeName != SelectedRecipe.Name) return;
                 SelectedRecipe.Make(User, addSlotIndex);
                 ShowPage(SelectedIndex);
                 break;
@@ -101,10 +86,10 @@ public class ManufactureState
     public void ShowWindow()
     {
         var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte)Type);
-        manufacturePacket.WriteByte((byte)Slot);
-        manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Open);
-        manufacturePacket.WriteByte((byte)Recipes.Count);
+        manufacturePacket.WriteByte((byte) Type);
+        manufacturePacket.WriteByte((byte) Slot);
+        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Open);
+        manufacturePacket.WriteByte((byte) Recipes.Count);
         User.Enqueue(manufacturePacket);
     }
 
@@ -113,11 +98,11 @@ public class ManufactureState
         SelectedIndex = pageIndex;
 
         var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte)Type);
-        manufacturePacket.WriteByte((byte)Slot);
-        manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Page);
-        manufacturePacket.WriteByte((byte)pageIndex);
-        manufacturePacket.WriteUInt16((ushort)(SelectedRecipe.Tile + 0x8000));
+        manufacturePacket.WriteByte((byte) Type);
+        manufacturePacket.WriteByte((byte) Slot);
+        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Page);
+        manufacturePacket.WriteByte((byte) pageIndex);
+        manufacturePacket.WriteUInt16((ushort) (SelectedRecipe.Tile + 0x8000));
         manufacturePacket.WriteString8(SelectedRecipe.Name);
         manufacturePacket.WriteString16(SelectedRecipe.Description);
         manufacturePacket.WriteString16(SelectedRecipe.HighlightedIngredientsText(User));
@@ -145,14 +130,8 @@ public class ManufactureRecipe
         get
         {
             List<string> ingredientLines = new();
-            if (HasAddItem)
-            {
-                ingredientLines.Add($"{AddItemName} [add]");
-            }
-            foreach (var ingredient in Ingredients)
-            {
-                ingredientLines.Add(ingredient.ToString());
-            }
+            if (HasAddItem) ingredientLines.Add($"{AddItemName} [add]");
+            foreach (var ingredient in Ingredients) ingredientLines.Add(ingredient.ToString());
             return string.Join("\n", ingredientLines);
         }
     }
@@ -165,13 +144,14 @@ public class ManufactureRecipe
             return false;
         }
 
-        if (HasAddItem && (addSlotIndex < 1 || addSlotIndex > user.Inventory.Size || user.Inventory[(byte)addSlotIndex]?.Name != AddItemName))
+        if (HasAddItem && (addSlotIndex < 1 || addSlotIndex > user.Inventory.Size ||
+                           user.Inventory[(byte) addSlotIndex]?.Name != AddItemName))
         {
             user.SendSystemMessage($"That recipe requires {AddItemName} to be added to the window.");
             return false;
         }
 
-        user.RemoveItem((byte)addSlotIndex);
+        user.RemoveItem((byte) addSlotIndex);
         TakeIngredientsFrom(user);
         GiveManufacturedItemTo(user);
         user.SendSystemMessage($"You create {Name}.");
@@ -184,40 +164,28 @@ public class ManufactureRecipe
         List<string> ingredientLines = new();
         if (HasAddItem)
         {
-            char addItemColorCode = user.Inventory.ContainsName(AddItemName) ? 'c' : 'a';
+            var addItemColorCode = user.Inventory.ContainsName(AddItemName) ? 'c' : 'a';
             ingredientLines.Add($"{{={addItemColorCode}{AddItemName} {{=s[add]");
         }
-        foreach (var ingredient in Ingredients)
-        {
-            ingredientLines.Add(ingredient.HighlightedText(user));
-        }
+
+        foreach (var ingredient in Ingredients) ingredientLines.Add(ingredient.HighlightedText(user));
         return string.Join("\n", ingredientLines);
     }
 
     public bool CheckIngredientsFor(User user)
     {
-        if (HasAddItem && !user.Inventory.ContainsName(AddItemName))
-        {
-            return false;
-        }
+        if (HasAddItem && !user.Inventory.ContainsName(AddItemName)) return false;
 
         foreach (var ingredient in Ingredients)
-        {
             if (!ingredient.CheckFor(user))
-            {
                 return false;
-            }
-        }
 
         return true;
     }
 
     public void TakeIngredientsFrom(User user)
     {
-        foreach (var ingredient in Ingredients)
-        {
-            ingredient.TakeFrom(user);
-        }
+        foreach (var ingredient in Ingredients) ingredient.TakeFrom(user);
     }
 
     public void GiveManufacturedItemTo(User user)
@@ -238,47 +206,41 @@ public class ManufactureIngredient
 
     public int Quantity { get; set; }
 
-    public bool CheckFor(User user) => CheckFor(user, out int _);
+    public bool CheckFor(User user) => CheckFor(user, out var _);
 
     public bool CheckFor(User user, out int onHand)
     {
         onHand = 0;
         foreach (var item in user.Inventory)
-        {
             if (item.Name == Name)
-            {
                 onHand += item.Count;
-            }
-        }
         return onHand >= Quantity;
     }
 
     public void TakeFrom(User user)
     {
-        user.RemoveItem(Name, (ushort)Quantity);
+        user.RemoveItem(Name, (ushort) Quantity);
     }
 
     public string HighlightedText(User user)
     {
-        char colorCode = CheckFor(user, out int onHand) ? 'c' : 'a';
+        var colorCode = CheckFor(user, out var onHand) ? 'c' : 'a';
         return $"{{={colorCode}{Name} ({onHand}/{Quantity})";
     }
 
     public override string ToString() => $"{Name} ({Quantity})";
 }
 
-public enum ManufactureType
-{
-}
+public enum ManufactureType { }
 
 public enum ManufactureClientPacketType
 {
     RequestPage = 0,
-    Make = 1,
+    Make = 1
 }
 
 public enum ManufactureServerPacketType
 {
     Open = 0,
-    Page = 1,
+    Page = 1
 }

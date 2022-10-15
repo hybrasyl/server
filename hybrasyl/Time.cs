@@ -23,46 +23,117 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
 
 /// <summary>
-/// A class for representing time in Hybrasyl. There are generally two types of time - "current" time, e.g. time since server start,
-/// and "historical" time - anything before that. We use DateTime to represent both, meaning a Hybrasyl age has an upper limit of  
-/// 16,144 years in the past (that is to say, the start of the age cannot be before DateTime.MinValue).
-/// 
-/// In the absence of age definitions in config.xml we use a default age "Hybrasyl", whose first year (Hybrasyl 1) is equivalent to
-/// the server start time.
+///     A class for representing time in Hybrasyl. There are generally two types of time - "current" time, e.g. time since
+///     server start,
+///     and "historical" time - anything before that. We use DateTime to represent both, meaning a Hybrasyl age has an
+///     upper limit of
+///     16,144 years in the past (that is to say, the start of the age cannot be before DateTime.MinValue).
+///     In the absence of age definitions in config.xml we use a default age "Hybrasyl", whose first year (Hybrasyl 1) is
+///     equivalent to
+///     the server start time.
 /// </summary>
 [MoonSharpUserData]
 public class HybrasylTime
 {
-    public string AgeName => Age.Name;
-    public Xml.HybrasylAge Age => Game.Config.Time.GetAgeFromTerranDatetime(TerranDateTime);
+    public const long TicksPerYear = 12 * TicksPerMoon;
+    public const long TicksPerMoon = 28 * TicksPerSun;
+    public const long TicksPerSun = 24 * TicksPerHour;
+    public const long TicksPerHour = 60 * TicksPerMinute;
 
-    public long HybrasylTicks => TerranTicks * 8;
-    public long TerranTicks => (TerranDateTime - Age.StartDate).Ticks;
-    public long YearTicks => (HybrasylTicks / TicksPerYear) * TicksPerYear;
-    public long MoonTicks => ((HybrasylTicks - YearTicks) / TicksPerMoon) * TicksPerMoon;
-    public long SunTicks => ((HybrasylTicks - YearTicks - MoonTicks) / TicksPerSun) * TicksPerSun;
-    public long HourTicks => ((HybrasylTicks - YearTicks - MoonTicks - SunTicks) / TicksPerHour) * TicksPerHour;
-    public long MinuteTicks => ((HybrasylTicks - YearTicks - MoonTicks - SunTicks - HourTicks) / TicksPerMinute) * TicksPerMinute;
- 
-    // Yes, overflows are possible here; instead of complaining, ask yourself why you 
-    // need an in-game year that is > maxint
-    public int Year => Convert.ToInt32(Math.Floor((double)(HybrasylTicks / TicksPerYear)) + Age.StartYear);
+    public const long TicksPerMinute = 60 * TimeSpan.TicksPerSecond;
 
-    // There is no moon 0
-    public int Moon => Convert.ToInt32(Math.Floor((double)(MoonTicks / TicksPerMoon)) + 1);
+    // 378.80
+    public static readonly List<string> RegexstringList = new()
+    {
+        @"(?<Age>[A-Za-z _]*) (?<Year>\d*)(\s*,\s*(?<Moon>\d*)\s*(rd|st|nd|th) moon,\s*(?<Sun>\d*)\s*(rd|st|nd|th) sun,\s*(?<Hour>\d{0,2}):(?<Minute>\d{0,2})\s*(?<TimeMeridian>am|pm|a.m.|p.m.)){0,1}",
+        @"(?<Age>[A-Za-z _]*)\s*(?<Year>\d*)(\s*,\s*Moon\s*(?<Moon>\d*),\s*Sun\s*(?<Sun>\d*)\s*(?<Hour>\d{0,2}):(?<Minute>\d{0,2})\s*(?<TimeMeridian>am|pm|a.m.|p.m.)){0,1}"
+    };
 
-    // There is no sun 0
-    public int Sun => Convert.ToInt32(Math.Floor((double)(SunTicks / TicksPerSun)) + 1);
-    public int Hour => Convert.ToInt32(HourTicks / TicksPerHour);
-    public int Minute => Convert.ToInt32(MinuteTicks / TicksPerMinute);
+    public static List<Regex> RegexList = new();
 
     // The TerranDateTime is always the basis for everything else
     public DateTime TerranDateTime;
+
+    static HybrasylTime()
+    {
+        foreach (var regex in RegexstringList)
+            RegexList.Add(new Regex(regex,
+                RegexOptions.Singleline | RegexOptions.Compiled));
+    }
+
+    /// <summary>
+    ///     Construct a Hybrasyl datetime from a Terran datetime
+    /// </summary>
+    /// <param name="datetime"></param>
+    public HybrasylTime(DateTime datetime)
+    {
+        TerranDateTime = datetime;
+    }
+
+    /// <summary>
+    ///     Construct a Hybrasyl datetime from a Hybrasyl date
+    /// </summary>
+    /// <param name="age">The age of the date (e.g. Hybrasyl)</param>
+    /// <param name="year">The year (e.g. 1)</param>
+    /// <param name="moon">The moon</param>
+    /// <param name="sun">The sun</param>
+    /// <param name="hour">The hour</param>
+    /// <param name="minute">The minute </param>
+    public HybrasylTime(string age, int year = 1, int moon = 1, int sun = 1, int hour = 1, int minute = 1)
+    {
+        if (!ValidAge(age))
+            throw new ArgumentException("Age is unknown to server; check time/age configuration in config.xml",
+                nameof(age));
+        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour +
+                       minute * TicksPerMinute;
+        TerranDateTime = Game.Config.Time.Ages.First(predicate: a => a.Name == age).StartDate.AddTicks(hybticks / 8);
+    }
+
+    /// <summary>
+    ///     Construct a Hybrasyl datetime from the current age
+    /// </summary>
+    /// <param name="year">The year (e.g. 1)</param>
+    /// <param name="moon">The moon</param>
+    /// <param name="sun">The sun</param>
+    /// <param name="hour">The hour</param>
+    /// <param name="minute">The minute</param>
+    public HybrasylTime(int year = 1, int moon = 1, int sun = 1, int hour = 1, int minute = 1)
+    {
+        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour +
+                       minute * TicksPerMinute;
+        TerranDateTime = CurrentAge.StartDate.AddTicks(hybticks / 8);
+    }
+
+    public string AgeName => Age.Name;
+    public HybrasylAge Age => Game.Config.Time.GetAgeFromTerranDatetime(TerranDateTime);
+
+    public long HybrasylTicks => TerranTicks * 8;
+    public long TerranTicks => (TerranDateTime - Age.StartDate).Ticks;
+    public long YearTicks => HybrasylTicks / TicksPerYear * TicksPerYear;
+    public long MoonTicks => (HybrasylTicks - YearTicks) / TicksPerMoon * TicksPerMoon;
+    public long SunTicks => (HybrasylTicks - YearTicks - MoonTicks) / TicksPerSun * TicksPerSun;
+    public long HourTicks => (HybrasylTicks - YearTicks - MoonTicks - SunTicks) / TicksPerHour * TicksPerHour;
+
+    public long MinuteTicks =>
+        (HybrasylTicks - YearTicks - MoonTicks - SunTicks - HourTicks) / TicksPerMinute * TicksPerMinute;
+
+    // Yes, overflows are possible here; instead of complaining, ask yourself why you 
+    // need an in-game year that is > maxint
+    public int Year => Convert.ToInt32(Math.Floor((double) (HybrasylTicks / TicksPerYear)) + Age.StartYear);
+
+    // There is no moon 0
+    public int Moon => Convert.ToInt32(Math.Floor((double) (MoonTicks / TicksPerMoon)) + 1);
+
+    // There is no sun 0
+    public int Sun => Convert.ToInt32(Math.Floor((double) (SunTicks / TicksPerSun)) + 1);
+    public int Hour => Convert.ToInt32(HourTicks / TicksPerHour);
+    public int Minute => Convert.ToInt32(MinuteTicks / TicksPerMinute);
 
     public string Season
     {
@@ -74,45 +145,60 @@ public class HybrasylTime
                 3 or 4 or 5 => "Spring",
                 6 or 7 or 8 => "Summer",
                 9 or 10 or 11 => "Fall",
-                _ => string.Empty,
+                _ => string.Empty
             };
         }
     }
 
-    public const long TicksPerYear = 12 * TicksPerMoon;
-    public const long TicksPerMoon = 28 * TicksPerSun;
-    public const long TicksPerSun = 24 * TicksPerHour;
-    public const long TicksPerHour = 60 * TicksPerMinute;
-    public const long TicksPerMinute = 60 * TimeSpan.TicksPerSecond;
-    // 378.80
-    public static readonly List<string> RegexstringList = new List<string>
-    {
-        @"(?<Age>[A-Za-z _]*) (?<Year>\d*)(\s*,\s*(?<Moon>\d*)\s*(rd|st|nd|th) moon,\s*(?<Sun>\d*)\s*(rd|st|nd|th) sun,\s*(?<Hour>\d{0,2}):(?<Minute>\d{0,2})\s*(?<TimeMeridian>am|pm|a.m.|p.m.)){0,1}",
-        @"(?<Age>[A-Za-z _]*)\s*(?<Year>\d*)(\s*,\s*Moon\s*(?<Moon>\d*),\s*Sun\s*(?<Sun>\d*)\s*(?<Hour>\d{0,2}):(?<Minute>\d{0,2})\s*(?<TimeMeridian>am|pm|a.m.|p.m.)){0,1}"
-    };
+    public static string DefaultAgeName => Game.Config != null
+        ? Game.Config.Time?.ServerStart?.DefaultAge != string.Empty
+            ? Game.Config.Time?.ServerStart?.DefaultAge
+            : "Hybrasyl"
+        : "Hybrasyl";
 
-    public static List<Regex> RegexList = new List<Regex>();
-
-    public static string DefaultAgeName => Game.Config != null ? Game.Config.Time?.ServerStart?.DefaultAge != string.Empty ? Game.Config.Time?.ServerStart?.DefaultAge : "Hybrasyl" : "Hybrasyl";
-    public static int DefaultYear => Game.Config != null ? Game.Config.Time?.ServerStart?.DefaultYear != 1 ? Game.Config.Time.ServerStart.DefaultYear : 1 : 1;
+    public static int DefaultYear => Game.Config != null
+        ? Game.Config.Time?.ServerStart?.DefaultYear != 1 ? Game.Config.Time.ServerStart.DefaultYear : 1
+        : 1;
 
     /// <summary>
-    /// Default age is "Hybrasyl", year 1 is either the recorded ServerStart time in config.xml, or, 
-    /// if we can't find that, the current running server's start time
+    ///     Default age is "Hybrasyl", year 1 is either the recorded ServerStart time in config.xml, or,
+    ///     if we can't find that, the current running server's start time
     /// </summary>
-    public static Xml.HybrasylAge DefaultAge => new Xml.HybrasylAge() { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time?.ServerStart?.Value ?? Game.StartDate };
+    public static HybrasylAge DefaultAge => new()
+        { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time?.ServerStart?.Value ?? Game.StartDate };
 
-    public static Xml.HybrasylAge GetAgeFromTerranDate(DateTime datetime)
+    public static string CurrentAgeName => CurrentAge.Name;
+
+    public static string CurrentSeason => Now.Season;
+
+    public static HybrasylAge CurrentAge
+    {
+        get
+        {
+            var now = DateTime.Now;
+            if (Game.Config.Time.Ages.Count == 0)
+                return DefaultAge;
+            var currentAge = Game.Config.Time.Ages?.Where(predicate: age => age.DateInAge(now));
+            return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
+        }
+    }
+
+    public static int CurrentYear => Now.Year;
+
+
+    public static HybrasylTime Now => new(DateTime.Now);
+
+    public static HybrasylAge GetAgeFromTerranDate(DateTime datetime)
     {
         if (Game.Config.Time.Ages.Count == 0)
             return DefaultAge;
-        var currentAge = Game.Config.Time.Ages?.Where(age => age.DateInAge(datetime));
+        var currentAge = Game.Config.Time.Ages?.Where(predicate: age => age.DateInAge(datetime));
         return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
     }
 
     public static bool ValidAge(string age)
     {
-        return (Game.Config.Time?.Ages?.Where(a => a.Name == age).Count() > 0) || DefaultAgeName == age;
+        return Game.Config.Time?.Ages?.Where(predicate: a => a.Name == age).Count() > 0 || DefaultAgeName == age;
     }
 
     public override string ToString()
@@ -133,118 +219,51 @@ public class HybrasylTime
             $"{AgeName} {Year}, {Moon.DisplayWithOrdinal()} moon, {Sun.DisplayWithOrdinal()} sun, {hour}:{Minute.ToString("d2")} {ampm}";
     }
 
-    public static string CurrentAgeName => CurrentAge.Name;
 
-    public static string CurrentSeason => Now.Season;
-
-    public static Xml.HybrasylAge CurrentAge
+    public static List<HybrasylAge> Ages()
     {
-        get
-        {
-            var now = DateTime.Now;
-            if (Game.Config.Time.Ages.Count == 0)
-                return DefaultAge;
-            var currentAge = Game.Config.Time.Ages?.Where(age => age.DateInAge(now));
-            return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
-        }
-    }
-
-
-    public static List<Xml.HybrasylAge> Ages()
-    { 
         if (Game.Config.Time.Ages.Count == 0)
-        {
             // Construct and return our default
-            return new List<Xml.HybrasylAge> { new Xml.HybrasylAge() { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time.ServerStart.Value } };
-        }
+            return new List<HybrasylAge>
+                { new()  { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time.ServerStart.Value } };
         return Game.Config.Time.Ages;
     }
-
-    public static int CurrentYear => Now.Year;
 
     public static int FirstYearInAge(string age)
     {
         if (!ValidAge(age))
             throw new ArgumentException("Age is unknown to server; check time/age configuration in config.xml", age);
 
-        var theAge = Game.Config.Time?.Ages?.Where(a => a.Name == age);
+        var theAge = Game.Config.Time?.Ages?.Where(predicate: a => a.Name == age);
         if (theAge.Count() == 0)
             return DefaultYear;
         return theAge.First().StartYear != 1 ? 1 : theAge.First().StartYear;
     }
 
-    static HybrasylTime()
-    {
-        foreach (var regex in RegexstringList)
-        {
-            RegexList.Add(new Regex(regex,
-                RegexOptions.Singleline | RegexOptions.Compiled));
-        }
-    }
-
-    /// <summary>
-    /// Construct a Hybrasyl datetime from a Terran datetime
-    /// </summary>
-    /// <param name="datetime"></param>
-    public HybrasylTime(DateTime datetime)
-    {
-        TerranDateTime = datetime;
-    }
-
-    /// <summary>
-    /// Construct a Hybrasyl datetime from a Hybrasyl date
-    /// </summary>
-    /// <param name="age">The age of the date (e.g. Hybrasyl)</param>
-    /// <param name="year">The year (e.g. 1)</param>
-    /// <param name="moon">The moon</param>
-    /// <param name="sun">The sun</param>
-    /// <param name="hour">The hour</param>
-    /// <param name="minute">The minute </param>
-    public HybrasylTime(string age, int year = 1, int moon = 1, int sun = 1, int hour = 1, int minute = 1)
-    {
-        if (!ValidAge(age))
-            throw new ArgumentException("Age is unknown to server; check time/age configuration in config.xml", nameof(age));
-        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour + minute * TicksPerMinute;
-        TerranDateTime = Game.Config.Time.Ages.First(a => a.Name == age).StartDate.AddTicks(hybticks / 8);
-    }
-
-    /// <summary>
-    /// Construct a Hybrasyl datetime from the current age
-    /// </summary>
-    /// <param name="year">The year (e.g. 1)</param>
-    /// <param name="moon">The moon</param>
-    /// <param name="sun">The sun</param>
-    /// <param name="hour">The hour</param>
-    /// <param name="minute">The minute</param>
-    public HybrasylTime(int year = 1, int moon = 1, int sun = 1, int hour = 1, int minute = 1)
-    {
-        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour + minute * TicksPerMinute;
-        TerranDateTime = CurrentAge.StartDate.AddTicks(hybticks / 8);
-    }
-            
     // Some convenience functions for scripting
     public void SubtractInGameTime(int year = 0, int moon = 0, int sun = 0, int hour = 0, int minute = 0)
     {
-        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour + minute * TicksPerMinute;
-        TerranDateTime = TerranDateTime.AddTicks((hybticks / 8) * -1);
+        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour +
+                       minute * TicksPerMinute;
+        TerranDateTime = TerranDateTime.AddTicks(hybticks / 8 * -1);
     }
 
     public void AddInGameTime(int year = 0, int moon = 0, int sun = 0, int hour = 0, int minute = 0)
     {
-        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour + minute * TicksPerMinute;
+        var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour +
+                       minute * TicksPerMinute;
         TerranDateTime = TerranDateTime.AddTicks(hybticks / 8);
     }
 
-
-    public static HybrasylTime Now => new HybrasylTime(DateTime.Now);
-
     public static DateTime ConvertToTerran(HybrasylTime hybrasyltime)
     {
-        var thisAge = Game.Config.Time?.Ages?.Where(age => age.Name == hybrasyltime.AgeName);
-        return thisAge.Count() > 0 ? new DateTime(thisAge.First().StartDate.Ticks + hybrasyltime.TerranTicks) : new DateTime(World.StartDate.Ticks + hybrasyltime.TerranTicks);
+        var thisAge = Game.Config.Time?.Ages?.Where(predicate: age => age.Name == hybrasyltime.AgeName);
+        return thisAge.Count() > 0
+            ? new DateTime(thisAge.First().StartDate.Ticks + hybrasyltime.TerranTicks)
+            : new DateTime(World.StartDate.Ticks + hybrasyltime.TerranTicks);
     }
 
-    public static HybrasylTime ConvertToHybrasyl(DateTime datetime) => new HybrasylTime(datetime);
+    public static HybrasylTime ConvertToHybrasyl(DateTime datetime) => new(datetime);
 
     public static HybrasylTime FromString(string hybrasyldate)
     {
@@ -257,18 +276,18 @@ public class HybrasylTime
         {
             var theMatch = regex.Match(hybrasyldate);
             if (!theMatch.Success) continue;
-            var yearInt = Int32.Parse(theMatch.Groups["Year"].Value);
+            var yearInt = int.Parse(theMatch.Groups["Year"].Value);
             var minuteInt = theMatch.Groups["Minute"].Value != string.Empty
-                ? Int32.Parse(theMatch.Groups["Minute"].Value)
+                ? int.Parse(theMatch.Groups["Minute"].Value)
                 : 0;
             var hourInt = theMatch.Groups["Hour"].Value != string.Empty
-                ? Int32.Parse(theMatch.Groups["Hour"].Value)
+                ? int.Parse(theMatch.Groups["Hour"].Value)
                 : 0;
             var moonInt = theMatch.Groups["Moon"].Value != string.Empty
-                ? Int32.Parse(theMatch.Groups["Moon"].Value)
+                ? int.Parse(theMatch.Groups["Moon"].Value)
                 : 1;
             var sunInt = theMatch.Groups["Sun"].Value != string.Empty
-                ? Int32.Parse(theMatch.Groups["Sun"].Value)
+                ? int.Parse(theMatch.Groups["Sun"].Value)
                 : 1;
 
             if (hourInt < 0 || hourInt > 12 || (hourInt == 12 && theMatch.Groups["TimeMeridian"].Value == "am"))
@@ -277,13 +296,12 @@ public class HybrasylTime
                 minuteInt = 0;
 
             if (theMatch.Groups["TimeMeridian"].Value == "pm" || theMatch.Groups["TimeMeridian"].Value == "p.m.")
-            {
                 hourInt += 12;
-            }
 
             return new HybrasylTime(theMatch.Groups["Age"].Value,
                 yearInt, moonInt, sunInt, hourInt, minuteInt);
         }
+
         throw new ArgumentException("Date / time could not be parsed", nameof(hybrasyldate));
     }
 
@@ -292,5 +310,4 @@ public class HybrasylTime
         var datetime = DateTime.Parse(datetimestring);
         return ConvertToHybrasyl(datetime);
     }
-
 }

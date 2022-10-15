@@ -21,13 +21,6 @@
  */
 
 
-using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Utility;
-using Hybrasyl.Xml;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -35,6 +28,13 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Hybrasyl.Dialogs;
+using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Messaging;
+using Hybrasyl.Utility;
+using Hybrasyl.Xml;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
@@ -48,11 +48,31 @@ public class KillRecord
 [JsonObject(MemberSerialization.OptIn)]
 public class User : Creature
 {
-    private object _serializeLock = new object();
+    private object _serializeLock = new();
 
-    public static string GetStorageKey(string name)
+    private Client Client;
+
+    [JsonProperty] public uint LevelPoints;
+
+    public User()
     {
-        return string.Concat(typeof(User).Name, ':', name.ToLower());
+        _initializeUser();
+        LastAssociate = null;
+    }
+
+    public User(Guid serverGuid, long connectionId, string playername = "")
+    {
+        ServerGuid = serverGuid;
+        Client client;
+        if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client)) Client = client;
+        _initializeUser(playername);
+    }
+
+    public User(Guid serverGuid, Client client, string playername = "")
+    {
+        ServerGuid = serverGuid;
+        Client = client;
+        _initializeUser(playername);
     }
 
     public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
@@ -60,24 +80,19 @@ public class User : Creature
     public GuidReference GuidReference => Game.World.WorldData.GetGuidReference(this);
 
     [JsonProperty] public Guid AccountGuid { get; set; } = Guid.Empty;
-
-    private Client Client;
     public bool Connected => Client?.Connected ?? false;
     public long ConnectionId => Client?.ConnectionId ?? PreviousConnectionId;
     public long PreviousConnectionId { get; set; }
 
-    [JsonProperty]
-    public Gender Gender { get; set; }
+    [JsonProperty] public Gender Gender { get; set; }
     //private account Account { get; set; }
 
-    [JsonProperty]
-    public Class Class { get; set; }
+    [JsonProperty] public Class Class { get; set; }
 
-    [JsonProperty]
-    public Class PreviousClass { get; set; }
+    [JsonProperty] public Class PreviousClass { get; set; }
 
-    [JsonProperty]
-    public bool IsMaster { get; set; }
+    [JsonProperty] public bool IsMaster { get; set; }
+
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 
@@ -101,7 +116,7 @@ public class User : Creature
     public Vault Vault => Game.World.WorldData.GetOrCreateByGuid<Vault>(AccountGuid == Guid.Empty ? Guid : AccountGuid);
     public ParcelStore ParcelStore => Game.World.WorldData.GetOrCreateByGuid<ParcelStore>(Guid, Name);
 
-    public MailFlags MailStatus 
+    public MailFlags MailStatus
     {
         get
         {
@@ -116,213 +131,33 @@ public class User : Creature
 
     public bool UnreadMail => Mailbox.HasUnreadMessages;
     public bool HasParcels => ParcelStore.Items.Count > 0;
-       
-    #region Appearance settings 
-    [JsonProperty]
-    public RestPosition RestPosition { get; set; }
-    [JsonProperty]
-    public SkinColor SkinColor { get; set; }
-    [JsonProperty]
-    internal bool Transparent { get; set; }
-    [JsonProperty]
-    public byte FaceShape { get; set; }
-    [JsonProperty]
-    public LanternSize LanternSize { get; set; }
-    [JsonProperty]
-    public NameDisplayStyle NameStyle { get; set; }
-    [JsonProperty]
-    public bool DisplayAsMonster { get; set; }
-    [JsonProperty]
-    public ushort MonsterSprite { get; set; }
-    [JsonProperty]
-    public ushort HairStyle { get; set; }
-    [JsonProperty]
-    public byte HairColor { get; set; }
-    #endregion
-
-    #region User 
-    // Some structs helping us to define various metadata 
-    public AuthInfo AuthInfo => Game.World.WorldData.GetOrCreateByGuid<AuthInfo>(Guid, Name);
- 
-    [JsonProperty]
-    public SkillBook SkillBook { get; private set; }
-        
-    [JsonProperty]
-    public SpellBook SpellBook { get; private set; }
-
-    [JsonProperty]
-    public bool Grouping { get; set; }
-    public UserStatus GroupStatus { get; set; }
-    [JsonProperty]
-    public byte[] PortraitData { get; set; }
-    [JsonProperty]
-    public string ProfileText { get; set; }
-
-    public Castable PendingLearnableCastable { get; private set; }
-    public ItemObject PendingSendableParcel { get; private set; }
-    public uint PendingSendableQuantity { get; private set; }
-    public string PendingParcelRecipient { get; private set; }
-    public string PendingBuyableItem { get; private set; }
-    public int PendingBuyableQuantity { get; private set; }
-    public byte PendingSellableSlot { get; private set; }
-    public uint PendingSellableQuantity { get; private set; }
-    public uint PendingMerchantOffer { get; private set; }
-    public byte PendingDepositSlot { get; private set; }
-    public string PendingWithdrawItem { get; private set; }
-    public byte PendingRepairSlot { get; private set; }
-    public uint PendingRepairCost { get; private set; }
-
-    [JsonProperty]
-    public List<KillRecord> RecentKills { get; private set; }
-    public List<SpokenEvent> MessagesReceived { get; private set; }
-
-    [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
-
-    public List<string> UseCastRestrictions => _currentStatuses.Select(e => e.Value.UseCastRestrictions).Where(e => e != string.Empty).ToList();
-    public List<string> ReceiveCastRestrictions => _currentStatuses.Select(e => e.Value.ReceiveCastRestrictions).Where(e => e != string.Empty).ToList();
-
-    private Nation _nation;
-
-    public Nation Nation
-    {
-        get => _nation ?? World.DefaultNation;
-        set
-        {
-            _nation = value;
-            Citizenship = value.Name;
-        }
-    }
-
-    [JsonProperty]
-    private string Citizenship { get; set; }
-
-    public string NationName => Nation != null ? Nation.Name : string.Empty;
-
-    [JsonProperty] public Legend Legend;
-    [JsonProperty] public string Title;
-
-    public AsyncDialogSession ActiveDialogSession { get; set; } = null;
-    public DialogState DialogState { get; set; }
-
-    // Used by reactors and certain other objects to set an associate, so that functions called
-    // from Lua later know who to "consult" for dialogs / etc.
-    public IInteractable LastAssociate { get; set; }
-
-    public Exchange ActiveExchange { get; set; }
-
-    public bool IsAvailableForExchange => Condition.NoFlags;
-
-    public ManufactureState ManufactureState { get; set; }
-    #endregion
-
-    /// <summary>
-    /// Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
-    /// </summary>
-    public void Reindex()
-    {
-        Legend.RegenerateIndex();
-    }
 
     public uint ExpToLevel
     {
         get
         {
-            var levelExp = (uint)Math.Pow(Stats.Level, 3) * 250;
+            var levelExp = (uint) Math.Pow(Stats.Level, 3) * 250;
             if (Stats.Level == Constants.MAX_LEVEL || Stats.Experience >= levelExp)
                 return 0;
 
-            return (uint)(Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
+            return (uint) (Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
         }
     }
-
-    [JsonProperty]
-    public uint LevelPoints;
 
     public byte CurrentMusicTrack { get; set; }
-
-    public void SetCitizenship()
-    {
-        if (Citizenship != null)
-        {
-            Nation theNation;
-            Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
-        }
-    }
-
-    public override void Say(string message, string from = "")
-    {
-        if (Map.AllowSpeaking)
-        {
-            if (World.WorldData.TryGetSocialEvent(this, out var e) &&
-                (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
-            {
-                base.Say(message,from);
-                return;
-            }
-
-            if (!Condition.IsSayProhibited || AuthInfo.IsExempt)
-            {
-                base.Say(message, from);
-                return;
-            }
-        }
-        SendSystemMessage("You try to speak, but nothing happens.");
-
-    }
-
-    public override void Shout(string message, string from = "")
-    {
-        if (Map.AllowSpeaking)
-        {
-            if (World.WorldData.TryGetSocialEvent(this, out var e) &&
-                (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
-            {
-                base.Shout(message, from);
-                return;
-            }
-
-            if (!Condition.IsShoutProhibited || AuthInfo.IsExempt)
-            {
-                base.Shout(message, from);
-                return;
-            }
-            else
-                SendSystemMessage("You try to shout, but nothing happens.");
-        }
-    }
-
-    public bool ChangeCitizenship(string nationName)
-    {
-        if (World.WorldData.TryGetValue(nationName, out Nation theNation))
-        {
-            Nation = theNation;
-            return true;
-        }
-        return false;            
-    }
-
-    public void ChrysalisMark()
-    {
-        // TODO: move to config
-        if (!Legend.TryGetMark("CHR", out LegendMark mark))
-        {
-            // Create initial mark of Deoch
-            Legend.AddMark(LegendIcon.Community, LegendColor.White, "Chaos Age Aisling", "CHR", true);
-        }
-    }
 
     public double SinceLastLogin
     {
         get
         {
-            var span = (AuthInfo.LastLogin - AuthInfo.LastLogoff);
+            var span = AuthInfo.LastLogin - AuthInfo.LastLogoff;
             return span.TotalSeconds < 0 ? 0 : span.TotalSeconds;
         }
     }
 
-    public string SinceLastLoginstring => SinceLastLogin < 86400 ?
-        $"{Math.Floor(SinceLastLogin / 3600)} hours, {Math.Floor(SinceLastLogin % 3600 / 60)} minutes" :
-        $"{Math.Floor(SinceLastLogin / 86400)} days, {Math.Floor(SinceLastLogin % 86400 / 3600)} hours, {Math.Floor(SinceLastLogin % 86400 % 3600 / 60)} minutes";
+    public string SinceLastLoginstring => SinceLastLogin < 86400
+        ? $"{Math.Floor(SinceLastLogin / 3600)} hours, {Math.Floor(SinceLastLogin % 3600 / 60)} minutes"
+        : $"{Math.Floor(SinceLastLogin / 86400)} days, {Math.Floor(SinceLastLogin % 86400 / 3600)} hours, {Math.Floor(SinceLastLogin % 86400 % 3600 / 60)} minutes";
 
     // Throttling checks for messaging
 
@@ -345,30 +180,136 @@ public class User : Creature
 
     public bool Grouped => Group != null;
 
+    [JsonProperty] public Dictionary<byte, bool> ClientSettings { get; set; }
+
+
+    [JsonProperty] public bool IsMuted { get; set; }
+
+    [JsonProperty] public bool IsIgnoringWhispers { get; set; }
+
     [JsonProperty]
-    public Dictionary<byte, bool> ClientSettings { get; set; }
+    public bool IsAtWorldMap
+    {
+        get => Location.WorldMap;
+        set => Location.WorldMap = value;
+    }
+
+    public string GroupText =>
+        // This also eventually needs to consider marriages
+        Grouping ? "Grouped!" : "Adventuring Alone";
+
+    /**
+         * Returns the current weight as perceived by the client. The actual inventory or equipment
+         * weight may be less than zero, but this method will never return a negative value (negative
+         * values will appear as zero as the client expects).
+         */
+
+    public ushort VisibleWeight => (ushort) Math.Max(0, CurrentWeight);
+
+    /**
+         * Returns the true weight of the user's inventory + equipment, which could be negative.
+         * Note that you should use VisibleWeight when communicating with the client since negative
+         * weights should be invisible to users.
+         */
+    public int CurrentWeight => Inventory.Weight + Equipment.Weight;
+
+    public ushort MaximumWeight => (ushort) (Stats.BaseStr + Stats.Level / 4 + 48);
+
+    public string LastSystemMessage { get; private set; } = string.Empty;
+
+    public static string GetStorageKey(string name) => string.Concat(typeof(User).Name, ':', name.ToLower());
+
+    /// <summary>
+    ///     Reindexes any temporary data structures that may need to be recreated after a user is deserialized from JSON data.
+    /// </summary>
+    public void Reindex()
+    {
+        Legend.RegenerateIndex();
+    }
+
+    public void SetCitizenship()
+    {
+        if (Citizenship != null)
+        {
+            Nation theNation;
+            Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
+        }
+    }
+
+    public override void Say(string message, string from = "")
+    {
+        if (Map.AllowSpeaking)
+        {
+            if (World.WorldData.TryGetSocialEvent(this, out var e) &&
+                (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
+            {
+                base.Say(message, from);
+                return;
+            }
+
+            if (!Condition.IsSayProhibited || AuthInfo.IsExempt)
+            {
+                base.Say(message, from);
+                return;
+            }
+        }
+
+        SendSystemMessage("You try to speak, but nothing happens.");
+    }
+
+    public override void Shout(string message, string from = "")
+    {
+        if (Map.AllowSpeaking)
+        {
+            if (World.WorldData.TryGetSocialEvent(this, out var e) &&
+                (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
+            {
+                base.Shout(message, from);
+                return;
+            }
+
+            if (!Condition.IsShoutProhibited || AuthInfo.IsExempt)
+            {
+                base.Shout(message, from);
+                return;
+            }
+
+            SendSystemMessage("You try to shout, but nothing happens.");
+        }
+    }
+
+    public bool ChangeCitizenship(string nationName)
+    {
+        if (World.WorldData.TryGetValue(nationName, out Nation theNation))
+        {
+            Nation = theNation;
+            return true;
+        }
+
+        return false;
+    }
+
+    public void ChrysalisMark()
+    {
+        // TODO: move to config
+        if (!Legend.TryGetMark("CHR", out var mark))
+            // Create initial mark of Deoch
+            Legend.AddMark(LegendIcon.Community, LegendColor.White, "Chaos Age Aisling", "CHR");
+    }
 
     public bool GetClientSetting(string key) => ClientSettings[Game.Config.GetSettingNumber(key)];
+
     public bool ToggleClientSetting(string key)
     {
         var num = Game.Config.GetSettingNumber(key);
         ClientSettings[num] = !ClientSettings[num];
         return ClientSettings[num];
     }
+
     public bool ToggleClientSetting(byte number)
     {
         ClientSettings[number] = !ClientSettings[number];
         return ClientSettings[number];
-    }
-
-
-    [JsonProperty]
-    public bool IsMuted { get; set; }
-    [JsonProperty]
-    public bool IsIgnoringWhispers { get; set; }
-    [JsonProperty]
-    public bool IsAtWorldMap { get => Location.WorldMap;
-        set => Location.WorldMap = value;
     }
 
     public void Enqueue(ServerPacket packet)
@@ -384,7 +325,8 @@ public class User : Creature
             // Forcibly destroy client and remove user from world
             PreviousConnectionId = Client.ConnectionId;
             Client = null;
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, CleanupType.ByName, Name));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, CleanupType.ByName,
+                Name));
         }
     }
 
@@ -407,9 +349,8 @@ public class User : Creature
     public override void AoiDeparture(VisibleObject obj)
     {
         if (obj is Creature c)
-        {
-            if (!Condition.SeeInvisible && c.Condition.IsInvisible) return;
-        }
+            if (!Condition.SeeInvisible && c.Condition.IsInvisible)
+                return;
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
         var removePacket = new ServerPacket(0x0E);
@@ -417,7 +358,7 @@ public class User : Creature
         Enqueue(removePacket);
     }
 
-    public void AoiDeparture(VisibleObject obj, int transmitDelay=0)
+    public void AoiDeparture(VisibleObject obj, int transmitDelay = 0)
     {
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
@@ -428,7 +369,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Send a close dialog packet to the client. This will terminate any open dialog.
+    ///     Send a close dialog packet to the client. This will terminate any open dialog.
     /// </summary>
     public void SendCloseDialog()
     {
@@ -439,7 +380,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Close any active dialogs and clear all dialog state.
+    ///     Close any active dialogs and clear all dialog state.
     /// </summary>
     public void ClearDialogState()
     {
@@ -447,12 +388,12 @@ public class User : Creature
         SendCloseDialog();
     }
 
-    /// <summary>T
-    /// Send a status bar update to the client based on the state of a given status.
+    /// <summary>
+    ///     T
+    ///     Send a status bar update to the client based on the state of a given status.
     /// </summary>
     /// <param name="status">The status to update on the client side.</param>
     /// <param name="remove">Force removal of the status</param>
-
     public virtual void SendStatusUpdate(ICreatureStatus status, bool remove = false)
     {
         var statuspacket = new ServerPacketStructures.StatusBar { Icon = status.Icon };
@@ -474,27 +415,31 @@ public class User : Creature
             color = StatusBarColor.Off;
 
         statuspacket.BarColor = color;
-        GameLog.DebugFormat($"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
-        GameLog.DebugFormat($"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
+        GameLog.DebugFormat(
+            $"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
+        GameLog.DebugFormat(
+            $"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
         Enqueue(statuspacket.Packet());
     }
 
     public override void OnHear(SpokenEvent e)
     {
-        if (e.Speaker != this) 
+        if (e.Speaker != this)
             MessagesReceived.Add(e);
         var x0D = new ServerPacket(0x0D);
         x0D.WriteBoolean(e.Shout);
         x0D.WriteUInt32(e.Speaker.Id);
         if (e.Shout)
-            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
+            x0D.WriteString8(
+                !string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
         else
-            x0D.WriteString8(!string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
+            x0D.WriteString8(
+                !string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
         Enqueue(x0D);
     }
 
     /// <summary>
-    /// Sadly, all things in this world must come to an end.
+    ///     Sadly, all things in this world must come to an end.
     /// </summary>
     public override void OnDeath()
     {
@@ -510,7 +455,7 @@ public class User : Creature
         }
 
         var timeofdeath = DateTime.Now;
-        var looters = Group?.Members.Select(user => user.Name).ToList() ?? new List<string>();
+        var looters = Group?.Members.Select(selector: user => user.Name).ToList() ?? new List<string>();
 
         // Remove all statuses
         RemoveAllStatuses();
@@ -531,6 +476,7 @@ public class User : Creature
                 World.Remove(item);
                 continue;
             }
+
             if (!item.Undamageable)
             {
                 if (item.Durability > 10)
@@ -538,6 +484,7 @@ public class User : Creature
                 else
                     item.Durability = 0;
             }
+
             item.DeathPileOwner = Name;
             item.ItemDropTime = timeofdeath;
             item.ItemDropAllowedLooters = looters;
@@ -558,6 +505,7 @@ public class User : Creature
                 World.Remove(item);
                 continue;
             }
+
             if (!item.Undamageable)
             {
                 if (item.Durability > 10)
@@ -565,6 +513,7 @@ public class User : Creature
                 else
                     item.Durability = 0;
             }
+
             item.DeathPileOwner = Name;
             item.ItemDropTime = timeofdeath;
             item.ItemDropAllowedLooters = looters;
@@ -587,23 +536,25 @@ public class User : Creature
         }
 
         // Experience penalty
-        if (handler?.Penalty != null) {
+        if (handler?.Penalty != null)
+        {
             if (Stats.Experience > 1000)
             {
                 uint expPenalty;
                 if (handler.Penalty.Xp.Contains('.'))
-                    expPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Xp));
+                    expPenalty = (uint) Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Xp));
                 else
                     expPenalty = Convert.ToUInt32(handler.Penalty.Xp);
                 Stats.Experience -= expPenalty;
                 SendSystemMessage($"You lose {expPenalty} experience!");
             }
+
             if (Stats.BaseHp >= 51 && Stats.Level == 99)
             {
                 uint hpPenalty;
 
                 if (handler.Penalty.Hp.Contains('.'))
-                    hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
+                    hpPenalty = (uint) Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                 else
                     hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
                 Stats.BaseHp -= hpPenalty;
@@ -623,20 +574,18 @@ public class User : Creature
 
         SendSystemMessage("Your items are ripped from your body.");
 
-        if (Game.Config.Handlers?.Death?.Map != null) {
+        if (Game.Config.Handlers?.Death?.Map != null)
             Teleport(Game.Config.Handlers.Death.Map.Value,
                 Game.Config.Handlers.Death.Map.X,
                 Game.Config.Handlers.Death.Map.Y);
-        }
 
         if (Game.Config.Handlers?.Death?.GroupNotify ?? true)
             Group?.SendMessage($"{Name} has died!");
-            
     }
 
 
     /// <summary>
-    /// End a user's coma status (skulling).
+    ///     End a user's coma status (skulling).
     /// </summary>
     public void EndComa()
     {
@@ -646,9 +595,9 @@ public class User : Creature
         if (handler?.Coma != null && Game.World.WorldData.TryGetValue(handler.Coma.Value, out Status status))
             RemoveStatus(status.Icon);
     }
-        
+
     /// <summary>
-    /// Resurrect a player, optionally, instantly returning them to their point of death.
+    ///     Resurrect a player, optionally, instantly returning them to their point of death.
     /// </summary>
     /// <param name="recall">If true, resurrect at exact point of death.</param>
     public void Resurrect(bool recall = false)
@@ -669,11 +618,13 @@ public class User : Creature
             {
                 // Handle any weird cases where a map someone exited on was deleted, etc
                 // This "default" of Mileth should be set somewhere else
-                Teleport((ushort)500, (byte)50, (byte)50);
+                Teleport(500, 50, 50);
             }
         }
         else
+        {
             Teleport(Location.DeathMapId, Location.DeathMapX, Location.DeathMapY);
+        }
 
         Stats.Hp = 1;
         Stats.Mp = 1;
@@ -685,43 +636,12 @@ public class User : Creature
             LegendMark deathMark;
 
             if (Legend.TryGetMark(handler.LegendMark.Prefix, out deathMark) && handler.LegendMark.Increment)
-            {
                 deathMark.AddQuantity(1);
-            }
             else
-                Legend.AddMark(LegendIcon.Community, LegendColor.Brown, handler.LegendMark.Value, DateTime.Now, handler.LegendMark.Prefix, true,
+                Legend.AddMark(LegendIcon.Community, LegendColor.Brown, handler.LegendMark.Value, DateTime.Now,
+                    handler.LegendMark.Prefix, true,
                     1);
-
         }
-    }
-
-    public string GroupText =>
-        // This also eventually needs to consider marriages
-        Grouping ? "Grouped!" : "Adventuring Alone";
-
-    /**
-         * Returns the current weight as perceived by the client. The actual inventory or equipment
-         * weight may be less than zero, but this method will never return a negative value (negative
-         * values will appear as zero as the client expects).
-         */
-
-    public ushort VisibleWeight => (ushort)Math.Max(0, CurrentWeight);
-
-    /**
-         * Returns the true weight of the user's inventory + equipment, which could be negative.
-         * Note that you should use VisibleWeight when communicating with the client since negative
-         * weights should be invisible to users.
-         */
-    public int CurrentWeight => (Inventory.Weight + Equipment.Weight);
-
-    public ushort MaximumWeight => (ushort)(Stats.BaseStr + Stats.Level / 4 + 48);
-
-    public string LastSystemMessage { get; private set; } = string.Empty;
-
-    public User() : base()
-    {
-        _initializeUser();
-        LastAssociate = null;
     }
 
     private void _initializeUser(string playername = "")
@@ -745,7 +665,9 @@ public class User : Creature
         _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         RecentKills = new List<KillRecord>();
         MessagesReceived = new List<SpokenEvent>();
+
         #region Appearance defaults
+
         RestPosition = RestPosition.Standing;
         SkinColor = SkinColor.Basic;
         Transparent = false;
@@ -754,6 +676,7 @@ public class User : Creature
         LanternSize = LanternSize.None;
         DisplayAsMonster = false;
         MonsterSprite = ushort.MinValue;
+
         #endregion
     }
 
@@ -769,17 +692,13 @@ public class User : Creature
          * Invites another user to this user's group. If this user isn't in a group,
          * create a new one.
          */
-
     public bool InviteToGroup(User invitee)
     {
         // If you're inviting others to group, you must have grouping enabled.
         // Enable it automatically if necessary.
         Grouping = true;
 
-        if (!Grouped)
-        {
-            Group = new UserGroup(this);
-        }
+        if (!Grouped) Group = new UserGroup(this);
 
         return Group.Add(invitee);
     }
@@ -803,61 +722,59 @@ public class User : Creature
                     exp = 1;
                     break;
                 case 5:
-                    exp = (uint)Math.Ceiling(exp * 0.40);
+                    exp = (uint) Math.Ceiling(exp * 0.40);
                     break;
                 case 4:
-                    exp = (uint)Math.Ceiling(exp * 0.80);
+                    exp = (uint) Math.Ceiling(exp * 0.80);
                     break;
                 case -6:
-                    exp = (uint)Math.Ceiling(exp * 1.15);
+                    exp = (uint) Math.Ceiling(exp * 1.15);
                     break;
                 case -5:
-                    exp = (uint)Math.Ceiling(exp * 1.10);
+                    exp = (uint) Math.Ceiling(exp * 1.10);
                     break;
                 case -4:
-                    exp = (uint)Math.Ceiling(exp * 1.05);
+                    exp = (uint) Math.Ceiling(exp * 1.05);
                     break;
                 case < -7:
-                    exp = (uint)Math.Ceiling(exp * 1.20);
-                    break;
-                default:
+                    exp = (uint) Math.Ceiling(exp * 1.20);
                     break;
             }
+
             GiveExperience(exp, true);
         }
     }
 
 
     /// <summary>
-    /// Calculate the amount of gold to be given to a user, taking bonuses into account
+    ///     Calculate the amount of gold to be given to a user, taking bonuses into account
     /// </summary>
     /// <param name="exp">The amount of gold to be given.</param>
     public uint CalculateGold(uint gold)
     {
-            switch (Stats.ExtraGold)
-            {
-                case < 0:
-                    gold -= (uint)(gold * (Stats.ExtraXp / 100) * -1);
-                    break;
-                case > 0:
-                    gold += (uint)(gold * (Stats.ExtraXp / 100));
-                    break;
-            }
+        switch (Stats.ExtraGold)
+        {
+            case < 0:
+                gold -= (uint) (gold * (Stats.ExtraXp / 100) * -1);
+                break;
+            case > 0:
+                gold += (uint) (gold * (Stats.ExtraXp / 100));
+                break;
+        }
 
-            return gold;
+        return gold;
     }
 
     /// <summary>
-    /// Give a user experience, potentially applying any local bonuses.
+    ///     Give a user experience, potentially applying any local bonuses.
     /// </summary>
     /// <param name="exp">The amount of experience to be given.</param>
     /// <param name="ApplyBonus">Whether or not to apply XP bonuses from items / etc (ExtraXp stat)</param>
-    public void GiveExperience(uint exp, bool applyBonus=false)
+    public void GiveExperience(uint exp, bool applyBonus = false)
     {
         Client?.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
 
         if (applyBonus)
-        {
             switch (Stats.ExtraXp)
             {
                 case < 0:
@@ -867,12 +784,13 @@ public class User : Creature
                     exp += (uint) (exp * (Stats.ExtraXp / 100));
                     break;
             }
-        }
 
         if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
         {
             if (uint.MaxValue - Stats.Experience >= exp)
+            {
                 Stats.Experience += exp;
+            }
             else
             {
                 Stats.Experience = uint.MaxValue;
@@ -887,7 +805,7 @@ public class User : Creature
 
             while (exp > 0 && Stats.Level < 99)
             {
-                uint expChunk = Math.Min(exp, ExpToLevel);
+                var expChunk = Math.Min(exp, ExpToLevel);
 
                 exp -= expChunk;
                 Stats.Experience += expChunk;
@@ -901,17 +819,21 @@ public class User : Creature
                     // For level up we use Biomagus' formulas with a random 85% - 115% tweak
                     // HP: (CON/(Lv+1)*50*randomfactor)+25
                     // MP: (WIS/(Lv+1)*50*randomfactor)+25
-                    var randomBonus = (Random.Shared.NextDouble() * 0.30) + 0.85;
-                    int bonusHpGain = (int) Math.Ceiling((double) (Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
-                    int bonusMpGain = (int) Math.Ceiling((double) (Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
+                    var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
+                    var bonusHpGain =
+                        (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
+                    var bonusMpGain =
+                        (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
 
                     Stats.BaseHp += bonusHpGain + 25;
                     Stats.BaseMp += bonusMpGain + 25;
-                    GameLog.UserActivityInfo("User {name}: level increased to {Level}, random factor {factor}, CON {Con}, WIS {Wis}: HP +{Hp}/+25, MP +{Mp}/+25" , Name, Stats.Level, randomBonus, Stats.BaseCon, Stats.BaseWis, 
+                    GameLog.UserActivityInfo(
+                        "User {name}: level increased to {Level}, random factor {factor}, CON {Con}, WIS {Wis}: HP +{Hp}/+25, MP +{Mp}/+25",
+                        Name, Stats.Level, randomBonus, Stats.BaseCon, Stats.BaseWis,
                         bonusHpGain, bonusMpGain);
-
                 }
             }
+
             // If a user has just become level 99, add the remainder exp to their box
             if (Stats.Level == 99)
                 Stats.Experience += exp;
@@ -926,13 +848,9 @@ public class User : Creature
         }
 
         UpdateAttributes(StatUpdateFlags.Experience);
-
     }
 
-    public void TakeExperience(uint exp)
-    {
-
-    }
+    public void TakeExperience(uint exp) { }
 
     public bool AssociateConnection(Guid serverGuid, long connectionId)
     {
@@ -943,26 +861,8 @@ public class User : Creature
         return true;
     }
 
-    public User(Guid serverGuid, long connectionId, string playername = "")
-    {
-        ServerGuid = serverGuid;
-        Client client;
-        if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client))
-        {
-            Client = client;
-        }
-        _initializeUser(playername);
-    }
-
-    public User(Guid serverGuid, Client client, string playername = "")
-    {
-        ServerGuid = serverGuid;
-        Client = client;
-        _initializeUser(playername);
-    }
-
     /// <summary>
-    /// Given a specified ItemObject, apply the given bonuses to the player.
+    ///     Given a specified ItemObject, apply the given bonuses to the player.
     /// </summary>
     /// <param name="toApply">The ItemObject used to calculate bonuses.</param>
     public void ApplyBonuses(ItemObject toApply)
@@ -973,17 +873,17 @@ public class User : Creature
 
         switch (toApply.EquipmentSlot)
         {
-            case (byte)ItemSlots.Necklace:
+            case (byte) ItemSlots.Necklace:
                 Stats.BaseOffensiveElement = toApply.Element;
                 break;
-            case (byte)ItemSlots.Waist:
+            case (byte) ItemSlots.Waist:
                 Stats.BaseDefensiveElement = toApply.Element;
                 break;
         }
     }
 
     /// <summary>
-    /// Given a specified ItemObject, remove the given bonuses from the player.
+    ///     Given a specified ItemObject, remove the given bonuses from the player.
     /// </summary>
     /// <param name="toRemove"></param>
     public void RemoveBonuses(ItemObject toRemove)
@@ -991,10 +891,10 @@ public class User : Creature
         Stats.Remove(toRemove.Stats);
         switch (toRemove.EquipmentSlot)
         {
-            case (byte)ItemSlots.Necklace:
+            case (byte) ItemSlots.Necklace:
                 Stats.BaseOffensiveElement = ElementType.None;
                 break;
-            case (byte)ItemSlots.Waist:
+            case (byte) ItemSlots.Waist:
                 Stats.BaseDefensiveElement = ElementType.None;
                 break;
         }
@@ -1002,7 +902,6 @@ public class User : Creature
 
     public override void OnClick(User invoker)
     {
-
         var guildInfo = GetGuildInfo();
 
         // Return a profile packet (0x34) to the user who clicked.
@@ -1012,7 +911,7 @@ public class User : Creature
         // byte classnamelength, string classname, byte guildnamelength, byte guildname, byte numLegendMarks (lame!),
         // numLegendMarks[byte icon, byte color, byte marklength, string mark]
         // This packet can also contain a portrait and profile text but we haven't even remotely implemented it yet.
-            
+
 
         var profilePacket = new ServerPacket(0x34);
 
@@ -1026,30 +925,30 @@ public class User : Creature
             profilePacket.WriteByte(tuple.Item2);
         }
 
-        profilePacket.WriteByte((byte)GroupStatus);
+        profilePacket.WriteByte((byte) GroupStatus);
         profilePacket.WriteString8(Name);
-        profilePacket.WriteByte((byte)Nation.Flag); // This should pull from town / nation
+        profilePacket.WriteByte(Nation.Flag); // This should pull from town / nation
         // test
         profilePacket.WriteString8("");
-        profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
+        profilePacket.WriteByte((byte) (Grouping ? 1 : 0));
         profilePacket.WriteString8(guildInfo.GuildRank);
-        profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int)Class].Capitalize());
+        profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int) Class].Capitalize());
         profilePacket.WriteString8(guildInfo.GuildName);
-        profilePacket.WriteByte((byte)Legend.Count);
-        foreach (var mark in Legend.Where(mark => mark.Public))
+        profilePacket.WriteByte((byte) Legend.Count);
+        foreach (var mark in Legend.Where(predicate: mark => mark.Public))
         {
-            profilePacket.WriteByte((byte)mark.Icon);
-            profilePacket.WriteByte((byte)mark.Color);
+            profilePacket.WriteByte((byte) mark.Icon);
+            profilePacket.WriteByte((byte) mark.Color);
             profilePacket.WriteString8(mark.Prefix);
             profilePacket.WriteString8(mark.ToString());
         }
-        profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
-        profilePacket.WriteUInt16((ushort)PortraitData.Length);
+
+        profilePacket.WriteUInt16((ushort) (PortraitData.Length + ProfileText.Length + 4));
+        profilePacket.WriteUInt16((ushort) PortraitData.Length);
         profilePacket.Write(PortraitData);
         profilePacket.WriteString16(ProfileText);
 
         invoker.Enqueue(profilePacket);
-
     }
 
     private (string GuildName, string GuildRank) GetGuildInfo()
@@ -1074,7 +973,6 @@ public class User : Creature
             GameLog.ErrorFormat(e.ToString());
             throw;
         }
-
     }
 
     public void Save(bool serializeStatus = false)
@@ -1089,9 +987,10 @@ public class User : Creature
                 else
                     Statuses.Clear();
             }
+
             AuthInfo.Save();
             Mailbox.Save();
-            SentMailbox.Save();              
+            SentMailbox.Save();
             cache.Set(GetStorageKey(Name), this);
         }
     }
@@ -1104,8 +1003,8 @@ public class User : Creature
         x15.WriteByte(Map.Y);
         x15.WriteByte(Map.Flags);
         x15.WriteUInt16(0);
-        x15.WriteByte((byte)(Map.Checksum % 256));
-        x15.WriteByte((byte)(Map.Checksum / 256));
+        x15.WriteByte((byte) (Map.Checksum % 256));
+        x15.WriteByte((byte) (Map.Checksum / 256));
         x15.WriteString8(Map.Name);
         Enqueue(x15);
 
@@ -1125,11 +1024,8 @@ public class User : Creature
         var doors = GetDoorsCoordsInView(GetViewport());
 
         if (doors.Count <= 0) return;
-        foreach(var door in doors)
-        {
+        foreach (var door in doors)
             SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
-        }
-
     }
 
     public List<(byte X, byte Y)> GetDoorsCoordsInView(Rectangle viewPort)
@@ -1137,16 +1033,11 @@ public class User : Creature
         var ret = new List<(byte X, byte Y)>();
 
         for (var x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
+        for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
         {
-            for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
-            {
-                var coords = ((byte) x, (byte) y);
-                ;
-                if (Map.Doors.ContainsKey(coords))
-                {
-                    ret.Add(coords);
-                }
-            }
+            var coords = ((byte) x, (byte) y);
+            ;
+            if (Map.Doors.ContainsKey(coords)) ret.Add(coords);
         }
 
         return ret;
@@ -1184,11 +1075,11 @@ public class User : Creature
             msg = "Sadly, that Aisling cannot hear whispers.";
 
         return string.IsNullOrEmpty(msg);
-
     }
+
     public void SendWhisper(string charname, string message)
     {
-        if (!World.TryGetActiveUser(charname, out User target))
+        if (!World.TryGetActiveUser(charname, out var target))
         {
             SendSystemMessage("That Aisling is not in Temuair.");
             return;
@@ -1197,7 +1088,7 @@ public class User : Creature
         if (target.Condition.Flags.HasFlag(PlayerFlags.InBoard))
             SendSystemMessage($"{target.Name} is reading a board.");
 
-        if (CanTalkTo(target, out string err))
+        if (CanTalkTo(target, out var err))
         {
             // To implement: ACLs (ignore list)
             // To implement: loggging?
@@ -1221,18 +1112,12 @@ public class User : Creature
         }
         else
         {
-            string err = string.Empty;
+            var err = string.Empty;
             foreach (var member in Group.Members)
-            {
                 if (CanTalkTo(member, out err))
-                {
                     member.Client.SendMessage($"[!{Name}] {message}", MessageTypes.GROUP);
-                }
                 else
-                {
                     Client.SendMessage(err, 0x0);
-                }
-            }
         }
     }
 
@@ -1259,7 +1144,7 @@ public class User : Creature
         x07.WriteUInt16(gold.X);
         x07.WriteUInt16(gold.Y);
         x07.WriteUInt32(gold.Id);
-        x07.WriteUInt16((ushort)(gold.Sprite + 0x8000));
+        x07.WriteUInt16((ushort) (gold.Sprite + 0x8000));
         x07.WriteInt32(0);
         x07.DumpPacket();
         Enqueue(x07);
@@ -1267,14 +1152,13 @@ public class User : Creature
 
     internal void UseSkill(byte slot)
     {
-        if(!Map.AllowCasting)
-        {
+        if (!Map.AllowCasting)
             if (!AuthInfo.IsPrivileged)
             {
                 SendSystemMessage("You can't use that here.");
                 return;
             }
-        }
+
         var bookSlot = SkillBook[slot];
         if (bookSlot.OnCooldown)
         {
@@ -1295,7 +1179,7 @@ public class User : Creature
                 PlaySound(bookSlot.Castable.Effects.Sound.Id);
         }
 
-        if (UseCastable(bookSlot.Castable, null))
+        if (UseCastable(bookSlot.Castable))
         {
             if (bookSlot.UseCount != uint.MaxValue)
                 bookSlot.UseCount += 1;
@@ -1303,7 +1187,7 @@ public class User : Creature
                 SendSkillUpdate(bookSlot, slot);
 
             bookSlot.Castable.LastCast = DateTime.Now;
-            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            Client.Enqueue(new ServerPacketStructures.Cooldown
             {
                 Length = (uint) bookSlot.Castable.Cooldown,
                 Pane = 1,
@@ -1315,13 +1199,11 @@ public class User : Creature
     internal void UseSpell(byte slot, uint target = 0)
     {
         if (!Map.AllowCasting)
-        {
             if (!AuthInfo.IsPrivileged)
             {
                 SendSystemMessage("You can't cast that here.");
                 return;
             }
-        }
 
         if (Condition.Muted)
         {
@@ -1330,7 +1212,7 @@ public class User : Creature
         }
 
         var bookSlot = SpellBook[slot];
-        Creature targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(x => x.Id == target) ?? null;
+        var targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(predicate: x => x.Id == target) ?? null;
 
         if (bookSlot.OnCooldown)
         {
@@ -1356,7 +1238,8 @@ public class User : Creature
             }
         }
 
-        var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(x => x.Value), StringComparer.InvariantCultureIgnoreCase);
+        var intersect = UseCastRestrictions.Intersect(bookSlot.Castable.Categories.Select(selector: x => x.Value),
+            StringComparer.InvariantCultureIgnoreCase);
 
         if (intersect.Any() || !Condition.CastingAllowed)
         {
@@ -1372,38 +1255,32 @@ public class User : Creature
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
         if (bookSlot.Castable.Cooldown > 0)
-        {
-            Client.Enqueue(new ServerPacketStructures.Cooldown()
+            Client.Enqueue(new ServerPacketStructures.Cooldown
             {
-                Length = (uint)bookSlot.Castable.Cooldown,
+                Length = (uint) bookSlot.Castable.Cooldown,
                 Pane = 0,
                 Slot = slot
             }.Packet());
-        }
         bookSlot.LastCast = DateTime.Now;
     }
 
     /// <summary>
-    /// Process the casting cost for a castable. If all requirements were not met, return false.
+    ///     Process the casting cost for a castable. If all requirements were not met, return false.
     /// </summary>
     /// <param name="castable">The castable that is being cast.</param>
     /// <returns>True or false depending on success.</returns>
     public bool ProcessCastingCost(Castable castable, Creature target, out string message)
     {
         var cost = NumberCruncher.CalculateCastCost(castable, target, this);
-        bool hasItemCost = true;
+        var hasItemCost = true;
         message = string.Empty;
 
         if (cost.IsNoCost) return true;
 
         if (cost.Items != null)
-        {
             foreach (var itemReq in cost.Items)
-            {
                 if (!Inventory.ContainsName(itemReq.Item, itemReq.Quantity))
                     hasItemCost = false;
-            }
-        }
 
         // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
         // in the caster's HP being reduced to zero.
@@ -1425,8 +1302,8 @@ public class User : Creature
 
         if (cost.Hp != 0) Stats.Hp -= cost.Hp;
         if (cost.Mp != 0) Stats.Mp -= cost.Mp;
-        if ((int)cost.Gold > 0 ) RemoveGold(new Gold(cost.Gold));
-        cost.Items?.ForEach(itemReq => RemoveItem(itemReq.Item, itemReq.Quantity));
+        if ((int) cost.Gold > 0) RemoveGold(new Gold(cost.Gold));
+        cost.Items?.ForEach(action: itemReq => RemoveItem(itemReq.Item, itemReq.Quantity));
 
         UpdateAttributes(StatUpdateFlags.Current);
         return true;
@@ -1440,7 +1317,7 @@ public class User : Creature
         x07.WriteUInt16(itemObject.X);
         x07.WriteUInt16(itemObject.Y);
         x07.WriteUInt32(itemObject.Id);
-        x07.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
+        x07.WriteUInt16((ushort) (itemObject.Sprite + 0x8000));
         x07.WriteByte(itemObject.Color);
         x07.WriteByte(0);
         x07.WriteByte(0);
@@ -1458,12 +1335,12 @@ public class User : Creature
         x07.WriteUInt16(creature.X);
         x07.WriteUInt16(creature.Y);
         x07.WriteUInt32(creature.Id);
-        x07.WriteUInt16((ushort)(creature.Sprite + 0x4000));
+        x07.WriteUInt16((ushort) (creature.Sprite + 0x4000));
         x07.WriteByte(0); // Unknown what this is
         x07.WriteByte(0);
         x07.WriteByte(0);
         x07.WriteByte(0);
-        x07.WriteByte((byte)creature.Direction);
+        x07.WriteByte((byte) creature.Direction);
         x07.WriteByte(0);
         if (creature is Merchant)
         {
@@ -1471,7 +1348,10 @@ public class User : Creature
             x07.WriteString8(creature.Name);
         }
         else
+        {
             x07.WriteByte(0);
+        }
+
         //x07.DumpPacket();
         Enqueue(x07);
     }
@@ -1490,7 +1370,7 @@ public class User : Creature
 
     public void SetHairColor(ItemColor itemColor)
     {
-        HairColor = (byte)itemColor;
+        HairColor = (byte) itemColor;
         SendUpdateToUser();
 
         foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
@@ -1498,7 +1378,6 @@ public class User : Creature
             obj.AoiEntry(this);
             AoiEntry(obj);
         }
-
     }
 
     public void SendUpdateToUser(Client client = null)
@@ -1515,7 +1394,7 @@ public class User : Creature
         var color = helmcolor == 0 ? HairColor : helmcolor;
         // Why is this so difficult?
         var bootSprite = Equipment.Armor?.HideBoots ?? false ? 0 : Equipment.Boots?.DisplaySprite ?? 0;
-        (client ?? Client)?.Enqueue(new ServerPacketStructures.DisplayUser()
+        (client ?? Client)?.Enqueue(new ServerPacketStructures.DisplayUser
         {
             X = X,
             Y = Y,
@@ -1524,10 +1403,10 @@ public class User : Creature
             Gender = Gender,
             Helmet = helmet,
             Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
-            Armor = (Equipment.Armor?.DisplaySprite ?? 0),
+            Armor = Equipment.Armor?.DisplaySprite ?? 0,
             BodySpriteOffset = offset,
             Boots = (byte) bootSprite,
-            BootsColor = (byte)(Equipment.Boots?.Color ?? 0),
+            BootsColor = Equipment.Boots?.Color ?? 0,
             DisplayAsMonster = DisplayAsMonster,
             FaceShape = FaceShape,
             FirstAcc = Equipment.FirstAcc?.DisplaySprite ?? 0,
@@ -1541,13 +1420,13 @@ public class User : Creature
             Overcoat = Equipment.Overcoat?.DisplaySprite ?? 0,
             OvercoatColor = Equipment.Overcoat?.Color ?? 0,
             SkinColor = SkinColor,
-            Shield = (byte)(Equipment.Shield?.DisplaySprite ?? 0),
+            Shield = (byte) (Equipment.Shield?.DisplaySprite ?? 0),
             Invisible = Transparent,
             NameStyle = NameStyle,
             Name = Name,
             GroupName = GroupRecruit?.Name ?? string.Empty,
             MonsterSprite = MonsterSprite,
-            HairColor = color,
+            HairColor = color
         }.Packet());
     }
 
@@ -1573,7 +1452,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Sends an equip ItemObject packet to the client, triggering an update of the detail window ('a').
+    ///     Sends an equip ItemObject packet to the client, triggering an update of the detail window ('a').
     /// </summary>
     /// <param name="itemObject">The ItemObject which will be equipped.</param>
     /// <param name="slot">The slot in which we are equipping.</param>
@@ -1596,8 +1475,8 @@ public class User : Creature
         }
 
         var equipPacket = new ServerPacket(0x37);
-        equipPacket.WriteByte((byte)slot);
-        equipPacket.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
+        equipPacket.WriteByte((byte) slot);
+        equipPacket.WriteUInt16((ushort) (itemObject.Sprite + 0x8000));
         equipPacket.WriteByte(itemObject.Color);
         equipPacket.WriteStringWithLength(itemObject.Name);
         equipPacket.WriteByte(0x00);
@@ -1611,14 +1490,14 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Sends a clear ItemObject packet to the connected client for the specified slot. 
-    /// Because the slots on the client side start with one, decrement the slot before sending.
+    ///     Sends a clear ItemObject packet to the connected client for the specified slot.
+    ///     Because the slots on the client side start with one, decrement the slot before sending.
     /// </summary>
     /// <param name="slot">The client side slot to clear.</param>
     public void SendClearItem(int slot)
     {
         var x10 = new ServerPacket(0x10);
-        x10.WriteByte((byte)slot);
+        x10.WriteByte((byte) slot);
         x10.WriteUInt16(0x0000);
         x10.WriteByte(0x00);
         Enqueue(x10);
@@ -1627,18 +1506,20 @@ public class User : Creature
     public void SendClearSkill(int slot)
     {
         var x2D = new ServerPacket(0x2D);
-        x2D.WriteByte((byte)slot);
+        x2D.WriteByte((byte) slot);
         Enqueue(x2D);
     }
+
     public void SendClearSpell(int slot)
     {
         var x2D = new ServerPacket(0x18);
-        x2D.WriteByte((byte)slot);
+        x2D.WriteByte((byte) slot);
         Enqueue(x2D);
     }
 
     /// <summary>
-    /// Send an ItemObject update packet (essentially placing the ItemObject in a given slot, as far as the client is concerned.
+    ///     Send an ItemObject update packet (essentially placing the ItemObject in a given slot, as far as the client is
+    ///     concerned.
     /// </summary>
     /// <param name="itemObject">The ItemObject we are sending to the user.</param>
     /// <param name="slot">The client's ItemObject slot.</param>
@@ -1653,8 +1534,8 @@ public class User : Creature
         GameLog.DebugFormat("Adding {0} qty {1} to slot {2}",
             itemObject.Name, itemObject.Count, slot);
         var x0F = new ServerPacket(0x0F);
-        x0F.WriteByte((byte)slot);
-        x0F.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
+        x0F.WriteByte((byte) slot);
+        x0F.WriteUInt16((ushort) (itemObject.Sprite + 0x8000));
         x0F.WriteByte(itemObject.Color);
         x0F.WriteString8(itemObject.Name);
         x0F.WriteInt32(itemObject.Count);  //amount
@@ -1672,6 +1553,7 @@ public class User : Creature
             SendClearSkill(slot);
             return;
         }
+
         GameLog.DebugFormat("Adding skill {0} to slot {2}",
             item.Castable.Name, slot);
 
@@ -1681,13 +1563,13 @@ public class User : Creature
         //}
 
         var x2C = new ServerPacket(0x2C);
-        x2C.WriteByte((byte)slot);
-        x2C.WriteUInt16((ushort)(item.Castable.Icon));
-        if(item.Castable.Mastery.Uses != 1)
+        x2C.WriteByte((byte) slot);
+        x2C.WriteUInt16(item.Castable.Icon);
+        if (item.Castable.Mastery.Uses != 1)
         {
             double percent;
             if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
-            else percent = Math.Floor((item.UseCount / (double)item.Castable.Mastery.Uses) * 100);
+            else percent = Math.Floor(item.UseCount / (double) item.Castable.Mastery.Uses * 100);
 
             x2C.WriteString8($"{item.Castable.Name} (Lev:{percent}/100)");
         }
@@ -1695,7 +1577,7 @@ public class User : Creature
         {
             x2C.WriteString8(item.Castable.Name);
         }
-            
+
         Enqueue(x2C);
     }
 
@@ -1706,16 +1588,17 @@ public class User : Creature
             SendClearSpell(slot);
             return;
         }
+
         GameLog.DebugFormat("Adding spell {0} to slot {2}",
             item.Castable.Name, slot);
 
-            
-        string name = "";
+
+        var name = "";
         if (item.Castable.Mastery.Uses != 1)
         {
             double percent;
             if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
-            else percent = Math.Floor((item.UseCount / (double)item.Castable.Mastery.Uses) * 100);
+            else percent = Math.Floor(item.UseCount / (double) item.Castable.Mastery.Uses * 100);
 
             name = $"{item.Castable.Name} (Lev:{percent}/100)";
         }
@@ -1724,14 +1607,14 @@ public class User : Creature
             name = item.Castable.Name;
         }
 
-        var spellUpdate = new ServerPacketStructures.AddSpell()
+        var spellUpdate = new ServerPacketStructures.AddSpell
         {
-            Slot = (byte)slot,
+            Slot = (byte) slot,
             Icon = item.Castable.Icon,
-            UseType = (byte)item.Castable.Intents[0].UseType,
+            UseType = (byte) item.Castable.Intents[0].UseType,
             Name = name,
             Prompt = "\0",
-            Lines = (byte)CalculateLines(item.Castable)
+            Lines = (byte) CalculateLines(item.Castable)
         };
         Enqueue(spellUpdate.Packet());
     }
@@ -1745,49 +1628,54 @@ public class User : Creature
             {
                 object modifier = null;
                 foreach (var castmodifier in Equipment.Weapon.CastModifiers)
-                {
                     // Matches most to least specific, first match wins
-                    if (!string.IsNullOrEmpty(castmodifier.Castable) && castmodifier.Castable.ToLower() == castable.Name.ToLower())
+                    if (!string.IsNullOrEmpty(castmodifier.Castable) &&
+                        castmodifier.Castable.ToLower() == castable.Name.ToLower())
                     {
                         modifier = castmodifier.Item;
                         break;
                     }
                     else if (!string.IsNullOrEmpty(castmodifier.Group) &&
-                             castable.Categories.Select(x => x.Value.ToLower()).Contains(castmodifier.Group.ToLower()))
+                             castable.Categories.Select(selector: x => x.Value.ToLower())
+                                 .Contains(castmodifier.Group.ToLower()))
                     {
                         modifier = castmodifier.Item;
                         break;
                     }
-                    else if (castmodifier.All == true)
+                    else if (castmodifier.All)
                     {
                         modifier = castmodifier.Item;
                         break;
                     }
-                }
+
                 // Evaluate modifier match.
                 // Exact match first, then between min / max, which is same as "all" if no min/max defined (default -1 / 255)
                 if (modifier is CastModifierAdd add)
                 {
-                    if (castable.Lines == add.Match || (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
+                    if (castable.Lines == add.Match ||
+                        (add.Match == -1 && castable.Lines >= add.Min && castable.Lines <= add.Max))
                         return Math.Min(255, castable.Lines + add.Amount);
                 }
                 else if (modifier is CastModifierSubtract sub)
                 {
-                    if (castable.Lines == sub.Match || (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
+                    if (castable.Lines == sub.Match ||
+                        (sub.Match == -1 && castable.Lines >= sub.Min && castable.Lines <= sub.Max))
                         return Math.Max(0, castable.Lines - sub.Amount);
                 }
                 else if (modifier is CastModifierReplace repl)
                 {
-                    if (castable.Lines == repl.Match || (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
+                    if (castable.Lines == repl.Match ||
+                        (repl.Match == -1 && castable.Lines >= repl.Min && castable.Lines <= repl.Max))
                         return repl.Amount;
                 }
             }
+
             return castable.Lines;
         }
         catch (Exception e)
         {
             GameLog.Error("Lines calculation error: {e}, returning default of 3", e);
-            return 3; 
+            return 3;
         }
     }
 
@@ -1795,15 +1683,12 @@ public class User : Creature
     {
         if (Client is null) return;
         var x08 = new ServerPacket(0x08);
-        if (UnreadMail || HasParcels)
-        {
-            flags |= StatUpdateFlags.UnreadMail;
-        }
+        if (UnreadMail || HasParcels) flags |= StatUpdateFlags.UnreadMail;
 
         if (CollisionsDisabled)
-            flags |= StatUpdateFlags.GameMasterA;                
+            flags |= StatUpdateFlags.GameMasterA;
 
-        x08.WriteByte((byte)flags);
+        x08.WriteByte((byte) flags);
         if (flags.HasFlag(StatUpdateFlags.Primary))
         {
             x08.Write(new byte[] { 1, 0, 0 });
@@ -1819,22 +1704,25 @@ public class User : Creature
             if (LevelPoints > 0)
             {
                 x08.WriteByte(1);
-                x08.WriteByte((byte)LevelPoints);
+                x08.WriteByte((byte) LevelPoints);
             }
             else
             {
                 x08.WriteByte(0);
                 x08.WriteByte(0);
             }
+
             x08.WriteUInt16(MaximumWeight);
             x08.WriteUInt16(VisibleWeight);
             x08.WriteUInt32(uint.MinValue);
         }
+
         if (flags.HasFlag(StatUpdateFlags.Current))
         {
             x08.WriteUInt32(Stats.Hp);
             x08.WriteUInt32(Stats.Mp);
         }
+
         if (flags.HasFlag(StatUpdateFlags.Experience))
         {
             x08.WriteUInt32(Stats.Experience);
@@ -1844,22 +1732,24 @@ public class User : Creature
             x08.WriteUInt32(0); // "GP"
             x08.WriteUInt32(Gold);
         }
+
         if (flags.HasFlag(StatUpdateFlags.Secondary))
         {
             x08.WriteByte(0); // Unknown
-            x08.WriteByte((byte)(Condition.Blinded ? 0x08 : 0x00));
+            x08.WriteByte((byte) (Condition.Blinded ? 0x08 : 0x00));
             x08.WriteByte(0); // Unknown
             x08.WriteByte(0); // Unknown
             x08.WriteByte(0); // Unknown
             x08.WriteByte((byte) MailStatus);
             x08.WriteByte((byte) Stats.BaseOffensiveElement);
             x08.WriteByte((byte) Stats.BaseDefensiveElement);
-            x08.WriteByte(Stats.MrRating); 
+            x08.WriteByte(Stats.MrRating);
             x08.WriteByte(0); // "fast move"
             x08.WriteSByte(Stats.Ac);
             x08.WriteByte(Stats.DmgRating);
             x08.WriteByte(Stats.HitRating);
         }
+
         Enqueue(x08);
     }
 
@@ -1889,49 +1779,37 @@ public class User : Creature
                 break;
         }
 
-        return (User)contents.FirstOrDefault(y => y is User);
+        return (User) contents.FirstOrDefault(predicate: y => y is User);
     }
 
     /// <summary>
-    /// Returns all the objects that are directly facing the user.
+    ///     Returns all the objects that are directly facing the user.
     /// </summary>
     /// <returns>A list of visible objects.</returns>
     public List<VisibleObject> GetFacingObjects(int distance = 1)
     {
-        List<VisibleObject> contents = new List<VisibleObject>();
+        var contents = new List<VisibleObject>();
 
         switch (Direction)
         {
             case Direction.North:
             {
-                for (var i = 1; i <= distance; i++)
-                {
-                    contents.AddRange(Map.GetTileContents(X, Y - i));
-                }
+                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y - i));
             }
                 break;
             case Direction.South:
             {
-                for (var i = 1; i <= distance; i++)
-                {
-                    contents.AddRange(Map.GetTileContents(X, Y + i));
-                }
+                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y + i));
             }
                 break;
             case Direction.West:
             {
-                for (var i = 1; i <= distance; i++)
-                {
-                    contents.AddRange(Map.GetTileContents(X - i, Y));
-                }
+                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X - i, Y));
             }
                 break;
             case Direction.East:
             {
-                for (var i = 1; i <= distance; i++)
-                {
-                    contents.AddRange(Map.GetTileContents(X + i, Y));
-                }
+                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X + i, Y));
             }
                 break;
             default:
@@ -1945,9 +1823,9 @@ public class User : Creature
     public override bool Walk(Direction direction)
     {
         int oldX = X, oldY = Y, newX = X, newY = Y;
-        Rectangle arrivingViewport = Rectangle.Empty;
-        Rectangle departingViewport = Rectangle.Empty;
-        Rectangle commonViewport = Rectangle.Empty;
+        var arrivingViewport = Rectangle.Empty;
+        var departingViewport = Rectangle.Empty;
+        var commonViewport = Rectangle.Empty;
         var halfViewport = Constants.VIEWPORT_SIZE / 2;
 
         if (Condition.Disoriented)
@@ -1967,28 +1845,37 @@ public class User : Creature
 
             case Direction.North:
                 --newY;
-                arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4, Constants.VIEWPORT_SIZE, 1);
-                departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2, Constants.VIEWPORT_SIZE, 1);
+                arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4,
+                    Constants.VIEWPORT_SIZE, 1);
+                departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2,
+                    Constants.VIEWPORT_SIZE, 1);
                 break;
             case Direction.South:
                 ++newY;
-                arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4, Constants.VIEWPORT_SIZE, 1);
-                departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2, Constants.VIEWPORT_SIZE, 1);
+                arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4,
+                    Constants.VIEWPORT_SIZE, 1);
+                departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2,
+                    Constants.VIEWPORT_SIZE, 1);
                 break;
             case Direction.West:
                 --newX;
-                arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
-                departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1, Constants.VIEWPORT_SIZE);
+                arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1,
+                    Constants.VIEWPORT_SIZE);
+                departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1,
+                    Constants.VIEWPORT_SIZE);
                 break;
             case Direction.East:
                 ++newX;
-                arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
-                departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1, Constants.VIEWPORT_SIZE);
+                arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1,
+                    Constants.VIEWPORT_SIZE);
+                departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1,
+                    Constants.VIEWPORT_SIZE);
                 break;
         }
-        var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out Warp targetWarp);
-        var isReactors = Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
-        var wasReactors = Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
+
+        var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte) newX, (byte) newY), out var targetWarp);
+        var isReactors = Map.Reactors.TryGetValue(((byte) newX, (byte) newY), out var newReactors);
+        var wasReactors = Map.Reactors.TryGetValue(((byte) oldX, (byte) oldY), out var oldReactors);
 
         // Now that we know where we are going, perform some sanity checks.
         // Is the player trying to walk into a wall, or off the map?
@@ -1999,67 +1886,73 @@ public class User : Creature
             return false;
         }
         // Allow a user to walk into walls, if and only if collisions are disabled (implies privileged user)
-        else if (Map.IsWall[newX, newY] && !CollisionsDisabled)
+
+        if (Map.IsWall[newX, newY] && !CollisionsDisabled)
         {
             Refresh();
             return false;
         }
-        else
+
+        // Is the player trying to walk into an occupied tile?
+        foreach (var obj in Map.GetTileContents((byte) newX, (byte) newY))
         {
-            // Is the player trying to walk into an occupied tile?
-            foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
+            GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
+            if (obj is Creature)
             {
-                GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
-                if (obj is Creature)
-                {
-                    GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);
-                    Refresh();
-                    return false;
-                }
-            }
-            // Is this user entering a forbidden (by level or otherwise) warp?
-            if (isWarp)
-            {
-                if (targetWarp.MinimumLevel > Stats.Level)
-                {
-                    Client.SendMessage("You're too afraid to even approach it!", 3);
-                    Refresh();
-                    return false;
-                }
-                if (targetWarp.MaximumLevel < Stats.Level)
-                {
-                    Client.SendMessage("Your honor forbids you from entering.", 3);
-                    Refresh();
-                    return false;
-                }
-            }
-            // Is the user trying to move into a reactor tile with blocking (meaning the reactor can't be "walked" on)?
-            if (isReactors && newReactors.Values.Any(x => x.Blocking))
-            {
-                Client.SendMessage("Your path is blocked!", 3);
+                GameLog.DebugFormat("Walking prohibited: found {0}", obj.Name);
                 Refresh();
+                return false;
             }
+        }
+
+        // Is this user entering a forbidden (by level or otherwise) warp?
+        if (isWarp)
+        {
+            if (targetWarp.MinimumLevel > Stats.Level)
+            {
+                Client.SendMessage("You're too afraid to even approach it!", 3);
+                Refresh();
+                return false;
+            }
+
+            if (targetWarp.MaximumLevel < Stats.Level)
+            {
+                Client.SendMessage("Your honor forbids you from entering.", 3);
+                Refresh();
+                return false;
+            }
+        }
+
+        // Is the user trying to move into a reactor tile with blocking (meaning the reactor can't be "walked" on)?
+        if (isReactors && newReactors.Values.Any(predicate: x => x.Blocking))
+        {
+            Client.SendMessage("Your path is blocked!", 3);
+            Refresh();
         }
 
         // Calculate the common viewport between the old and new position
 
-        commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE);
-        commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE));
+        commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
+            Constants.VIEWPORT_SIZE);
+        commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+            Constants.VIEWPORT_SIZE));
         GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
-        GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X, arrivingViewport.Y);
-        GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X, departingViewport.Y);
+        GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
+            arrivingViewport.Y);
+        GameLog.DebugFormat("Departing viewport is a rectangle starting at {0}, {1}", departingViewport.X,
+            departingViewport.Y);
         GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
             commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
-        X = (byte)newX;
-        Y = (byte)newY;
+        X = (byte) newX;
+        Y = (byte) newY;
         Direction = direction;
 
         // Transmit update to the moving client, as we are actually walking now
         var x0B = new ServerPacket(0x0B);
-        x0B.WriteByte((byte)direction);
-        x0B.WriteUInt16((byte)oldX);
-        x0B.WriteUInt16((byte)oldY);
+        x0B.WriteByte((byte) direction);
+        x0B.WriteUInt16((byte) oldX);
+        x0B.WriteUInt16((byte) oldY);
         x0B.WriteUInt16(0x0B);
         x0B.WriteUInt16(0x0B);
         x0B.WriteByte(0x01);
@@ -2077,17 +1970,17 @@ public class User : Creature
         {
             if (obj != this && obj is User)
             {
-
                 var user = obj as User;
                 GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                 var x0C = new ServerPacket(0x0C);
                 x0C.WriteUInt32(Id);
-                x0C.WriteUInt16((byte)oldX);
-                x0C.WriteUInt16((byte)oldY);
-                x0C.WriteByte((byte)direction);
+                x0C.WriteUInt16((byte) oldX);
+                x0C.WriteUInt16((byte) oldY);
+                x0C.WriteByte((byte) direction);
                 x0C.WriteByte(0x00);
                 user.Enqueue(x0C);
             }
+
             // Reactors receive an OnMove event
             if (obj != this && obj is Reactor)
             {
@@ -2108,33 +2001,24 @@ public class User : Creature
             AoiDeparture(obj);
         }
 
-        if (isWarp)
-        {
-            return targetWarp.Use(this);
-        }
+        if (isWarp) return targetWarp.Use(this);
 
         // Handle stepping onto a reactor, leaving a reactor, or both
         if (isReactors)
-        {
             foreach (var reactor in newReactors.Values)
                 reactor.OnEntry(this);
-        }
 
         if (wasReactors)
-        {
             foreach (var reactor in oldReactors.Values)
                 reactor.OnLeave(this);
-        }
 
         HasMoved = true;
         Map.EntityTree.Move(this);
         return true;
     }
 
-    public bool AddGold(Gold gold)
-    {
-        return AddGold(gold.Amount);
-    }
+    public bool AddGold(Gold gold) => AddGold(gold.Amount);
+
     public bool AddGold(uint amount)
     {
         if (Gold + amount > Constants.MAXIMUM_GOLD)
@@ -2151,10 +2035,7 @@ public class User : Creature
         return true;
     }
 
-    public bool RemoveGold(Gold gold)
-    {
-        return RemoveGold(gold.Amount);
-    }
+    public bool RemoveGold(Gold gold) => RemoveGold(gold.Amount);
 
     public void RecalculateBonuses()
     {
@@ -2187,6 +2068,7 @@ public class User : Creature
             SendSystemMessage("You cannot learn any more skills.");
             return false;
         }
+
         return AddSkill(castable, SkillBook.FindEmptySlot(castable.Book));
     }
 
@@ -2221,6 +2103,7 @@ public class User : Creature
             SendSystemMessage("You cannot learn any more spells.");
             return false;
         }
+
         return AddSpell(castable, SpellBook.FindEmptySlot(castable.Book));
     }
 
@@ -2251,7 +2134,7 @@ public class User : Creature
     public bool AddItem(ItemObject itemObject, bool updateWeight = true)
     {
         Game.World.Insert(itemObject);
-        if (!Inventory.IsFull) 
+        if (!Inventory.IsFull)
             return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
         SendSystemMessage("You cannot carry any more items.");
         Map.Insert(itemObject, X, Y);
@@ -2278,7 +2161,7 @@ public class User : Creature
         {
             if (itemObject.Count + inventoryItem.Count > inventoryItem.MaximumStack)
             {
-                itemObject.Count = (inventoryItem.Count + itemObject.Count) - inventoryItem.MaximumStack;
+                itemObject.Count = inventoryItem.Count + itemObject.Count - inventoryItem.MaximumStack;
                 inventoryItem.Count = inventoryItem.MaximumStack;
                 SendSystemMessage(string.Format("You can't carry any more {0}", itemObject.Name));
                 Map.Insert(itemObject, X, Y);
@@ -2313,22 +2196,21 @@ public class User : Creature
     {
         var xmlItem = World.WorldData.GetByIndex<Item>(itemName);
 
-        if(xmlItem.Stackable)
+        if (xmlItem.Stackable)
         {
-            if(Inventory.ContainsName(itemName, 1))
+            if (Inventory.ContainsName(itemName))
             {
                 var slots = Inventory.GetSlotsByName(itemName);
 
-                foreach(var i in slots)
-                {
+                foreach (var i in slots)
                     if (quantity > 0)
                     {
                         var slot = Inventory[i];
-                        if(slot.Count < slot.MaximumStack)
+                        if (slot.Count < slot.MaximumStack)
                         {
                             var diff = slot.MaximumStack - slot.Count;
 
-                            if(diff >= quantity)
+                            if (diff >= quantity)
                             {
                                 slot.Count += quantity;
                                 quantity = 0;
@@ -2336,22 +2218,22 @@ public class User : Creature
                             else
                             {
                                 slot.Count += diff;
-                                quantity -= (ushort)diff;
+                                quantity -= (ushort) diff;
                             }
+
                             SendItemUpdate(slot, i);
-                            if(updateWeight) Inventory.RecalculateWeight();
+                            if (updateWeight) Inventory.RecalculateWeight();
                         }
                     }
-                }
-                if(quantity > 0)
-                {
+
+                if (quantity > 0)
                     do
                     {
                         var item = World.CreateItem(xmlItem.Id);
-                        if(quantity > item.MaximumStack)
+                        if (quantity > item.MaximumStack)
                         {
                             item.Count = item.MaximumStack;
-                            quantity -= (ushort)item.MaximumStack;
+                            quantity -= (ushort) item.MaximumStack;
                             AddItem(item, updateWeight);
                         }
                         else
@@ -2360,10 +2242,7 @@ public class User : Creature
                             quantity -= quantity;
                             AddItem(item, updateWeight);
                         }
-
-                    } 
-                    while (quantity > 0);
-                }
+                    } while (quantity > 0);
             }
             else
             {
@@ -2373,7 +2252,7 @@ public class User : Creature
                     if (quantity > item.MaximumStack)
                     {
                         item.Count = item.MaximumStack;
-                        quantity -= (byte)item.MaximumStack;
+                        quantity -= (byte) item.MaximumStack;
                         World.Insert(item);
                         AddItem(item, updateWeight);
                     }
@@ -2384,12 +2263,13 @@ public class User : Creature
                         World.Insert(item);
                         AddItem(item, updateWeight);
                     }
-                }
-                while (quantity > 0);
+                } while (quantity > 0);
             }
+
             return true;
         }
-        else if(Inventory.EmptySlots >= quantity)
+
+        if (Inventory.EmptySlots >= quantity)
         {
             do
             {
@@ -2397,14 +2277,12 @@ public class User : Creature
                 World.Insert(item);
                 AddItem(item, updateWeight);
                 quantity -= 1;
-            }
-            while (quantity > 0);
+            } while (quantity > 0);
+
             return true;
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public bool RemoveItem(byte slot, bool updateWeight = true)
@@ -2415,6 +2293,7 @@ public class User : Creature
             if (updateWeight) UpdateAttributes(StatUpdateFlags.Primary);
             return true;
         }
+
         return false;
     }
 
@@ -2427,7 +2306,6 @@ public class User : Creature
             var remaining = (int) quantity;
             var slots = Inventory.GetSlotsByName(itemName);
             foreach (var i in slots)
-            {
                 if (remaining > 0)
                 {
                     if (Inventory[i].Stackable)
@@ -2463,7 +2341,6 @@ public class User : Creature
                     GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
                     break;
                 }
-            }
 
             foreach (var slot in slotsToClear)
             {
@@ -2489,8 +2366,10 @@ public class User : Creature
             SendItemUpdate(Inventory[slot], slot);
             return true;
         }
+
         return false;
     }
+
     public bool DecreaseItem(byte slot, int quantity)
     {
         if (Inventory.Decrease(slot, quantity))
@@ -2498,6 +2377,7 @@ public class User : Creature
             SendItemUpdate(Inventory[slot], slot);
             return true;
         }
+
         return false;
     }
 
@@ -2510,7 +2390,7 @@ public class User : Creature
             GameLog.DebugFormat("Slot wasn't null, aborting");
             return false;
         }
-        
+
         ApplyBonuses(itemObject);
         UpdateAttributes(StatUpdateFlags.Stats);
         SendEquipItem(itemObject, slot);
@@ -2528,19 +2408,21 @@ public class User : Creature
         // Process requirements
         if (item != null)
         {
-            var f = Equipment.Where(x => x.Template.SlotRequirements.Any())
-                .SelectMany(itemReq => itemReq.Template.SlotRequirements);
-            if (Equipment.Where(x => x.Template.SlotRequirements.Any()).SelectMany(itemReq => itemReq.Template.SlotRequirements).Any(req => req.Slot == (EquipmentSlot) (slot)))
+            var f = Equipment.Where(predicate: x => x.Template.SlotRequirements.Any())
+                .SelectMany(selector: itemReq => itemReq.Template.SlotRequirements);
+            if (Equipment.Where(predicate: x => x.Template.SlotRequirements.Any())
+                .SelectMany(selector: itemReq => itemReq.Template.SlotRequirements)
+                .Any(predicate: req => req.Slot == (EquipmentSlot) slot))
             {
                 // TODO: improve messaging here
-                SendSystemMessage($"Other equipment must be removed first.");
+                SendSystemMessage("Other equipment must be removed first.");
                 return false;
             }
         }
 
         if (Equipment.Remove(slot))
         {
-            SendRefreshEquipmentSlot(slot); 
+            SendRefreshEquipmentSlot(slot);
             SendSystemMessage($"Unequipped {item.Name}");
             RemoveBonuses(item);
             // TODO: target this recalculation, this is a mildly expensive operation
@@ -2550,6 +2432,7 @@ public class User : Creature
             if (sendUpdate) Show();
             return true;
         }
+
         return false;
     }
 
@@ -2558,7 +2441,7 @@ public class User : Creature
         // Like a normal refresh packet, except with a byte indicating which slot we wish to clear
 
         var refreshPacket = new ServerPacket(0x38);
-        refreshPacket.WriteByte((byte)slot);
+        refreshPacket.WriteByte((byte) slot);
         Enqueue(refreshPacket);
     }
 
@@ -2588,7 +2471,7 @@ public class User : Creature
             if (newSlotItem.Count >= newSlotItem.MaximumStack) return;
             var diff = newSlotItem.MaximumStack - newSlotItem.Count;
 
-            if(diff > oldSlotItem.Count)
+            if (diff > oldSlotItem.Count)
             {
                 newSlotItem.Count += oldSlotItem.Count;
                 RemoveItem(oldSlot);
@@ -2608,7 +2491,6 @@ public class User : Creature
             SendItemUpdate(Inventory[oldSlot], oldSlot);
             SendItemUpdate(Inventory[newSlot], newSlot);
         }
-            
     }
 
     public void SwapCastable(byte oldSlot, byte newSlot, Book book)
@@ -2634,7 +2516,8 @@ public class User : Creature
     }
 
     public override void Damage(double damage, ElementType element = ElementType.None,
-        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null, bool onDeath = true)
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
+        bool onDeath = true)
     {
         if (Condition.Comatose || !Condition.Alive) return;
         base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
@@ -2654,22 +2537,23 @@ public class User : Creature
             }
         }
         else if (Stats.Hp == 0)
+        {
             OnDeath();
+        }
         else
         {
             foreach (var item in Equipment)
-            {
-                if (item.EquipmentSlot != (byte) ItemSlots.Weapon && !(item.Undamageable))
-                    item.Durability -= 1 / (item.MaximumDurability * ((100 - Stats.Ac) == 0 ? 1: (100 - Stats.Ac)));
-            }
+                if (item.EquipmentSlot != (byte) ItemSlots.Weapon && !item.Undamageable)
+                    item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
         }
+
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
     public override void Heal(double heal, Creature source = null)
     {
         base.Heal(heal, source);
-        if (this is User) { UpdateAttributes(StatUpdateFlags.Current); }
+        if (this is User) UpdateAttributes(StatUpdateFlags.Current);
     }
 
     private bool CheckCastableRestrictions(List<EquipmentRestriction> restrictions, out string message)
@@ -2681,16 +2565,15 @@ public class User : Creature
 
         // First restriction to be verified passes.
         foreach (var restriction in restrictions)
-        {
             /* <Restrictions>
-                  <Item Slot="Necklace">Nadurra Necklace</Item><!--is it equipped?-->
-                  <Item>Nadurrua Necklace</Item><!--is it carried-->
-                  <Item Slot="Weapon" Type="Claw"><!-- are you wearing a claw weapon?-->  
-                  <Item Slot="Weapon" Type="None"><!-- are you wearing no weapon?-->  
-               </Restrictions>
-           * 
-           * 
-           */
+                      <Item Slot="Necklace">Nadurra Necklace</Item><!--is it equipped?-->
+                      <Item>Nadurrua Necklace</Item><!--is it carried-->
+                      <Item Slot="Weapon" Type="Claw"><!-- are you wearing a claw weapon?-->  
+                      <Item Slot="Weapon" Type="None"><!-- are you wearing no weapon?-->  
+                   </Restrictions>
+               * 
+               * 
+               */
             if (restriction.Slot == EquipmentSlot.None && restriction.Value != null)
             {
                 // Inventory check
@@ -2702,10 +2585,8 @@ public class User : Creature
             {
                 // Named slot with specific item restriction
                 var item = Equipment.FindByName(restriction.Value);
-                if (item.EquipmentSlot != ((byte)restriction.Slot - 1))
-                {
+                if (item.EquipmentSlot != (byte) restriction.Slot - 1)
                     message = $"You must have {restriction.Value} equipped";
-                }
                 else
                     return true;
             }
@@ -2717,27 +2598,25 @@ public class User : Creature
                         return true;
                     if (Equipment.Weapon != null && restriction.Type == Equipment.Weapon.WeaponType)
                         return true;
-                    message = $"You can't use this with your current class of weapon.";
+                    message = "You can't use this with your current class of weapon.";
                 }
                 else
                 {
                     // TODO: improve message and check
-                    var slot = ((byte)restriction.Slot) - 1;
-                    if (Equipment[(byte)slot] != null)
-                        message = $"You are missing some equipment.";
+                    var slot = (byte) restriction.Slot - 1;
+                    if (Equipment[(byte) slot] != null)
+                        message = "You are missing some equipment.";
                 }
             }
-        }
+
         return false;
     }
 
     public override bool UseCastable(Castable castableXml, Creature target = null)
     {
-        if(castableXml.Intents[0].UseType == SpellUseType.Prompt)
-        {
+        if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
             //do something. 
             return false;
-        }
 
         // Check casting costs
         if (!ProcessCastingCost(castableXml, target, out var message))
@@ -2750,7 +2629,6 @@ public class User : Creature
             return base.UseCastable(castableXml, target);
         SendSystemMessage(restrictionMessage);
         return false;
-
     }
 
     public void AssailAttack(Direction direction, Creature target = null)
@@ -2758,29 +2636,21 @@ public class User : Creature
         target ??= GetDirectionalTarget(direction);
         var animation = false;
 
-        foreach (var c in SkillBook.Where(c => c.Castable.IsAssail))
-        {
+        foreach (var c in SkillBook.Where(predicate: c => c.Castable.IsAssail))
             if (target != null && target.GetType() != typeof(Merchant))
             {
                 UseSkill(SkillBook.SlotOf(c.Castable.Name));
                 animation = true;
             }
-        }
 
         if (!animation)
         {
             var motionId = (byte) 1;
             if (Class == Class.Warrior)
-            {
-                if (SkillBook.Any(b => b.Castable.Name == "Wield Two-Handed Weapon"))
-                {
+                if (SkillBook.Any(predicate: b => b.Castable.Name == "Wield Two-Handed Weapon"))
                     if (Equipment.Weapon?.WeaponType == WeaponType.TwoHand &&
                         Equipment.Armor?.Class == Class.Warrior)
-                    {
                         motionId = 129;
-                    }
-                }
-            }
 
             if (Class == Class.Monk)
             {
@@ -2788,28 +2658,21 @@ public class User : Creature
                 {
                     motionId = 132;
                     if (Equipment.Weapon != null)
-                    {
                         if (Equipment.Weapon?.WeaponType == WeaponType.OneHand ||
                             Equipment.Weapon?.WeaponType == WeaponType.Dagger ||
                             Equipment.Weapon?.WeaponType == WeaponType.Staff)
-                        {
                             motionId = 1;
-                        }
-                    }
                 }
 
-                if (Equipment.Shield != null)
-                {
-                    motionId = 1;
-                }
+                if (Equipment.Shield != null) motionId = 1;
             }
-            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable.IsAssail);
-            var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
+
+            var firstAssail = SkillBook.FirstOrDefault(predicate: x => x.Castable.IsAssail);
+            var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte) 1;
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);
             PlaySound(soundId);
         }
-
     }
 
 
@@ -2821,33 +2684,32 @@ public class User : Creature
         // string should be sent.
         if (!Grouped) return sb.ToString();
         sb.Append("Group members");
-        sb.Append((char)0x0A);
+        sb.Append((char) 0x0A);
 
         // The user's name should go first, and should not have an asterisk.
         // In practice this will mean that the user's name appears first and
         // is grayed out, while all other names are white.
         sb.Append("  " + Name);
-        sb.Append((char)0x0A);
+        sb.Append((char) 0x0A);
 
         foreach (var member in Group.Members)
-        {
             if (member.Name != Name)
             {
                 sb.Append("  " + member.Name);
-                sb.Append((char)0x0A);
+                sb.Append((char) 0x0A);
             }
-        }
+
         sb.Append($"Total {Group.Members.Count}");
 
         return sb.ToString();
     }
 
     /// <summary>
-    /// Send a player's profile to themselves (e.g. click on self or hit Y for group info)
+    ///     Send a player's profile to themselves (e.g. click on self or hit Y for group info)
     /// </summary>
     public void SendProfile()
     {
-        var profile = new ServerPacketStructures.PlayerProfile()
+        var profile = new ServerPacketStructures.PlayerProfile
         {
             Player = this,
             NationFlag = Nation.Flag,
@@ -2857,8 +2719,8 @@ public class User : Creature
             IsGrouped = Grouped,
             CanGroup = Grouping,
             GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
-            Class = (byte)Class,
-            ClassName = IsMaster ? "Master" : Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
+            Class = (byte) Class,
+            ClassName = IsMaster ? "Master" : Constants.REVERSE_CLASSES[(int) Class].Capitalize(),
             GuildName = GetGuildInfo().GuildName,
             PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
         };
@@ -2867,14 +2729,20 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Update a player's last login time in the database and the live object.
+    ///     Update a player's last login time in the database and the live object.
     /// </summary>
-    public void UpdateLoginTime() => AuthInfo.LastLogin = DateTime.Now;
+    public void UpdateLoginTime()
+    {
+        AuthInfo.LastLogin = DateTime.Now;
+    }
 
     /// <summary>
-    /// Update a player's last logoff time in the database and the live object.
+    ///     Update a player's last logoff time in the database and the live object.
     /// </summary>
-    public void UpdateLogoffTime() => AuthInfo.LastLogoff = DateTime.Now;
+    public void UpdateLogoffTime()
+    {
+        AuthInfo.LastLogoff = DateTime.Now;
+    }
 
     public void SendWorldMap(WorldMap map)
     {
@@ -2884,6 +2752,7 @@ public class User : Creature
         IsAtWorldMap = true;
         Enqueue(x2E);
     }
+
     public void SendAnimation(uint id, byte motion, short speed)
     {
         // 1a 00 00 87 af   88  00 28  ff     a2 53 23
@@ -2917,6 +2786,7 @@ public class User : Creature
         x29.WriteByte(0x00);
         Enqueue(x29);
     }
+
     public void SendEffect(short x, short y, ushort effect, short speed)
     {
         GameLog.DebugFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
@@ -2973,12 +2843,14 @@ public class User : Creature
         var merchantSkills = new MerchantSkills();
         merchantSkills.Skills = new List<MerchantSkill>();
 
-        foreach (var skill in merchant.Template.Roles.Train.Where(x => x.Type == "Skill" && (x.Class.Contains(Class) || x.Class.Contains(Class.Peasant))).OrderBy(y => y.Name))
-        {
+        foreach (var skill in merchant.Template.Roles.Train
+                     .Where(predicate: x => x.Type == "Skill" &&
+                                            (x.Class.Contains(Class) || x.Class.Contains(Class.Peasant)))
+                     .OrderBy(keySelector: y => y.Name))
             if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Castable result))
             {
                 if (SkillBook.Contains(result.Id)) continue;
-                merchantSkills.Skills.Add(new MerchantSkill()
+                merchantSkills.Skills.Add(new MerchantSkill
                 {
                     IconType = 3,
                     Icon = result.Icon,
@@ -2986,17 +2858,17 @@ public class User : Creature
                     Name = result.Name
                 });
             }
-        }
-        merchantSkills.Id = (ushort)MerchantMenuItem.LearnSkill;
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        merchantSkills.Id = (ushort) MerchantMenuItem.LearnSkill;
+
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantSkills,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = Convert.ToByte(string.IsNullOrEmpty(Portrait)),
             Name = merchant.Name,
@@ -3011,17 +2883,17 @@ public class User : Creature
     {
         var userSkills = new UserSkillBook
         {
-            Id = (ushort)MerchantMenuItem.ForgetSkillAccept
+            Id = (ushort) MerchantMenuItem.ForgetSkillAccept
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserSkillBook,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3039,14 +2911,14 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3063,17 +2935,17 @@ public class User : Creature
     {
         var userSpells = new UserSpellBook
         {
-            Id = (ushort)MerchantMenuItem.ForgetSpellAccept
+            Id = (ushort) MerchantMenuItem.ForgetSpellAccept
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserSpellBook,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3091,7 +2963,7 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3114,23 +2986,23 @@ public class User : Creature
     public void ShowLearnSkill(Merchant merchant, Castable castable)
     {
         var skillDesc =
-            castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
+            castable.Descriptions.Single(predicate: x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        options.Options.Add(new MerchantDialogOption()
+        options.Options.Add(new MerchantDialogOption
         {
             Id = (ushort) MerchantMenuItem.LearnSkillAgree,
             Text = "Yes"
         });
-        options.Options.Add(new MerchantDialogOption()
+        options.Options.Add(new MerchantDialogOption
         {
             Id = (ushort) MerchantMenuItem.LearnSkillDisagree,
             Text = "No"
         });
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3155,27 +3027,23 @@ public class User : Creature
     {
         var castable = PendingLearnableCastable;
         //now check requirements.
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
 
-        MerchantOptions options = new MerchantOptions();
+        var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
         var prompt = string.Empty;
         if (classReq.Level.Min > Stats.Level)
-        {
             prompt = merchant.GetLocalString("learn_skill_player_level", ("$NAME", castable.Name),
                 ("$LEVEL", classReq.Level.Min.ToString()));
-        }
         if (classReq.Physical != null)
-        {
-            if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
-            {
+            if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int ||
+                Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con ||
+                Stats.Dex < classReq.Physical.Dex)
                 prompt = merchant.GetLocalString("learn_skill_prereq_stats", ("$NAME", castable.Name),
-                    ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
+                    ("$STATS",
+                        $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
-            }
-        }
         if (classReq.Prerequisites != null)
-        {
             foreach (var preReq in classReq.Prerequisites)
             {
                 BookSlot slot;
@@ -3189,11 +3057,11 @@ public class User : Creature
                     }
 
                     if (SkillBook.Contains(castablePrereq.Id))
-                        slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
                     else
-                        slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
+                        slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
 
-                    if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
+                    if (Math.Floor(slot.UseCount / (double) slot.Castable.Mastery.Uses * 100) < preReq.Level)
                     {
                         prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
@@ -3201,10 +3069,10 @@ public class User : Creature
                     }
                 }
                 else
+                {
                     prompt = merchant.GetLocalString("learn_error");
-
+                }
             }
-        }
 
         if (prompt == string.Empty) //this is so bad
         {
@@ -3212,41 +3080,36 @@ public class User : Creature
             //now we can learning!
             if (classReq.Items != null)
                 reqStr = classReq.Items.Aggregate(reqStr,
-                    (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+                    func: (current, req) => current + req.Value + "(" + req.Quantity + "), ");
 
             if (classReq.Gold != 0)
-            {
                 reqStr += classReq.Gold + " coins";
-            }
             else
-            {
                 reqStr = reqStr.Remove(reqStr.Length - 1);
-            }
 
             prompt = merchant.GetLocalString("learn_skill_reqs", ("$NAME", castable.Name), ("$REQS", reqStr));
 
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
                 Id = (ushort) MerchantMenuItem.LearnSkillAccept,
                 Text = "Yes"
             });
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
                 Id = (ushort) MerchantMenuItem.LearnSkillDisagree,
                 Text = "No"
             });
-
         }
 
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3255,56 +3118,45 @@ public class User : Creature
         };
 
         Enqueue(packet.Packet());
-
     }
 
     public void ShowLearnSkillAccept(Merchant merchant)
     {
         var castable = PendingLearnableCastable;
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
 
         var prompt = string.Empty;
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
         //verify user has required items.
-        if (!(Gold >= classReq.Gold))
-        {
-            prompt = merchant.GetLocalString("learn_skill_prereq_gold");
-        }
+        if (!(Gold >= classReq.Gold)) prompt = merchant.GetLocalString("learn_skill_prereq_gold");
         if (prompt == string.Empty)
-        {
-            if (classReq.Items.Any(itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
-            {
+            if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
-            }
-        }
 
-        if (SkillBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySkill ||
-            SkillBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySkill ||
-            SkillBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySkill)
+        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySkill) ||
+            (SkillBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySkill) ||
+            (SkillBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySkill))
             prompt = merchant.GetLocalString("learn_skill_book_full");
 
         if (prompt == string.Empty)
         {
             RemoveGold(classReq.Gold);
-            foreach (var req in classReq.Items)
-            {
-                RemoveItem(req.Value, req.Quantity);
-            }
+            foreach (var req in classReq.Items) RemoveItem(req.Value, req.Quantity);
             SkillBook.Add(castable);
             SendInventory();
             SendSkills();
             prompt = merchant.GetLocalString("learn_skill_success");
-
         }
-        var packet = new ServerPacketStructures.MerchantResponse()
+
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3321,14 +3173,14 @@ public class User : Creature
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3345,14 +3197,14 @@ public class User : Creature
         merchantSpells.Spells = new List<MerchantSpell>();
 
         foreach (var spell in merchant.Template.Roles.Train
-                     .Where(x => x.Type == "Spell" &&
-                                 (x.Class.Contains(Class) || x.Class.Contains(Class.Peasant)))
-                     .OrderBy(y => y.Name))
+                     .Where(predicate: x => x.Type == "Spell" &&
+                                            (x.Class.Contains(Class) || x.Class.Contains(Class.Peasant)))
+                     .OrderBy(keySelector: y => y.Name))
         {
             // Verify the spell exists first
             if (!Game.World.WorldData.TryGetValueByIndex(spell.Name, out Castable result)) continue;
             if (SpellBook.Contains(result.Id)) continue;
-            merchantSpells.Spells.Add(new MerchantSpell()
+            merchantSpells.Spells.Add(new MerchantSpell
             {
                 IconType = 2,
                 Icon = result.Icon,
@@ -3361,16 +3213,16 @@ public class User : Creature
             });
         }
 
-        merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
+        merchantSpells.Id = (ushort) MerchantMenuItem.LearnSpell;
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantSpells,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3383,34 +3235,36 @@ public class User : Creature
 
     public void ShowLearnSpell(Merchant merchant, Castable castable)
     {
-        var spellDesc = castable.Descriptions.Single(x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
+        var spellDesc =
+            castable.Descriptions.Single(predicate: x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        options.Options.Add(new MerchantDialogOption()
+        options.Options.Add(new MerchantDialogOption
         {
-            Id = (ushort)MerchantMenuItem.LearnSpellAgree,
+            Id = (ushort) MerchantMenuItem.LearnSpellAgree,
             Text = "Yes"
         });
-        options.Options.Add(new MerchantDialogOption()
+        options.Options.Add(new MerchantDialogOption
         {
-            Id = (ushort)MerchantMenuItem.LearnSpellDisagree,
+            Id = (ushort) MerchantMenuItem.LearnSpellDisagree,
             Text = "No"
         });
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_spell_choice", ("$NAME", castable.Name),("$DESC", spellDesc.Value)),
+            Text = merchant.GetLocalString("learn_spell_choice", ("$NAME", castable.Name),
+                ("$DESC", spellDesc.Value)),
             Options = options
         };
 
@@ -3423,27 +3277,23 @@ public class User : Creature
     {
         var castable = PendingLearnableCastable;
         //now check requirements.
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
-        MerchantOptions options = new MerchantOptions();
+        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
         var prompt = string.Empty;
-            
-        if (classReq.Level.Min > Stats.Level)
-        {
-            prompt = merchant.GetLocalString("learn_spell_player_level", ("$NAME", castable.Name), ("$LEVEL", classReq.Level.Min.ToString()));
-        }
-        if (classReq.Physical != null)
-        {
-            if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int || Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con || Stats.Dex < classReq.Physical.Dex)
-            {
-                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$NAME", castable.Name),
-                    ("$STATS", $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
-                );
 
-            }
-        }
+        if (classReq.Level.Min > Stats.Level)
+            prompt = merchant.GetLocalString("learn_spell_player_level", ("$NAME", castable.Name),
+                ("$LEVEL", classReq.Level.Min.ToString()));
+        if (classReq.Physical != null)
+            if (Stats.Str < classReq.Physical.Str || Stats.Int < classReq.Physical.Int ||
+                Stats.Wis < classReq.Physical.Wis || Stats.Con < classReq.Physical.Con ||
+                Stats.Dex < classReq.Physical.Dex)
+                prompt = merchant.GetLocalString("learn_spell_prereq_stats", ("$NAME", castable.Name),
+                    ("$STATS",
+                        $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
+                );
         if (classReq.Prerequisites != null)
-        {
             foreach (var preReq in classReq.Prerequisites)
             {
                 BookSlot slot;
@@ -3457,65 +3307,64 @@ public class User : Creature
                     }
 
                     if (SkillBook.Contains(castablePrereq.Id))
-                        slot = SkillBook.Single(x => x.Castable.Name == preReq.Value);
+                        slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
                     else
-                        slot = SpellBook.Single(x => x.Castable.Name == preReq.Value);
-                    if (Math.Floor((slot.UseCount / (double) slot.Castable.Mastery.Uses) * 100) < preReq.Level)
+                        slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                    if (Math.Floor(slot.UseCount / (double) slot.Castable.Mastery.Uses * 100) < preReq.Level)
                     {
                         prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
                             ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
                         break;
-
                     }
                 }
                 else
+                {
                     prompt = merchant.GetLocalString("learn_error");
+                }
             }
-        }
+
         if (prompt == string.Empty) //this is so bad
         {
             var reqStr = string.Empty;
             //now we can learning!
-            if (classReq.Items != null) reqStr = classReq.Items.Aggregate(reqStr, (current, req) => current + (req.Value + "(" + req.Quantity + "), "));
+            if (classReq.Items != null)
+                reqStr = classReq.Items.Aggregate(reqStr,
+                    func: (current, req) => current + req.Value + "(" + req.Quantity + "), ");
 
             if (classReq.Gold != 0)
             {
-                if(reqStr != string.Empty)
-                {
+                if (reqStr != string.Empty)
                     reqStr += $" and {classReq.Gold} coins";
-                }
                 else
-                {
                     reqStr += $"{classReq.Gold} coins";
-                }
             }
             else
             {
                 reqStr = reqStr.Remove(reqStr.Length - 1);
             }
+
             prompt = merchant.GetLocalString("learn_spell_reqs", ("$NAME", castable.Name), ("$REQS", reqStr));
 
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
-                Id = (ushort)MerchantMenuItem.LearnSpellAccept,
+                Id = (ushort) MerchantMenuItem.LearnSpellAccept,
                 Text = "Yes"
             });
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
-                Id = (ushort)MerchantMenuItem.LearnSpellDisagree,
+                Id = (ushort) MerchantMenuItem.LearnSpellDisagree,
                 Text = "No"
             });
-
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3524,57 +3373,46 @@ public class User : Creature
         };
 
         Enqueue(packet.Packet());
-
     }
 
     public void ShowLearnSpellAccept(Merchant merchant)
     {
         var castable = PendingLearnableCastable;
-        var classReq = castable.Requirements.Single(x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
         var prompt = string.Empty;
         var options = new MerchantOptions
         {
             Options = new List<MerchantDialogOption>()
         };
         //verify user has required items.
-        if (!(Gold >= classReq.Gold))
-        {
-            prompt = merchant.GetLocalString("learn_spell_prereq_gold");
-        }
+        if (!(Gold >= classReq.Gold)) prompt = merchant.GetLocalString("learn_spell_prereq_gold");
         if (prompt == string.Empty)
-        {
-            if (classReq.Items.Any(itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
-            {
+            if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
-            }
-        }
 
-        if (SpellBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySpell ||
-            SpellBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySpell ||
-            SpellBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySpell)
+        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySpell) ||
+            (SpellBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySpell) ||
+            (SpellBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySpell))
             prompt = merchant.GetLocalString("learn_spell_book_full");
 
         if (prompt == string.Empty)
         {
             RemoveGold(classReq.Gold);
-            foreach (var req in classReq.Items)
-            {
-                RemoveItem(req.Value, req.Quantity);
-            }
+            foreach (var req in classReq.Items) RemoveItem(req.Value, req.Quantity);
             SpellBook.Add(castable);
             SendInventory();
             SendSpells();
             prompt = merchant.GetLocalString("learn_spell_success");
-
         }
-        var packet = new ServerPacketStructures.MerchantResponse()
+
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3592,14 +3430,14 @@ public class User : Creature
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3616,35 +3454,32 @@ public class User : Creature
         merchantItems.Items = new List<MerchantShopItem>();
         var itemsCount = 0;
 
-        foreach(var item in merchant.GetOnHandInventory())
-        {
+        foreach (var item in merchant.GetOnHandInventory())
             if (item.OnHand > 0)
             {
                 var worldItem = item.Item;
-                merchantItems.Items.Add(new MerchantShopItem()
+                merchantItems.Items.Add(new MerchantShopItem
                 {
-                    Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
-                    Color = (byte)worldItem.Properties.Appearance.Color,
+                    Tile = (ushort) (0x8000 + worldItem.Properties.Appearance.Sprite),
+                    Color = (byte) worldItem.Properties.Appearance.Color,
                     Description = worldItem.Properties.Vendor?.Description ?? "",
                     Name = worldItem.Name,
                     Price = Convert.ToUInt32(worldItem.Properties.Physical.Value)
-
                 });
                 itemsCount++;
             }
-        }
 
-        merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
+        merchantItems.Id = (ushort) MerchantMenuItem.BuyItemQuantity;
 
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantShopItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3662,17 +3497,17 @@ public class User : Creature
         {
             var input = new MerchantInput();
 
-            input.Id = (ushort)MerchantMenuItem.BuyItemAccept;
+            input.Id = (ushort) MerchantMenuItem.BuyItemAccept;
 
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -3692,25 +3527,18 @@ public class User : Creature
         var prompt = string.Empty;
         var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
         var itemObj = Game.World.CreateItem(item.Id);
-        var reqGold = (uint)(itemObj.Value * quantity);
+        var reqGold = itemObj.Value * quantity;
         var options = new MerchantOptions
         {
             Options = new List<MerchantDialogOption>()
         };
 
-        if(MaximumWeight < (CurrentWeight + item.Properties.Physical.Weight))
-        {
+        if (MaximumWeight < CurrentWeight + item.Properties.Physical.Weight)
             prompt = merchant.GetLocalString("buy_failure_weight");
-        }
 
         if (quantity > merchant.GetOnHand(PendingBuyableItem))
-        {
             prompt = merchant.GetLocalString("buy_failure_quantity");
-        }
-        if (Gold < reqGold)
-        {
-            prompt = merchant.GetLocalString("buy_failure_gold");
-        }
+        if (Gold < reqGold) prompt = merchant.GetLocalString("buy_failure_gold");
 
         if (prompt == string.Empty) //this is so bad
         {
@@ -3720,9 +3548,8 @@ public class User : Creature
             {
                 if (itemObj.Stackable)
                 {
-
                     merchant.ReduceInventory(PendingBuyableItem, quantity);
-                    AddItem(itemObj.Name, (ushort)quantity);
+                    AddItem(itemObj.Name, (ushort) quantity);
                 }
                 else
                 {
@@ -3735,7 +3562,7 @@ public class User : Creature
                 if (itemObj.Stackable)
                 {
                     merchant.ReduceInventory(PendingBuyableItem, quantity);
-                    AddItem(itemObj.Name, (ushort)quantity);
+                    AddItem(itemObj.Name, (ushort) quantity);
                 }
                 else
                 {
@@ -3743,20 +3570,20 @@ public class User : Creature
                     AddItem(itemObj);
                 }
             }
+
             RemoveGold(reqGold);
             SendCloseDialog();
         }
         else
         {
-
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -3772,7 +3599,7 @@ public class User : Creature
     {
         var inventoryItems = new UserInventoryItems();
         inventoryItems.InventorySlots = new List<byte>();
-        inventoryItems.Id = (ushort)MerchantMenuItem.SellItemQuantity;
+        inventoryItems.Id = (ushort) MerchantMenuItem.SellItemQuantity;
         var itemsCount = 0;
 
         for (byte i = 1; i <= Inventory.Size; i++)
@@ -3785,14 +3612,14 @@ public class User : Creature
             }
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserInventoryItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3810,22 +3637,22 @@ public class User : Creature
         {
             var input = new MerchantInput();
 
-            input.Id = (ushort)MerchantMenuItem.SellItem;
+            input.Id = (ushort) MerchantMenuItem.SellItem;
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = merchant.GetLocalString("sell_quantity", ("$QUANTITY", item.Count.ToString()), ("$ITEM", item.Name)),
+                Text = merchant.GetLocalString("sell_quantity", ("$QUANTITY", item.Count.ToString()),
+                    ("$ITEM", item.Name)),
                 Input = input
-
             };
             Enqueue(packet.Packet());
         }
@@ -3833,14 +3660,15 @@ public class User : Creature
         {
             ShowSellConfirm(merchant, slot);
         }
-
     }
+
     public void ShowSellConfirm(Merchant merchant, byte slot, uint quantity = 1)
     {
         PendingSellableSlot = slot;
         PendingSellableQuantity = quantity;
         var item = Inventory[slot];
-        var offer = (uint)(Math.Round(item.Value * Game.Config.Constants.MerchantBuybackPercentage, 0) * quantity);
+        var offer = (uint) (Math.Round(item.Value * Game.Config.Constants.MerchantBuybackPercentage, 0) *
+                            quantity);
         PendingMerchantOffer = offer;
         var options = new MerchantOptions
         {
@@ -3851,62 +3679,47 @@ public class User : Creature
         if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
 
         if (item.Durability != item.MaximumDurability)
-        {
             prompt = merchant.GetLocalString("sell_failure_durability");
-        }
 
         if (prompt == string.Empty)
-        {
             if (!Inventory.ContainsName(item.Name))
-            {
                 prompt = merchant.GetLocalString("sell_failure_no_item");
-            }
-        }
 
         if (prompt == string.Empty)
-        {
-            if (!Inventory.ContainsName(item.Name, (int)quantity))
-            {
+            if (!Inventory.ContainsName(item.Name, (int) quantity))
                 prompt = merchant.GetLocalString("sell_failure_quantity");
-            }
-        }
 
         if (prompt == string.Empty)
-        {
             if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
-            {
                 prompt = merchant.GetLocalString("sell_failure_gold_limit");
-            }
-        }
 
-        if (prompt == string.Empty) 
+        if (prompt == string.Empty)
         {
             var quant = quantity > 1 ? "those" : "that";
 
             prompt = merchant.GetLocalString("sell_offer", ("$GOLD", offer.ToString()), ("$QUANTITY", quant));
 
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
-                Id = (ushort)MerchantMenuItem.SellItemAccept,
+                Id = (ushort) MerchantMenuItem.SellItemAccept,
                 Text = "Yes"
             });
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
-                Id = (ushort)MerchantMenuItem.MainMenu,
+                Id = (ushort) MerchantMenuItem.MainMenu,
                 Text = "No"
             });
-
         }
 
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3915,14 +3728,13 @@ public class User : Creature
         };
 
         Enqueue(packet.Packet());
-
     }
 
     public void SellItemAccept(Merchant merchant)
     {
         if (Inventory[PendingSellableSlot].Count > PendingSellableQuantity)
         {
-            DecreaseItem(PendingSellableSlot, (int)PendingSellableQuantity);
+            DecreaseItem(PendingSellableSlot, (int) PendingSellableQuantity);
             AddGold(PendingMerchantOffer);
         }
         else
@@ -3930,20 +3742,21 @@ public class User : Creature
             RemoveItem(PendingSellableSlot);
             AddGold(PendingMerchantOffer);
         }
+
         PendingSellableSlot = 0;
         PendingMerchantOffer = 0;
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -3954,24 +3767,25 @@ public class User : Creature
         Enqueue(packet.Packet());
     }
 
-    public void ShowMerchantGoBack(Merchant merchant, string message, MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
+    public void ShowMerchantGoBack(Merchant merchant, string message,
+        MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
     {
         var x2F = new ServerPacket(0x2F);
         x2F.WriteByte(0x00); // type!
         x2F.WriteByte(0x01); // obj type
         x2F.WriteUInt32(merchant.Id);
         x2F.WriteByte(0x01); // ??
-        x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+        x2F.WriteUInt16((ushort) (0x4000 + merchant.Sprite));
         x2F.WriteByte(0x00); // color
         x2F.WriteByte(0x01); // ??
-        x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
+        x2F.WriteUInt16((ushort) (0x4000 + merchant.Sprite));
         x2F.WriteByte(0x00); // color
         x2F.WriteByte(0x00); // ??
         x2F.WriteString8(merchant.Name);
         x2F.WriteString16(message);
         x2F.WriteByte(1);
         x2F.WriteString8("Go back");
-        x2F.WriteUInt16((ushort)menuItem);
+        x2F.WriteUInt16((ushort) menuItem);
         Enqueue(x2F);
     }
 
@@ -3989,16 +3803,17 @@ public class User : Creature
                 itemsCount++;
             }
         }
-        userItems.Id = (ushort)MerchantMenuItem.SendParcelQuantity;
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        userItems.Id = (ushort) MerchantMenuItem.SendParcelQuantity;
+
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserInventoryItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4014,21 +3829,22 @@ public class User : Creature
         {
             var input = new MerchantInput
             {
-                Id = (ushort)MerchantMenuItem.SendParcelRecipient
+                Id = (ushort) MerchantMenuItem.SendParcelRecipient
             };
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
-                Text = merchant.GetLocalString("send_parcel_recipient", ("$QUANTITY", item.Count.ToString()),("$ITEM", item.Name)),
+                Text = merchant.GetLocalString("send_parcel_recipient", ("$QUANTITY", item.Count.ToString()),
+                    ("$ITEM", item.Name)),
                 Input = input
             };
             Enqueue(packet.Packet());
@@ -4037,8 +3853,8 @@ public class User : Creature
         {
             ShowMerchantSendParcelRecipient(merchant);
         }
-        PendingSendableParcel = item;
 
+        PendingSendableParcel = item;
     }
 
     public void ShowMerchantSendParcelRecipient(Merchant merchant, uint quantity = 1)
@@ -4046,17 +3862,17 @@ public class User : Creature
         PendingSendableQuantity = quantity;
         var input = new MerchantInput
         {
-            Id = (ushort)MerchantMenuItem.SendParcelAccept
+            Id = (ushort) MerchantMenuItem.SendParcelAccept
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Input,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4064,7 +3880,6 @@ public class User : Creature
             Input = input
         };
 
-            
 
         Enqueue(packet.Packet());
     }
@@ -4080,51 +3895,48 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
         //verify user has required items.
-        var parcelFee = (uint)Math.Ceiling((itemObj.Value * .10) * quantity);
-        if (!Game.World.WorldData.TryGetAuthInfo(recipient, out AuthInfo info))
-        {
+        var parcelFee = (uint) Math.Ceiling(itemObj.Value * .10 * quantity);
+        if (!Game.World.WorldData.TryGetAuthInfo(recipient, out var info))
             prompt = merchant.GetLocalString("parcel_recipient_nonexistent");
-        }
         if (prompt == string.Empty)
-        {
             if (!(Gold > parcelFee))
-            {
                 prompt = merchant.GetLocalString("send_parcel_fail", ("$FEE", parcelFee.ToString()));
-            }
-        }
         if (prompt == string.Empty)
         {
             RemoveGold(parcelFee);
-            RemoveItem(itemObj.Name, (ushort)quantity);
+            RemoveItem(itemObj.Name, (ushort) quantity);
             SendInventory();
             prompt = merchant.GetLocalString("send_parcel_success");
 
             var guidRef = World.WorldData.GetGuidReference(recipient);
             var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(guidRef);
             var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(guidRef);
-            var mboxString = merchant.GetLocalString("send_parcel_mailbox_message", 
+            var mboxString = merchant.GetLocalString("send_parcel_mailbox_message",
                 ("$SENDER", Name), ("$ITEM", $"{itemObj.Name} (qty {quantity})"));
 
-            recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name, merchant.GetLocalString("send_parcel_mailbox_subject", ("$NAME", Name)), mboxString));
+            recipientMailbox.ReceiveMessage(new Message(recipient, merchant.Name,
+                merchant.GetLocalString("send_parcel_mailbox_subject", ("$NAME", Name)), mboxString));
             parcelStore.AddItem(Name, itemObj.Name, quantity);
             parcelStore.Save();
-            if (info.IsLoggedIn && Game.World.TryGetActiveUser(recipient, out User recipientUser))
+            if (info.IsLoggedIn && Game.World.TryGetActiveUser(recipient, out var recipientUser))
             {
-                recipientUser.SendSystemMessage(merchant.GetLocalString("send_parcel_system_msg", ("$NAME", Name)));
+                recipientUser.SendSystemMessage(merchant.GetLocalString("send_parcel_system_msg",
+                    ("$NAME", Name)));
                 recipientUser.UpdateAttributes(StatUpdateFlags.UnreadMail);
             }
+
             PendingSellableQuantity = 0;
             PendingSendableParcel = null;
-                
         }
-        var packet = new ServerPacketStructures.MerchantResponse()
+
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4142,14 +3954,14 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4165,21 +3977,22 @@ public class User : Creature
 
     public void ShowDepositGoldMenu(Merchant merchant)
     {
-        string coins = "coin";
+        var coins = "coin";
         if (Vault.CurrentGold > 1) coins = "coins";
-        var prompt = merchant.GetLocalString("deposit_gold",("$COINS", Vault.CurrentGold.ToString()),("$REF", coins));
+        var prompt = merchant.GetLocalString("deposit_gold", ("$COINS", Vault.CurrentGold.ToString()),
+            ("$REF", coins));
 
         var input = new MerchantInput();
-        input.Id = (ushort)MerchantMenuItem.DepositGoldQuantity;
+        input.Id = (ushort) MerchantMenuItem.DepositGoldQuantity;
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Input,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4193,7 +4006,7 @@ public class User : Creature
     public void DepositGoldConfirm(Merchant merchant, uint amount)
     {
         string prompt;
-        if(amount > Gold)
+        if (amount > Gold)
         {
             prompt = merchant.GetLocalString("deposit_gold_failure_deficit");
             ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
@@ -4202,9 +4015,10 @@ public class User : Creature
         {
             if (amount > Vault.RemainingGold)
             {
-                string coins = "coin";
+                var coins = "coin";
                 if (amount > 1) coins = "coins";
-                prompt = merchant.GetLocalString("deposit_gold_failure_surplus", ("$COINS", Vault.RemainingGold.ToString()), ("$REF", coins));
+                prompt = merchant.GetLocalString("deposit_gold_failure_surplus",
+                    ("$COINS", Vault.RemainingGold.ToString()), ("$REF", coins));
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.DepositGoldMenu);
             }
             else
@@ -4212,36 +4026,37 @@ public class User : Creature
                 Vault.AddGold(amount);
                 Vault.Save();
                 RemoveGold(amount);
-                string coins = "coin";
+                var coins = "coin";
                 if (amount > 1) coins = "coins";
-                prompt = merchant.GetLocalString("deposit_gold_success", ("$COINS", amount.ToString()), ("$REF", coins));
+                prompt = merchant.GetLocalString("deposit_gold_success", ("$COINS", amount.ToString()),
+                    ("$REF", coins));
                 merchant.Say(prompt);
                 SendCloseDialog();
             }
-        }    
+        }
     }
 
     public void ShowWithdrawGoldMenu(Merchant merchant)
     {
-        string coins = "coin";
+        var coins = "coin";
         if (Vault.CurrentGold > 1) coins = "coins";
 
         var prompt = merchant.GetLocalString("withdraw_gold", ("$COINS", Vault.CurrentGold.ToString()),
             ("$REF", coins));
-            
+
         var input = new MerchantInput
         {
-            Id = (ushort)MerchantMenuItem.WithdrawGoldQuantity
+            Id = (ushort) MerchantMenuItem.WithdrawGoldQuantity
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Input,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4262,7 +4077,7 @@ public class User : Creature
         }
         else
         {
-            if (amount > (uint.MaxValue - Gold))
+            if (amount > uint.MaxValue - Gold)
             {
                 prompt = merchant.GetLocalString("withdraw_gold_failure_surplus");
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
@@ -4272,9 +4087,10 @@ public class User : Creature
                 Vault.RemoveGold(amount);
                 Vault.Save();
                 AddGold(amount);
-                string coins = "coin";
+                var coins = "coin";
                 if (amount > 1) coins = "coins";
-                prompt = merchant.GetLocalString("withdraw_gold_success", ("$COINS", amount.ToString()), ("$REF", coins));
+                prompt = merchant.GetLocalString("withdraw_gold_success", ("$COINS", amount.ToString()),
+                    ("$REF", coins));
                 merchant.Say(prompt);
                 SendCloseDialog();
             }
@@ -4285,25 +4101,23 @@ public class User : Creature
     {
         var inventoryItems = new UserInventoryItems();
         inventoryItems.InventorySlots = new List<byte>();
-        inventoryItems.Id = (ushort)MerchantMenuItem.DepositItemQuantity;
+        inventoryItems.Id = (ushort) MerchantMenuItem.DepositItemQuantity;
 
         for (byte i = 1; i <= Inventory.Size; i++)
         {
             if (Inventory[i] == null) continue;
             if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
-            {
                 inventoryItems.InventorySlots.Add(i);
-            }
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserInventoryItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4321,10 +4135,10 @@ public class User : Creature
         {
             var input = new MerchantInput
             {
-                Id = (ushort)MerchantMenuItem.DepositItem
+                Id = (ushort) MerchantMenuItem.DepositItem
             };
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4338,7 +4152,6 @@ public class User : Creature
                 Text = merchant.GetLocalString("deposit_item_quantity", ("$QUANTITY", item.Count.ToString()),
                     ("$ITEM", item.Name)),
                 Input = input
-
             };
             Enqueue(packet.Packet());
         }
@@ -4356,8 +4169,8 @@ public class User : Creature
 
         if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
 
-        var fee = (uint)(Math.Round(item.Value * 0.10, 0) * quantity);
-            
+        var fee = (uint) (Math.Round(item.Value * 0.10, 0) * quantity);
+
         var prompt = string.Empty;
 
         if (item.Durability != item.MaximumDurability)
@@ -4381,31 +4194,26 @@ public class User : Creature
 
         if (fee > Gold && !failure)
         {
-            string coins = "coin";
+            var coins = "coin";
             if (fee > 1) coins = "coins";
-            prompt = prompt = merchant.GetLocalString("deposit_item_failure_fee", ("$COINS", fee.ToString()),("$REF", coins));
+            prompt = prompt = merchant.GetLocalString("deposit_item_failure_fee", ("$COINS", fee.ToString()),
+                ("$REF", coins));
             failure = true;
         }
 
 
-
         if (prompt == string.Empty && !failure) //this is so bad
         {
-            string coins = "coin";
+            var coins = "coin";
             if (fee > 1) coins = "coins";
             //we can deposit!
             prompt = merchant.GetLocalString("deposit_item_success", ("$ITEM", item.Name),
                 ("$QUANTITY", quantity.ToString()), ("$COINS", fee.ToString()), ("$REF", coins));
             Vault.AddItem(item.Name, (ushort) quantity);
             if (Inventory[slot].Stackable && Inventory[slot].Count > quantity)
-            {
                 RemoveItem(item.Name, (ushort) quantity);
-
-            }
             else
-            {
                 RemoveItem(slot);
-            }
 
             RemoveGold(fee);
             Vault.Save();
@@ -4418,14 +4226,14 @@ public class User : Creature
             {
                 Options = new List<MerchantDialogOption>()
             };
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4447,26 +4255,23 @@ public class User : Creature
         PendingRepairCost = 0;
         var inventoryItems = new UserInventoryItems();
         inventoryItems.InventorySlots = new List<byte>();
-        inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
+        inventoryItems.Id = (ushort) MerchantMenuItem.RepairItem;
         for (byte i = 1; i <= Inventory.Size; i++)
         {
             if (Inventory[i] == null) continue;
-            if (Inventory[i].Durability != Inventory[i].MaximumDurability)
-            {
-                inventoryItems.InventorySlots.Add(i);
-            }
+            if (Inventory[i].Durability != Inventory[i].MaximumDurability) inventoryItems.InventorySlots.Add(i);
         }
 
         if (inventoryItems.InventorySlots.Count > 0)
         {
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.UserInventoryItems,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4479,14 +4284,14 @@ public class User : Creature
         {
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4504,7 +4309,8 @@ public class User : Creature
 
         PendingRepairSlot = slot;
 
-        PendingRepairCost = (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
+        PendingRepairCost =
+            (uint) Math.Ceiling(item.Value - item.Durability / item.MaximumDurability * item.Value);
 
         var options = new MerchantOptions
         {
@@ -4518,26 +4324,26 @@ public class User : Creature
         else
         {
             prompt = merchant.GetLocalString("repair_item_nocost", ("$COINS", PendingRepairCost.ToString()));
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
-                Id = (ushort)MerchantMenuItem.RepairItemAccept,
+                Id = (ushort) MerchantMenuItem.RepairItemAccept,
                 Text = "Yes"
             });
-            options.Options.Add(new MerchantDialogOption()
+            options.Options.Add(new MerchantDialogOption
             {
-                Id = (ushort)MerchantMenuItem.MainMenu,
+                Id = (ushort) MerchantMenuItem.MainMenu,
                 Text = "No"
             });
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4549,21 +4355,21 @@ public class User : Creature
 
     public void ShowRepairItemAccept(Merchant merchant)
     {
-        if(Gold < PendingRepairCost)
+        if (Gold < PendingRepairCost)
         {
             var options = new MerchantOptions
             {
                 Options = new List<MerchantDialogOption>()
             };
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4593,7 +4399,8 @@ public class User : Creature
             if (Inventory[i].Durability != Inventory[i].MaximumDurability)
             {
                 var item = Inventory[i];
-                PendingRepairCost += (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
+                PendingRepairCost +=
+                    (uint) Math.Ceiling(item.Value - item.Durability / item.MaximumDurability * item.Value);
                 repairableCount++;
             }
         }
@@ -4604,7 +4411,8 @@ public class User : Creature
             if (Equipment[i].Durability != Equipment[i].MaximumDurability)
             {
                 var item = Equipment[i];
-                PendingRepairCost += (uint)Math.Ceiling(item.Value - (item.Durability / item.MaximumDurability * item.Value));
+                PendingRepairCost +=
+                    (uint) Math.Ceiling(item.Value - item.Durability / item.MaximumDurability * item.Value);
                 repairableCount++;
             }
         }
@@ -4616,34 +4424,34 @@ public class User : Creature
 
         if (repairableCount > 0)
         {
-
             if (PendingRepairCost <= 1)
             {
                 prompt = merchant.GetLocalString("repair_item_nocost");
             }
             else
             {
-                prompt = merchant.GetLocalString("repair_all_items_cost", ("$COINS", PendingRepairCost.ToString()));
-                options.Options.Add(new MerchantDialogOption()
+                prompt = merchant.GetLocalString("repair_all_items_cost",
+                    ("$COINS", PendingRepairCost.ToString()));
+                options.Options.Add(new MerchantDialogOption
                 {
-                    Id = (ushort)MerchantMenuItem.RepairAllItemsAccept,
+                    Id = (ushort) MerchantMenuItem.RepairAllItemsAccept,
                     Text = "Yes"
                 });
-                options.Options.Add(new MerchantDialogOption()
+                options.Options.Add(new MerchantDialogOption
                 {
-                    Id = (ushort)MerchantMenuItem.MainMenu,
+                    Id = (ushort) MerchantMenuItem.MainMenu,
                     Text = "No"
                 });
             }
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4654,14 +4462,14 @@ public class User : Creature
         }
         else
         {
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4680,14 +4488,14 @@ public class User : Creature
         };
         if (Gold < PendingRepairCost)
         {
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4720,15 +4528,15 @@ public class User : Creature
                     AddEquipment(Equipment[i], i);
                 }
             }
-                
-            var packet = new ServerPacketStructures.MerchantResponse()
+
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4749,28 +4557,29 @@ public class User : Creature
         foreach (var item in Vault.Items)
         {
             Game.World.WorldData.TryGetValueByIndex<Item>(item.Key, out var worldItem);
-            if(worldItem == null) continue;
-            merchantItems.Items.Add(new MerchantShopItem()
+            if (worldItem == null) continue;
+            merchantItems.Items.Add(new MerchantShopItem
             {
-                Tile = (ushort)(0x8000 + worldItem.Properties.Appearance.Sprite),
-                Color = (byte)worldItem.Properties.Appearance.Color,
+                Tile = (ushort) (0x8000 + worldItem.Properties.Appearance.Sprite),
+                Color = (byte) worldItem.Properties.Appearance.Color,
                 Description = worldItem.Properties.Vendor?.Description ?? "",
                 Name = worldItem.Name,
                 Price = item.Value
-
-            }); ;
+            });
+            ;
         }
-        merchantItems.Id = (ushort)MerchantMenuItem.WithdrawItemQuantity;
+
+        merchantItems.Id = (ushort) MerchantMenuItem.WithdrawItemQuantity;
 
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantShopItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
+            Tile1 = (ushort) (0x4000 + merchant.Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
+            Tile2 = (ushort) (0x4000 + merchant.Sprite),
             Color2 = 0,
             PortraitType = 0,
             Name = merchant.Name,
@@ -4788,22 +4597,21 @@ public class User : Creature
             PendingWithdrawItem = item;
 
             var input = new MerchantInput();
-            input.Id = (ushort)MerchantMenuItem.WithdrawItem;
+            input.Id = (ushort) MerchantMenuItem.WithdrawItem;
 
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
                 Text = merchant.GetLocalString("withdraw_item_quantity"),
                 Input = input
-
             };
             Enqueue(packet.Packet());
         }
@@ -4817,16 +4625,17 @@ public class User : Creature
     {
         var failure = false;
         var worldItem = World.WorldData.GetByIndex<Item>(item);
-            
+
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        string prompt = string.Empty;
+        var prompt = string.Empty;
 
-        if(quantity > Vault.Items[item])
+        if (quantity > Vault.Items[item])
         {
-            prompt = merchant.GetLocalString("withdraw_item_failure_quantity_bank", ("$QUANTITY", quantity.ToString()),("$ITEM", item));
+            prompt = merchant.GetLocalString("withdraw_item_failure_quantity_bank",
+                ("$QUANTITY", quantity.ToString()), ("$ITEM", item));
             failure = true;
         }
         else if (!failure && worldItem.Stackable)
@@ -4837,49 +4646,42 @@ public class User : Creature
             }
             else
             {
-                if (Inventory.ContainsName(item, 1))
+                if (Inventory.ContainsName(item))
                 {
                     var maxQuantity = 0;
                     var existingStacks = Inventory.GetSlotsByName(item);
                     foreach (var slot in existingStacks)
-                    {
                         maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
-                    }
-                    maxQuantity += (Inventory.EmptySlots - 2) * worldItem.MaximumStack; //account for slot 0 and gold slot
+                    maxQuantity +=
+                        (Inventory.EmptySlots - 2) * worldItem.MaximumStack; //account for slot 0 and gold slot
 
                     if (quantity > maxQuantity)
-                    {
-                        prompt = merchant.GetLocalString("withdraw_item_failure_quantity_inventory_diff",("$ITEM", item),("$QUANTITY", maxQuantity.ToString()));
-                    }
+                        prompt = merchant.GetLocalString("withdraw_item_failure_quantity_inventory_diff",
+                            ("$ITEM", item), ("$QUANTITY", maxQuantity.ToString()));
                 }
                 else
                 {
                     if (Inventory.EmptySlots == 0)
-                    {
                         prompt = merchant.GetLocalString("withdraw_item_failure_slot");
-                    }
                 }
             }
         }
         else
         {
             if (Inventory.EmptySlots == 0)
-            {
                 prompt = merchant.GetLocalString("withdraw_item_failure_slot");
-            }
             else if (CurrentWeight + worldItem.Properties.Physical.Weight > MaximumWeight)
-            {
                 prompt = merchant.GetLocalString("withdraw_item_failure_weight");
-            }
         }
 
-        if(!failure && prompt == string.Empty)
+        if (!failure && prompt == string.Empty)
         {
-            prompt = merchant.GetLocalString("withdraw_item_success",("$ITEM", item),("$QUANTITY", quantity.ToString()));
+            prompt = merchant.GetLocalString("withdraw_item_success", ("$ITEM", item),
+                ("$QUANTITY", quantity.ToString()));
             if (worldItem.Stackable)
             {
-                Vault.RemoveItem(item, (ushort)quantity);
-                AddItem(item, (ushort)quantity);
+                Vault.RemoveItem(item, (ushort) quantity);
+                AddItem(item, (ushort) quantity);
             }
             else
             {
@@ -4887,21 +4689,21 @@ public class User : Creature
                 Vault.RemoveItem(item);
                 AddItem(itemObj);
             }
+
             Vault.Save();
             merchant.Say(prompt);
             SendCloseDialog();
         }
         else
         {
-
-            var packet = new ServerPacketStructures.MerchantResponse()
+            var packet = new ServerPacketStructures.MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
                 ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
+                Tile1 = (ushort) (0x4000 + merchant.Sprite),
                 Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
+                Tile2 = (ushort) (0x4000 + merchant.Sprite),
                 Color2 = 0,
                 PortraitType = 0,
                 Name = merchant.Name,
@@ -4913,7 +4715,10 @@ public class User : Creature
         }
     }
 
-    public void SendMessage(string message, MessageType type) => SendMessage(message, (byte) type);
+    public void SendMessage(string message, MessageType type)
+    {
+        SendMessage(message, (byte) type);
+    }
 
     public void SendMessage(string message, byte type)
     {
@@ -4933,10 +4738,8 @@ public class User : Creature
         // I MEAN IT TAKES 16 BIT RITE BUT HAY ARBITRARY LENGTH ON STRINGS WITH NO NULL TERMINATION IS LEET
         var transmit = string.Format("{{=c[{0}] {1}", sender, message);
         if (transmit.Length > 67)
-        {
             // IT'S CHOPPIN TIME
             transmit = transmit.Substring(0, 67);
-        }
         x0A.WriteString16(transmit);
         Enqueue(x0A);
     }
@@ -4944,23 +4747,17 @@ public class User : Creature
     public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 1200)
     {
         GlobalConnectionManifest.DeregisterClient(Client);
-        Client.Redirect(new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true, transmitDelay);
+        Client.Redirect(
+            new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true,
+            transmitDelay);
     }
 
-    public bool IsHeartbeatValid(byte a, byte b)
-    {
-        return Client.IsHeartbeatValid(a, b);
-    }
+    public bool IsHeartbeatValid(byte a, byte b) => Client.IsHeartbeatValid(a, b);
 
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount)
-    {
-        return Client.IsHeartbeatValid(localTickCount, clientTickCount);
-    }
+    public bool IsHeartbeatValid(int localTickCount, int clientTickCount) =>
+        Client.IsHeartbeatValid(localTickCount, clientTickCount);
 
-    public bool IsHeartbeatExpired()
-    {
-        return Client.IsHeartbeatExpired();
-    }
+    public bool IsHeartbeatExpired() => Client.IsHeartbeatExpired();
 
     public void Logoff(bool disconnect = false)
     {
@@ -4968,10 +4765,12 @@ public class User : Creature
         Save(true);
         if (!disconnect)
         {
-            var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed, Client.EncryptionKey);
+            var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed,
+                Client.EncryptionKey);
             Client.Redirect(redirect, true);
         }
         else
+        {
             try
             {
                 Client.Disconnect();
@@ -4981,6 +4780,7 @@ public class User : Creature
                 PreviousConnectionId = Client?.ConnectionId ?? -1;
                 Client = null;
             }
+        }
     }
 
     public void SetEncryptionParameters(byte[] key, byte seed, string name)
@@ -4991,7 +4791,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Send an exchange initiation request to the client (open exchange window)
+    ///     Send an exchange initiation request to the client (open exchange window)
     /// </summary>
     /// <param name="requestor">The user requesting the trade</param>
     public void SendExchangeInitiation(User requestor)
@@ -5006,7 +4806,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Send a quantity prompt request to the client (when dealing with stacked items)
+    ///     Send a quantity prompt request to the client (when dealing with stacked items)
     /// </summary>
     /// <param name="itemSlot">The ItemObject slot containing a stacked ItemObject that will be split (client side)</param>
     public void SendExchangeQuantityPrompt(byte itemSlot)
@@ -5019,8 +4819,9 @@ public class User : Creature
                 ItemSlot = itemSlot
             }.Packet());
     }
+
     /// <summary>
-    /// Send an exchange update packet for an ItemObject to an active exchange participant.
+    ///     Send an exchange update packet for an ItemObject to an active exchange participant.
     /// </summary>
     /// <param name="toAdd">ItemObject to add to the exchange window</param>
     /// <param name="slot">Byte indicating the exchange window slot to be updated</param>
@@ -5041,7 +4842,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Send an exchange update packet for gold to an active exchange participant.
+    ///     Send an exchange update packet for gold to an active exchange participant.
     /// </summary>
     /// <param name="gold">The amount of gold to be added to the window.</param>
     /// <param name="source">Boolean indicating which "side" of the transaction will be updated (source / "left side" == true)</param>
@@ -5057,7 +4858,7 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Send a cancellation notice for an exchange.
+    ///     Send a cancellation notice for an exchange.
     /// </summary>
     /// <param name="source">The "side" responsible for cancellation (source / "left side" == true)</param>
     public void SendExchangeCancellation(bool source = true)
@@ -5071,10 +4872,9 @@ public class User : Creature
     }
 
     /// <summary>
-    /// Send a confirmation notice for an exchange.
+    ///     Send a confirmation notice for an exchange.
     /// </summary>
     /// <param name="source">The "side" responsible for confirmation (source / "left side" == true)</param>
-
     public void SendExchangeConfirmation(bool source = true)
     {
         if (!Condition.InExchange) return;
@@ -5090,7 +4890,7 @@ public class User : Creature
         if (Inventory[slot] == null) return;
         var x0F = new ServerPacket(0x0F);
         x0F.WriteByte(slot);
-        x0F.WriteUInt16((ushort)(Inventory[slot].Sprite + 0x8000));
+        x0F.WriteUInt16((ushort) (Inventory[slot].Sprite + 0x8000));
         x0F.WriteByte(Inventory[slot].Color);
         x0F.WriteString8(Inventory[slot].Name);
         x0F.WriteInt32(Inventory[slot].Count);
@@ -5105,13 +4905,10 @@ public class User : Creature
         for (byte i = 1; i < Inventory.Size; i++)
         {
             if (Inventory[i] == null) continue;
-            if (Inventory[i].Id == 0)
-            {
-                Game.World.Insert(Inventory[i]);
-            }
+            if (Inventory[i].Id == 0) Game.World.Insert(Inventory[i]);
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte(i);
-            x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
+            x0F.WriteUInt16((ushort) (Inventory[i].Sprite + 0x8000));
             x0F.WriteByte(Inventory[i].Color);
             x0F.WriteString8(Inventory[i].Name);
             x0F.WriteInt32(Inventory[i].Count);
@@ -5124,31 +4921,23 @@ public class User : Creature
 
     public void SendEquipment()
     {
-        for (byte i=1; i < Equipment.Size; i++)
-        {
+        for (byte i = 1; i < Equipment.Size; i++)
             if (Equipment[i] != null)
                 SendEquipItem(Equipment[i], i);
-        }
     }
+
     public void SendSkills()
     {
         for (byte i = 0; i < SkillBook.Size; i++)
-        {
             if (SkillBook[i]?.Castable != null)
-            {
                 SendSkillUpdate(SkillBook[i], i);
-            }
-        }
     }
+
     public void SendSpells()
     {
         for (byte i = 0; i < SpellBook.Size; i++)
-        {
             if (SpellBook[i]?.Castable != null)
-            {
                 SendSpellUpdate(SpellBook[i], i);
-            }
-        }
     }
 
     public void ReapplyStatuses()
@@ -5160,17 +4949,17 @@ public class User : Creature
             }
             catch (ArgumentException e)
             {
-                GameLog.Error("User {user}: status {status} could not be reapplied - exception occurred (likely not found): {e}", Name, status.Name, e);
+                GameLog.Error(
+                    "User {user}: status {status} could not be reapplied - exception occurred (likely not found): {e}",
+                    Name, status.Name, e);
             }
+
         UpdateAttributes(StatUpdateFlags.Full);
         Statuses.Clear();
     }
 
 
-    public bool IsInViewport(VisibleObject obj)
-    {
-        return Map.EntityTree.GetObjects(GetViewport()).Contains(obj);
-    }
+    public bool IsInViewport(VisibleObject obj) => Map.EntityTree.GetObjects(GetViewport()).Contains(obj);
 
 
     public void SendSystemMessage(string msg)
@@ -5187,4 +4976,105 @@ public class User : Creature
         Condition.Casting = false;
     }
 
+    #region Appearance settings
+
+    [JsonProperty] public RestPosition RestPosition { get; set; }
+
+    [JsonProperty] public SkinColor SkinColor { get; set; }
+
+    [JsonProperty] internal bool Transparent { get; set; }
+
+    [JsonProperty] public byte FaceShape { get; set; }
+
+    [JsonProperty] public LanternSize LanternSize { get; set; }
+
+    [JsonProperty] public NameDisplayStyle NameStyle { get; set; }
+
+    [JsonProperty] public bool DisplayAsMonster { get; set; }
+
+    [JsonProperty] public ushort MonsterSprite { get; set; }
+
+    [JsonProperty] public ushort HairStyle { get; set; }
+
+    [JsonProperty] public byte HairColor { get; set; }
+
+    #endregion
+
+    #region User
+
+    // Some structs helping us to define various metadata 
+    public AuthInfo AuthInfo => Game.World.WorldData.GetOrCreateByGuid<AuthInfo>(Guid, Name);
+
+    [JsonProperty] public SkillBook SkillBook { get; private set; }
+
+    [JsonProperty] public SpellBook SpellBook { get; private set; }
+
+    [JsonProperty] public bool Grouping { get; set; }
+
+    public UserStatus GroupStatus { get; set; }
+
+    [JsonProperty] public byte[] PortraitData { get; set; }
+
+    [JsonProperty] public string ProfileText { get; set; }
+
+    public Castable PendingLearnableCastable { get; private set; }
+    public ItemObject PendingSendableParcel { get; private set; }
+    public uint PendingSendableQuantity { get; private set; }
+    public string PendingParcelRecipient { get; private set; }
+    public string PendingBuyableItem { get; private set; }
+    public int PendingBuyableQuantity { get; private set; }
+    public byte PendingSellableSlot { get; private set; }
+    public uint PendingSellableQuantity { get; private set; }
+    public uint PendingMerchantOffer { get; private set; }
+    public byte PendingDepositSlot { get; private set; }
+    public string PendingWithdrawItem { get; private set; }
+    public byte PendingRepairSlot { get; private set; }
+    public uint PendingRepairCost { get; private set; }
+
+    [JsonProperty] public List<KillRecord> RecentKills { get; private set; }
+
+    public List<SpokenEvent> MessagesReceived { get; private set; }
+
+    [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
+
+    public List<string> UseCastRestrictions => _currentStatuses.Select(selector: e => e.Value.UseCastRestrictions)
+        .Where(predicate: e => e != string.Empty).ToList();
+
+    public List<string> ReceiveCastRestrictions => _currentStatuses
+        .Select(selector: e => e.Value.ReceiveCastRestrictions)
+        .Where(predicate: e => e != string.Empty).ToList();
+
+    private Nation _nation;
+
+    public Nation Nation
+    {
+        get => _nation ?? World.DefaultNation;
+        set
+        {
+            _nation = value;
+            Citizenship = value.Name;
+        }
+    }
+
+    [JsonProperty] private string Citizenship { get; set; }
+
+    public string NationName => Nation != null ? Nation.Name : string.Empty;
+
+    [JsonProperty] public Legend Legend;
+    [JsonProperty] public string Title;
+
+    public AsyncDialogSession ActiveDialogSession { get; set; }
+    public DialogState DialogState { get; set; }
+
+    // Used by reactors and certain other objects to set an associate, so that functions called
+    // from Lua later know who to "consult" for dialogs / etc.
+    public IInteractable LastAssociate { get; set; }
+
+    public Exchange ActiveExchange { get; set; }
+
+    public bool IsAvailableForExchange => Condition.NoFlags;
+
+    public ManufactureState ManufactureState { get; set; }
+
+    #endregion
 }

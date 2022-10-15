@@ -32,7 +32,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         {
             // This is a local sequence, so assign it into the pursuit range and
             // assign an ID
-            pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count);
+            pursuit.Id = (uint) (Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count);
             Pursuits.Add(pursuit);
         }
         else
@@ -61,48 +61,63 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
         {
             optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.BuyItemMenu, Text = "Buy" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.SellItemMenu, Text = "Sell" });
+            options.Options.Add(new MerchantDialogOption { Id = (ushort) MerchantMenuItem.BuyItemMenu, Text = "Buy" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.SellItemMenu, Text = "Sell" });
         }
+
         if (merchant?.Jobs.HasFlag(MerchantJob.Bank) ?? false)
         {
             optionsCount += 4;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.DepositGoldMenu, Text = "Deposit Gold" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.WithdrawGoldMenu, Text = "Withdraw Gold" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.DepositItemMenu, Text = "Deposit Item" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.WithdrawItemMenu, Text = "Withdraw Item" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.DepositGoldMenu, Text = "Deposit Gold" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.WithdrawGoldMenu, Text = "Withdraw Gold" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.DepositItemMenu, Text = "Deposit Item" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.WithdrawItemMenu, Text = "Withdraw Item" });
         }
+
         if (merchant?.Jobs.HasFlag(MerchantJob.Repair) ?? false)
         {
             optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.RepairItemMenu, Text = "Fix Item" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.RepairAllItems, Text = "Fix All Items" });
-
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.RepairItemMenu, Text = "Fix Item" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.RepairAllItems, Text = "Fix All Items" });
         }
+
         if (merchant?.Jobs.HasFlag(MerchantJob.Skills) ?? false)
         {
             optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.LearnSkillMenu, Text = "Learn Skill" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.ForgetSkillMenu, Text = "Forget Skill" });
-
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.LearnSkillMenu, Text = "Learn Skill" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.ForgetSkillMenu, Text = "Forget Skill" });
         }
+
         if (merchant?.Jobs.HasFlag(MerchantJob.Spells) ?? false)
         {
             optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.LearnSpellMenu, Text = "Learn Secret" });
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.ForgetSpellMenu, Text = "Forget Secret" });
-
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.LearnSpellMenu, Text = "Learn Secret" });
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.ForgetSpellMenu, Text = "Forget Secret" });
         }
+
         if (merchant?.Jobs.HasFlag(MerchantJob.Post) ?? false)
         {
             if (invoker.HasParcels)
             {
-                options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.ReceiveParcel, Text = "Receive Parcel" });
+                options.Options.Add(new MerchantDialogOption
+                    { Id = (ushort) MerchantMenuItem.ReceiveParcel, Text = "Receive Parcel" });
                 optionsCount++;
             }
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.SendParcelMenu, Text = "Send Parcel" });
-            optionsCount++;
 
+            options.Options.Add(new MerchantDialogOption
+                { Id = (ushort) MerchantMenuItem.SendParcelMenu, Text = "Send Parcel" });
+            optionsCount++;
         }
 
         foreach (var pursuit in Pursuits)
@@ -123,19 +138,18 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
                 }
             }
 
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name });
+            options.Options.Add(new MerchantDialogOption { Id = (ushort) pursuit.Id.Value, Text = pursuit.Name });
             optionsCount++;
-
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse()
+        var packet = new ServerPacketStructures.MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
             ObjectId = Id,
-            Tile1 = (ushort)(0x4000 + Sprite),
+            Tile1 = (ushort) (0x4000 + Sprite),
             Color1 = 0,
-            Tile2 = (ushort)(0x4000 + Sprite),
+            Tile2 = (ushort) (0x4000 + Sprite),
             Color2 = 0,
             PortraitType = 1,
             Name = Name,
@@ -145,5 +159,4 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
 
         invoker.Enqueue(packet.Packet());
     }
-
 }

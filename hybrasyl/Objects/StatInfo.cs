@@ -20,30 +20,26 @@
  */
 
 using System;
-using App.Metrics.Gauge;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
 /// <summary>
-/// Any property with this attribute set is exposed to the formula parser with the name of the property (eg in a formula, $BASEHP).
-/// This can be set on any type used by the FormulaEvaluation class (see FormulaParser)
+///     Any property with this attribute set is exposed to the formula parser with the name of the property (eg in a
+///     formula, $BASEHP).
+///     This can be set on any type used by the FormulaEvaluation class (see FormulaParser)
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class FormulaVariable : Attribute
-{
-}
+public class FormulaVariable : Attribute { }
 
 /// <summary>
-/// Any property with this attribute set can be impacted by a status, with the expectation that there is a 1:1 mapping
-/// of the name of the property in StatModifiers.
+///     Any property with this attribute set can be impacted by a status, with the expectation that there is a 1:1 mapping
+///     of the name of the property in StatModifiers.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class StatusAttribute : Attribute
-{
-}
-
+public class StatusAttribute : Attribute { }
 
 [JsonObject(MemberSerialization.OptIn)]
 [MoonSharpUserData]
@@ -52,147 +48,181 @@ public class StatInfo
     // The actual lockable private properties
     private object _lock = new();
 
-
-    #region private properties
-
-    private byte _level { get; set; }
-    private uint _experience { get; set; } 
-    private uint _gold { get; set; }
-    private byte _ability { get; set; } 
-    private uint _abilityExp { get; set; }
-    private uint _currentHp { get; set; }
-    private uint _currentMp { get; set; }
-    private long _deltaHp { get; set; }
-    private long _deltaMp { get; set; }
-    private long _baseHp { get; set; }
-    private long _bonusHp { get; set; } 
-    private long _baseMp { get; set; }
-    private long _bonusMp { get; set; }
-    private long _baseStr { get; set; }
-    private long _bonusStr { get; set; }
-    private long _baseInt { get; set; }
-    private long _bonusInt { get; set; }
-    private long _baseWis { get; set; }
-    private long _bonusWis { get; set; }
-    private long _baseCon { get; set; }
-    private long _bonusCon { get; set; }
-    private long _baseDex { get; set; }
-    private long _bonusDex { get; set; }
-    private double _baseCrit { get; set; }
-    private double _bonusCrit { get; set; }
-    private double _baseMagicCrit { get; set; }
-    private double _bonusMagicCrit { get; set; }
-    private double _baseDmg { get; set; }
-    private double _bonusDmg { get; set; }
-    private double _baseHit { get; set; }
-    private double _bonusHit { get; set; }
-    private long _baseAc { get; set; }
-    private long _bonusAc { get; set; }
-    private double _baseMr { get; set; }
-    private double _bonusMr { get; set; }
-    private double _baseRegen { get; set; }
-    private double _bonusRegen { get; set; }
-    private double _baseInboundDamageModifier { get; set; } 
-    private double _bonusInboundDamageModifier { get; set; } 
-    private double _baseInboundHealModifier { get; set; } 
-    private double _bonusInboundHealModifier { get; set; }
-    private double _baseOutboundDamageModifier { get; set; }
-    private double _bonusOutboundDamageModifier { get; set; }
-    private double _baseOutboundHealModifier { get; set; }
-    private double _bonusOutboundHealModifier { get; set; }
-    private double _baseReflectMagical { get; set; }
-    private double _bonusReflectMagical { get; set; }
-    private double _baseReflectPhysical { get; set; }
-    private double _bonusReflectPhysical { get; set; }
-    private double _baseExtraGold { get; set; }
-    private double _bonusExtraGold { get; set; }
-    private double _baseDodge { get; set; }
-    private double _bonusDodge { get; set; }
-    private double _baseMagicDodge { get; set; }
-    private double _bonusMagicDodge { get; set; }
-    private double _baseExtraXp { get; set; }
-    private double _bonusExtraXp { get; set; }
-    private double _baseExtraItemFind { get; set; }
-    private double _bonusExtraItemFind { get; set; }
-    private double _baseLifeSteal { get; set; }
-    private double _bonusLifeSteal { get; set; }
-    private double _baseManaSteal { get; set; }
-    private double _bonusManaSteal { get; set; }
-    private double _baseInboundDamageToMp { get; set; }
-    private double _bonusInboundDamageToMp { get; set; }
-    private Xml.ElementType _baseOffensiveElement { get; set; } = Xml.ElementType.None;
-    private Xml.ElementType _baseDefensiveElement { get; set; } = Xml.ElementType.None;
-    private Xml.ElementType _offensiveElementOverride { get; set; } = Xml.ElementType.None;
-    private Xml.ElementType _defensiveElementOverride { get; set; } = Xml.ElementType.None;
-
-    #endregion
-
-    public decimal HpPercentage => (decimal)Hp / MaximumHp * 100m;
+    public decimal HpPercentage => (decimal) Hp / MaximumHp * 100m;
 
     [FormulaVariable]
     [JsonProperty]
     public byte Level
     {
-        get { lock (_lock) { return _level; } }
-        set { lock (_lock) { _level = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _level;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _level = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public uint Experience
     {
-        get { lock (_lock) { return _experience; } }
-        set { lock (_lock) { _experience = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _experience;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _experience = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public uint Gold
     {
-        get { lock (_lock) { return _gold; } }
-        set { lock (_lock) { _gold = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _gold;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _gold = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public byte Ability
     {
-        get { lock (_lock) { return _ability; } }
-        set { lock (_lock) { _ability = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _ability;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _ability = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public uint AbilityExp
     {
-        get { lock (_lock) { return _abilityExp; } } 
-        set { lock (_lock) { _abilityExp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _abilityExp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _abilityExp = value;
+            }
+        }
     }
+
     public long DeltaHp
     {
-        get { lock (_lock) { return _deltaHp; } }
-        set { lock (_lock) { _deltaHp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _deltaHp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _deltaHp = value;
+            }
+        }
     }
 
     public long DeltaMp
     {
-        get { lock (_lock) { return _deltaMp; } }
-        set { lock (_lock) { _deltaMp= value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _deltaMp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _deltaMp = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public long BaseHp
     {
-        get { lock (_lock) { return _baseHp; } }
-        set { lock (_lock) { _baseHp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseHp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseHp = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public long BonusHp
     {
-        get { lock (_lock) { return _bonusHp; } }
-        set { lock (_lock) { _bonusHp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusHp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusHp = value;
+            }
+        }
     }
 
     [FormulaVariable]
@@ -219,15 +249,39 @@ public class StatInfo
     [JsonProperty]
     public long BaseMp
     {
-        get { lock (_lock) { return _baseMp; } }
-        set { lock (_lock) { _baseMp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseMp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseMp = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public long BonusMp
     {
-        get { lock (_lock) { return _bonusMp; } }
-        set { lock (_lock) { _bonusMp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusMp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusMp = value;
+            }
+        }
     }
 
     [FormulaVariable]
@@ -254,90 +308,234 @@ public class StatInfo
     [JsonProperty]
     public long BaseStr
     {
-        get { lock (_lock) { return _baseStr; } }
-        set { lock (_lock) { _baseStr = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseStr;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseStr = value;
+            }
+        }
     }
-    
+
     [FormulaVariable]
     public long BonusStr
     {
-        get { lock (_lock) { return _bonusStr; } }
-        set { lock (_lock) { _bonusStr = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusStr;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusStr = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public long BaseInt
     {
-        get { lock (_lock) { return _baseInt; } }
-        set { lock (_lock) { _baseInt = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseInt;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseInt = value;
+            }
+        }
     }
 
-    [FormulaVariable] 
+    [FormulaVariable]
     public long BonusInt
     {
-        get { lock (_lock) { return _bonusInt; } }
-        set { lock (_lock) { _bonusInt = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusInt;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusInt = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public long BaseWis
     {
-        get { lock (_lock) { return _baseWis; } }
-        set { lock (_lock) { _baseWis = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseWis;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseWis = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public long BonusWis
     {
-        get { lock (_lock) { return _bonusWis; } }
-        set { lock (_lock) { _bonusWis = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusWis;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusWis = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public long BaseCon
     {
-        get { lock (_lock) { return _baseCon; } }
-        set { lock (_lock) { _baseCon = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseCon;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseCon = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public long BonusCon
     {
-        get { lock (_lock) { return _bonusCon; } }
-        set { lock (_lock) { _bonusCon = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusCon;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusCon = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public long BaseDex
     {
-        get { lock (_lock) { return _baseDex; } }
-        set { lock (_lock) { _baseDex = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseDex;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseDex = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public long BonusDex
     {
-        get { lock (_lock) { return _bonusDex; } }
-        set { lock (_lock) { _bonusDex = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusDex;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusDex = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public double BaseCrit
     {
-        get { lock (_lock) { return _baseCrit; } }
-        set { lock (_lock) { _baseCrit = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseCrit;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseCrit = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusCrit
     {
-        get { lock (_lock) { return _bonusCrit; } }
-        set { lock (_lock) { _bonusCrit = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusCrit;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusCrit = value;
+            }
+        }
     }
 
     [FormulaVariable] public double Crit => BaseCrit + BonusCrit;
@@ -346,15 +544,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseMagicCrit
     {
-        get { lock (_lock) { return _baseMagicCrit; } }
-        set { lock (_lock) { _baseMagicCrit = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseMagicCrit;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseMagicCrit = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusMagicCrit
     {
-        get { lock (_lock) { return _bonusMagicCrit; } }
-        set { lock (_lock) { _bonusMagicCrit = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusMagicCrit;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusMagicCrit = value;
+            }
+        }
     }
 
     [FormulaVariable] public double MagicCrit => BaseMagicCrit + BonusMagicCrit;
@@ -363,15 +585,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseDmg
     {
-        get { lock (_lock) { return _baseDmg; } }
-        set { lock (_lock) { _baseDmg = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseDmg;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseDmg = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusDmg
     {
-        get { lock (_lock) { return _bonusDmg; } }
-        set { lock (_lock) { _bonusDmg = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusDmg;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusDmg = value;
+            }
+        }
     }
 
 
@@ -379,92 +625,235 @@ public class StatInfo
     [JsonProperty]
     public double BaseHit
     {
-        get { lock (_lock) { return _baseHit; } }
-        set { lock (_lock) { _baseHit = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseHit;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseHit = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusHit
     {
-        get { lock (_lock) { return _bonusHit; } }
-        set { lock (_lock) { _bonusHit = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusHit;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusHit = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public long BaseAc
     {
-        get { lock (_lock) { return _baseAc; } }
-        set { lock (_lock) { _baseAc = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseAc;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseAc = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public long BonusAc
     {
-        get { lock (_lock) { return _bonusAc; } }
-        set { lock (_lock) { _bonusAc = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusAc;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusAc = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public double BaseMr
     {
-        get { lock (_lock) { return _baseMr; } }
-        set { lock (_lock) { _baseMr = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseMr;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseMr = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusMr
     {
-        get { lock (_lock) { return _bonusMr; } }
-        set { lock (_lock) { _bonusMr = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusMr;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusMr = value;
+            }
+        }
     }
 
     [FormulaVariable]
     [JsonProperty]
     public double BaseRegen
     {
-        get { lock (_lock) { return _baseRegen; } }
-        set { lock (_lock) { _baseRegen = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseRegen;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseRegen = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusRegen
     {
-        get { lock (_lock) { return _bonusRegen; } }
-        set { lock (_lock) { _bonusRegen = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusRegen;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusRegen = value;
+            }
+        }
     }
 
     [JsonProperty]
     public double BaseInboundDamageModifier
     {
-        get { lock (_lock) { return _baseInboundDamageModifier; } }
-        set { lock (_lock) { _baseInboundDamageModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseInboundDamageModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseInboundDamageModifier = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusInboundDamageModifier
     {
-        get { lock (_lock) { return _bonusInboundDamageModifier; } }
-        set { lock (_lock) { _bonusInboundDamageModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusInboundDamageModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusInboundDamageModifier = value;
+            }
+        }
     }
 
-    [FormulaVariable]
-    public double InboundDamageModifier => BaseInboundDamageModifier + BonusInboundDamageModifier;
+    [FormulaVariable] public double InboundDamageModifier => BaseInboundDamageModifier + BonusInboundDamageModifier;
 
     [JsonProperty]
     [FormulaVariable]
     public double BaseInboundHealModifier
     {
-        get { lock (_lock) { return _baseInboundHealModifier; } }
-        set { lock (_lock) { _baseInboundHealModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseInboundHealModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseInboundHealModifier = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusInboundHealModifier
     {
-        get { lock (_lock) { return _bonusInboundHealModifier; } }
-        set { lock (_lock) { _bonusInboundHealModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusInboundHealModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusInboundHealModifier = value;
+            }
+        }
     }
 
     public double InboundHealModifier => BaseInboundHealModifier + BonusInboundHealModifier;
@@ -472,51 +861,121 @@ public class StatInfo
     [JsonProperty]
     public double BaseOutboundDamageModifier
     {
-        get { lock (_lock) { return _baseOutboundDamageModifier; } }
-        set { lock (_lock) { _baseOutboundDamageModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseOutboundDamageModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseOutboundDamageModifier = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusOutboundDamageModifier
     {
-        get { lock (_lock) { return _bonusOutboundDamageModifier; } }
-        set { lock (_lock) { _bonusOutboundDamageModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusOutboundDamageModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusOutboundDamageModifier = value;
+            }
+        }
     }
 
-    [FormulaVariable]
-    public double OutboundDamageModifier => BaseOutboundDamageModifier + BonusOutboundDamageModifier;
+    [FormulaVariable] public double OutboundDamageModifier => BaseOutboundDamageModifier + BonusOutboundDamageModifier;
 
     [JsonProperty]
     [FormulaVariable]
     public double BaseOutboundHealModifier
     {
-        get { lock (_lock) { return _baseOutboundHealModifier; } }
-        set { lock (_lock) { _baseOutboundHealModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseOutboundHealModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseOutboundHealModifier = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusOutboundHealModifier
     {
-        get { lock (_lock) { return _bonusOutboundHealModifier; } }
-        set { lock (_lock) { _bonusOutboundHealModifier = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusOutboundHealModifier;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusOutboundHealModifier = value;
+            }
+        }
     }
 
-    [FormulaVariable]
-    public double OutboundHealModifier => BaseOutboundHealModifier + BonusOutboundHealModifier;
+    [FormulaVariable] public double OutboundHealModifier => BaseOutboundHealModifier + BonusOutboundHealModifier;
 
     [FormulaVariable]
     [JsonProperty]
     public double BaseReflectMagical
     {
-        get { lock (_lock) { return _baseReflectMagical; } }
-        set { lock (_lock) { _baseReflectMagical = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseReflectMagical;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseReflectMagical = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusReflectMagical
     {
-        get { lock (_lock) { return _bonusReflectMagical; } }
-        set { lock (_lock) { _bonusReflectMagical = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusReflectMagical;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusReflectMagical = value;
+            }
+        }
     }
 
     [FormulaVariable] public double ReflectMagical => BaseReflectMagical + BonusReflectMagical;
@@ -525,15 +984,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseReflectPhysical
     {
-        get { lock (_lock) { return _baseReflectPhysical; } }
-        set { lock (_lock) { _baseReflectPhysical = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseReflectPhysical;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseReflectPhysical = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusReflectPhysical
     {
-        get { lock (_lock) { return _bonusReflectPhysical; } }
-        set { lock (_lock) { _bonusReflectPhysical = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusReflectPhysical;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusReflectPhysical = value;
+            }
+        }
     }
 
     [FormulaVariable] public double ReflectPhysical => BaseReflectPhysical + BonusReflectPhysical;
@@ -542,15 +1025,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseExtraGold
     {
-        get { lock (_lock) { return _baseExtraGold; } }
-        set { lock (_lock) { _baseExtraGold = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseExtraGold;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseExtraGold = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusExtraGold
     {
-        get { lock (_lock) { return _bonusExtraGold; } }
-        set { lock (_lock) { _bonusExtraGold = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusExtraGold;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusExtraGold = value;
+            }
+        }
     }
 
     [FormulaVariable] public double ExtraGold => BaseExtraGold + BonusExtraGold;
@@ -559,15 +1066,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseDodge
     {
-        get { lock (_lock) { return _baseDodge; } }
-        set { lock (_lock) { _baseDodge = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseDodge;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseDodge = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusDodge
     {
-        get { lock (_lock) { return _bonusDodge; } }
-        set { lock (_lock) { _bonusDodge = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusDodge;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusDodge = value;
+            }
+        }
     }
 
     [FormulaVariable] public double Dodge => BaseDodge + BonusDodge;
@@ -576,15 +1107,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseMagicDodge
     {
-        get { lock (_lock) { return _baseMagicDodge; } }
-        set { lock (_lock) { _baseMagicDodge = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseMagicDodge;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseMagicDodge = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusMagicDodge
     {
-        get { lock (_lock) { return _bonusMagicDodge; } }
-        set { lock (_lock) { _bonusMagicDodge = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusMagicDodge;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusMagicDodge = value;
+            }
+        }
     }
 
     [FormulaVariable] public double MagicDodge => BaseMagicDodge + BonusMagicDodge;
@@ -593,15 +1148,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseExtraXp
     {
-        get { lock (_lock) { return _baseExtraXp; } }
-        set { lock (_lock) { _baseExtraXp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseExtraXp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseExtraXp = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusExtraXp
     {
-        get { lock (_lock) { return _bonusExtraXp; } }
-        set { lock (_lock) { _bonusExtraXp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusExtraXp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusExtraXp = value;
+            }
+        }
     }
 
     [FormulaVariable] public double ExtraXp => BaseExtraXp + BonusExtraXp;
@@ -610,15 +1189,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseExtraItemFind
     {
-        get { lock (_lock) { return _baseExtraItemFind; } }
-        set { lock (_lock) { _baseExtraItemFind = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseExtraItemFind;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseExtraItemFind = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusExtraItemFind
     {
-        get { lock (_lock) { return _bonusExtraItemFind; } }
-        set { lock (_lock) { _bonusExtraItemFind = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusExtraItemFind;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusExtraItemFind = value;
+            }
+        }
     }
 
     [FormulaVariable] public double ExtraItemFind => BaseExtraItemFind + BonusExtraItemFind;
@@ -627,15 +1230,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseLifeSteal
     {
-        get { lock (_lock) { return _baseLifeSteal; } }
-        set { lock (_lock) { _baseLifeSteal = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseLifeSteal;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseLifeSteal = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusLifeSteal
     {
-        get { lock (_lock) { return _bonusLifeSteal; } }
-        set { lock (_lock) { _bonusLifeSteal = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusLifeSteal;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusLifeSteal = value;
+            }
+        }
     }
 
     [FormulaVariable] public double LifeSteal => BaseLifeSteal + BonusLifeSteal;
@@ -644,15 +1271,39 @@ public class StatInfo
     [JsonProperty]
     public double BaseManaSteal
     {
-        get { lock (_lock) { return _baseManaSteal; } }
-        set { lock (_lock) { _baseManaSteal = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseManaSteal;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseManaSteal = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusManaSteal
     {
-        get { lock (_lock) { return _bonusManaSteal; } }
-        set { lock (_lock) { _bonusManaSteal = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusManaSteal;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusManaSteal = value;
+            }
+        }
     }
 
     [FormulaVariable] public double ManaSteal => BaseManaSteal + BonusManaSteal;
@@ -661,106 +1312,146 @@ public class StatInfo
     [JsonProperty]
     public double BaseInboundDamageToMp
     {
-        get { lock (_lock) { return _baseInboundDamageToMp; } }
-        set { lock (_lock) { _baseInboundDamageToMp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _baseInboundDamageToMp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _baseInboundDamageToMp = value;
+            }
+        }
     }
 
     [FormulaVariable]
     public double BonusInboundDamageToMp
     {
-        get { lock (_lock) { return _bonusInboundDamageToMp; } }
-        set { lock (_lock) { _bonusInboundDamageToMp = value; } }
+        get
+        {
+            lock (_lock)
+            {
+                return _bonusInboundDamageToMp;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _bonusInboundDamageToMp = value;
+            }
+        }
     }
 
     [FormulaVariable] public double InboundDamageToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
 
-    public Xml.ElementType BaseOffensiveElement
+    public ElementType BaseOffensiveElement
     {
         get
         {
             lock (_lock)
+            {
                 return _baseOffensiveElement;
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _baseOffensiveElement = value;
+            }
         }
     }
 
-    public Xml.ElementType BaseDefensiveElement
+    public ElementType BaseDefensiveElement
     {
         get
         {
             lock (_lock)
+            {
                 return _baseDefensiveElement;
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _baseDefensiveElement = value;
+            }
         }
     }
 
-    public Xml.ElementType OffensiveElementOverride
+    public ElementType OffensiveElementOverride
     {
         get
         {
             lock (_lock)
+            {
                 return _defensiveElementOverride;
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _defensiveElementOverride = value;
+            }
         }
     }
 
-    public Xml.ElementType DefensiveElementOverride
+    public ElementType DefensiveElementOverride
     {
         get
         {
             lock (_lock)
+            {
                 return _offensiveElementOverride;
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _offensiveElementOverride = value;
+            }
         }
     }
 
-    public Xml.ElementType OffensiveElement => OffensiveElementOverride == Xml.ElementType.None
+    public ElementType OffensiveElement => OffensiveElementOverride == ElementType.None
         ? OffensiveElementOverride
         : BaseOffensiveElement;
 
-    public Xml.ElementType DefensiveElement => DefensiveElementOverride == Xml.ElementType.None
+    public ElementType DefensiveElement => DefensiveElementOverride == ElementType.None
         ? DefensiveElementOverride
         : BaseDefensiveElement;
 
-    public string OffensiveElementStr => Enum.GetName(typeof(Xml.ElementType), OffensiveElement);
-    public string DefensiveElementStr => Enum.GetName(typeof(Xml.ElementType), DefensiveElement);
-    public string OffensiveElementOverrideStr => Enum.GetName(typeof(Xml.ElementType), OffensiveElementOverride);
-    public string DefensiveElementOverrideStr => Enum.GetName(typeof(Xml.ElementType), DefensiveElementOverride);
-
-    public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
+    public string OffensiveElementStr => Enum.GetName(typeof(ElementType), OffensiveElement);
+    public string DefensiveElementStr => Enum.GetName(typeof(ElementType), DefensiveElement);
+    public string OffensiveElementOverrideStr => Enum.GetName(typeof(ElementType), OffensiveElementOverride);
+    public string DefensiveElementOverrideStr => Enum.GetName(typeof(ElementType), DefensiveElementOverride);
 
     [FormulaVariable]
-    public uint MaximumHp => (uint)Math.Clamp(BaseHp+BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+    public uint MaximumHp =>
+        (uint) Math.Clamp(BaseHp + BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
 
     [FormulaVariable]
-    public uint MaximumMp => (uint)Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+    public uint MaximumMp =>
+        (uint) Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
 
-    [FormulaVariable] 
-    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    [FormulaVariable]
+    public byte Str => (byte) Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
     [FormulaVariable]
     public byte Int => (byte) Math.Clamp(BaseInt + BonusInt, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-    
+
     [FormulaVariable]
     public byte Wis => (byte) Math.Clamp(BaseWis + BonusWis, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
-    
+
     [FormulaVariable]
     public byte Con => (byte) Math.Clamp(BaseCon + BonusCon, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
@@ -769,7 +1460,7 @@ public class StatInfo
 
 
     [FormulaVariable]
-    public double Dmg => (byte)Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
+    public double Dmg => (byte) Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
 
     // These are for the client 0x08, specifically, which has some annoying limitations.
     // MR in particular can only be displayed as multiples of 10% and no negatives can be
@@ -816,25 +1507,105 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    public double Hit => (byte)Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
+    public double Hit => (byte) Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
 
     [FormulaVariable]
-    public sbyte Ac => (sbyte)Math.Clamp((BaseAc - Level / 3) + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
+    public sbyte Ac =>
+        (sbyte) Math.Clamp(BaseAc - Level / 3 + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
 
-    [FormulaVariable]
-    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
+    [FormulaVariable] public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
 
     [FormulaVariable]
     public double Regen => Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN);
 
+    public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
+
+
+    #region private properties
+
+    private byte _level { get; set; }
+    private uint _experience { get; set; }
+    private uint _gold { get; set; }
+    private byte _ability { get; set; }
+    private uint _abilityExp { get; set; }
+    private uint _currentHp { get; set; }
+    private uint _currentMp { get; set; }
+    private long _deltaHp { get; set; }
+    private long _deltaMp { get; set; }
+    private long _baseHp { get; set; }
+    private long _bonusHp { get; set; }
+    private long _baseMp { get; set; }
+    private long _bonusMp { get; set; }
+    private long _baseStr { get; set; }
+    private long _bonusStr { get; set; }
+    private long _baseInt { get; set; }
+    private long _bonusInt { get; set; }
+    private long _baseWis { get; set; }
+    private long _bonusWis { get; set; }
+    private long _baseCon { get; set; }
+    private long _bonusCon { get; set; }
+    private long _baseDex { get; set; }
+    private long _bonusDex { get; set; }
+    private double _baseCrit { get; set; }
+    private double _bonusCrit { get; set; }
+    private double _baseMagicCrit { get; set; }
+    private double _bonusMagicCrit { get; set; }
+    private double _baseDmg { get; set; }
+    private double _bonusDmg { get; set; }
+    private double _baseHit { get; set; }
+    private double _bonusHit { get; set; }
+    private long _baseAc { get; set; }
+    private long _bonusAc { get; set; }
+    private double _baseMr { get; set; }
+    private double _bonusMr { get; set; }
+    private double _baseRegen { get; set; }
+    private double _bonusRegen { get; set; }
+    private double _baseInboundDamageModifier { get; set; }
+    private double _bonusInboundDamageModifier { get; set; }
+    private double _baseInboundHealModifier { get; set; }
+    private double _bonusInboundHealModifier { get; set; }
+    private double _baseOutboundDamageModifier { get; set; }
+    private double _bonusOutboundDamageModifier { get; set; }
+    private double _baseOutboundHealModifier { get; set; }
+    private double _bonusOutboundHealModifier { get; set; }
+    private double _baseReflectMagical { get; set; }
+    private double _bonusReflectMagical { get; set; }
+    private double _baseReflectPhysical { get; set; }
+    private double _bonusReflectPhysical { get; set; }
+    private double _baseExtraGold { get; set; }
+    private double _bonusExtraGold { get; set; }
+    private double _baseDodge { get; set; }
+    private double _bonusDodge { get; set; }
+    private double _baseMagicDodge { get; set; }
+    private double _bonusMagicDodge { get; set; }
+    private double _baseExtraXp { get; set; }
+    private double _bonusExtraXp { get; set; }
+    private double _baseExtraItemFind { get; set; }
+    private double _bonusExtraItemFind { get; set; }
+    private double _baseLifeSteal { get; set; }
+    private double _bonusLifeSteal { get; set; }
+    private double _baseManaSteal { get; set; }
+    private double _bonusManaSteal { get; set; }
+    private double _baseInboundDamageToMp { get; set; }
+    private double _bonusInboundDamageToMp { get; set; }
+    private ElementType _baseOffensiveElement { get; set; } = ElementType.None;
+    private ElementType _baseDefensiveElement { get; set; } = ElementType.None;
+    private ElementType _offensiveElementOverride { get; set; } = ElementType.None;
+    private ElementType _defensiveElementOverride { get; set; } = ElementType.None;
+
+    #endregion
+
     #region Functions
 
     /// <summary>
-    /// Apply the changes of a passed StatInfo. The attributes within are applied to this StatInfo object.
+    ///     Apply the changes of a passed StatInfo. The attributes within are applied to this StatInfo object.
     /// </summary>
     /// <param name="si1">The StatInfo object to apply to this one</param>
     /// <param name="experience">Boolean indicating whether or not to handle experience (Level/Exp/Ab/AbExp)</param>
-    /// <param name="asBonus">Boolean indicating whether or not to apply the attributes in the passed object as bonuses or a base attribute change</param>
+    /// <param name="asBonus">
+    ///     Boolean indicating whether or not to apply the attributes in the passed object as bonuses or a
+    ///     base attribute change
+    /// </param>
     public void Apply(StatInfo si1, bool experience = false)
     {
         if (si1 == null || si1.Empty) return;
@@ -848,7 +1619,7 @@ public class StatInfo
         if (mp < 0) mp = 0;
         Mp = (uint) Math.Clamp(mp, 0, uint.MaxValue);
         var gold = Gold + si1.Gold;
-        Gold = (uint) Math.Clamp(gold, 0, uint.MaxValue);
+        Gold = Math.Clamp(gold, 0, uint.MaxValue);
 
         BonusHp += si1.BonusHp;
         BonusMp += si1.BonusMp;
@@ -915,11 +1686,14 @@ public class StatInfo
     }
 
     /// <summary>
-    /// Remove the changes of a passed StatInfo. The attributes within are applied to this StatInfo object.
+    ///     Remove the changes of a passed StatInfo. The attributes within are applied to this StatInfo object.
     /// </summary>
     /// <param name="si1">The StatInfo object to apply to this one</param>
     /// <param name="experience">Boolean indicating whether or not to handle experience (Level/Exp/Ab/AbExp)</param>
-    /// <param name="asBonus">Boolean indicating whether or not to remove the attributes in the passed object as bonuses or a base attribute change</param>
+    /// <param name="asBonus">
+    ///     Boolean indicating whether or not to remove the attributes in the passed object as bonuses or a
+    ///     base attribute change
+    /// </param>
     public void Remove(StatInfo si1, bool experience = false)
     {
         if (si1 == null || si1.Empty) return;
@@ -995,7 +1769,8 @@ public class StatInfo
                                  BaseOutboundDamageModifier == 0 && BaseOutboundHealModifier == 0 &&
                                  BaseReflectMagical == 0 && BaseReflectPhysical == 0 && BaseExtraGold == 0 &&
                                  BaseDodge == 0 && BaseMagicDodge == 0 && BaseExtraXp == 0 && BaseExtraItemFind == 0 &&
-                                 BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0 && DeltaHp == 0 && DeltaMp == 0;
+                                 BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0 &&
+                                 DeltaHp == 0 && DeltaMp == 0;
 
     public bool NoBonusChanges => BonusHp == 0 && BonusMp == 0 && BonusStr == 0 && BonusCon == 0 && BonusDex == 0 &&
                                   BonusInt == 0 && BonusWis == 0 && BonusCrit == 0 && BonusMagicCrit == 0 &&
@@ -1007,12 +1782,9 @@ public class StatInfo
                                   BonusExtraItemFind == 0 && BonusLifeSteal == 0 && BonusManaSteal == 0 &&
                                   BonusInboundDamageToMp == 0;
 
-    public bool NoExperienceChanges => Level == 0 && Experience == 0 & Ability == 0 && AbilityExp == 0;
+    public bool NoExperienceChanges => Level == 0 && (Experience == 0) & (Ability == 0) && AbilityExp == 0;
 
     public bool Empty => NoExperienceChanges && NoBonusChanges && NoBaseChanges;
 
     #endregion
-
 }
-
-

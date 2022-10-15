@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
 
-
 namespace Hybrasyl.Xml
 {
     public partial class CastableHeal
@@ -30,7 +29,7 @@ namespace Hybrasyl.Xml
         public bool IsSimple => string.IsNullOrEmpty(Formula);
 
         // temporary silliness due to xsd issues
-        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
+        public bool IsEmpty => IsSimple && Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0;
     }
 
     public partial class CastableDamage
@@ -38,15 +37,14 @@ namespace Hybrasyl.Xml
         public bool IsSimple => string.IsNullOrEmpty(Formula);
 
         // temporary silliness due to xsd issues
-        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
+        public bool IsEmpty => IsSimple && Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0;
     }
 
     // For some reason xsd2code doesn't add this and it breaks spawngroup parsing
     [XmlRootAttribute(Namespace = "http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
     public partial class SpawnGroup
     {
-        public ushort MapId { get; set; } = 0;
-
+        public ushort MapId { get; set; }
     }
 
     public partial class Spawn
@@ -96,10 +94,20 @@ namespace Hybrasyl.Xml
 
         public bool OnCooldown => Cooldown > 0 && (DateTime.Now - LastCast).TotalSeconds < Cooldown;
 
+        public List<string> CategoryList
+        {
+            get
+            {
+                return Categories.Count > 0
+                    ? Categories.Select(selector: x => x.Value.ToLower()).ToList()
+                    : new List<string>();
+            }
+        }
+
         public byte GetMaxLevelByClass(Class castableClass)
         {
             var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
-            return (byte)(maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
+            return (byte) (maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
         }
 
         public bool TryGetMotion(Class castClass, out CastableMotion motion)
@@ -108,23 +116,16 @@ namespace Hybrasyl.Xml
 
             if (Effects?.Animations?.OnCast?.Player == null) return false;
 
-            var m = Effects.Animations.OnCast.Player.Where(e => e.Class.Contains(castClass));
+            var m = Effects.Animations.OnCast.Player.Where(predicate: e => e.Class.Contains(castClass));
             if (m.Count() == 0)
-                m = Effects.Animations.OnCast.Player.Where(e => e.Class.Count == 0);
+                m = Effects.Animations.OnCast.Player.Where(predicate: e => e.Class.Count == 0);
 
             if (m.Count() == 0)
                 return false;
-            else
-                motion = m.First();
+            motion = m.First();
 
             return true;
         }
-
-        public List<string> CategoryList
-        {
-            get { return Categories.Count > 0 ? Categories.Select(x => x.Value.ToLower()).ToList() : new(); }
-        }
-
     }
 
     public class CastableComparer : IEqualityComparer<Castable>
@@ -140,14 +141,15 @@ namespace Hybrasyl.Xml
 
         public int GetHashCode(Castable c)
         {
-            string hCode = $"{c.Name.Trim().ToLower()}-{c.Book}";
+            var hCode = $"{c.Name.Trim().ToLower()}-{c.Book}";
             return hCode.GetHashCode();
         }
     }
 
     public partial class CastableIntent
     {
-        public bool IsShapeless => Cross.Count == 0 && Line.Count == 0 && Square.Count == 0 && Tile.Count == 0 && Map == null;
+        public bool IsShapeless =>
+            Cross.Count == 0 && Line.Count == 0 && Square.Count == 0 && Tile.Count == 0 && Map == null;
     }
 }
 
@@ -157,13 +159,13 @@ namespace Hybrasyl.Xml
     {
         public bool IsSimple => string.IsNullOrEmpty(Formula);
 
-        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
+        public bool IsEmpty => IsSimple && Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0;
     }
 
     public partial class StatusDamage
     {
         public bool IsSimple => string.IsNullOrEmpty(Formula);
-        public bool IsEmpty => IsSimple && (Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0);
+        public bool IsEmpty => IsSimple && Simple.Value == 0 && Simple.Min == 0 && Simple.Max == 0;
     }
 
     public partial class Status
@@ -183,15 +185,13 @@ namespace Hybrasyl.Xml
 
 namespace Hybrasyl.Xml
 {
-
     public partial class Time
     {
-
-        public HybrasylAge DefaultAge => new HybrasylAge() { Name = "Hybrasyl", StartYear = 1 };
+        public HybrasylAge DefaultAge => new() { Name = "Hybrasyl", StartYear = 1 };
 
         /// <summary>
-        /// Try to find the previous age for a given age. Return false if there is no previous age 
-        /// (in which case, a Hybrasyl date before the beginning of the age is simply a negative year)
+        ///     Try to find the previous age for a given age. Return false if there is no previous age
+        ///     (in which case, a Hybrasyl date before the beginning of the age is simply a negative year)
         /// </summary>
         /// <param name="age"></param>
         /// <param name="previousAge"></param>
@@ -204,13 +204,13 @@ namespace Hybrasyl.Xml
             // Find the age of the day before the start date. This assumes the 
             // user hasn't done something doltish like having non-contiguous ages
             var before = age.StartDate - new TimeSpan(1, 0, 0, 0);
-            previousAge = Ages.FirstOrDefault(a => a.DateInAge(before));
+            previousAge = Ages.FirstOrDefault(predicate: a => a.DateInAge(before));
             return previousAge != null;
         }
 
         /// <summary>
-        /// Try to find the next age for a given age. Return false if there is no next age 
-        /// (in which case, the Hybrasyl year simply increments without end)
+        ///     Try to find the next age for a given age. Return false if there is no next age
+        ///     (in which case, the Hybrasyl year simply increments without end)
         /// </summary>
         /// <param name="age"></param>
         /// <param name="nextAge"></param>
@@ -223,7 +223,7 @@ namespace Hybrasyl.Xml
             // Find the age of the day after the start date. This (again) assumes the 
             // user hasn't done something doltish like having non-contiguous ages
             var after = age.StartDate + new TimeSpan(1, 0, 0, 0);
-            nextAge = Ages.FirstOrDefault(a => a.DateInAge(after));
+            nextAge = Ages.FirstOrDefault(predicate: a => a.DateInAge(after));
             return nextAge != null;
         }
 
@@ -234,28 +234,26 @@ namespace Hybrasyl.Xml
             {
                 0 => DefaultAge,
                 1 => Ages.First(),
-                _ => Ages.First(a => a.DateInAge(datetime))
+                _ => Ages.First(predicate: a => a.DateInAge(datetime))
             };
         }
     }
 
     public partial class HybrasylAge
     {
-
         public bool DateInAge(DateTime datetime)
         {
-            if (EndDate == default(DateTime)) return datetime.Ticks > StartDate.Ticks;
-            var endDate = (DateTime)EndDate;
+            if (EndDate == default) return datetime.Ticks > StartDate.Ticks;
+            var endDate = EndDate;
             return datetime.Ticks >= StartDate.Ticks && datetime.Ticks <= endDate.Ticks;
         }
-
     }
 
     public partial class NewPlayer
     {
         public StartMap GetStartMap()
         {
-            StartMaps.OrderBy(x => Guid.NewGuid()).FirstOrDefault();
+            StartMaps.OrderBy(keySelector: x => Guid.NewGuid()).FirstOrDefault();
             return StartMaps.First();
         }
     }
@@ -265,26 +263,28 @@ namespace Hybrasyl.Xml
 {
     public partial class CreatureBehaviorSet
     {
-        private List<string> skillCategories = null;
-        private List<string> spellCategories = null;
+        private List<string> skillCategories;
+        private List<string> spellCategories;
 
-        public List<string> LearnSkillCategories => string.IsNullOrEmpty(Castables?.SkillCategories) ? new List<string>() : Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
+        public List<string> LearnSkillCategories => string.IsNullOrEmpty(Castables?.SkillCategories)
+            ? new List<string>()
+            : Castables.SkillCategories.Trim().ToLower().Split(" ").ToList();
 
-        public List<string> LearnSpellCategories => string.IsNullOrEmpty(Castables?.SpellCategories) ? new List<string>() : Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
-
+        public List<string> LearnSpellCategories => string.IsNullOrEmpty(Castables?.SpellCategories)
+            ? new List<string>()
+            : Castables.SpellCategories.Trim().ToLower().Split(" ").ToList();
     }
 }
 
 namespace Hybrasyl.Xml
 {
-
     public partial class Spawn
     {
         public bool Disabled { get; set; } = false;
         public string ErrorMessage { get; set; } = string.Empty;
 
         /// <summary>
-        /// Calculate a specific offensive element for a spawn from its list of elements.
+        ///     Calculate a specific offensive element for a spawn from its list of elements.
         /// </summary>
         /// <returns>Element enum</returns>
         public ElementType GetOffensiveElement()
@@ -299,7 +299,7 @@ namespace Hybrasyl.Xml
         }
 
         /// <summary>
-        /// Calculate a specific defensive element for a spawn from its list of elements.
+        ///     Calculate a specific defensive element for a spawn from its list of elements.
         /// </summary>
         /// <returns>Element enum</returns>
         public ElementType GetDefensiveElement()
@@ -318,43 +318,32 @@ namespace Hybrasyl.Xml
     {
         public string Filename { get; set; }
     }
-
 }
 
 namespace Hybrasyl.Xml
 {
     public partial class Nation
     {
-        public SpawnPoint RandomSpawnPoint
-        {
-            get
-            {
-                return SpawnPoints.Count > 0 ? SpawnPoints[Random.Shared.Next(0, SpawnPoints.Count)] : default(SpawnPoint);
-            }
-        }
+        public SpawnPoint RandomSpawnPoint =>
+            SpawnPoints.Count > 0 ? SpawnPoints[Random.Shared.Next(0, SpawnPoints.Count)] : default;
     }
 }
 
 namespace Hybrasyl.Xml
 {
-
     public partial class ServerConfig
     {
-
         // In case there is nothing defined in XML, we still need some associations for basic
         // functionality
-        [XmlIgnoreAttribute]
-        static Dictionary<byte, (string key, string setting)> Default = new()
+        [XmlIgnoreAttribute] private static Dictionary<byte, (string key, string setting)> Default = new()
         {
             { 6, ("exchange", "Exchange") },
             { 2, ("group", "Allow Grouping") }
         };
 
-        [XmlIgnoreAttribute]
-        public Dictionary<byte, ClientSetting> SettingsNumberIndex { get; set; }
+        [XmlIgnoreAttribute] public Dictionary<byte, ClientSetting> SettingsNumberIndex { get; set; }
 
-        [XmlIgnoreAttribute]
-        public Dictionary<string, ClientSetting> SettingsKeyIndex { get; set; }
+        [XmlIgnoreAttribute] public Dictionary<string, ClientSetting> SettingsKeyIndex { get; set; }
 
         public void InitializeClientSettings()
         {
@@ -363,7 +352,7 @@ namespace Hybrasyl.Xml
 
             for (byte x = 1; x <= 8; x++)
             {
-                var newcs = new ClientSetting()
+                var newcs = new ClientSetting
                 {
                     Default = true,
                     Number = x,
@@ -378,7 +367,7 @@ namespace Hybrasyl.Xml
                 }
                 else
                 {
-                    var cs = ClientSettings.FirstOrDefault(val => val.Number == x);
+                    var cs = ClientSettings.FirstOrDefault(predicate: val => val.Number == x);
                     if (cs == default(ClientSetting))
                     {
                         // No specified setting for this number
@@ -404,7 +393,7 @@ namespace Hybrasyl.Xml
         private List<string> _privilegedUsers = new();
         private List<string> _reservedNames = new();
 
-        public bool AllPrivileged { get; set; } = false;
+        public bool AllPrivileged { get; set; }
 
         public List<string> PrivilegedUsers
         {
@@ -417,6 +406,7 @@ namespace Hybrasyl.Xml
                         if (p.Trim().ToLower() == "*")
                             AllPrivileged = true;
                     }
+
                 return _privilegedUsers;
             }
         }
@@ -447,4 +437,3 @@ namespace Hybrasyl.Xml
         }
     }
 }
-

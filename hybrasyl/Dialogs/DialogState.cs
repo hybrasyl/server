@@ -9,10 +9,21 @@ namespace Hybrasyl.Dialogs;
 
 public class DialogState
 {
+    public uint? PreviousPursuitId;
+
+    public DialogState(User user)
+    {
+        Associate = null;
+        ActiveDialog = null;
+        ActiveDialogSequence = null;
+        User = user;
+        PreviousPursuitId = null;
+    }
+
     internal IInteractable Associate { get; private set; }
     internal Dialog ActiveDialog { get; private set; }
     internal DialogSequence ActiveDialogSequence { get; private set; }
-    internal User User { get; private set; }
+    internal User User { get; }
 
     public uint CurrentPursuitId
     {
@@ -20,12 +31,9 @@ public class DialogState
         {
             if (InDialog)
                 return ActiveDialogSequence?.Id ?? default(int);
-            else
-                return 0;
+            return 0;
         }
     }
-
-    public uint? PreviousPursuitId;
 
     public int CurrentPursuitIndex
     {
@@ -33,8 +41,7 @@ public class DialogState
         {
             if (InDialog)
                 return ActiveDialog?.Index ?? default(int);
-            else
-                return -1;
+            return -1;
         }
     }
 
@@ -48,10 +55,8 @@ public class DialogState
                     return int.MaxValue;
                 else
                     return (int) (Associate?.Id ?? default(int));
-            else
-                return -1;
+            return -1;
         }
-
     }
 
     public bool InDialog
@@ -61,18 +66,8 @@ public class DialogState
             if (ActiveDialog == null || ActiveDialogSequence == null) return false;
             if (ActiveDialogSequence.Id < Constants.DIALOG_SEQUENCE_SHARED)
                 return true;
-            else
-                return Associate != null;
+            return Associate != null;
         }
-    }
-
-    public DialogState(User user)
-    {
-        Associate = null;
-        ActiveDialog = null;
-        ActiveDialogSequence = null;
-        User = user;
-        PreviousPursuitId = null;
     }
 
     public void RunCallback(DialogInvocation invocation)
@@ -81,8 +76,8 @@ public class DialogState
     }
 
     /// <summary>
-    /// Start a dialog sequence. The player must not already be in a dialog or in
-    /// any other state.
+    ///     Start a dialog sequence. The player must not already be in a dialog or in
+    ///     any other state.
     /// </summary>
     /// <param name="target"></param>
     /// <param name="dialogStart"></param>
@@ -108,8 +103,8 @@ public class DialogState
     }
 
     /// <summary>
-    /// Transition between two dialog sequences. This allows us to start a new sequence from an option or
-    /// a response handler, and validate where we've come from.
+    ///     Transition between two dialog sequences. This allows us to start a new sequence from an option or
+    ///     a response handler, and validate where we've come from.
     /// </summary>
     /// <param name="target">A VisibleObject that is the target of the dialog sequence</param>
     /// <param name="dialogStart">The dialog sequence to which we will transition.</param>
@@ -130,7 +125,7 @@ public class DialogState
     }
 
     /// <summary>
-    /// Update the WorldObject associated with this dialog state to obj.
+    ///     Update the WorldObject associated with this dialog state to obj.
     /// </summary>
     /// <param name="obj">The world object which will now be associated with the dialog state.</param>
     internal void UpdateAssociate(IInteractable obj)
@@ -139,15 +134,13 @@ public class DialogState
     }
 
     /// <summary>
-    /// Set the index of a current dialog session. This dialog should be either the previous or next dialog
-    /// from the last one (index wise) and the player must be in a dialog.
+    ///     Set the index of a current dialog session. This dialog should be either the previous or next dialog
+    ///     from the last one (index wise) and the player must be in a dialog.
     /// </summary>
-    ///
     /// <param name="target">The target merchant.</param>
     /// <param name="pursuitId">A dialog sequence (pursuit) ID.</param>
     /// <param name="newIndex">The index to which we are navigating.</param>
     /// <returns></returns>
-
     public bool SetDialogIndex(IInteractable target, int pursuitId, int newIndex)
     {
         switch (target)
@@ -188,7 +181,7 @@ public class DialogState
             return false;
         }
 
-        if (newIndex == (ActiveDialog.Index + 1) &&
+        if (newIndex == ActiveDialog.Index + 1 &&
             newIndex != ActiveDialogSequence.Dialogs.Count &&
             newIndex < ActiveDialogSequence.Dialogs.Count)
         {
@@ -198,8 +191,9 @@ public class DialogState
             Log.Debug("Active dialog is type {Type}", ActiveDialog.GetType());
             return true;
         }
-        else if (newIndex == (ActiveDialog.Index - 1) &&
-                 newIndex >= 0)
+
+        if (newIndex == ActiveDialog.Index - 1 &&
+            newIndex >= 0)
         {
             // Previous
             Log.Debug("Rewinding one dialog");
@@ -211,8 +205,8 @@ public class DialogState
     }
 
     /// <summary>
-    /// Clear the dialog state, e.g. a user is done with a sequence or has cancelled and
-    /// returned to game.
+    ///     Clear the dialog state, e.g. a user is done with a sequence or has cancelled and
+    ///     returned to game.
     /// </summary>
     public void EndDialog()
     {
@@ -224,20 +218,17 @@ public class DialogState
     }
 
     /// <summary>
-    /// Set the current dialog. This dialog should be either the previous or next dialog
-    /// from the last one, and the player must be in a dialog.
+    ///     Set the current dialog. This dialog should be either the previous or next dialog
+    ///     from the last one, and the player must be in a dialog.
     /// </summary>
     /// <param name="currentDialog">The dialog that is now current.</param>
     /// <returns></returns>
     public bool SetCurrentDialog(Dialog currentDialog)
     {
         // Sanity checking
-        if (!InDialog)
-            return false;
-        else
-        {
-            ActiveDialog = currentDialog;
-            return true;
-        }
+        if (!InDialog) return false;
+
+        ActiveDialog = currentDialog;
+        return true;
     }
 }

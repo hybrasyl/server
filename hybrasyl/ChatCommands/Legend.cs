@@ -18,26 +18,31 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
+using System;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using System;
 
 namespace Hybrasyl.ChatCommands;
 
-class LegendCommand : ChatCommand
+internal class LegendCommand : ChatCommand
 {
     public new static string Command = "legend";
-    public new static string ArgumentText = "<string legendText> <byte icon> <byte color> | <int prefix> <int quantity> [<datetime date>]";
-    public new static string HelpText = "Add a legend mark with the specified text, icon and color, and optionally with the given quantity and date.";
+
+    public new static string ArgumentText =
+        "<string legendText> <byte icon> <byte color> | <int prefix> <int quantity> [<datetime date>]";
+
+    public new static string HelpText =
+        "Add a legend mark with the specified text, icon and color, and optionally with the given quantity and date.";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (Enum.TryParse(args[1], out LegendIcon icon) && Enum.TryParse(args[2], out LegendColor color))
         {
-            DateTime time = DateTime.Now;
-            int qty = -1;
+            var time = DateTime.Now;
+            var qty = -1;
             string prefix = null;
 
             if (args.Length > 3)
@@ -48,14 +53,16 @@ class LegendCommand : ChatCommand
                 if (args.Length == 6)
                     DateTime.TryParse(args[5], out time);
             }
+
             user.Legend.AddMark(icon, color, args[0], time, prefix, true, qty);
             return Success("Legend added.");
         }
+
         return Fail("The arguments you specified could not be parsed.");
     }
 }
 
-class TitleCommand : ChatCommand
+internal class TitleCommand : ChatCommand
 {
     public new static string Command = "title";
     public new static string ArgumentText = "<string title>";
@@ -69,11 +76,14 @@ class TitleCommand : ChatCommand
     }
 }
 
-class LegendclearCommand : ChatCommand
+internal class LegendclearCommand : ChatCommand
 {
     public new static string Command = "legendclear";
     public new static string ArgumentText = "[<int marks>]";
-    public new static string HelpText = "Clear your legend of the specified number of marks, starting at the end. If no argument given, CLEARS ALL MARKS. WARNING: Not reversible.";
+
+    public new static string HelpText =
+        "Clear your legend of the specified number of marks, starting at the end. If no argument given, CLEARS ALL MARKS. WARNING: Not reversible.";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
@@ -83,16 +93,18 @@ class LegendclearCommand : ChatCommand
             user.Legend.Clear();
             return Success("Legend cleared.");
         }
-        if (int.TryParse(args[0], out int numToRemove))
+
+        if (int.TryParse(args[0], out var numToRemove))
         {
             user.Legend.RemoveMark(numToRemove);
             return Success($"Last {numToRemove} legend mark(s) removed.");
         }
+
         return Fail("Couldn't parse number of marks");
     }
 }
 
-class LegendColorCommand : ChatCommand
+internal class LegendColorCommand : ChatCommand
 {
     public new static string Command = "legendcolors";
     public new static string ArgumentText = "none";
@@ -101,10 +113,8 @@ class LegendColorCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        for(var i = 0; i<256; i++)
-        {
-            user.Legend.AddMark(LegendIcon.Community, (LegendColor)i, $"This is color {i}.", $"COLOR{i}");
-        }
+        for (var i = 0; i < 256; i++)
+            user.Legend.AddMark(LegendIcon.Community, (LegendColor) i, $"This is color {i}.", $"COLOR{i}");
         return Success("View the colors.");
     }
 }

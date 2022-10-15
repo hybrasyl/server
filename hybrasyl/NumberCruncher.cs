@@ -18,11 +18,11 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Objects;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 using Creature = Hybrasyl.Objects.Creature;
 
@@ -32,9 +32,10 @@ namespace Hybrasyl;
 public class DamageOutput
 {
     public double Amount { get; set; }
-    public Xml.DamageType Type { get; set; }
-    public Xml.DamageFlags Flags { get; set; }
-    public Xml.ElementType Element { get; set; }
+    public DamageType Type { get; set; }
+    public DamageFlags Flags { get; set; }
+    public ElementType Element { get; set; }
+
     public override string ToString() => $"{Element}, {Amount}: {Type} {Flags}";
 }
 
@@ -48,22 +49,19 @@ public class CastCost
 }
 
 /// <summary>
-/// This class is used to do a variety of numerical calculations, in order to consolidate those into
-/// one place. Specifically, healing and damage, are handled here.
+///     This class is used to do a variety of numerical calculations, in order to consolidate those into
+///     one place. Specifically, healing and damage, are handled here.
 /// </summary>
-///
-static class NumberCruncher
+internal static class NumberCruncher
 {
-
     // This is dumb, but it's a consequence of how xsd2code works
     private static double _evalSimple(dynamic simple)
     {
-        if (simple is not Xml.SimpleQuantity sq)
+        if (simple is not SimpleQuantity sq)
             throw new InvalidOperationException("Invalid type passed to _evalSimple");
         // Simple damage can either be expressed as a fixed value <Simple>50</Simple> or a min/max <Simple Min="50" Max="100"/>
         if (sq.Value != 0) return sq.Value;
         return Random.Shared.Next((int) sq.Min, (int) (sq.Max + 1));
-
     }
 
     private static double _evalFormula(string formula, ItemObject item, Creature source)
@@ -73,7 +71,7 @@ static class NumberCruncher
         try
         {
             return FormulaParser.Eval(formula,
-                new FormulaEvaluation() { ItemObject = item, Source = source });
+                new FormulaEvaluation { ItemObject = item, Source = source });
         }
         catch (Exception e)
         {
@@ -82,8 +80,8 @@ static class NumberCruncher
                 $"NumberCruncher formula error: item {item.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
             return 0;
         }
-
     }
+
     private static double _evalFormula(string formula, Castable castable, Creature target, Creature source)
     {
         if (string.IsNullOrEmpty(formula)) return 0.0;
@@ -91,7 +89,7 @@ static class NumberCruncher
         try
         {
             return FormulaParser.Eval(formula,
-                new FormulaEvaluation() {Castable = castable, Target = target, Source = source});
+                new FormulaEvaluation { Castable = castable, Target = target, Source = source });
         }
         catch (Exception e)
         {
@@ -103,7 +101,7 @@ static class NumberCruncher
     }
 
     /// <summary>
-    /// Calculate the damage for a castable.
+    ///     Calculate the damage for a castable.
     /// </summary>
     /// <param name="castable">The castable to use for the calculation</param>
     /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
@@ -116,8 +114,7 @@ static class NumberCruncher
         var type = castable.Effects?.Damage?.Type ?? DamageType.Magical;
 
         if (castable.Effects?.Damage == null)
-            return new DamageOutput()
-                {Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element};
+            return new DamageOutput { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element };
 
         if (castable.Effects.Damage.IsSimple)
         {
@@ -145,13 +142,12 @@ static class NumberCruncher
     }
 
     /// <summary>
-    /// Calculate the healing for a castable.
+    ///     Calculate the healing for a castable.
     /// </summary>
     /// <param name="castable">The castable to use for the calculation</param>
     /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
     /// <param name="source">The source of the castable (i.e. the caster), optional parameter</param>
     /// <returns></returns>
-
     public static double CalculateHeal(Castable castable, Creature target, Creature source = null)
     {
         double heal = 0;
@@ -171,7 +167,7 @@ static class NumberCruncher
 
 
     /// <summary>
-    /// Calculate the damage for a status tick.
+    ///     Calculate the damage for a status tick.
     /// </summary>
     /// <param name="castable">Castable responsible for the status</param>
     /// <param name="effect">ModifierEffect structure for the status</param>
@@ -188,9 +184,9 @@ static class NumberCruncher
 
         if (effect.Damage == null)
             return new DamageOutput
-                {Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element};
+                { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element };
 
-        var statusAdd = castable?.Effects?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
+        var statusAdd = castable?.Effects?.Statuses?.Add?.Where(predicate: e => e.Value == statusName)?.ToList();
         var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
 
         dmg = effect.Damage.IsSimple
@@ -214,7 +210,7 @@ static class NumberCruncher
     }
 
     /// <summary>
-    /// Calculate the healing for a status tick.
+    ///     Calculate the healing for a status tick.
     /// </summary>
     /// <param name="castable">Castable responsible for the status</param>
     /// <param name="effect">ModifierEffect structure for the status</param>
@@ -230,10 +226,12 @@ static class NumberCruncher
 
         if (effect?.Heal == null) return heal;
 
-        var statusAdd = castable?.Effects?.Statuses?.Add?.Where(e => e.Value == statusName)?.ToList();
+        var statusAdd = castable?.Effects?.Statuses?.Add?.Where(predicate: e => e.Value == statusName)?.ToList();
         var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
 
-        heal = effect.Heal.IsSimple ? _evalSimple(effect.Heal.Simple) : _evalFormula(effect.Heal.Formula, castable, target, source);
+        heal = effect.Heal.IsSimple
+            ? _evalSimple(effect.Heal.Simple)
+            : _evalFormula(effect.Heal.Formula, castable, target, source);
 
         if (source?.Stats?.OutboundHealModifier > 0)
             heal *= source.Stats.OutboundHealModifier;
@@ -243,11 +241,10 @@ static class NumberCruncher
         heal *= intensity;
 
         return heal;
-
     }
 
     /// <summary>
-    /// Calculate the cast cost for a castable, which can also be a formula.
+    ///     Calculate the cast cost for a castable, which can also be a formula.
     /// </summary>
     /// <param name="castable">The castable being cast</param>
     /// <param name="target">The target, if applicable, for the castable</param>
@@ -259,10 +256,10 @@ static class NumberCruncher
 
         if (castable.CastCosts.Count == 0 || !(source is User user)) return cost;
 
-        var costs = castable.CastCosts.Where(e => e.Class.Contains(user.Class));
+        var costs = castable.CastCosts.Where(predicate: e => e.Class.Contains(user.Class));
 
         if (!costs.Any())
-            costs = castable.CastCosts.Where(e => e.Class.Count == 0);
+            costs = castable.CastCosts.Where(predicate: e => e.Class.Count == 0);
 
         if (!costs.Any())
             return cost;
@@ -279,12 +276,12 @@ static class NumberCruncher
             cost.Gold = (uint) _evalFormula(toEvaluate.Gold, castable, target, source);
 
         if (toEvaluate.Items.Count > 0)
-            cost.Items = toEvaluate.Items.Select(x => (x.Quantity, x.Value)).ToList();
+            cost.Items = toEvaluate.Items.Select(selector: x => (x.Quantity, x.Value)).ToList();
 
         return cost;
     }
 
-    public static StatInfo CalculateItemModifiers(ItemObject item, Creature source, StatModifiers effect=null)
+    public static StatInfo CalculateItemModifiers(ItemObject item, Creature source, StatModifiers effect = null)
     {
         if (effect == null)
             effect = item.Template.Properties.StatModifiers;
@@ -293,24 +290,24 @@ static class NumberCruncher
 
         var modifiers = new StatInfo
         {
-            DeltaHp = (long)_evalFormula(effect.CurrentHp, item, source),
-            DeltaMp = (long)_evalFormula(effect.CurrentMp, item, source),
-            BaseHp = (long)_evalFormula(effect.BaseHp, item, source),
-            BaseMp = (long)_evalFormula(effect.BaseMp, item, source),
-            BaseStr = (long)_evalFormula(effect.BaseStr, item, source),
-            BaseCon = (long)_evalFormula(effect.BaseCon, item, source),
-            BaseDex = (long)_evalFormula(effect.BaseDex, item, source),
-            BaseInt = (long)_evalFormula(effect.BaseInt, item, source),
-            BaseWis = (long)_evalFormula(effect.BaseWis, item, source),
+            DeltaHp = (long) _evalFormula(effect.CurrentHp, item, source),
+            DeltaMp = (long) _evalFormula(effect.CurrentMp, item, source),
+            BaseHp = (long) _evalFormula(effect.BaseHp, item, source),
+            BaseMp = (long) _evalFormula(effect.BaseMp, item, source),
+            BaseStr = (long) _evalFormula(effect.BaseStr, item, source),
+            BaseCon = (long) _evalFormula(effect.BaseCon, item, source),
+            BaseDex = (long) _evalFormula(effect.BaseDex, item, source),
+            BaseInt = (long) _evalFormula(effect.BaseInt, item, source),
+            BaseWis = (long) _evalFormula(effect.BaseWis, item, source),
             BaseCrit = _evalFormula(effect.BaseCrit, item, source),
             BaseMagicCrit = _evalFormula(effect.BaseMagicCrit, item, source),
             BaseDodge = _evalFormula(effect.BaseDodge, item, source),
             BaseMagicDodge = _evalFormula(effect.BaseMagicDodge, item, source),
-            BaseDmg = (long)_evalFormula(effect.BaseDmg, item, source),
-            BaseHit = (long)_evalFormula(effect.BaseHit, item, source),
-            BaseAc = (long)_evalFormula(effect.BaseAc, item, source),
-            BaseMr = (long)_evalFormula(effect.BaseMr, item, source),
-            BaseRegen = (long)_evalFormula(effect.BaseRegen, item, source),
+            BaseDmg = (long) _evalFormula(effect.BaseDmg, item, source),
+            BaseHit = (long) _evalFormula(effect.BaseHit, item, source),
+            BaseAc = (long) _evalFormula(effect.BaseAc, item, source),
+            BaseMr = (long) _evalFormula(effect.BaseMr, item, source),
+            BaseRegen = (long) _evalFormula(effect.BaseRegen, item, source),
             BaseInboundDamageModifier = _evalFormula(effect.BaseInboundDamageModifier, item, source),
             BaseInboundHealModifier = _evalFormula(effect.BaseInboundHealModifier, item, source),
             BaseOutboundDamageModifier = _evalFormula(effect.BaseOutboundDamageModifier, item, source),
@@ -323,22 +320,22 @@ static class NumberCruncher
             BaseLifeSteal = _evalFormula(effect.BaseLifeSteal, item, source),
             BaseManaSteal = _evalFormula(effect.BaseManaSteal, item, source),
             BaseInboundDamageToMp = _evalFormula(effect.BaseInboundDamageToMp, item, source),
-            BonusHp = (long)_evalFormula(effect.BonusHp, item, source),
-            BonusMp = (long)_evalFormula(effect.BonusMp, item, source),
-            BonusStr = (long)_evalFormula(effect.BonusStr, item, source),
-            BonusCon = (long)_evalFormula(effect.BonusCon, item, source),
-            BonusDex = (long)_evalFormula(effect.BonusDex, item, source),
-            BonusInt = (long)_evalFormula(effect.BonusInt, item, source),
-            BonusWis = (long)_evalFormula(effect.BonusWis, item, source),
+            BonusHp = (long) _evalFormula(effect.BonusHp, item, source),
+            BonusMp = (long) _evalFormula(effect.BonusMp, item, source),
+            BonusStr = (long) _evalFormula(effect.BonusStr, item, source),
+            BonusCon = (long) _evalFormula(effect.BonusCon, item, source),
+            BonusDex = (long) _evalFormula(effect.BonusDex, item, source),
+            BonusInt = (long) _evalFormula(effect.BonusInt, item, source),
+            BonusWis = (long) _evalFormula(effect.BonusWis, item, source),
             BonusCrit = _evalFormula(effect.BonusCrit, item, source),
             BonusMagicCrit = _evalFormula(effect.BonusMagicCrit, item, source),
             BonusDodge = _evalFormula(effect.BonusDodge, item, source),
             BonusMagicDodge = _evalFormula(effect.BonusMagicDodge, item, source),
-            BonusDmg = (long)_evalFormula(effect.BonusDmg, item, source),
-            BonusHit = (long)_evalFormula(effect.BonusHit, item, source),
-            BonusAc = (long)_evalFormula(effect.BonusAc, item, source),
-            BonusMr = (long)_evalFormula(effect.BonusMr, item, source),
-            BonusRegen = (long)_evalFormula(effect.BonusRegen, item, source),
+            BonusDmg = (long) _evalFormula(effect.BonusDmg, item, source),
+            BonusHit = (long) _evalFormula(effect.BonusHit, item, source),
+            BonusAc = (long) _evalFormula(effect.BonusAc, item, source),
+            BonusMr = (long) _evalFormula(effect.BonusMr, item, source),
+            BonusRegen = (long) _evalFormula(effect.BonusRegen, item, source),
             BonusInboundDamageModifier = _evalFormula(effect.BonusInboundDamageModifier, item, source),
             BonusInboundHealModifier = _evalFormula(effect.BonusInboundHealModifier, item, source),
             BonusOutboundDamageModifier = _evalFormula(effect.BonusOutboundDamageModifier, item, source),
@@ -353,13 +350,12 @@ static class NumberCruncher
             BonusInboundDamageToMp = _evalFormula(effect.BonusInboundDamageToMp, item, source)
         };
 
-        if (effect.BaseOffensiveElement != Xml.ElementType.None)
+        if (effect.BaseOffensiveElement != ElementType.None)
             modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;
-        if (effect.BaseDefensiveElement != Xml.ElementType.None)
+        if (effect.BaseDefensiveElement != ElementType.None)
             modifiers.DefensiveElementOverride = effect.BaseDefensiveElement;
 
         return modifiers;
-
     }
 
     public static long Modify(double val, double intensity)
@@ -369,13 +365,13 @@ static class NumberCruncher
     }
 
     public static StatInfo CalculateStatusModifiers(Castable castable, double intensity, StatModifiers effect,
-        Creature source, Creature target=null)
+        Creature source, Creature target = null)
     {
         if (effect is null) return new StatInfo();
         var modifiers = new StatInfo
         {
             DeltaHp = Modify(_evalFormula(effect.CurrentHp, castable, target, source), intensity),
-            DeltaMp = (long)_evalFormula(effect.CurrentMp, castable, target, source),
+            DeltaMp = (long) _evalFormula(effect.CurrentMp, castable, target, source),
             BonusHp = Modify(_evalFormula(effect.BonusHp, castable, target, source), intensity),
             BonusMp = Modify(_evalFormula(effect.BonusMp, castable, target, source), intensity),
             BonusStr = Modify(_evalFormula(effect.BonusStr, castable, target, source), intensity),
@@ -390,28 +386,31 @@ static class NumberCruncher
             BonusAc = Modify(_evalFormula(effect.BonusAc, castable, target, source), intensity),
             BonusMr = Modify(_evalFormula(effect.BonusMr, castable, target, source), intensity),
             BonusRegen = Modify(_evalFormula(effect.BonusRegen, castable, target, source), intensity),
-            BonusInboundDamageModifier = Modify(_evalFormula(effect.BonusInboundDamageModifier, castable, target, source), intensity),
-            BonusInboundHealModifier = Modify(_evalFormula(effect.BonusInboundHealModifier, castable, target, source), intensity),
-            BonusOutboundDamageModifier = Modify(_evalFormula(effect.BonusOutboundDamageModifier, castable, target, source), intensity),
-            BonusOutboundHealModifier = Modify(_evalFormula(effect.BonusOutboundHealModifier, castable, target, source), intensity),
+            BonusInboundDamageModifier =
+                Modify(_evalFormula(effect.BonusInboundDamageModifier, castable, target, source), intensity),
+            BonusInboundHealModifier = Modify(_evalFormula(effect.BonusInboundHealModifier, castable, target, source),
+                intensity),
+            BonusOutboundDamageModifier =
+                Modify(_evalFormula(effect.BonusOutboundDamageModifier, castable, target, source), intensity),
+            BonusOutboundHealModifier = Modify(_evalFormula(effect.BonusOutboundHealModifier, castable, target, source),
+                intensity),
             BonusReflectMagical = Modify(_evalFormula(effect.BonusReflectMagical, castable, target, source), intensity),
-            BonusReflectPhysical = Modify(_evalFormula(effect.BonusReflectPhysical, castable, target, source), intensity),
+            BonusReflectPhysical =
+                Modify(_evalFormula(effect.BonusReflectPhysical, castable, target, source), intensity),
             BonusExtraGold = Modify(_evalFormula(effect.BonusExtraGold, castable, target, source), intensity),
             BonusDodge = Modify(_evalFormula(effect.BonusDodge, castable, target, source), intensity),
             BonusMagicDodge = Modify(_evalFormula(effect.BonusMagicDodge, castable, target, source), intensity),
             BonusExtraXp = Modify(_evalFormula(effect.BonusExtraXp, castable, target, source), intensity),
             BonusExtraItemFind = Modify(_evalFormula(effect.BonusExtraItemFind, castable, target, source), intensity),
             BonusLifeSteal = Modify(_evalFormula(effect.BonusLifeSteal, castable, target, source), intensity),
-            BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity),
+            BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity)
         };
 
-        if (effect.BaseOffensiveElement != Xml.ElementType.None)
+        if (effect.BaseOffensiveElement != ElementType.None)
             modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;
-        if (effect.BaseDefensiveElement != Xml.ElementType.None)
+        if (effect.BaseDefensiveElement != ElementType.None)
             modifiers.DefensiveElementOverride = effect.BaseDefensiveElement;
 
         return modifiers;
-
     }
-
 }

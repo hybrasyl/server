@@ -19,10 +19,10 @@
  * 
  */
 
-using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -30,83 +30,96 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
 public class ClientState
 {
     private const int BufferSize = 65600;
-    private byte[] _buffer = new byte[BufferSize];
+
+    private readonly object _recvlock = new();
+
+    private readonly object _sendlock = new();
+    private ConcurrentQueue<ClientPacket> _receiveBuffer = new();
+    private ConcurrentQueue<ServerPacket> _sendBuffer = new();
+
+    public int BytesReceived;
     public bool Recieving;
-    private ConcurrentQueue<ServerPacket> _sendBuffer = new ConcurrentQueue<ServerPacket>();
-    private ConcurrentQueue<ClientPacket> _receiveBuffer = new ConcurrentQueue<ClientPacket>();
-    public ManualResetEvent SendComplete = new ManualResetEvent(false);
+    public ManualResetEvent SendComplete = new(false);
+
+    public ClientState(Socket incoming)
+    {
+        WorkSocket = incoming;
+        Id = GlobalConnectionManifest.GetNewConnectionId();
+        Connected = true;
+    }
+
     public int SendBufferDepth => _sendBuffer.Count;
     public bool Connected { get; set; }
 
     public long Id { get; }
 
-    private object _recvlock = new object();
     public object ReceiveLock
     {
         get
         {
-            System.Diagnostics.StackFrame frame = new System.Diagnostics.StackFrame(1);
-            GameLog.Debug($"Receive lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+            var frame = new StackFrame(1);
+            GameLog.Debug(
+                $"Receive lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
             return _recvlock;
         }
     }
 
-    private object _sendlock = new object();
     public object SendLock
     {
         get
         {
-            System.Diagnostics.StackFrame frame = new System.Diagnostics.StackFrame(1);
-            GameLog.Debug($"Send lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+            var frame = new StackFrame(1);
+            GameLog.Debug(
+                $"Send lock acquired by: {frame.GetMethod().Name} on thread {Thread.CurrentThread.ManagedThreadId}");
             return _sendlock;
         }
     }
 
     public Socket WorkSocket { get; }
 
-    public ClientState(Socket incoming)
-    {
-        this.WorkSocket = incoming;
-        this.Id = GlobalConnectionManifest.GetNewConnectionId();
-        this.Connected = true;
-    }
+    public byte[] Buffer { get; private set; } = new byte[BufferSize];
 
-    public byte[] Buffer => _buffer;
+    public bool SendBufferEmpty => _sendBuffer.IsEmpty;
 
     public IEnumerable<byte> ReceiveBufferTake(int range)
     {
         lock (ReceiveLock)
         {
-            return _buffer.Take(range);
+            return Buffer.Take(range);
         }
     }
 
     public IEnumerable<byte> ReceiveBufferPop(int range)
     {
-        var ret = _buffer.Take(range);
-        var asList = _buffer.ToList();
+        var ret = Buffer.Take(range);
+        var asList = Buffer.ToList();
         asList.RemoveRange(0, range);
-        _buffer = new byte[BufferSize];
-        Array.ConstrainedCopy(asList.ToArray(), 0, _buffer, 0, asList.ToArray().Length);
+        Buffer = new byte[BufferSize];
+        Array.ConstrainedCopy(asList.ToArray(), 0, Buffer, 0, asList.ToArray().Length);
         return ret;
     }
 
-    public void SendBufferAdd(ServerPacket packet) => _sendBuffer.Enqueue(packet);
+    public void SendBufferAdd(ServerPacket packet)
+    {
+        _sendBuffer.Enqueue(packet);
+    }
+
     public bool SendBufferPeek(out ServerPacket packet) => _sendBuffer.TryPeek(out packet);
+
     public bool SendBufferTake(out ServerPacket packet) => _sendBuffer.TryDequeue(out packet);
-    public bool SendBufferEmpty => _sendBuffer.IsEmpty;
 
     public void ResetReceive()
     {
         lock (ReceiveLock)
         {
-            _buffer = new byte[BufferSize];
+            Buffer = new byte[BufferSize];
             _receiveBuffer = new ConcurrentQueue<ClientPacket>();
         }
     }
@@ -141,9 +154,9 @@ public class ClientState
         packet = null;
         lock (ReceiveLock)
         {
-            if (_buffer.Length != 0 && _buffer[0] == 0xAA && _buffer.Length > 3)
+            if (Buffer.Length != 0 && Buffer[0] == 0xAA && Buffer.Length > 3)
             {
-                var packetLength = (_buffer[1] << 8) + _buffer[2] + 3;
+                var packetLength = (Buffer[1] << 8) + Buffer[2] + 3;
                 // Complete packet, pop it off and return it
                 if (BytesReceived >= packetLength)
                 {
@@ -152,48 +165,97 @@ public class ClientState
                     return true;
                 }
             }
+
             return false;
         }
     }
 
-    public int BytesReceived;
-
-    public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
+    public void ReceiveBufferAdd(ClientPacket packet)
+    {
+        _receiveBuffer.Enqueue(packet);
+    }
 
     public bool ReceiveBufferTake(out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
-
 }
 
 public class Client
 {
+    private long _byteHeartbeatReceived;
+    private long _byteHeartbeatSent;
+    private int _clientTickCount;
 
-    public bool Connected => ClientState.Connected;
-
-    public ClientState ClientState;
-
-    public Socket Socket => ClientState.WorkSocket;
-
-    private Server Server { get; set; }
-
-    public Dictionary<byte, ThrottleInfo> ThrottleState = new Dictionary<byte, ThrottleInfo>();
-
-    public long ConnectionId => ClientState.Id;
+    private int _heartbeatA;
+    private int _heartbeatB;
+    private long _idle;
 
     private long _lastReceived;
     private long _lastSent = 0;
-    private long _idle;
-        
+
+    private int _localTickCount;  // Make this int32 because it's what the client expects
+    private long _tickHeartbeatReceived;
+    private long _tickHeartbeatSent;
+
+    public ClientState ClientState;
+
+    public long ConnectedSince;
+
     public byte ServerOrdinal;
+
+    public Dictionary<byte, ThrottleInfo> ThrottleState = new();
+
+    public Client() { }
+
+    public Client(Socket socket, Server server)
+    {
+        ClientState = new ClientState(socket);
+        Server = server;
+        GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
+            ((IPEndPoint) Socket.RemoteEndPoint).Address.ToString(),
+            ((IPEndPoint) Socket.RemoteEndPoint).Port);
+
+        if (server is Lobby)
+        {
+            EncryptionKey = Game.Config.ApiEndpoints.EncryptionEndpoint != null
+                ? GlobalConnectionManifest.RequestEncryptionKey(Game.Config.ApiEndpoints.EncryptionEndpoint.Url,
+                    ((IPEndPoint) socket.RemoteEndPoint).Address)
+                : Encoding.ASCII.GetBytes("UrkcnItnI");
+            GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
+
+            var valid = Game.Config.ApiEndpoints.ValidationEndpoint != null
+                ? GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url,
+                    new ServerToken
+                        { Ip = ((IPEndPoint) socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey })
+                : true;
+
+            if (!valid)
+            {
+                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint) Socket.RemoteEndPoint).Address.ToString());
+                socket.Disconnect(true);
+            }
+        }
+
+        EncryptionKeyTable = new byte[1024];
+        _lastReceived = DateTime.Now.Ticks;
+
+        GlobalConnectionManifest.RegisterClient(this);
+
+        ConnectedSince = DateTime.Now.Ticks;
+    }
+
+    public bool Connected => ClientState.Connected;
+
+    public Socket Socket => ClientState.WorkSocket;
+
+    private Server Server { get; }
+
+    public long ConnectionId => ClientState.Id;
     //private byte clientOrdinal = 0x00;
 
     public string RemoteAddress
     {
         get
         {
-            if (Socket != null)
-            {
-                return ((System.Net.IPEndPoint) Socket.RemoteEndPoint).Address.ToString();
-            }
+            if (Socket != null) return ((IPEndPoint) Socket.RemoteEndPoint).Address.ToString();
             return "nil";
         }
     }
@@ -206,45 +268,27 @@ public class Client
     public string NewCharacterSalt { get; set; }
     public string NewCharacterPassword { get; set; }
 
-    private int _heartbeatA;
-    private int _heartbeatB;
-    private long _byteHeartbeatSent;
-    private long _tickHeartbeatSent;
-    private long _byteHeartbeatReceived;
-    private long _tickHeartbeatReceived;
-
-    private int _localTickCount;  // Make this int32 because it's what the client expects
-    private int _clientTickCount;
-
-    public long ConnectedSince;
-
     public byte CurrentMusicTrack { get; private set; }
 
     /// <summary>
-    /// Return the ServerType of a connection, corresponding with Hybrasyl.Utility.ServerTypes
+    ///     Return the ServerType of a connection, corresponding with Hybrasyl.Utility.ServerTypes
     /// </summary>
     public int ServerType
     {
         get
         {
-            if (Server is Lobby)
-            {
-                return ServerTypes.Lobby;
-            }
-            if (Server is Login)
-            {
-                return ServerTypes.Login;
-            }
+            if (Server is Lobby) return ServerTypes.Lobby;
+            if (Server is Login) return ServerTypes.Login;
             return ServerTypes.World;
         }
     }
 
     /// <summary>
-    /// Atomically update the byte-based heartbeat values for the 0x3B packet and then
-    /// queue for transmission to the client. This transmission is aborted if the client hasn't
-    /// been alive more than BYTE_HEARTBEAT_INTERVAL seconds.
-    /// If we don't receive a response to the 0x3B heartbeat within REAP_HEARTBEAT_INTERVAL
-    /// the client is automatically disconnected.
+    ///     Atomically update the byte-based heartbeat values for the 0x3B packet and then
+    ///     queue for transmission to the client. This transmission is aborted if the client hasn't
+    ///     been alive more than BYTE_HEARTBEAT_INTERVAL seconds.
+    ///     If we don't receive a response to the 0x3B heartbeat within REAP_HEARTBEAT_INTERVAL
+    ///     the client is automatically disconnected.
     /// </summary>
     public void SendByteHeartbeat()
     {
@@ -256,14 +300,14 @@ public class Client
         var b = Random.Shared.Next(254);
         Interlocked.Exchange(ref _heartbeatA, a);
         Interlocked.Exchange(ref _heartbeatB, b);
-        byteHeartbeat.WriteByte((byte)a);
-        byteHeartbeat.WriteByte((byte)b);
+        byteHeartbeat.WriteByte((byte) a);
+        byteHeartbeat.WriteByte((byte) b);
         Enqueue(byteHeartbeat);
         Interlocked.Exchange(ref _byteHeartbeatSent, DateTime.Now.Ticks);
     }
 
     /// <summary>
-    /// Check to see if a client is idle
+    ///     Check to see if a client is idle
     /// </summary>
     public void CheckIdle()
     {
@@ -282,8 +326,8 @@ public class Client
     }
 
     /// <summary>
-    /// Atomically update the tick-based (0x68) heartbeat values and transmit
-    /// it to the client.
+    ///     Atomically update the tick-based (0x68) heartbeat values and transmit
+    ///     it to the client.
     /// </summary>
     public void SendTickHeartbeat()
     {
@@ -292,7 +336,7 @@ public class Client
             return;
         var tickHeartbeat = new ServerPacket(0x68);
         // We never really want to deal with negative values
-        var tickCount = Environment.TickCount & Int32.MaxValue;
+        var tickCount = Environment.TickCount & int.MaxValue;
         Interlocked.Exchange(ref _localTickCount, tickCount);
         tickHeartbeat.WriteInt32(tickCount);
         Enqueue(tickHeartbeat);
@@ -300,7 +344,7 @@ public class Client
     }
 
     /// <summary>
-    /// Check whether the provided byte heartbeat values match what was sent to the client.
+    ///     Check whether the provided byte heartbeat values match what was sent to the client.
     /// </summary>
     /// <param name="a">byteA received from client</param>
     /// <param name="b">byteB received from client</param>
@@ -310,14 +354,15 @@ public class Client
         if (a == _heartbeatA && b == _heartbeatB)
         {
             Interlocked.Exchange(ref _byteHeartbeatReceived, DateTime.Now.Ticks);
-            return true;    
+            return true;
         }
+
         return false;
     }
 
     /// <summary>
-    /// Check whether the localTickCount for the tick heartbeat matches what was sent to the client, updating last received
-    /// heartbeat ticks.
+    ///     Check whether the localTickCount for the tick heartbeat matches what was sent to the client, updating last received
+    ///     heartbeat ticks.
     /// </summary>
     /// <param name="localTickCount">Local (server) tick count returned from the client</param>
     /// <param name="clientTickCount">Tick count returned from the client</param>
@@ -330,12 +375,13 @@ public class Client
             Interlocked.Exchange(ref _tickHeartbeatReceived, DateTime.Now.Ticks);
             return true;
         }
+
         return false;
     }
 
     /// <summary>
-    /// Determine whether either heartbeat has "expired" (meaning REAP_HEARTBEAT_INTERVAL has
-    /// passed since we received a heartbeat response).
+    ///     Determine whether either heartbeat has "expired" (meaning REAP_HEARTBEAT_INTERVAL has
+    ///     passed since we received a heartbeat response).
     /// </summary>
     /// <returns>True or false, indicating expiration.</returns>
     public bool IsHeartbeatExpired()
@@ -354,15 +400,16 @@ public class Client
             byteSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL)
         {
             // DON'T FEAR THE REAPER
-            GameLog.InfoFormat("cid {0}: heartbeat expired",ConnectionId);
+            GameLog.InfoFormat("cid {0}: heartbeat expired", ConnectionId);
             return true;
         }
+
         return false;
     }
 
     /// <summary>
-    /// Atomically update the last time we received a packet (in ticks).
-    /// This also automatically marks the client as not idle.
+    ///     Atomically update the last time we received a packet (in ticks).
+    ///     This also automatically marks the client as not idle.
     /// </summary>
     public void UpdateLastReceived(bool updateIdle = true)
     {
@@ -373,7 +420,7 @@ public class Client
     }
 
     /// <summary>
-    /// Atomically set whether or not a client is idle.
+    ///     Atomically set whether or not a client is idle.
     /// </summary>
     public void ToggleIdle()
     {
@@ -382,52 +429,14 @@ public class Client
             Interlocked.Exchange(ref _idle, 1);
             return;
         }
+
         Interlocked.Exchange(ref _idle, 0);
     }
 
     /// <summary>
-    /// Return a boolean indicating whether or not a client is idle.
+    ///     Return a boolean indicating whether or not a client is idle.
     /// </summary>
-    public bool IsIdle()
-    {
-        return (_idle == 1);
-    }
-
-    public Client()
-    {
-
-    }
-
-    public Client(Socket socket, Server server)
-    {
-        ClientState = new ClientState(socket);
-        Server = server;
-        GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
-            ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
-            ((IPEndPoint)Socket.RemoteEndPoint).Port);
-
-        if (server is Lobby)
-        {
-            EncryptionKey = Game.Config.ApiEndpoints.EncryptionEndpoint != null ? GlobalConnectionManifest.RequestEncryptionKey(Game.Config.ApiEndpoints.EncryptionEndpoint.Url, ((IPEndPoint)socket.RemoteEndPoint).Address) : Encoding.ASCII.GetBytes("UrkcnItnI");
-            GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
-
-            var valid = Game.Config.ApiEndpoints.ValidationEndpoint != null ? GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url, new ServerToken { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey}) : true;
-
-            if (!valid)
-            {
-                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString());
-                socket.Disconnect(true);
-            }
-
-        }
-            
-        EncryptionKeyTable = new byte[1024];
-        _lastReceived = DateTime.Now.Ticks;
-            
-        GlobalConnectionManifest.RegisterClient(this);
-                       
-        ConnectedSince = DateTime.Now.Ticks;
-    }
+    public bool IsIdle() => _idle == 1;
 
 
     public void Disconnect()
@@ -440,41 +449,34 @@ public class Client
     {
         var key = new byte[9];
 
-        for (var i = 0; i < 9; ++i)
-        {
-            key[i] = EncryptionKeyTable[(i * (9 * i + sRand * sRand) + bRand) % 1024];
-        }
+        for (var i = 0; i < 9; ++i) key[i] = EncryptionKeyTable[(i * (9 * i + sRand * sRand) + bRand) % 1024];
 
         return key;
     }
 
     public void FlushSendBuffer()
     {
-        MemoryStream buffer = new MemoryStream();
-        int transmitDelay = 0;
+        var buffer = new MemoryStream();
+        var transmitDelay = 0;
 
         try
         {
             while (!ClientState.SendBufferEmpty)
             {
-                if (ClientState.SendBufferPeek(out ServerPacket precheck))
+                if (ClientState.SendBufferPeek(out var precheck))
                 {
-                    if (buffer.Length > 0 && (precheck.TransmitDelay > 0 && transmitDelay == 0))
-                    {
+                    if (buffer.Length > 0 && precheck.TransmitDelay > 0 && transmitDelay == 0)
                         // If we're dealing with a bunch of packets with delays, batch them together.
                         // Otherwise, send them individually.
                         //GameLog.Warning("TransmitDelay occurring");
                         break;
-                    }
                     // Limit outbound transmissions to 65k bytes at a time
                     if (buffer.Length >= 65535)
-                    {
                         //GameLog.Warning("Breaking up into chunks");
                         break;
-                    }
                 }
 
-                if (ClientState.SendBufferTake(out ServerPacket packet))
+                if (ClientState.SendBufferTake(out var packet))
                 {
                     // If no packets, just call the whole thing off
                     if (packet == null) return;
@@ -486,6 +488,7 @@ public class Client
                         packet.GenerateFooter();
                         packet.Encrypt(this);
                     }
+
                     if (packet.TransmitDelay > 0)
                         transmitDelay = packet.TransmitDelay;
                     // Write packet to our memory stream
@@ -496,7 +499,7 @@ public class Client
             if (buffer.Length == 0) return;
 
             // Background enqueue a send with our memory stream
-            Task.Run(async () =>
+            Task.Run(function: async () =>
             {
                 var socketbuf = buffer.ToArray();
                 try
@@ -533,11 +536,7 @@ public class Client
                 ClientPacket packet;
                 while (ClientState.ReceiveBufferTake(out packet))
                 {
-
-                    if (packet.ShouldEncrypt)
-                    {
-                        packet.Decrypt(this);
-                    }
+                    if (packet.ShouldEncrypt) packet.Decrypt(this);
 
                     if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
                         packet.DecryptDialog();
@@ -567,15 +566,13 @@ public class Client
                             //packet.DumpPacket();
                             // Check for throttling
                             var throttleResult = Server.PacketThrottleCheck(this, packet);
-                            if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd || throttleResult == ThrottleResult.SquelchEnd)
-                            {
+                            if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd ||
+                                throttleResult == ThrottleResult.SquelchEnd)
                                 World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
-                            }
-                            else
-                            if (packet.Opcode == 0x06)
-                                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh, ConnectionId));
+                            else if (packet.Opcode == 0x06)
+                                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh,
+                                    ConnectionId));
                         }
-
                     }
                     catch (Exception e)
                     {
@@ -595,9 +592,10 @@ public class Client
 
     public void SendCallback(IAsyncResult ar)
     {
-        ClientState state = (ClientState)ar.AsyncState;
+        var state = (ClientState) ar.AsyncState;
         Client client;
-        GameLog.DebugFormat($"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
+        GameLog.DebugFormat(
+            $"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
 
         try
         {
@@ -615,7 +613,7 @@ public class Client
             {
                 GameLog.ErrorFormat("cid {0}: disconnected");
                 client.Disconnect();
-                throw new SocketException((int)errorCode);
+                throw new SocketException((int) errorCode);
             }
         }
         catch (SocketException e)
@@ -627,20 +625,18 @@ public class Client
         catch (ObjectDisposedException)
         {
             //client.Disconnect();
-            GameLog.Error($"ObjectDisposedException");
+            GameLog.Error("ObjectDisposedException");
             state.WorkSocket.Close();
         }
+
         state.SendComplete.Set();
     }
 
     public void GenerateKeyTable(string seed)
     {
-        string table = Crypto.HashString(seed, "MD5");
+        var table = Crypto.HashString(seed, "MD5");
         table = Crypto.HashString(table, "MD5");
-        for (var i = 0; i < 31; i++)
-        {
-            table += Crypto.HashString(table, "MD5");
-        }
+        for (var i = 0; i < 31; i++) table += Crypto.HashString(table, "MD5");
 
         EncryptionKeyTable = Encoding.ASCII.GetBytes(table);
     }
@@ -653,8 +649,8 @@ public class Client
             Disconnect();
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
-        else
-            ClientState.SendBufferAdd(packet);
+
+        ClientState.SendBufferAdd(packet);
     }
 
     public void Enqueue(ClientPacket packet)
@@ -665,24 +661,19 @@ public class Client
             Disconnect();
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
-        else
-        {
-            ClientState.ReceiveBufferAdd(packet);
-            if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
-                FlushReceiveBuffer();
-        }
+
+        ClientState.ReceiveBufferAdd(packet);
+        if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
+            FlushReceiveBuffer();
     }
 
     public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0)
     {
         GameLog.InfoFormat("Processing redirect");
         GlobalConnectionManifest.RegisterRedirect(this, redirect);
-        GameLog.InfoFormat("Redirect: cid {0}", this.ConnectionId);
+        GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
         GameLog.Info($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
-        if (isLogoff)
-        {
-            GlobalConnectionManifest.DeregisterClient(this);
-        }
+        if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
         redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
         var endPoint = Socket.RemoteEndPoint as IPEndPoint;
@@ -690,17 +681,19 @@ public class Client
 
         if (Game.RedirectTarget != null)
             addressBytes = Game.RedirectTarget.GetAddressBytes();
-        else 
-            addressBytes = IPAddress.IsLoopback(endPoint.Address) ? IPAddress.Loopback.GetAddressBytes() : Game.IpAddress.GetAddressBytes();
+        else
+            addressBytes = IPAddress.IsLoopback(endPoint.Address)
+                ? IPAddress.Loopback.GetAddressBytes()
+                : Game.IpAddress.GetAddressBytes();
 
         Array.Reverse(addressBytes);
 
         var x03 = new ServerPacket(0x03);
         x03.Write(addressBytes);
-        x03.WriteUInt16((ushort)redirect.Destination.Port);
-        x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
+        x03.WriteUInt16((ushort) redirect.Destination.Port);
+        x03.WriteByte((byte) (redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
         x03.WriteByte(redirect.EncryptionSeed);
-        x03.WriteByte((byte)redirect.EncryptionKey.Length);
+        x03.WriteByte((byte) redirect.EncryptionKey.Length);
         x03.Write(redirect.EncryptionKey);
         x03.WriteString8(redirect.Name);
         x03.WriteUInt32(redirect.Id);
@@ -723,5 +716,4 @@ public class Client
         x0A.WriteString16(message);
         Enqueue(x0A);
     }
-
 }

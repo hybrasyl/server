@@ -19,18 +19,16 @@
  * 
  */
 
-using Grpc.Core;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
-using System.Linq;
+using Grpc.Core;
 using Hybrasyl;
-using HybrasylGrpc;
-using Hybrasyl.Objects;
 
 namespace HybrasylGrpc;
 
-class PatronServer : Patron.PatronBase
+internal class PatronServer : Patron.PatronBase
 {
     public override Task<BooleanMessageReply> BeginShutdown(BeginShutdownRequest request, ServerCallContext context)
     {
@@ -49,13 +47,16 @@ class PatronServer : Patron.PatronBase
                 resp.Success = true;
             }
             else
+            {
                 resp.Message = "Control message queue closed (shutdown already in progress?)";
+            }
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.Error("GRPC: Shutdown request failed, {e}", e);
         }
+
         return Task.FromResult(resp);
     }
 
@@ -63,14 +64,15 @@ class PatronServer : Patron.PatronBase
     {
         try
         {
-            return Task.FromResult(new UserCountReply() { Number = Game.World.ActiveUsers.Count() });
+            return Task.FromResult(new UserCountReply { Number = Game.World.ActiveUsers.Count() });
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.Error("GRPC: UserCount failed, {e}", e);
         }
-        return Task.FromResult(new UserCountReply() { Number = -1 });
+
+        return Task.FromResult(new UserCountReply { Number = -1 });
     }
 
     public override Task<BooleanMessageReply> IsShutdownComplete(Empty empty, ServerCallContext context)
@@ -89,7 +91,9 @@ class PatronServer : Patron.PatronBase
             resp.Message = $"Shutdown will complete in {Game.ShutdownTimeRemaining} seconds";
         }
         else if (!Game.IsActive())
+        {
             resp.Message = "Shutdown is in progress";
+        }
 
         return Task.FromResult(resp);
     }
@@ -98,30 +102,33 @@ class PatronServer : Patron.PatronBase
     {
         try
         {
-            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out AuthInfo login))
+            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out var login))
             {
                 if (login.VerifyPassword(request.Password))
-                    return Task.FromResult(new BooleanMessageReply() { Message = "", Success = true });
+                    return Task.FromResult(new BooleanMessageReply { Message = "", Success = true });
             }
             else
-                return Task.FromResult(new BooleanMessageReply() { Message = "Authentication failed", Success = false });
+            {
+                return Task.FromResult(new BooleanMessageReply { Message = "Authentication failed", Success = false });
+            }
         }
         catch (Exception e)
         {
             GameLog.UserActivityError("grpc: Auth: Unknown exception {e}", e);
         }
-        return Task.FromResult(new BooleanMessageReply() { Message = "Unknown error", Success = false });
+
+        return Task.FromResult(new BooleanMessageReply { Message = "Unknown error", Success = false });
     }
 
     public override Task<BooleanMessageReply> ResetPassword(ResetPasswordRequest request, ServerCallContext context)
     {
         try
         {
-            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out AuthInfo login))
+            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out var login))
             {
                 // Simple length check
                 if (request.NewPassword.Length > 8 || request.NewPassword.Length < 4)
-                    return Task.FromResult(new BooleanMessageReply()
+                    return Task.FromResult(new BooleanMessageReply
                     {
                         Message = "Passwords must be between 4 and 8 characters",
                         Success = false
@@ -134,12 +141,15 @@ class PatronServer : Patron.PatronBase
                 login.Save();
             }
             else
-                return Task.FromResult(new BooleanMessageReply() { Message = "Unknown user", Success = false });
+            {
+                return Task.FromResult(new BooleanMessageReply { Message = "Unknown user", Success = false });
+            }
         }
         catch (Exception e)
         {
             GameLog.UserActivityError("grpc: ResetPassword: unknown exception {e}", e);
         }
-        return Task.FromResult(new BooleanMessageReply() { Message = "Unknown error", Success = false });
+
+        return Task.FromResult(new BooleanMessageReply { Message = "Unknown error", Success = false });
     }
 }

@@ -18,28 +18,29 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Objects;
+
 using System;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
 
-class TimeCommand : ChatCommand
+internal class TimeCommand : ChatCommand
 {
     public new static string Command = "time";
     public new static string ArgumentText = "none";
     public new static string HelpText = "Display the current server time.";
     public new static bool Privileged = false;
 
-    public new static ChatCommandResult Run(User user, params string[] args) => Success($"{HybrasylTime.Now.ToString()}");
+    public new static ChatCommandResult Run(User user, params string[] args) => Success($"{HybrasylTime.Now}");
 }
 
-class TimeconvertCommand : ChatCommand
+internal class TimeconvertCommand : ChatCommand
 {
     public new static string Command = "timeconvert";
     public new static string ArgumentText = "<string timeformat> <string time>";
     public new static string HelpText = "Convert a time between aisling/terran formats.";
     public new static bool Privileged = false;
+
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (args[0].ToLower() == "aisling")
@@ -47,16 +48,18 @@ class TimeconvertCommand : ChatCommand
             var hybrasylTime = HybrasylTime.FromString(args[1]);
             return Success($"{args[1]} is {HybrasylTime.ConvertToTerran(hybrasylTime)} .");
         }
-        else if (args[0].ToLower() == "terran")
+
+        if (args[0].ToLower() == "terran")
         {
-            if (DateTime.TryParse(args[1], out DateTime time))
+            if (DateTime.TryParse(args[1], out var time))
             {
                 var hybrasylTime = HybrasylTime.ConvertToHybrasyl(time);
-                return Success($"{args[1]} is {hybrasylTime.ToString()} .");
+                return Success($"{args[1]} is {hybrasylTime} .");
             }
+
             return Fail("Couldn't parse passed value (datetime)");
         }
-        else return Fail("Unsupported time format. Try 'aisling' or 'terran'");
-            
+
+        return Fail("Unsupported time format. Try 'aisling' or 'terran'");
     }
 }

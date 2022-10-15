@@ -19,16 +19,16 @@
  * 
  */
 
-using Hybrasyl.Enums;
-using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Casting;
+using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
+using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects;
 
@@ -42,89 +42,24 @@ public enum MobAction
 
 public class Monster : Creature, ICloneable, IEphemeral
 {
-    private readonly object _lock = new object();
-
     private readonly ConcurrentQueue<MobAction> _actionQueue;
+    private readonly object _lock = new();
 
     private bool _idle = true;
 
     private uint _mTarget;
 
-    public CastableController CastableController { get; set; }
-
-    private CreatureBehaviorSet _behaviorSet { get; set; }
-    public DateTime CreationTime { get; set; }
-    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
-
-
-    public CreatureBehaviorSet BehaviorSet
-    {
-        get => _behaviorSet;
-        set
-        {
-            if (_behaviorSet == null)
-            {
-                _behaviorSet = value;
-            }
-            else
-            {
-                _behaviorSet = value;
-                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
-            }
-        }
-    }
-
-    public SpawnFlags SpawnFlags;
-
-    public (int X, int Y) Destination;
+    public int ActionDelay = 800;
 
     public Tile CurrentPath;
 
-    public int ActionDelay = 800;
-
-    public DateTime LastAction { get; set; } = DateTime.MinValue;
-    public DateTime LastSkill { get; set; } = DateTime.MinValue;
-    public DateTime LastSpell { get; set; } = DateTime.MinValue;
-    public bool IsHostile { get; set; }
-    public bool ShouldWander { get; set; }
-    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
-    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
-    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
-    public bool DeathProcessed { get; set; }
-
-    public bool ScriptExists { get; set; }
-
-    public ThreatInfo ThreatInfo { get; private set; }
+    public (int X, int Y) Destination;
 
     public bool HasCastNearDeath;
 
-    private bool _active { get; set; }
-    public DateTime ActiveSince { get; set; }
+    public Loot Loot;
 
-    public double ActiveSeconds
-    {
-        get
-        {
-            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
-            return -1;
-        }
-    }
-
-    public bool Active
-    {
-        get => _active;
-        set
-        {
-            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
-            _active = value;
-        }
-
-    }
-
-    public bool HasAssailSkills { get; set; } = false;
+    public SpawnFlags SpawnFlags;
 
     public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
@@ -132,7 +67,9 @@ public class Monster : Creature, ICloneable, IEphemeral
         _actionQueue = new ConcurrentQueue<MobAction>();
         SpawnFlags = flags;
         if (behaviorsetOverride != null)
+        {
             BehaviorSet = behaviorsetOverride;
+        }
         else if (!string.IsNullOrEmpty(creature.BehaviorSet))
         {
             if (World.WorldData.TryGetValue<CreatureBehaviorSet>(creature.BehaviorSet, out var behaviorSet))
@@ -169,11 +106,98 @@ public class Monster : Creature, ICloneable, IEphemeral
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
         if (BehaviorSet?.Behavior == null) return;
-        foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(cookie => !HasCookie(cookie.Name)))
-        {
+        foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
+    }
+
+    public CastableController CastableController { get; set; }
+
+    private CreatureBehaviorSet _behaviorSet { get; set; }
+    public DateTime CreationTime { get; set; }
+    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
+
+
+    public CreatureBehaviorSet BehaviorSet
+    {
+        get => _behaviorSet;
+        set
+        {
+            if (_behaviorSet == null)
+            {
+                _behaviorSet = value;
+            }
+            else
+            {
+                _behaviorSet = value;
+                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+            }
         }
     }
+
+    public DateTime LastAction { get; set; } = DateTime.MinValue;
+    public DateTime LastSkill { get; set; } = DateTime.MinValue;
+    public DateTime LastSpell { get; set; } = DateTime.MinValue;
+    public bool IsHostile { get; set; }
+    public bool ShouldWander { get; set; }
+    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
+    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
+    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
+    public bool DeathProcessed { get; set; }
+
+    public bool ScriptExists { get; set; }
+
+    public ThreatInfo ThreatInfo { get; private set; }
+
+    private bool _active { get; set; }
+    public DateTime ActiveSince { get; set; }
+
+    public double ActiveSeconds
+    {
+        get
+        {
+            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
+            return -1;
+        }
+    }
+
+    public bool Active
+    {
+        get => _active;
+        set
+        {
+            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
+            _active = value;
+        }
+    }
+
+    public bool HasAssailSkills { get; set; }
+
+    public uint LootableXP
+    {
+        get => Loot?.Xp ?? 0;
+        set => Loot.Xp = value;
+    }
+
+    public uint LootableGold => Loot?.Gold ?? 0;
+
+    public List<string> LootableItems => Loot?.Items ?? new List<string>();
+
+    public Creature Target
+    {
+        get
+        {
+            if (World.Objects.TryGetValue(_mTarget, out var o))
+                return o as Creature;
+            return null;
+        }
+        set => _mTarget = value?.Id ?? 0;
+    }
+
+    public object Clone() => MemberwiseClone();
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
 
     public override void OnInsert()
     {
@@ -215,8 +239,8 @@ public class Monster : Creature, ICloneable, IEphemeral
 
                 if (hitter.Grouped)
                 {
-                    ItemDropAllowedLooters = hitter.Group.Members.Select(user => user.Name).ToList();
-                    hitter.Group.Members.ForEach(x => x.TrackKill(Name, deadTime));
+                    ItemDropAllowedLooters = hitter.Group.Members.Select(selector: user => user.Name).ToList();
+                    hitter.Group.Members.ForEach(action: x => x.TrackKill(Name, deadTime));
                 }
                 else
                 {
@@ -226,7 +250,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
                 hitter.ShareExperience(LootableXP, Stats.Level);
                 if (hitter.Stats.ExtraXp > 0)
-                    hitter.GiveExperience((uint) LootableXP, true);
+                    hitter.GiveExperience(LootableXP, true);
 
                 var itemDropTime = DateTime.Now;
 
@@ -258,8 +282,6 @@ public class Monster : Creature, ICloneable, IEphemeral
                     World.Insert(item);
                     Map.Insert(item, X, Y);
                 }
-
-
             }
             catch (Exception e)
             {
@@ -271,7 +293,8 @@ public class Monster : Creature, ICloneable, IEphemeral
             // TODO: ondeath castables
             InitScript();
             // FIXME: in the glorious future, run asynchronously with locking
-            Script?.ExecuteFunction("OnDeath", ScriptEnvironment.Create(("origin", this), ("target", this), ("source", LastHitter)));
+            Script?.ExecuteFunction("OnDeath",
+                ScriptEnvironment.Create(("origin", this), ("target", this), ("source", LastHitter)));
             Map?.Remove(this);
             World?.Remove(this);
         }
@@ -286,25 +309,25 @@ public class Monster : Creature, ICloneable, IEphemeral
         if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))
             return;
 
-        if (Game.World.ScriptProcessor.TryGetScript(Name, out Script damageScript))
+        if (Game.World.ScriptProcessor.TryGetScript(Name, out var damageScript))
         {
             Script = damageScript;
             Script.AssociateScriptWithObject(this);
             ScriptExists = true;
         }
         else
+        {
             ScriptExists = false;
+        }
     }
 
     public override bool UseCastable(Castable castableXml, Creature target)
     {
         if (!Condition.CastingAllowed) return false;
-        if (castableXml.IsAssail)
-        {
-            Motion(1,20);
-        }
+        if (castableXml.IsAssail) Motion(1, 20);
         return base.UseCastable(castableXml, target);
     }
+
     public override void OnHear(SpokenEvent e)
     {
         if (e.Speaker == this)
@@ -319,7 +342,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         if (e.Speaker is User user)
             env.Add("source", new HybrasylUser(user));
         else
-            env.Add("source", new HybrasylWorldObject(e.Speaker as IWorldObject));
+            env.Add("source", new HybrasylWorldObject(e.Speaker));
         Script.ExecuteFunction("OnHear", env);
     }
 
@@ -336,13 +359,9 @@ public class Monster : Creature, ICloneable, IEphemeral
             if (damageEvent.Attacker != null && !damageEvent.Flags.HasFlag(DamageFlags.NoThreat))
             {
                 if (!ThreatInfo.ContainsThreat(damageEvent.Attacker))
-                {
                     ThreatInfo.AddNewThreat(damageEvent.Attacker, damageEvent.Damage);
-                }
                 else
-                {
                     ThreatInfo.IncreaseThreat(damageEvent.Attacker, damageEvent.Damage);
-                }
             }
 
             Condition.Asleep = false;
@@ -354,8 +373,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             if (Script == null) return;
 
-            var wrapped = new HybrasylWorldObject(this);
-            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(wrapped, wrapped, damageEvent.Attacker);
+            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Attacker);
             env.Add("damage", damageEvent.Damage);
 
             Script.ExecuteFunction("OnDamage", env);
@@ -371,18 +389,6 @@ public class Monster : Creature, ICloneable, IEphemeral
         env.Add("heal", heal);
         Script.ExecuteFunction("OnHeal", env);
     }
-
-    public Loot Loot;
-
-    public uint LootableXP
-    {
-        get => Loot?.Xp ?? 0;
-        set => Loot.Xp = value;
-    }
-
-    public uint LootableGold => Loot?.Gold ?? 0;
-
-    public List<string> LootableItems => Loot?.Items ?? new List<string>();
 
     public void ApplyModifier(double modifier)
     {
@@ -401,7 +407,6 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         // Random allocation
         for (var x = 1; x <= points; x++)
-        {
             switch (Random.Shared.Next(1, 6))
             {
                 case 1:
@@ -420,20 +425,19 @@ public class Monster : Creature, ICloneable, IEphemeral
                     Stats.BaseWis += 1;
                     break;
             }
-        }
-
     }
 
     public void AllocateStats()
     {
         var totalPoints = Stats.Level * 2;
         if (BehaviorSet is null || string.IsNullOrEmpty(BehaviorSet.StatAlloc))
+        {
             RandomlyAllocateStatPoints(totalPoints);
+        }
         else
         {
             var allocPattern = BehaviorSet.StatAlloc.Trim().ToLower().Split(" ");
             while (totalPoints > 0)
-            {
                 foreach (var alloc in allocPattern)
                 {
                     switch (alloc)
@@ -462,37 +466,22 @@ public class Monster : Creature, ICloneable, IEphemeral
                     if (totalPoints % 2 == 0)
                     {
                         var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
-                        int bonusHpGain =
+                        var bonusHpGain =
                             (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
-                        int bonusMpGain =
+                        var bonusMpGain =
                             (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
 
                         Stats.BaseHp += bonusHpGain + 25;
                         Stats.BaseMp += bonusMpGain + 25;
                     }
                 }
-            }
         }
 
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
     }
 
-    public Creature Target
-    {
-        get
-        {
-            if (World.Objects.TryGetValue(_mTarget, out WorldObject o))
-                return o as Creature;
-            return null;
-        }
-        set { _mTarget = value?.Id ?? 0; }
-    }
-
-    public override int GetHashCode()
-    {
-        return Name.GetHashCode() * Id.GetHashCode() - 1;
-    }
+    public override int GetHashCode() => Name.GetHashCode() * Id.GetHashCode() - 1;
 
     public bool CheckFacing(Direction direction, Creature target)
     {
@@ -503,39 +492,27 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 //check if facing west
                 if (Direction == Direction.West) return true;
-                else
-                {
-                    Turn(Direction.West);
-                }
+                Turn(Direction.West);
             }
 
             if (X - target.X == -1 && Y - target.Y == 0)
             {
                 //check if facing east
                 if (Direction == Direction.East) return true;
-                else
-                {
-                    Turn(Direction.East);
-                }
+                Turn(Direction.East);
             }
 
             if (X - target.X == 0 && Y - target.Y == 1)
             {
                 //check if facing south
                 if (Direction == Direction.North) return true;
-                else
-                {
-                    Turn(Direction.North);
-                }
+                Turn(Direction.North);
             }
 
             if (X - target.X == 0 && Y - target.Y == -1)
             {
                 if (Direction == Direction.South) return true;
-                else
-                {
-                    Turn(Direction.South);
-                }
+                Turn(Direction.South);
             }
         }
 
@@ -543,8 +520,8 @@ public class Monster : Creature, ICloneable, IEphemeral
     }
 
     /// <summary>
-    /// A simple attack by a monster (equivalent of straight assail).
-    /// </summary>        
+    ///     A simple attack by a monster (equivalent of straight assail).
+    /// </summary>
     /// <param name="target"></param>
     public void AssailAttack(Direction direction, Creature target = null)
     {
@@ -553,15 +530,15 @@ public class Monster : Creature, ICloneable, IEphemeral
             var obj = GetDirectionalTarget(direction);
             if (obj is Merchant)
                 return;
-            else if (obj is Creature || obj is User)
+            if (obj is Creature || obj is User)
                 target = obj;
         }
 
         if (target == null)
             return;
-        if (!CastableController.TryGetCastable("Assail", out BookSlot slot)) return;
+        if (!CastableController.TryGetCastable("Assail", out var slot)) return;
         UseCastable(slot.Castable, target);
-        Motion(1,20);
+        Motion(1, 20);
         PlaySound(1);
     }
 
@@ -572,10 +549,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             user.SendVisibleCreature(this);
     }
 
-    public bool IsIdle()
-    {
-        return _idle;
-    }
+    public bool IsIdle() => _idle;
 
     public void Awaken()
     {
@@ -589,19 +563,14 @@ public class Monster : Creature, ICloneable, IEphemeral
         //return to idle state
     }
 
-    public object Clone()
-    {
-        return MemberwiseClone();
-    }
-
     public List<Tile> GetWalkableTiles(int x, int y)
     {
         var proposedLocations = new List<Tile>
         {
-            new() {X = x, Y = y - 1},
-            new() {X = x, Y = y + 1},
-            new() {X = x - 1, Y = y},
-            new() {X = x + 1, Y = y}
+            new() { X = x, Y = y - 1 },
+            new() { X = x, Y = y + 1 },
+            new() { X = x - 1, Y = y },
+            new() { X = x + 1, Y = y }
         };
 
         // Don't return tiles that are walls, or tiles that contain creatures, but always
@@ -621,15 +590,12 @@ public class Monster : Creature, ICloneable, IEphemeral
         return ret;
     }
 
-    private static int AStarCalculateH(int x1, int y1, int x2, int y2)
-    {
-        return Math.Abs(x2 - x1) + Math.Abs(y2 - y1);
-    }
+    private static int AStarCalculateH(int x1, int y1, int x2, int y2) => Math.Abs(x2 - x1) + Math.Abs(y2 - y1);
 
     public Direction AStarGetDirection()
     {
         if (CurrentPath.Parent == null) return Direction.North;
-        Direction dir = Direction.North;
+        var dir = Direction.North;
 
         if (X == CurrentPath.Parent.X)
         {
@@ -641,13 +607,16 @@ public class Monster : Creature, ICloneable, IEphemeral
             if (CurrentPath.Parent.X == X + 1) dir = Direction.East;
             if (CurrentPath.Parent.X == X - 1) dir = Direction.West;
         }
-        else GameLog.Warning("AStar: path divergence, moving randomly");
+        else
+        {
+            GameLog.Warning("AStar: path divergence, moving randomly");
+        }
 
         return dir;
     }
 
     /// <summary>
-    /// Verify that the next two steps of our path can be used.
+    ///     Verify that the next two steps of our path can be used.
     /// </summary>
     /// <returns>Boolean indicating whether the immediate path is clear or not.</returns>
     public bool AStarPathClear()
@@ -656,14 +625,12 @@ public class Monster : Creature, ICloneable, IEphemeral
         // TODO: optimize
         if (Map.IsCreatureAt(CurrentPath.X, CurrentPath.Y) && CurrentPath.Parent != null &&
             Map.IsCreatureAt(CurrentPath.Parent.X, CurrentPath.Parent.Y))
-        {
             if (!(X == CurrentPath.X && Y == CurrentPath.Y) || X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y)
             {
                 GameLog.Info(
                     $"AStar: path not clear at either {CurrentPath.X}, {CurrentPath.Y} or {CurrentPath.Parent.X}, {CurrentPath.Parent.Y}");
                 return false;
             }
-        }
 
         return true;
     }
@@ -672,24 +639,24 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         GameLog.Info($"AStarPath: from {x1},{y1} to {x2},{y2}");
         Tile current = null;
-        var start = new Tile {X = x1, Y = y1};
-        var end = new Tile {X = x2, Y = y2};
+        var start = new Tile { X = x1, Y = y1 };
+        var end = new Tile { X = x2, Y = y2 };
 
         var openList = new List<Tile>();
         var closedList = new List<Tile>();
-        int g = 0;
+        var g = 0;
 
         openList.Add(start);
 
         while (openList.Count > 0)
         {
-            var lowest = openList.Min(l => l.F);
-            current = openList.First(l => l.F == lowest);
+            var lowest = openList.Min(selector: l => l.F);
+            current = openList.First(predicate: l => l.F == lowest);
 
             closedList.Add(current);
             openList.Remove(current);
 
-            if (closedList.FirstOrDefault(l => l.X == end.X && l.Y == end.Y) != null)
+            if (closedList.FirstOrDefault(predicate: l => l.X == end.X && l.Y == end.Y) != null)
             {
                 // We have arrived
                 GameLog.Info($"Closed list contains end tile {end.X}, {end.Y}");
@@ -703,14 +670,13 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             foreach (var tile in adj)
             {
-
                 // Ignore tiles in closed list
-                if (closedList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) != null)
+                if (closedList.FirstOrDefault(predicate: l => l.X == tile.X && l.Y == tile.Y) != null)
                     continue;
 
                 //GameLog.Debug($"Adjacencies: {tile.X}, {tile.Y}");
 
-                if (openList.FirstOrDefault(l => l.X == tile.X && l.Y == tile.Y) == null)
+                if (openList.FirstOrDefault(predicate: l => l.X == tile.X && l.Y == tile.Y) == null)
                 {
                     tile.G = g;
                     tile.H = AStarCalculateH(tile.X, tile.Y, end.X, end.Y);
@@ -767,22 +733,16 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         if (ThreatInfo.HighestThreat == null) return;
         if (CheckFacing(Direction, ThreatInfo.HighestThreat))
-        {
             AssailAttack(Direction, ThreatInfo.HighestThreat);
-        }
         else
             Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
     }
 
 
-
     public void NextAction()
     {
         var next = 0;
-        if (Stats.Hp == 0)
-        {
-            _actionQueue.Enqueue(MobAction.Death);
-        }
+        if (Stats.Hp == 0) _actionQueue.Enqueue(MobAction.Death);
 
         if (!IsHostile)
         {
@@ -794,7 +754,9 @@ public class Monster : Creature, ICloneable, IEphemeral
             if (ThreatInfo.HighestThreat != null)
             {
                 if (Distance(ThreatInfo.HighestThreat) == 1)
+                {
                     _actionQueue.Enqueue(MobAction.Attack);
+                }
                 else
                 {
                     next = Random.Shared.Next(1, 3); //cast or move
@@ -828,45 +790,38 @@ public class Monster : Creature, ICloneable, IEphemeral
                     var targets = ThreatInfo.GetTargets(next.CurrentPriority);
                     if (targets.Count == 0)
                     {
-                        GameLog.SpawnDebug($"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
+                        GameLog.SpawnDebug(
+                            $"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
                         return;
                     }
 
                     if (targets.Count == 1 && next.Slot.Castable.IsAssail)
                     {
-                            if (Distance(ThreatInfo.HighestThreat) > 1)
-                            {
-                                _actionQueue.Enqueue(MobAction.Move);
-                                return;
-                            }
-                            if (!CheckFacing(Direction, ThreatInfo.HighestThreat))
-                            {
-                                Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
-                            }
+                        if (Distance(ThreatInfo.HighestThreat) > 1)
+                        {
+                            _actionQueue.Enqueue(MobAction.Move);
+                            return;
+                        }
+
+                        if (!CheckFacing(Direction, ThreatInfo.HighestThreat))
+                            Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
                     }
 
-                    foreach (var target in targets)
-                    {
-                        Cast(next.Slot, target);
-                    }
+                    foreach (var target in targets) Cast(next.Slot, target);
 
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
-                case MobAction.Move when !IsHostile && ShouldWander || Condition.Blinded:
+                case MobAction.Move when (!IsHostile && ShouldWander) || Condition.Blinded:
                 {
                     var which = Random.Shared.Next(0, 2); //turn or move
                     if (which == 0)
                     {
                         var dir = Random.Shared.Next(0, 4);
                         if (Direction == (Direction) dir)
-                        {
                             Walk((Direction) dir);
-                        }
                         else
-                        {
                             Turn((Direction) dir);
-                        }
                     }
                     else
                     {
@@ -883,14 +838,15 @@ public class Monster : Creature, ICloneable, IEphemeral
                         ShouldWander = true;
                         return;
                     }
+
                     if (Condition.MovementAllowed)
                     {
                         if (CurrentPath == null || !AStarPathClear())
                             // If we don't have a current path to our threat target, OR if there is something in the way of
                             // our existing path, calculate a new one
                         {
-                            if (CurrentPath == null) GameLog.Info($"Path is null. Recalculating");
-                            if (!AStarPathClear()) GameLog.Info($"Path wasn't clear. Recalculating");
+                            if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
+                            if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
                             Target = ThreatInfo.HighestThreat;
                             CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
                                 ThreatInfo.HighestThreat.Location.Y, X, Y);
@@ -898,8 +854,8 @@ public class Monster : Creature, ICloneable, IEphemeral
 
                         if (CurrentPath != null)
                         {
-                                // We have a path, check its validity
-                                // We recalculate our path if we're within five spaces of the target and they have moved
+                            // We have a path, check its validity
+                            // We recalculate our path if we're within five spaces of the target and they have moved
 
                             if (Distance(ThreatInfo.HighestThreat) < 5 &&
                                 CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
@@ -920,12 +876,16 @@ public class Monster : Creature, ICloneable, IEphemeral
                             }
                             else
                                 // Couldn't move, attempt to recalculate path
+                            {
                                 CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
                                     ThreatInfo.HighestThreat.Location.Y, X, Y);
+                            }
                         }
                         else
                             // If we can't find a path, return to wandering
+                        {
                             ShouldWander = true;
+                        }
                     }
                     else
                     {
@@ -961,10 +921,7 @@ public class Monster : Creature, ICloneable, IEphemeral
                 }
             }
 
-            if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count == 0)
-            {
-                Active = false;
-            }
+            if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count == 0) Active = false;
 
             base.AoiDeparture(obj);
         }
@@ -976,10 +933,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         {
             if (obj is User user && (!user.Condition.IsInvisible || Condition.SeeInvisible))
             {
-                if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0)
-                {
-                    Active = true;
-                }
+                if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0) Active = true;
 
                 if (IsHostile && ThreatInfo.HighestThreat == null)
                 {

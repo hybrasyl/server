@@ -8,9 +8,9 @@ public partial class CreatureCastingSet : IEquatable<CreatureCastingSet>
 {
     public Guid Guid { get; set; } = Guid.Empty;
 
-    public List<string> CategoryList => string.IsNullOrEmpty(Categories) ? new List<string>() : Categories.Trim().Split(" ").Select(x => x.ToLower()).ToList(); 
-
-    public override bool Equals(object obj) => Equals(obj as CreatureCastingSet);
+    public List<string> CategoryList => string.IsNullOrEmpty(Categories)
+        ? new List<string>()
+        : Categories.Trim().Split(" ").Select(selector: x => x.ToLower()).ToList();
 
     public bool Equals(CreatureCastingSet set)
     {
@@ -19,6 +19,8 @@ public partial class CreatureCastingSet : IEquatable<CreatureCastingSet>
         if (GetType() != set.GetType()) return false;
         return set.Guid == Guid;
     }
+
+    public override bool Equals(object obj) => Equals(obj as CreatureCastingSet);
 
     public static bool operator ==(CreatureCastingSet lhs, CreatureCastingSet rhs)
     {
@@ -38,6 +40,4 @@ public partial class CreatureCastingSet : IEquatable<CreatureCastingSet>
             Guid = Guid.NewGuid();
         return Guid.GetHashCode();
     }
-
-
 }
