@@ -155,8 +155,6 @@ public partial class World : Server
 
     public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
 
-    // public Dictionary<string, Map> MapCatalog { get; set; }
-
     public ScriptProcessor ScriptProcessor { get; set; }
 
     private Thread ConsumerThread { get; set; }

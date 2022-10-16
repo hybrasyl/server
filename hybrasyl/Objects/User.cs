@@ -772,30 +772,29 @@ public class User : Creature
     /// <param name="ApplyBonus">Whether or not to apply XP bonuses from items / etc (ExtraXp stat)</param>
     public void GiveExperience(uint exp, bool applyBonus = false)
     {
-        Client?.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
 
-        uint bonus = 0;
+        var bonus = 0;
 
-        if (applyBonus) 
-            switch (Stats.ExtraXp)
-            {
-                case < 0:
-                    bonus = Convert.ToUInt32(exp * (Stats.ExtraXp / 100));
-                    Client?.SendMessage($"{bonus} penalty experience...", MessageTypes.SYSTEM);
-                    break;
-                case > 0:
-                    bonus = Convert.ToUInt32(exp * (Stats.ExtraXp / 100));
-                    Client?.SendMessage($"{bonus} bonus experience!", MessageTypes.SYSTEM);
-                    break;
-            }
+        if (applyBonus)
+            bonus = Convert.ToInt32(exp * Stats.ExtraXp / 100);
 
-                       exp += bonus;
+        if (bonus + exp < 0)
+            Client?.SendMessage("You cannot currently gain experience.", MessageTypes.SYSTEM);
+
+        exp = Convert.ToUInt32(bonus + exp);
 
         if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
         {
             if (uint.MaxValue - Stats.Experience >= exp)
             {
                 Stats.Experience += exp;
+                Client?.SendMessage($"{exp} experience!", MessageTypes.SYSTEM);
+                if (bonus < 0)
+                    Client?.SendMessage($"{bonus} penalty experience...", MessageTypes.SYSTEM);
+                if (bonus > 0)
+                    Client?.SendMessage($"{bonus} bonus experience!", MessageTypes.SYSTEM);
+
+
             }
             else
             {

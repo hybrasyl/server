@@ -87,6 +87,7 @@
         <xs:attribute name="CurrentMp" type="xs:string" />
         <xs:attribute name="CurrentGold" type="xs:string" />
         <xs:attribute name="CurrentXp" type="xs:string" />
+        <xs:attribute name="CurrentFaith" type="xs:string"/>
         <xs:attribute name="BaseHit" type="xs:string" />
         <xs:attribute name="BaseDmg" type="xs:string" />
         <xs:attribute name="BaseAc" type="xs:string" />
@@ -97,6 +98,7 @@
         <xs:attribute name="BaseInboundDamageToMp" type="xs:string" />
         <xs:attribute name="BaseOffensiveElement" type="hyb:ElementType" default="None" />
         <xs:attribute name="BaseDefensiveElement" type="hyb:ElementType" default="None" />
+        <xs:attribute name="BaseExtraFaith" type="xs:string"/>
         <xs:attribute name="OffensiveElementOverride" type="hyb:ElementType" default="None" />
         <xs:attribute name="DefensiveElementOverride" type="hyb:ElementType" default="None" />
         <xs:attribute name="BaseInboundDamageModifier" type="xs:string" />
@@ -141,6 +143,7 @@
         <xs:attribute name="BonusLifeSteal" type="xs:string" />
         <xs:attribute name="BonusManaSteal" type="xs:string" />
         <xs:attribute name="BonusInboundDamageToMp" type="xs:string" />
+        <xs:attribute name="BonusExtraFaith" type="xs:string"/>
     </xs:complexType>
 
     <!-- Damage flags type -->

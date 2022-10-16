@@ -92,6 +92,21 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
+    public int Faith
+    {
+        get
+        {
+            lock (_lock)
+                return _faith;
+        }
+        set
+        {
+            lock (_lock)
+                _faith = value;
+        }
+    }
+    [FormulaVariable]
+    [JsonProperty]
     public uint Gold
     {
         get
@@ -1228,6 +1243,41 @@ public class StatInfo
 
     [FormulaVariable]
     [JsonProperty]
+    public double BaseExtraFaith
+    {
+        get
+        {
+            lock (_lock)
+                return _baseExtraFaith;
+
+        }
+        set
+        {
+            lock (_lock)
+                _baseExtraFaith = value;
+        }
+    }
+
+    [FormulaVariable]
+    public double BonusExtraFaith
+    {
+        get
+        {
+            lock (_lock)
+                return _bonusExtraFaith;
+
+        }
+        set
+        {
+            lock (_lock)
+                _bonusExtraFaith = value;
+        }
+    }
+
+    [FormulaVariable] public double ExtraFaith => BaseExtraFaith + BonusExtraFaith;
+
+    [FormulaVariable]
+    [JsonProperty]
     public double BaseLifeSteal
     {
         get
@@ -1525,6 +1575,7 @@ public class StatInfo
 
     private byte _level { get; set; }
     private uint _experience { get; set; }
+    private int _faith { get; set; }
     private uint _gold { get; set; }
     private byte _ability { get; set; }
     private uint _abilityExp { get; set; }
@@ -1588,6 +1639,8 @@ public class StatInfo
     private double _bonusManaSteal { get; set; }
     private double _baseInboundDamageToMp { get; set; }
     private double _bonusInboundDamageToMp { get; set; }
+    private double _baseExtraFaith { get; set; }
+    private double _bonusExtraFaith { get; set; }
     private ElementType _baseOffensiveElement { get; set; } = ElementType.None;
     private ElementType _baseDefensiveElement { get; set; } = ElementType.None;
     private ElementType _offensiveElementOverride { get; set; } = ElementType.None;
@@ -1649,6 +1702,7 @@ public class StatInfo
         BonusLifeSteal += si1.BonusLifeSteal;
         BonusManaSteal += si1.BonusManaSteal;
         BonusInboundDamageToMp += si1.BonusInboundDamageToMp;
+        BonusExtraFaith += si1.BonusExtraFaith;
         BaseHp += si1.BaseHp;
         BaseMp += si1.BaseMp;
         BaseStr += si1.BaseStr;
@@ -1677,6 +1731,9 @@ public class StatInfo
         BaseLifeSteal += si1.BaseLifeSteal;
         BaseManaSteal += si1.BaseManaSteal;
         BaseInboundDamageToMp += si1.BaseInboundDamageToMp;
+        BaseExtraFaith += si1.BaseExtraFaith;
+
+        Faith -= si1.Faith;
 
         if (!experience) return;
         Level += si1.Level;
@@ -1726,6 +1783,7 @@ public class StatInfo
         BonusLifeSteal -= si1.BonusLifeSteal;
         BonusManaSteal -= si1.BonusManaSteal;
         BonusInboundDamageToMp -= si1.BonusInboundDamageToMp;
+        BonusExtraFaith -= si1.BonusExtraFaith;
         BaseHp -= si1.BaseHp;
         BaseMp -= si1.BaseMp;
         BaseStr -= si1.BaseStr;
@@ -1754,7 +1812,9 @@ public class StatInfo
         BaseLifeSteal -= si1.BaseLifeSteal;
         BaseManaSteal -= si1.BaseManaSteal;
         BaseInboundDamageToMp -= si1.BaseInboundDamageToMp;
+        BaseExtraFaith -= si1.BaseExtraFaith;
 
+        Faith -= si1.Faith;
         if (!experience) return;
         Level -= si1.Level;
         Experience -= si1.Experience;
@@ -1769,8 +1829,8 @@ public class StatInfo
                                  BaseOutboundDamageModifier == 0 && BaseOutboundHealModifier == 0 &&
                                  BaseReflectMagical == 0 && BaseReflectPhysical == 0 && BaseExtraGold == 0 &&
                                  BaseDodge == 0 && BaseMagicDodge == 0 && BaseExtraXp == 0 && BaseExtraItemFind == 0 &&
-                                 BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0 &&
-                                 DeltaHp == 0 && DeltaMp == 0;
+                                 BaseExtraFaith == 0 && BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0 &&
+                                 DeltaHp == 0 && DeltaMp == 0 && Faith == 0;
 
     public bool NoBonusChanges => BonusHp == 0 && BonusMp == 0 && BonusStr == 0 && BonusCon == 0 && BonusDex == 0 &&
                                   BonusInt == 0 && BonusWis == 0 && BonusCrit == 0 && BonusMagicCrit == 0 &&
@@ -1779,7 +1839,7 @@ public class StatInfo
                                   BonusOutboundDamageModifier == 0 && BonusOutboundHealModifier == 0 &&
                                   BonusReflectMagical == 0 && BonusReflectPhysical == 0 && BonusExtraGold == 0 &&
                                   BonusDodge == 0 && BonusMagicDodge == 0 && BonusExtraXp == 0 &&
-                                  BonusExtraItemFind == 0 && BonusLifeSteal == 0 && BonusManaSteal == 0 &&
+                                  BonusExtraItemFind == 0 && BonusExtraFaith == 0 && BonusLifeSteal == 0 && BonusManaSteal == 0 &&
                                   BonusInboundDamageToMp == 0;
 
     public bool NoExperienceChanges => Level == 0 && (Experience == 0) & (Ability == 0) && AbilityExp == 0;

@@ -150,8 +150,10 @@ internal class Monolith
             // to be 1/10th of total number of map tiles for any given mob (maximum of 30) spawned
             // at a default interval of every 30 seconds, with (maxcount/5) spawned
             // per tick.
+            // We take Coordinates into account here since we always want to have the number of
+            // monsters expected.
 
-            var maxcount = Math.Min(20, spawnmap.X * spawnmap.Y / 30);
+            var maxcount = Math.Max(Math.Min(20, spawnmap.X * spawnmap.Y / 30), spawn.Coordinates.Count);
             var interval = 30;
             var maxPerInterval = maxcount / 5;
             var baseLevel = 0;

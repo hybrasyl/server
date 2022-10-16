@@ -32,19 +32,11 @@
   </ItemGroup> 
  
   <ItemGroup>
-    <PackageReference Include="docfx" Version="2.59.2" />
-    <PackageReference Include="docfx.console" Version="2.59.2">
+    <PackageReference Include="docfx" Version="2.59.4" />
+    <PackageReference Include="docfx.console" Version="2.59.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-<!--    <PackageReference Include="System.ComponentModel" Version="4.3.0" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageReference Include="System.Runtime.Serialization.Formatters" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.Serialization.Json" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="6.0.0" />
-    <PackageReference Include="System.Xml.XmlSerializer" Version="4.3.0" />-->
   </ItemGroup>
 
 </Project>
