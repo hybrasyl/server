@@ -109,6 +109,8 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     public bool Alive => User.Condition.Alive;
 
+    public ushort WeaponSmallDamage => User.WeaponSmallDamage;
+
 
     /// <summary>
     ///     The current MP (magic points) of the user. This can be set to an arbitrary value; the player's MP display is

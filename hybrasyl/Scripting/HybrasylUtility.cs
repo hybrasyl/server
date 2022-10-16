@@ -96,6 +96,9 @@ public static class HybrasylUtility
     /// <returns></returns>
     public static long MinutesBetweenUnixTimes(long t1, long t2) => (t2 - t1) / 60;
 
+    public static int Rand(int minVal, int maxVal) => Random.Shared.Next(minVal, maxVal);
+    public static int Rand(int maxVal) => Random.Shared.Next(maxVal);
+
     /// <summary>
     ///     Calculate the number of hours (float) between two Unix timestamps represented as strings.
     /// </summary>
