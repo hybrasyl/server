@@ -81,8 +81,8 @@ public class Legend : IEnumerable<LegendMark>
         }
         else
         {
-            _legend.Keys.TakeLast(count);
-            foreach (var timestamp in _legend.Keys.TakeLast(count))
+            var toRemove = _legend.Keys.TakeLast(count).ToList();
+            foreach (var timestamp in toRemove)
             {
                 var mark = _legend[timestamp];
                 if (!string.IsNullOrEmpty(mark.Prefix))
