@@ -239,7 +239,7 @@ public partial class World : Server
             return false;
         }
 
-        LoadMetafiles();
+        GenerateMetafiles();
         SetPacketHandlers();
         SetControlMessageHandlers();
         SetMerchantMenuHandlers();
@@ -899,7 +899,7 @@ public partial class World : Server
         return variantItem;
     }
 
-    private void LoadMetafiles()
+    private void GenerateMetafiles()
     {
         // these might be better suited in LoadData as the database is being read, but only items are in database atm
 
@@ -1170,6 +1170,44 @@ public partial class World : Server
         WorldData.Set(nationdesc.Name, nationdesc.Compile());
 
         #endregion NationDesc
+
+        #region SEvent
+
+        // One file per circle because reasons. SEvent7 unknown?
+        var files = new List<Metafile>();
+        files.Add(new Metafile("SEvent1"));
+        files.Add(new Metafile("SEvent2"));
+        files.Add(new Metafile("SEvent3"));
+        files.Add(new Metafile("SEvent4"));
+        files.Add(new Metafile("SEvent5"));
+        files.Add(new Metafile("SEvent6"));
+        var quests = new List<int>() { 0, 0, 0, 0, 0, 0 };
+
+        // By now this has been populated since OnSpawn for all NPCS has run
+
+        foreach (var quest in Game.World.WorldData.QuestMetadata)
+        {
+            if (quest.Circle < 1 || quest.Circle > 6) continue;
+            var file = files[quest.Circle-1];
+            var hdr = quests[quest.Circle-1].ToString().PadLeft(2, '0');
+            file.Nodes.Add(new MetafileNode($"{hdr}_start"));
+            file.Nodes.Add(new MetafileNode($"{hdr}_title", quest.Title));
+            file.Nodes.Add(new MetafileNode($"{hdr}_id", quest.Id));
+            file.Nodes.Add(new MetafileNode($"{hdr}_qual", quest.Circle, quest.Classes));
+            file.Nodes.Add(new MetafileNode($"{hdr}_sum", quest.Summary));
+            file.Nodes.Add(new MetafileNode($"{hdr}_result", quest.Result));
+            file.Nodes.Add(new MetafileNode($"{hdr}_sub", quest.Prerequisite));
+            file.Nodes.Add(new MetafileNode($"{hdr}_reward", quest.Reward));
+            file.Nodes.Add(new MetafileNode($"{hdr}_end"));
+            quests[quest.Circle-1]++;
+        }
+
+        foreach (var f in files)
+        {
+            WorldData.Set(f.Name, f.Compile());
+        }
+
+        #endregion
     }
 
     public void CompileScripts()
@@ -4165,18 +4203,16 @@ public partial class World : Server
         else
         {
             var name = packet.ReadString8();
-            if (WorldData.ContainsKey<CompiledMetafile>(name))
-            {
-                var file = WorldData.Get<CompiledMetafile>(name);
-                GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
-                var x6F = new ServerPacket(0x6F);
-                x6F.WriteBoolean(all);
-                x6F.WriteString8(file.Name);
-                x6F.WriteUInt32(file.Checksum);
-                x6F.WriteUInt16((ushort) file.Data.Length);
-                x6F.Write(file.Data);
-                user.Enqueue(x6F);
-            }
+            if (!WorldData.ContainsKey<CompiledMetafile>(name)) return;
+            var file = WorldData.Get<CompiledMetafile>(name);
+            GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
+            var x6F = new ServerPacket(0x6F);
+            x6F.WriteBoolean(all);
+            x6F.WriteString8(file.Name);
+            x6F.WriteUInt32(file.Checksum);
+            x6F.WriteUInt16((ushort) file.Data.Length);
+            x6F.Write(file.Data);
+            user.Enqueue(x6F);
         }
     }
 

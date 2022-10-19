@@ -23,8 +23,37 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Hybrasyl.Xml;
+using iTextSharp.text;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
+
+
+[MoonSharpUserData]
+public class QuestMetadata
+{
+    public string Title; 
+    public string Id;
+    public int Circle = 0;
+    public SortedSet<Class> AllowedClasses;
+    public string Summary;
+    public string Result;
+    public string Prerequisite; // who knows
+    public string Reward;
+
+    // Client expects a string like "123", "12345" etc
+
+    public QuestMetadata()
+    {
+        AllowedClasses = new SortedSet<Class> { Class.Monk, Class.Priest, Class.Wizard, Class.Rogue, Class.Warrior };
+    }
+
+    public void AddClass(Class c) => AllowedClasses.Add(c);
+
+    public string Classes => AllowedClasses.Aggregate(string.Empty, (current, c) => current + (byte) c);
+
+}
 
 public class Metafile
 {

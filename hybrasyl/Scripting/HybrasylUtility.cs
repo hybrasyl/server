@@ -183,4 +183,12 @@ public static class HybrasylUtility
         userObj.ParcelStore.AddItem(from, itemName, (uint) quantity);
         return true;
     }
+
+    public static bool RegisterQuest(string id, string title, string summary, string result, string reward, string prerequisite, int circle)
+    => Game.World.WorldData.RegisterQuest(new QuestMetadata()
+        {
+            Id = id, Circle = circle, Result = result, Reward = reward, Prerequisite = prerequisite, Summary = summary, Title = title
+        });
+
+    public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldData.RegisterQuest(data);
 }
