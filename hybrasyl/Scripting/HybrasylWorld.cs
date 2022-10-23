@@ -22,8 +22,12 @@
 using System;
 using System.Collections;
 using System.Collections.Specialized;
+using Hybrasyl.ChatCommands;
 using Hybrasyl.Dialogs;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
+using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Scripting;
 
@@ -442,5 +446,20 @@ public class HybrasylWorld
             GameLog.ScriptingError(
                 "RegisterGlobalSequence: sequence (first argument) was null, or the sequence contained no dialogs");
         Game.World.RegisterGlobalSequence(globalSequence.Sequence);
+    }
+
+    public void SpawnMonster(ushort mapId, byte x, byte y, string name, string behaviorSet, int level, string displayName=null)
+    {
+        if (!Game.World.WorldData.TryGetValue(name, out Xml.Creature creature)) return;
+        if (!Game.World.WorldData.TryGetValue(behaviorSet, out CreatureBehaviorSet cbs)) return;
+        if (!Game.World.WorldData.TryGetValue(mapId, out Map map)) return;
+
+        var spawn = new Monster(creature, SpawnFlags.Active, (byte) level,null, cbs);
+
+        spawn.X = x;
+        spawn.Y = y;
+        spawn.Name = displayName ?? name;
+        
+        map.InsertCreature(spawn);
     }
 }

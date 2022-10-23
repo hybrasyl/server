@@ -93,6 +93,7 @@ public class User : Creature
 
     [JsonProperty] public bool IsMaster { get; set; }
 
+    public String AdHocScript { get; set; } = null;
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 

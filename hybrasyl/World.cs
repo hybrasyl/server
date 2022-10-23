@@ -45,6 +45,7 @@ using Hybrasyl.Plugins;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog.Events;
@@ -2754,21 +2755,58 @@ public partial class World : Server
                     return;
                 }
 
-                user.DisplayOutgoingWhisper("$", message);
-                // Tack on return here so we actually get the DynValue out
-                var ret = script.ExecuteExpression($"return {message}", env);
-                if (ret.Result != ScriptResult.Success)
+                switch (message.ToLower())
                 {
-                    user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
-                    return;
+                    case "begin":
+                        user.DisplayOutgoingWhisper("$", "Starting new adhoc script.");
+                        user.AdHocScript = string.Empty;
+                        return;
+                    case "end":
+                    {
+                        user.DisplayOutgoingWhisper("$", "Executing adhoc script");
+                        var ret = script.ExecuteExpression(user.AdHocScript, env);
+                        user.AdHocScript = null;
+                        if (ret.Result != ScriptResult.Success)
+                        {
+                            user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
+                            return;
+                        }
+
+                        if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
+                            user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
+                        else
+                            user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
+                        return;
+                        
+                    }
+                    default:
+                    {
+                        if (user.AdHocScript != null)
+                        {
+                            user.AdHocScript += $"\n{message}";
+                            user.DisplayIncomingWhisper("$", $"> {message}");
+                        }
+                        else
+                        {
+                            user.DisplayOutgoingWhisper("$", message);
+                            // Tack on return here so we actually get the DynValue out
+                            var ret = script.ExecuteExpression($"return {message}", env);
+                            if (ret.Result != ScriptResult.Success)
+                            {
+                                user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
+                                return;
+                            }
+
+                            if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
+                                user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
+                            else
+                                user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
+
+                        }
+
+                        return;
+                    }
                 }
-
-                if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
-                    user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
-                else
-                    user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
-
-                return;
 
             default:
                 user.SendWhisper(target, message);
