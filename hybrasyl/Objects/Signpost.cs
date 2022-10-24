@@ -42,6 +42,8 @@ public class Signpost : VisibleObject
     public bool IsMessageboard { get; set; }
     public string BoardKey { get; set; }
     public Board Board { get; private set; }
+    public ushort AoiEntryEffect { get; set; }
+    public short AoiEntryEffectSpeed { get; set; }
 
     public override void OnClick(User invoker)
     {
@@ -52,5 +54,12 @@ public class Signpost : VisibleObject
         else
             invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board.Id, 0, true)
                 .Packet());
+    }
+
+    public override void AoiEntry(VisibleObject obj)
+    {
+        if (AoiEntryEffect != 0 && obj is User u)
+            u.SendEffect(X,Y,AoiEntryEffect,AoiEntryEffectSpeed);
+        base.AoiEntry(obj);
     }
 }

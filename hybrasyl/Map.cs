@@ -240,6 +240,9 @@ public class Map
             post = sign.Type == BoardType.Sign
                 ? new Signpost(sign.X, sign.Y, sign.Message)
                 : new Signpost(sign.X, sign.Y, sign.Message, true, sign.BoardKey);
+            post.AoiEntryEffect = sign.Effect?.OnEntry ?? 0;
+            post.AoiEntryEffectSpeed = sign.Effect?.OnEntrySpeed ?? 0;
+
             InsertSignpost(post);
         }
 

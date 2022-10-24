@@ -28,13 +28,13 @@ public partial class BoardEffects
 {
     #region Private fields
     private ushort _onEntry;
-    private ushort _onEntrySpeed;
+    private short _onEntrySpeed;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public BoardEffects()
     {
-        _onEntrySpeed = ((ushort)(100));
+        _onEntrySpeed = 100;
     }
     
     [XmlAttribute]
@@ -51,8 +51,8 @@ public partial class BoardEffects
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(ushort), "100")]
-    public ushort OnEntrySpeed
+    [DefaultValue(typeof(short), "100")]
+    public short OnEntrySpeed
     {
         get
         {
