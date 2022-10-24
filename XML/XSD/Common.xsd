@@ -809,8 +809,6 @@
             <xs:element name="Players" type="CreatureHostility" minOccurs="0" maxOccurs="1" />
             <xs:element name="Monsters" type="CreatureHostility" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
-        <xs:attribute name="Player" default="true" />
-        <xs:attribute name="Monster" default="false" />
     </xs:complexType>
 
     <xs:complexType name="CreatureCookie">
@@ -930,6 +928,11 @@
             <xs:element name="Repair" type="hyb:NpcRoleRepair" maxOccurs="1" minOccurs="0" />
             <xs:element name="Bank" type="hyb:NpcRoleBank" maxOccurs="1" minOccurs="0" />
         </xs:sequence>
+        <xs:attribute name="TrainCheck" type="xs:string"/>
+        <xs:attribute name="VendCheck" type="xs:string"/>
+        <xs:attribute name="PostCheck" type="xs:string"/>
+        <xs:attribute name="RepairCheck" type="xs:string"/>
+        <xs:attribute name="BankCheck" type="xs:string"/>
     </xs:complexType>
 
     <xs:complexType name="LocalizedString">
@@ -995,5 +998,31 @@
         <xs:attribute name="X" type="xs:unsignedByte" use="required" />
         <xs:attribute name="Y" type="xs:unsignedByte" use="required" />
     </xs:complexType>
+
+    <!--- Procs -->
+    <xs:simpleType name="ProcEventType">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="OnUse"/>
+            <xs:enumeration value="OnCast"/>
+            <xs:enumeration value="OnHit"/>
+            <xs:enumeration value="OnDeath"/>
+            <xs:enumeration value="OnSpawn"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="ProcList">
+        <xs:sequence>
+            <xs:element name="Proc" minOccurs="1" maxOccurs="unbounded" type="hyb:Proc"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="Proc">
+        <xs:attribute name="Type" type="hyb:ProcEventType"/>
+        <xs:attribute name="Castable" type="xs:string"/>
+        <xs:attribute name="Script" type="xs:string"/>
+        <xs:attribute name="Chance" type="xs:float"/>
+    </xs:complexType>
+
+
 
 </xs:schema>

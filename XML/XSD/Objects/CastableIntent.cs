@@ -32,6 +32,7 @@ public partial class CastableIntent
     private List<CastableCrossIntent> _cross;
     private List<CastableSquareIntent> _square;
     private List<CastableTileIntent> _tile;
+    private List<CastableConeIntent> _cone;
     private SpellUseType _useType;
     private List<IntentFlags> _flags;
     private byte _maxTargets;
@@ -106,6 +107,19 @@ public partial class CastableIntent
         set
         {
             _tile = value;
+        }
+    }
+    
+    [XmlElement("Cone")]
+    public List<CastableConeIntent> Cone
+    {
+        get
+        {
+            return _cone;
+        }
+        set
+        {
+            _cone = value;
         }
     }
     

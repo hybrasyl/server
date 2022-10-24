@@ -477,7 +477,8 @@ public class Creature : VisibleObject
                         reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking);
                 reactorObj.Sprite = reactor.Sprite;
                 reactorObj.CreatedBy = Guid;
-                reactorObj.Uses = reactor.Uses;
+                reactorObj.Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
+                    new FormulaEvaluation { Castable = castableXml, Source = this }));
                 World.Insert(reactorObj);
                 tar.Map.InsertReactor(reactorObj);
                 reactorObj.OnSpawn();

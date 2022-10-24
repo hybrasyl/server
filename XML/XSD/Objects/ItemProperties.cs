@@ -41,6 +41,7 @@ public partial class ItemProperties
     private Use _use;
     private ItemRestrictions _restrictions;
     private List<ItemMotion> _motions;
+    private List<Proc> _procs;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -219,6 +220,19 @@ public partial class ItemProperties
         set
         {
             _motions = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute(IsNullable=false)]
+    public List<Proc> Procs
+    {
+        get
+        {
+            return _procs;
+        }
+        set
+        {
+            _procs = value;
         }
     }
     

@@ -31,6 +31,7 @@ public partial class MapSign
     private string _description;
     private string _message;
     private string _script;
+    private BoardEffects _effect;
     private BoardType _type;
     private string _boardKey;
     private byte _x;
@@ -87,6 +88,18 @@ public partial class MapSign
         set
         {
             _script = value;
+        }
+    }
+    
+    public BoardEffects Effect
+    {
+        get
+        {
+            return _effect;
+        }
+        set
+        {
+            _effect = value;
         }
     }
     

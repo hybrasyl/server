@@ -24,145 +24,65 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public partial class NpcRoleList
+public partial class Proc
 {
     #region Private fields
-    private List<NpcRoleTrainCastable> _train;
-    private NpcRoleVend _vend;
-    private NpcRolePost _post;
-    private NpcRoleRepair _repair;
-    private NpcRoleBank _bank;
-    private string _trainCheck;
-    private string _vendCheck;
-    private string _postCheck;
-    private string _repairCheck;
-    private string _bankCheck;
+    private ProcEventType _type;
+    private string _castable;
+    private string _script;
+    private float _chance;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    [XmlArrayItemAttribute("Castable", IsNullable=false)]
-    public List<NpcRoleTrainCastable> Train
+    [XmlAttribute]
+    public ProcEventType Type
     {
         get
         {
-            return _train;
+            return _type;
         }
         set
         {
-            _train = value;
-        }
-    }
-    
-    public NpcRoleVend Vend
-    {
-        get
-        {
-            return _vend;
-        }
-        set
-        {
-            _vend = value;
-        }
-    }
-    
-    public NpcRolePost Post
-    {
-        get
-        {
-            return _post;
-        }
-        set
-        {
-            _post = value;
-        }
-    }
-    
-    public NpcRoleRepair Repair
-    {
-        get
-        {
-            return _repair;
-        }
-        set
-        {
-            _repair = value;
-        }
-    }
-    
-    public NpcRoleBank Bank
-    {
-        get
-        {
-            return _bank;
-        }
-        set
-        {
-            _bank = value;
+            _type = value;
         }
     }
     
     [XmlAttribute]
-    public string TrainCheck
+    public string Castable
     {
         get
         {
-            return _trainCheck;
+            return _castable;
         }
         set
         {
-            _trainCheck = value;
+            _castable = value;
         }
     }
     
     [XmlAttribute]
-    public string VendCheck
+    public string Script
     {
         get
         {
-            return _vendCheck;
+            return _script;
         }
         set
         {
-            _vendCheck = value;
+            _script = value;
         }
     }
     
     [XmlAttribute]
-    public string PostCheck
+    public float Chance
     {
         get
         {
-            return _postCheck;
+            return _chance;
         }
         set
         {
-            _postCheck = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string RepairCheck
-    {
-        get
-        {
-            return _repairCheck;
-        }
-        set
-        {
-            _repairCheck = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string BankCheck
-    {
-        get
-        {
-            return _bankCheck;
-        }
-        set
-        {
-            _bankCheck = value;
+            _chance = value;
         }
     }
     
@@ -172,7 +92,7 @@ public partial class NpcRoleList
         {
             if ((_serializerXml == null))
             {
-                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(NpcRoleList));
+                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(Proc));
             }
             return _serializerXml;
         }
@@ -180,7 +100,7 @@ public partial class NpcRoleList
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize NpcRoleList object
+    /// Serialize Proc object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -213,16 +133,16 @@ public partial class NpcRoleList
     }
     
     /// <summary>
-    /// Deserializes NpcRoleList object
+    /// Deserializes Proc object
     /// </summary>
     /// <param name="input">string to deserialize</param>
-    /// <param name="obj">Output NpcRoleList object</param>
+    /// <param name="obj">Output Proc object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out NpcRoleList obj, out Exception exception)
+    public static bool Deserialize(string input, out Proc obj, out Exception exception)
     {
         exception = null;
-        obj = default(NpcRoleList);
+        obj = default(Proc);
         try
         {
             obj = Deserialize(input);
@@ -235,19 +155,19 @@ public partial class NpcRoleList
         }
     }
     
-    public static bool Deserialize(string input, out NpcRoleList obj)
+    public static bool Deserialize(string input, out Proc obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static NpcRoleList Deserialize(string input)
+    public static Proc Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((NpcRoleList)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
+            return ((Proc)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -258,14 +178,14 @@ public partial class NpcRoleList
         }
     }
     
-    public static NpcRoleList Deserialize(Stream s)
+    public static Proc Deserialize(Stream s)
     {
-        return ((NpcRoleList)(SerializerXml.Deserialize(s)));
+        return ((Proc)(SerializerXml.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current NpcRoleList object into file
+    /// Serializes current Proc object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -306,16 +226,16 @@ public partial class NpcRoleList
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an NpcRoleList object
+    /// Deserializes xml markup from file into an Proc object
     /// </summary>
     /// <param name="fileName">File to load and deserialize</param>
-    /// <param name="obj">Output NpcRoleList object</param>
+    /// <param name="obj">Output Proc object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out NpcRoleList obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out Proc obj, out Exception exception)
     {
         exception = null;
-        obj = default(NpcRoleList);
+        obj = default(Proc);
         try
         {
             obj = LoadFromFile(fileName);
@@ -328,13 +248,13 @@ public partial class NpcRoleList
         }
     }
     
-    public static bool LoadFromFile(string fileName, out NpcRoleList obj)
+    public static bool LoadFromFile(string fileName, out Proc obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static NpcRoleList LoadFromFile(string fileName)
+    public static Proc LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

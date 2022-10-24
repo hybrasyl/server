@@ -29,16 +29,8 @@ public partial class CreatureHostilitySettings
     #region Private fields
     private CreatureHostility _players;
     private CreatureHostility _monsters;
-    private string _player;
-    private string _monster;
     private static XmlSerializer _serializerXml;
     #endregion
-    
-    public CreatureHostilitySettings()
-    {
-        _player = "true";
-        _monster = "false";
-    }
     
     public CreatureHostility Players
     {
@@ -61,34 +53,6 @@ public partial class CreatureHostilitySettings
         set
         {
             _monsters = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue("true")]
-    public string Player
-    {
-        get
-        {
-            return _player;
-        }
-        set
-        {
-            _player = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue("false")]
-    public string Monster
-    {
-        get
-        {
-            return _monster;
-        }
-        set
-        {
-            _monster = value;
         }
     }
     

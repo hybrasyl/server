@@ -227,12 +227,12 @@
             <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:StatModifiers" />
             <xs:element name="Flags" minOccurs="0" maxOccurs="1" type="hyb:ItemFlags" />
             <xs:element name="Variants" minOccurs="0" maxOccurs="1" type="hyb:Variants" />
-
             <xs:element name="Vendor" minOccurs="0" maxOccurs="1" type="hyb:Vendor" />
             <xs:element name="Damage" minOccurs="0" maxOccurs="1" type="hyb:ItemDamage" />
             <xs:element name="Use" minOccurs="0" maxOccurs="1" type="hyb:Use" />
             <xs:element name="Restrictions" minOccurs="0" maxOccurs="1" type="hyb:ItemRestrictions" />
             <xs:element name="Motions" minOccurs="0" maxOccurs="1" type="hyb:ItemMotionList" />
+            <xs:element name="Procs" minOccurs="0" maxOccurs="1" type="hyb:ProcList"/>
         </xs:sequence>
     </xs:complexType>
 

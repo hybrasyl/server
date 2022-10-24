@@ -252,6 +252,7 @@
             <xs:element name="StatModifiers" minOccurs="0" maxOccurs="1" type="hyb:StatModifiers" />
             <xs:element name="Statuses" minOccurs="0" maxOccurs="1" type="hyb:Statuses" />
             <xs:element name="Reactors" minOccurs="0" maxOccurs="1" type="hyb:CastableReactorList" />
+            <xs:element name="Procs" minOccurs="0" maxOccurs="1" type="hyb:ProcList"/>
         </xs:sequence>
         <xs:attribute name="ScriptOverride" type="xs:boolean" default="false" />
     </xs:complexType>
@@ -375,6 +376,11 @@
         <xs:attribute name="RelativeY" type="xs:byte" use="optional" default="0" />
     </xs:complexType>
 
+    <xs:complexType name="CastableConeIntent">
+        <xs:attribute name="Radius" type="xs:unsignedByte" use="required"/>
+        <xs:attribute name="Direction" type="hyb:IntentDirection" use="optional" default="None"/>
+	</xs:complexType>
+
     <!-- Intent: What does the spell do, and whom does it affect? -->
     <xs:complexType name="CastableIntent">
         <xs:sequence>
@@ -383,6 +389,7 @@
             <xs:element name="Cross" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableCrossIntent" />
             <xs:element name="Square" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableSquareIntent" />
             <xs:element name="Tile" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableTileIntent" />
+            <xs:element name="Cone" minOccurs="0" maxOccurs="unbounded" type="hyb:CastableConeIntent"/>
         </xs:sequence>
         <xs:attribute name="UseType" type="hyb:SpellUseType" default="NoTarget" use="optional" />
         <xs:attribute name="Flags" type="hyb:IntentFlagsList" use="optional" />
