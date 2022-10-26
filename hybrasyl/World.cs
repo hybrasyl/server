@@ -1260,11 +1260,12 @@ public partial class World : Server
         WorldData.Remove<User>(username);
     }
 
-    public void EnqueueGuidStatUpdate(Guid g, StatInfo si)
-    {
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
-    }
+    public void EnqueueProc(Proc p) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p));
 
+    public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
+    
     public void AddUser(User userobj, long connectionId)
     {
         WorldData.SetWithIndex(userobj.Name, userobj, connectionId);

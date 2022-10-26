@@ -108,6 +108,7 @@ namespace Hybrasyl
         public const int GlobalMessage = 13;
         public const int RemoveReactor = 14;
         public const int ModifyStats = 15;
+        public const int ProcessProc = 16;
     }
 
     internal static class ServerTypes

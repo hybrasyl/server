@@ -1,5 +1,4 @@
-﻿<#+
-
+<#+
 public enum ControlOpcodes
 {
   CleanupUser = 0,
@@ -14,11 +13,15 @@ public enum ControlOpcodes
   MonolithControl = 9,
   TriggerRefresh = 10,
   HandleDeath = 11,
-  DialogRequest = 12
+  DialogRequest = 12,
+  GlobalMessage = 13,
+  RemoveReactor = 14,
+  ModifyStats = 15,
+  ProcessProc = 16
 }
+
 #>
 <#+
-
 public enum ClientOpcode : byte
 {
   RequestMap = 0x05,

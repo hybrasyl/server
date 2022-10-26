@@ -61,6 +61,8 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public SpawnFlags SpawnFlags;
 
+    public byte AssailSound;
+
     public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {
@@ -87,6 +89,8 @@ public class Monster : Creature, ICloneable, IEphemeral
 
         Name = creature.Name;
         Sprite = creature.Sprite;
+        AssailSound = creature.AssailSound;
+
         // TODO: remove this and fix
         Stats.Level = level;
         DisplayText = creature.Description;

@@ -87,11 +87,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="MetricsIncludes.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>MetricsIncludes.tt</DependentUpon>
-    </None>
     <None Include="MetricsRegistry.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -122,11 +117,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="MetricsIncludes.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>MetricsIncludes.tt</DependentUpon>
-    </Compile>
     <Compile Update="MetricsRegistry.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

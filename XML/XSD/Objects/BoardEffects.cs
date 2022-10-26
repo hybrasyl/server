@@ -34,7 +34,7 @@ public partial class BoardEffects
     
     public BoardEffects()
     {
-        _onEntrySpeed = 100;
+        _onEntrySpeed = ((short)(100));
     }
     
     [XmlAttribute]

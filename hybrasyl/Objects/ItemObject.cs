@@ -155,6 +155,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
+    public byte AssailSound => Template.Properties.Use.Sound.Id;
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
     public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);

@@ -24,6 +24,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using DotLiquid;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -227,6 +228,18 @@ public class Creature : VisibleObject
         }
 
         return ret;
+    }
+
+    public void ProcessProcs(Castable castable, Creature target = null)
+    {
+        foreach (var proc in castable.Effects.Procs)
+        {
+            // Proc fires
+            if (Random.Shared.NextDouble() <= proc.Chance)
+            {
+            }
+
+        }
     }
 
     public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
@@ -433,8 +446,13 @@ public class Creature : VisibleObject
             }
         }
 
-        if (castableXml.Effects?.Sound != null)
+        if (Equipment?.Weapon?.AssailSound != null)
+            PlaySound(Equipment.Weapon.AssailSound);
+        else if (this is Monster m && m.AssailSound != 0)
+            PlaySound(m.AssailSound);
+        else if (castableXml.Effects?.Sound != null)
             PlaySound(castableXml.Effects.Sound.Id);
+        
 
         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
 
@@ -713,6 +731,7 @@ public class Creature : VisibleObject
             // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
             foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
+            {
                 if (obj != this && obj is User)
                 {
                     var user = obj as User;
@@ -725,6 +744,7 @@ public class Creature : VisibleObject
                     x0C.WriteByte(0x00);
                     user.Enqueue(x0C);
                 }
+            }
 
             Map.EntityTree.Move(this);
 

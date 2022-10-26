@@ -695,6 +695,7 @@
         <xs:attribute name="BehaviorSet" use="required" type="xs:string" />
         <xs:attribute name="MinDmg" type="xs:int" use="optional" default="0" />
         <xs:attribute name="MaxDmg" type="xs:int" use="optional" default="0" />
+        <xs:attribute name="AssailSound" type="xs:byte" />
     </xs:complexType>
 
     <xs:complexType name="CreatureTypes">

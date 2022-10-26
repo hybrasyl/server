@@ -38,6 +38,7 @@ public partial class Creature
     private string _behaviorSet;
     private int _minDmg;
     private int _maxDmg;
+    private byte _assailSound;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -174,6 +175,19 @@ public partial class Creature
         set
         {
             _maxDmg = value;
+        }
+    }
+    
+    [XmlAttribute]
+    public byte AssailSound
+    {
+        get
+        {
+            return _assailSound;
+        }
+        set
+        {
+            _assailSound = value;
         }
     }
     
