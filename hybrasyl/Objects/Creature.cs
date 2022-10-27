@@ -230,17 +230,23 @@ public class Creature : VisibleObject
         return ret;
     }
 
-    public void ProcessProcs(Castable castable, Creature target = null)
+    public void ProcessProcs(ProcEventType type, Castable castable, Creature target)
     {
-        foreach (var proc in castable.Effects.Procs)
+        foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
         {
             // Proc fires
-            if (Random.Shared.NextDouble() <= proc.Chance)
-            {
-            }
+            Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
+        }
 
+        if (!castable.IsAssail || Equipment?.Weapon == null) 
+            return;
+
+        foreach (var proc in Equipment.Weapon.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
+        {
+            Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
         }
     }
+
 
     public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
     {
@@ -420,6 +426,8 @@ public class Creature : VisibleObject
             GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
             return false;
         }
+
+        ProcessProcs(ProcEventType.OnCast, castableXml, null);
         // Is this a pvpable spell? If so, is pvp enabled?
 
         // We do these next steps to ensure effects are displayed uniformly and as fast as possible
@@ -526,6 +534,7 @@ public class Creature : VisibleObject
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                ProcessProcs(ProcEventType.OnHit, castableXml, tar);
 
                 if (tar is User u && !castableXml.IsAssail)
                     u.SendSystemMessage($"{Name} attacks you with {castableXml.Name}.");
@@ -543,13 +552,13 @@ public class Creature : VisibleObject
             {
                 var healOutput = NumberCruncher.CalculateHeal(castableXml, tar, this);
                 tar.Heal(healOutput, this);
+                ProcessProcs(ProcEventType.OnHit, castableXml, tar);
                 if (this is User)
                 {
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} healing: {healOutput}");
                     if (Equipment.Weapon is { Undamageable: false })
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
-                                                            (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
+                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
                 }
             }
 

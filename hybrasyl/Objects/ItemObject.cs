@@ -28,6 +28,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using Hybrasyl.Xml;
+using YamlDotNet.Serialization.ObjectGraphVisitors;
 
 namespace Hybrasyl.Objects;
 
@@ -155,7 +156,8 @@ public class ItemObject : VisibleObject, IInteractable
 
     public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
-    public byte AssailSound => Template.Properties.Use.Sound.Id;
+    public byte AssailSound => Template.Properties?.Use?.Sound?.Id ?? 0;
+    public List<Proc> Procs => Template.Properties.Procs;
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
     public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
@@ -443,6 +445,12 @@ public class ItemObject : VisibleObject, IInteractable
         if (Use?.Sound != null) trigger.SendSound(Use.Sound.Id);
 
         if (Use?.Teleport != null) trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
+
+        foreach (var proc in Procs.Where(proc =>
+                     Random.Shared.NextDouble() <= proc.Chance && proc.Type == ProcEventType.OnUse))
+        {
+            Game.World.EnqueueProc(proc, null, trigger.Guid, Guid.Empty);
+        }
 
         if (Consumable) Count--;
     }

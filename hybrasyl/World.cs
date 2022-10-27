@@ -1260,8 +1260,8 @@ public partial class World : Server
         WorldData.Remove<User>(username);
     }
 
-    public void EnqueueProc(Proc p) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p));
+    public void EnqueueProc(Proc p, Castable castable, Guid source, Guid target) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p, castable, source, target));
 
     public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
         ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
@@ -1688,6 +1688,7 @@ public partial class World : Server
         ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
         ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
         ControlMessageHandlers[ControlOpcodes.ModifyStats] = ControlMessage_ModifyStats;
+        ControlMessageHandlers[ControlOpcodes.ProcessProc] = ControlMessage_ProcessProc;
     }
 
     public void SetPacketHandlers()
@@ -2160,6 +2161,45 @@ public partial class World : Server
         obj.Stats.Apply(statinfo);
         if (obj is User u)
             u.UpdateAttributes(StatUpdateFlags.Full);
+    }
+
+    private void ControlMessage_ProcessProc(HybrasylControlMessage message)
+    {
+        var proc = (Proc) message.Arguments[0];
+        var castable = (Castable) message.Arguments[1];
+        var sourceGuid = (Guid) message.Arguments[2];
+        var targetGuid = (Guid) message.Arguments[3];
+
+        var source = WorldData.GetWorldObject<Creature>(sourceGuid);
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+
+        if (source == null)
+        {
+            GameLog.Error("Proc: guid {sourceGuid} could not be located");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(proc.Script))
+        {
+            if (ScriptProcessor.TryGetScript(proc.Script, out Script script))
+            {
+                var env = ScriptEnvironment.CreateWithOriginTargetAndSource(source, target, source);
+                var result = script.ExecuteFunction("OnProc", env);
+                if (result.Result != ScriptResult.Success)
+                    GameLog.ScriptingError($"{source.Name}: proc for {castable.Name}, script {script.Name}: {result.Error}");
+            }
+            else 
+                GameLog.Error($"Proc: references {script} but does not exist");
+        }
+
+        if (string.IsNullOrEmpty(proc.Castable)) return;
+        if (WorldData.TryGetValue<Castable>(proc.Castable, out Castable procCastable))
+        {
+            source.UseCastable(procCastable, target);
+        }
+        else 
+            GameLog.Error($"{source.Name}: proc references {proc.Castable}, but does not exist");
+
     }
 
     #endregion Control Message Handlers
