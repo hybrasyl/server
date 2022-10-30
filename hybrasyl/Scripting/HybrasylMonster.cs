@@ -38,11 +38,6 @@ public class HybrasylMonster : HybrasylWorldObject
         Monster.ThreatInfo.ForceThreatChange(invoker.User);
     }
 
-    public void MakeHostile()
-    {
-        Monster.MakeHostile();
-    }
-
     /// <summary>
     ///     Deal damage to the current player.
     /// </summary>
