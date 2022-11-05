@@ -45,7 +45,6 @@ using Hybrasyl.Plugins;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog.Events;

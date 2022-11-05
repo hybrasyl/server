@@ -286,6 +286,9 @@ internal class Monolith
                     baseMob.X = (byte) xcoord;
                     baseMob.Y = (byte) ycoord;
 
+                    if (spawn.Hostility != null)
+                        baseMob.Hostility = spawn.Hostility;
+
                     if (spawn.Damage != null)
                     {
                         ushort minDmg = 0;

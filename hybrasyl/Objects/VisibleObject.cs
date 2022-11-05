@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -88,6 +89,18 @@ public class VisibleObject : WorldObject, IVisible
     public virtual void ShowTo(IVisible target) { }
 
     public int Distance(IVisible target) => Point.Distance(this, target);
+
+    public static Direction Opposite(Direction d)
+    {
+        return d switch
+        {
+            Direction.North => Direction.South,
+            Direction.South => Direction.North,
+            Direction.West => Direction.East,
+            Direction.East => Direction.West,
+            _ => throw new ArgumentOutOfRangeException(nameof(d), d, null)
+        };
+    }
 
     public virtual void AoiEntry(VisibleObject obj)
     {

@@ -194,6 +194,7 @@ public class ConditionInfo
                 Conditions &= ~CreatureCondition.Invisible;
             else
                 Conditions |= CreatureCondition.Invisible;
+            User?.SendUpdateToUser();
         }
     }
 

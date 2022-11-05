@@ -472,6 +472,9 @@
             <xs:enumeration value="RandomFour" />
             <xs:enumeration value="RandomEight" />
             <xs:enumeration value="Random" />
+            <xs:enumeration value="Necklace"/>
+            <xs:enumeration value="Belt"/>
+            <xs:enumeration value="Current"/>
         </xs:restriction>
     </xs:simpleType>
 

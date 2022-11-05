@@ -336,7 +336,8 @@ public class User : Creature
         GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
         if (obj is Creature c)
         {
-            if (!Condition.SeeInvisible && c.Condition.IsInvisible) return;
+
+            if (!Condition.SeeInvisible && c.Condition.IsInvisible && obj != this) return;
             base.AoiEntry(obj);
             obj.ShowTo(this);
         }
@@ -350,7 +351,7 @@ public class User : Creature
     public override void AoiDeparture(VisibleObject obj)
     {
         if (obj is Creature c)
-            if (!Condition.SeeInvisible && c.Condition.IsInvisible)
+            if (!Condition.SeeInvisible && c.Condition.IsInvisible && obj != this)
                 return;
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
@@ -1391,6 +1392,9 @@ public class User : Creature
         var offset = Equipment.Armor?.BodyStyle ?? 0;
         if (!Condition.Alive)
             offset += 0x20;
+        else if (Condition.IsInvisible)
+            offset += 0x40;
+        
 
         GameLog.Debug($"Offset is: {offset.ToString("X")}");
         // Figure out what we're sending as the "helmet"
@@ -2761,7 +2765,6 @@ public class User : Creature
 
     public void SendAnimation(uint id, byte motion, short speed)
     {
-        // 1a 00 00 87 af   88  00 28  ff     a2 53 23
         var anim = new ServerPacketStructures.PlayerAnimation { Animation = motion, Speed = speed, UserId = id };
         Enqueue(anim.Packet());
     }

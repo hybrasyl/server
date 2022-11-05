@@ -110,10 +110,10 @@ public class Monster : Creature, ICloneable, IEphemeral
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }
-
+    
     public CastableController CastableController { get; set; }
     private CreatureBehaviorSet _behaviorSet { get; set; }
-    private CreatureHostilitySettings Hostility { get; set; }
+    public CreatureHostilitySettings Hostility { get; set; }
     public DateTime CreationTime { get; set; }
     public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
     
@@ -818,12 +818,16 @@ public class Monster : Creature, ICloneable, IEphemeral
                 {
                     var rand = Random.Shared.NextDouble();
                     var dir = Random.Shared.Next(0, 4);
-                    if (rand > 0.50)
+                    if (rand > 0.33)
                     {
                         if (Direction == (Direction) dir)
-                            Walk(Direction);
-                        else
-                            Turn((Direction) dir);
+                            if (!Walk(Direction))
+                            {
+                                Turn(Opposite(Direction));
+                                Walk(Opposite(Direction));
+                            }
+                            else
+                                Turn((Direction) dir);
                     }
                     else
                         Walk(Direction);
