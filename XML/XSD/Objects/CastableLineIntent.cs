@@ -29,8 +29,14 @@ public partial class CastableLineIntent
     #region Private fields
     private byte _length;
     private IntentDirection _direction;
+    private VisualEffectType _visualEffect;
     private static XmlSerializer _serializerXml;
     #endregion
+    
+    public CastableLineIntent()
+    {
+        _visualEffect = VisualEffectType.Targets;
+    }
     
     [XmlAttribute]
     public byte Length
@@ -55,6 +61,20 @@ public partial class CastableLineIntent
         set
         {
             _direction = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(VisualEffectType.Targets)]
+    public VisualEffectType VisualEffect
+    {
+        get
+        {
+            return _visualEffect;
+        }
+        set
+        {
+            _visualEffect = value;
         }
     }
     

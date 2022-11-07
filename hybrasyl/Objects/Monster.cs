@@ -121,13 +121,26 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         // Default to no aggressiveness in the absence of a <Hostility> tag or no <Player> tag;
         // also don't handle monster -> monster combat cases yet
-        if (Hostility?.Players == null || hostile is not User user) return false;
+        if (Hostility?.Players == null || hostile is not User user)
+        {
+            GameLog.SpawnDebug($"Monster {Name}: hostility null or non-user");
+            return false;
+        }
         // If the creature in question has hit us previously, obviously we don't like it
 
         if (!string.IsNullOrEmpty(Hostility.Players.ExceptCookie))
+        {
+            GameLog.SpawnDebug($"Monster {Name}: except cookie");
             return !user.HasCookie(Hostility.Players.ExceptCookie);
+        }
+
         if (!string.IsNullOrEmpty(Hostility.Players.OnlyCookie))
+        {
+            GameLog.SpawnDebug($"Monster {Name}: only cookie");
             return user.HasCookie(Hostility.Players.OnlyCookie);
+        }
+
+        GameLog.SpawnDebug($"Monster {Name}: hostile towards {user.Name}");
         return true;
     }
 

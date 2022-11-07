@@ -832,9 +832,16 @@
             <xs:element name="StatAlloc" minOccurs="0" maxOccurs="1" type="CreatureStatAlloc" />
             <xs:element name="Castables" minOccurs="0" maxOccurs="1" type="CreatureCastables" />
             <xs:element name="Behavior" minOccurs="0" maxOccurs="1" type="CreatureBehavior" />
+            <xs:element name="Immunities" minOccurs="0" maxOccurs="1" type="CreatureImmunities "/>
         </xs:sequence>
         <xs:attribute name="Name" type="xs:string" use="required" />
         <xs:attribute name="Import" type="xs:string" use="optional" />
+    </xs:complexType>
+
+    <xs:complexType name="CreatureImmunities">
+        <xs:sequence>
+            <xs:element name="Immunity" type="xs:string" minOccurs="1" maxOccurs="unbounded" />
+		</xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="CreatureCastable">

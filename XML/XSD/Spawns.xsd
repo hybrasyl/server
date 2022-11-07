@@ -55,6 +55,7 @@
             <xs:element name="Base" minOccurs="0" maxOccurs="1" type="hyb:SpawnBase" />
             <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="hyb:CreatureHostilitySettings" />
             <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="hyb:CreatureCookies" />
+            <xs:element name="Immunities" minOccurs="0" maxOccurs="1" type="hyb:CreatureImmunities"/>
         </xs:sequence>
         <xs:attribute name="Import" type="xs:string" use="optional" />
         <xs:attribute name="Name" type="xs:string" use="optional" />

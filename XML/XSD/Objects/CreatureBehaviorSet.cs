@@ -31,6 +31,7 @@ public partial class CreatureBehaviorSet
     private string _statAlloc;
     private CreatureCastables _castables;
     private CreatureBehavior _behavior;
+    private List<string> _immunities;
     private string _name;
     private string _import;
     private static XmlSerializer _serializerXml;
@@ -69,6 +70,19 @@ public partial class CreatureBehaviorSet
         set
         {
             _behavior = value;
+        }
+    }
+    
+    [XmlArrayItemAttribute("Immunity", IsNullable=false)]
+    public List<string> Immunities
+    {
+        get
+        {
+            return _immunities;
+        }
+        set
+        {
+            _immunities = value;
         }
     }
     

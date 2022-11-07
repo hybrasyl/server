@@ -47,6 +47,7 @@ public partial class Castable
     private int _cooldown;
     private bool _isAssail;
     private bool _reflectable;
+    private bool _breakStealth;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -66,6 +67,7 @@ public partial class Castable
         _cooldown = 0;
         _isAssail = false;
         _reflectable = true;
+        _breakStealth = true;
     }
     
     [XmlArrayItemAttribute(IsNullable=false)]
@@ -311,6 +313,20 @@ public partial class Castable
         set
         {
             _reflectable = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(true)]
+    public bool BreakStealth
+    {
+        get
+        {
+            return _breakStealth;
+        }
+        set
+        {
+            _breakStealth = value;
         }
     }
     

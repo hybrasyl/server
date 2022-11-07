@@ -28,8 +28,14 @@ public partial class CastableCrossIntent
 {
     #region Private fields
     private byte _radius;
+    private VisualEffectType _visualEffect;
     private static XmlSerializer _serializerXml;
     #endregion
+    
+    public CastableCrossIntent()
+    {
+        _visualEffect = VisualEffectType.Targets;
+    }
     
     [XmlAttribute]
     public byte Radius
@@ -41,6 +47,20 @@ public partial class CastableCrossIntent
         set
         {
             _radius = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(VisualEffectType.Targets)]
+    public VisualEffectType VisualEffect
+    {
+        get
+        {
+            return _visualEffect;
+        }
+        set
+        {
+            _visualEffect = value;
         }
     }
     

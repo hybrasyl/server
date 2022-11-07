@@ -57,7 +57,7 @@
     </xs:simpleType>
 
     <!-- Visual Effect type - where to display visual effects. Generally defaults to target -->
-    <xs:simpleType name="EffectType">
+    <xs:simpleType name="VisualEffectType">
         <xs:restriction base="xs:token">
             <xs:enumeration value="Targets"/>
             <xs:enumeration value="AllTiles"/>
@@ -365,7 +365,6 @@
         <xs:sequence>
             <xs:element name="Intent" type="hyb:CastableIntent" minOccurs="1" maxOccurs="unbounded" />
         </xs:sequence>
-        <xs:attribute name="VisualEffect" type="hyb:VisualEffectType" default="Targets"/>
     </xs:complexType>
 
     <xs:complexType name="CastableLineIntent">
