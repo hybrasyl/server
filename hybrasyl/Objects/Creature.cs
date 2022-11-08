@@ -24,7 +24,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using DotLiquid;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -424,6 +423,14 @@ public class Creature : VisibleObject
         if (!targets.Any() && castableXml.IsAssail == false && string.IsNullOrEmpty(castableXml.Script))
         {
             GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
+            return false;
+        }
+
+        // Check to see if creature is immune.
+        // Only handle monster immunity for now
+        if (target is Monster monster && monster.Immunities.Contains(castableXml.Name) && this is User client)
+        {
+            client.SendSystemMessage($"{Name} cannot be harmed by {castableXml.Name}.");
             return false;
         }
 

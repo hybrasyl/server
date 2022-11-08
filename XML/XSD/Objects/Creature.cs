@@ -38,7 +38,7 @@ public partial class Creature
     private string _behaviorSet;
     private int _minDmg;
     private int _maxDmg;
-    private sbyte _assailSound;
+    private byte _assailSound;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -179,7 +179,7 @@ public partial class Creature
     }
     
     [XmlAttribute]
-    public sbyte AssailSound
+    public byte AssailSound
     {
         get
         {
