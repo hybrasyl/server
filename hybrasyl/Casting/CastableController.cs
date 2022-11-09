@@ -124,10 +124,13 @@ public class CastableController : IEnumerable<Rotation>
             foreach (var entry in set.Castable)
                 if (Castables.TryGetValue(entry.Value, out var slot))
                 {
+                    if (set.HealthPercentage > 0)
+                        entry.HealthPercentage = set.HealthPercentage;
                     var newEntry = new RotationEntry(slot, entry);
+                        
                     newRotation.Add(newEntry);
 
-                    if (entry.UseOnce)
+                    if (entry.UseOnce || entry.HealthPercentage > 0)
                         ThresholdCasts.Add(newEntry);
                 }
                 else
@@ -195,14 +198,14 @@ public class CastableController : IEnumerable<Rotation>
 
         // Always handle UseOnce trigger thresholds (Rule #1)
         foreach (var threshold in ThresholdCasts.Where(predicate: c =>
-                     c.Directive.HealthPercentage > 0 && c.Directive.HealthPercentage <= MonsterObj.Stats.HpPercentage))
+                     c.Directive.HealthPercentage > 0 && c.Directive.HealthPercentage >= MonsterObj.Stats.HpPercentage))
         {
             if (!Castables.ContainsKey(threshold.Name))
                 // Threshold references a skill or spell that the mob doesn't know; ignore
                 continue;
             // Is this a use once trigger with a percentage defined? If so, it hits and returns immediately IF the
             // corresponding slot hasn't seen a trigger.              
-            if (!threshold.UseOnce || threshold.ThresholdTriggered) continue;
+            if (threshold.UseOnce && !threshold.ThresholdTriggered) continue;
 
             GameLog.SpawnDebug(
                 $"{DebugLogHeader}: one-time threshold triggered: {threshold.Name}, {threshold.Threshold}%, priority {threshold.CurrentPriority}");

@@ -67,7 +67,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     public Class PreviousClass => User.PreviousClass;
 
-    public static bool IsPlayer => true;
+    public override bool IsPlayer => true;
 
     /// <summary>
     ///     The gender of the player. For Darkages purpose, this will evaluate to Male or Female.

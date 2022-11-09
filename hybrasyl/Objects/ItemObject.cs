@@ -446,10 +446,13 @@ public class ItemObject : VisibleObject, IInteractable
 
         if (Use?.Teleport != null) trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
 
-        foreach (var proc in Procs.Where(proc =>
-                     Random.Shared.NextDouble() <= proc.Chance && proc.Type == ProcEventType.OnUse))
+        if (Procs != null)
         {
-            Game.World.EnqueueProc(proc, null, trigger.Guid, Guid.Empty);
+            foreach (var proc in Procs.Where(proc =>
+                         Random.Shared.NextDouble() <= proc.Chance && proc.Type == ProcEventType.OnUse))
+            {
+                Game.World.EnqueueProc(proc, null, trigger.Guid, Guid.Empty);
+            }
         }
 
         if (Consumable) Count--;

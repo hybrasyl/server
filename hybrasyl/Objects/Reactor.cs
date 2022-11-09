@@ -153,7 +153,11 @@ public class Reactor : VisibleObject, IPursuitable
         }
 
         if (Ready)
-            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        {
+            var wef = Script.ExecuteFunction("OnEntry",
+                ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+            GameLog.Debug("SPARE! RIBS! FUCK!");
+        }
     }
 
     public override void AoiEntry(VisibleObject obj)

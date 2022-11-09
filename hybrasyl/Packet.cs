@@ -24,6 +24,8 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Bson;
 
 namespace Hybrasyl;
 
@@ -354,16 +356,6 @@ public abstract class Packet
         return _position;
     }
 
-    public object Clone()
-    {
-        var ms = new MemoryStream();
-        var bf = new BinaryFormatter();
-        bf.Serialize(ms, this);
-        ms.Position = 0;
-        var obj = bf.Deserialize(ms);
-        ms.Close();
-        return obj;
-    }
 }
 
 public enum PacketSeekOrigin
@@ -678,16 +670,19 @@ public class ClientPacket : Packet
         }
     }
 
-    //public override object Clone()
-    //{
-    //    MemoryStream ms = new MemoryStream();
-    //    BinaryFormatter bf = new BinaryFormatter();
-    //    bf.Serialize(ms, this);
-    //    ms.Position = 0;
-    //    object obj = bf.Deserialize(ms);
-    //    ms.Close();
-    //    return (ClientPacket)obj;
-    //}
+    public object Clone()
+    {
+        var ms = new MemoryStream();
+        var writer = new BsonWriter(ms);
+        var reader = new BsonReader(ms);
+        var serializer = new JsonSerializer();
+        serializer.Serialize(writer, this);
+        ms.Position = 0;
+        var obj = serializer.Deserialize<ClientPacket>(reader);
+        ms.Close();
+        return obj;
+    }
+
 }
 
 [Serializable]
@@ -900,14 +895,16 @@ public class ServerPacket : Packet
         Data[length + 2] = (byte) (((bRand >> 8) % 256) ^ 0x64);
     }
 
-    //public override object Clone()
-    //{
-    //    MemoryStream ms = new MemoryStream();
-    //    BinaryFormatter bf = new BinaryFormatter();
-    //    bf.Serialize(ms, this);
-    //    ms.Position = 0;
-    //    object obj = bf.Deserialize(ms);
-    //    ms.Close();
-    //    return (ServerPacket)obj;
-    //}
+    public object Clone()
+    {
+        var ms = new MemoryStream();
+        var writer = new BsonWriter(ms);
+        var reader = new BsonReader(ms);
+        var serializer = new JsonSerializer();
+        serializer.Serialize(writer, this);
+        ms.Position = 0;
+        var obj = serializer.Deserialize<ServerPacket>(reader);
+        ms.Close();
+        return obj;
+    }
 }
