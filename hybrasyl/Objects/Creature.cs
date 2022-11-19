@@ -238,7 +238,7 @@ public class Creature : VisibleObject
             Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
         }
 
-        if (!castable.IsAssail || Equipment?.Weapon == null) 
+        if (!castable.IsAssail || Equipment?.Weapon?.Procs == null) 
             return;
 
         foreach (var proc in Equipment.Weapon.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))

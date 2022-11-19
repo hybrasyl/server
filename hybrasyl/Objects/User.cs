@@ -2646,7 +2646,7 @@ public class User : Creature
         target ??= GetDirectionalTarget(direction);
         var animation = false;
 
-        foreach (var c in SkillBook.Where(predicate: c => c.Castable.IsAssail))
+        foreach (var c in SkillBook.Where(c => c.Castable is { IsAssail: true }))
             if (target != null && target.GetType() != typeof(Merchant))
             {
                 UseSkill(SkillBook.SlotOf(c.Castable.Name));
@@ -2677,7 +2677,7 @@ public class User : Creature
                 if (Equipment.Shield != null) motionId = 1;
             }
 
-            var firstAssail = SkillBook.FirstOrDefault(predicate: x => x.Castable.IsAssail);
+            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable is {IsAssail:true});
             var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte) 1;
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);

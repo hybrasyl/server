@@ -70,6 +70,10 @@ public class StatInfo
         }
     }
 
+    // A horrifying workaround for https://github.com/ncalc/ncalc/issues/58
+    [FormulaVariable] 
+    public int FormulaLevel => (int) Level;
+
     [FormulaVariable]
     [JsonProperty]
     public uint Experience

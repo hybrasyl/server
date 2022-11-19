@@ -29,6 +29,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 using Serilog;
+using Path = System.IO.Path;
 using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Scripting;
@@ -153,7 +154,7 @@ public class Script
     private string ExtractLuaSource(int linenumber)
     {
         var lines = RawSource.Split('\n').ToList();
-        if (lines.Count < linenumber || lines.Count < 3)
+        if (lines.Count < linenumber || lines.Count < 3 || linenumber < 2)
             return RawSource;
         var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber - 1]}\n";
         if (linenumber < lines.Count)

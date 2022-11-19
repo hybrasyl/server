@@ -25,6 +25,7 @@ using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
+using Creature = Hybrasyl.Xml.Creature;
 
 namespace Hybrasyl.Scripting;
 
@@ -191,4 +192,32 @@ public static class HybrasylUtility
         });
 
     public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldData.RegisterQuest(data);
+
+    public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level, bool aggro)
+    {
+        if (!Game.World.WorldData.TryGetValue<Creature>(creatureName, out var creature))
+        {
+            GameLog.ScriptingError($"CreateMonster: Creature {creatureName} does not exist");
+            return;
+        }
+
+        if (!Game.World.WorldData.TryGetValue<CreatureBehaviorSet>(behaviorSet, out var cbs))
+        {
+            GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
+            return;
+        }
+
+        if (!Game.World.WorldData.TryGetValue<Map>(mapId, out var map))
+        {
+            GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
+            return;
+        }
+
+        var monster = new Monster(creature, SpawnFlags.Active, (byte) level, null, cbs);
+        monster.X = x;
+        monster.Y = y;
+        monster.Hostility = aggro ? new CreatureHostilitySettings { Players = new CreatureHostility() } : new CreatureHostilitySettings();
+        
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
+    }
 }
