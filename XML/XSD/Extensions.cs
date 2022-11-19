@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Dotnet.ProjInfo;
 
 namespace Hybrasyl.Xml
 {
@@ -63,86 +64,6 @@ namespace Hybrasyl.Xml
                     return 31 * (Name.GetHashCode() + 1);
                 }
             }
-        }
-    }
-
-    public partial class Castable
-    {
-        public int Id
-        {
-            get
-            {
-                unchecked
-                {
-                    return 31 * (Name.GetHashCode() + 1);
-                }
-            }
-        }
-
-        public Guid Guid { get; set; }
-
-        // Helper functions to deal with xml vagaries
-        public List<AddStatus> AddStatuses => Effects.Statuses?.Add ?? new List<AddStatus>();
-        public List<string> RemoveStatuses => Effects.Statuses?.Remove ?? new List<string>();
-        public List<CastableReactor> Reactors => Effects?.Reactors ?? new List<CastableReactor>();
-        public byte CastableLevel { get; set; }
-
-        public DateTime LastCast { get; set; }
-
-        public bool IsSkill => Book is Book.PrimarySkill or Book.SecondarySkill or Book.UtilitySkill;
-        public bool IsSpell => Book is Book.PrimarySpell or Book.SecondarySpell or Book.UtilitySpell;
-
-        public bool OnCooldown => Cooldown > 0 && (DateTime.Now - LastCast).TotalSeconds < Cooldown;
-
-        public List<string> CategoryList
-        {
-            get
-            {
-                return Categories.Count > 0
-                    ? Categories.Select(selector: x => x.Value.ToLower()).ToList()
-                    : new List<string>();
-            }
-        }
-
-        public byte GetMaxLevelByClass(Class castableClass)
-        {
-            var maxLevelProperty = MaxLevel.GetType().GetProperty(castableClass.ToString());
-            return (byte) (maxLevelProperty != null ? maxLevelProperty.GetValue(MaxLevel, null) : 0);
-        }
-
-        public bool TryGetMotion(Class castClass, out CastableMotion motion)
-        {
-            motion = null;
-
-            if (Effects?.Animations?.OnCast?.Player == null) return false;
-
-            var m = Effects.Animations.OnCast.Player.Where(predicate: e => e.Class.Contains(castClass));
-            if (m.Count() == 0)
-                m = Effects.Animations.OnCast.Player.Where(predicate: e => e.Class.Count == 0);
-
-            if (m.Count() == 0)
-                return false;
-            motion = m.First();
-
-            return true;
-        }
-    }
-
-    public class CastableComparer : IEqualityComparer<Castable>
-    {
-        public bool Equals(Castable c1, Castable c2)
-        {
-            if (c1 == null && c2 == null) return true;
-            if (c1 == null || c2 == null) return false;
-
-            return c1.Name.Trim().ToLower() == c2.Name.Trim().ToLower() &&
-                   c1.Book == c2.Book;
-        }
-
-        public int GetHashCode(Castable c)
-        {
-            var hCode = $"{c.Name.Trim().ToLower()}-{c.Book}";
-            return hCode.GetHashCode();
         }
     }
 
@@ -283,35 +204,45 @@ namespace Hybrasyl.Xml
         public bool Disabled { get; set; } = false;
         public string ErrorMessage { get; set; } = string.Empty;
 
-        /// <summary>
-        ///     Calculate a specific offensive element for a spawn from its list of elements.
-        /// </summary>
-        /// <returns>Element enum</returns>
-        public ElementType GetOffensiveElement()
+        public ElementType OffensiveElement
         {
-            return _damage.Element switch
+            get
             {
-                ElementType.Random => (ElementType) Random.Shared.Next(1, 9),
-                ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 4),
-                ElementType.RandomEight => (ElementType) Random.Shared.Next(5, 8),
-                _ => _damage.Element
-            };
+                var ele = _damage.Elements.Count switch
+                {
+                    1 => _damage.Elements.First(),
+                    > 1 => _damage.Elements.PickRandom(),
+                    _ => ElementType.None
+                };
+                return ele switch
+                {
+                    ElementType.RandomExpanded => (ElementType) Random.Shared.Next(1, 10),
+                    ElementType.RandomTemuair => (ElementType) Random.Shared.Next(1, 7),
+                    _ => ele
+                };
+            }
         }
 
-        /// <summary>
-        ///     Calculate a specific defensive element for a spawn from its list of elements.
-        /// </summary>
-        /// <returns>Element enum</returns>
-        public ElementType GetDefensiveElement()
+        public ElementType DefensiveElement
         {
-            return _defense.Element switch
+            get
             {
-                ElementType.Random => (ElementType) Random.Shared.Next(1, 9),
-                ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 4),
-                ElementType.RandomEight => (ElementType) Random.Shared.Next(5, 8),
-                _ => _defense.Element
-            };
+                var ele = _defense.Elements.Count switch
+                {
+                    1 => _damage.Elements.First(),
+                    > 1 => _damage.Elements.PickRandom(),
+                    _ => ElementType.None
+                };
+                return ele switch
+                {
+                    ElementType.RandomExpanded => (ElementType) Random.Shared.Next(1, 10),
+                    ElementType.RandomTemuair => (ElementType) Random.Shared.Next(1, 7),
+                    _ => ele
+                };
+            }
         }
+
+
     }
 
     public partial class SpawnGroup

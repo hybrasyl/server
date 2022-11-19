@@ -41,7 +41,7 @@ public partial class Castable
     private CastableMastery _mastery;
     private byte _icon;
     private Book _book;
-    private ElementType _element;
+    private List<ElementType> _elements;
     private byte _lines;
     private List<Class> _class;
     private int _cooldown;
@@ -54,6 +54,7 @@ public partial class Castable
     public Castable()
     {
         _class = new List<Class>();
+        _elements = new List<ElementType>();
         _mastery = new CastableMastery();
         _effects = new CastableEffects();
         _restrictions = new List<EquipmentRestriction>();
@@ -235,15 +236,15 @@ public partial class Castable
     }
     
     [XmlAttribute]
-    public ElementType Element
+    public List<ElementType> Elements
     {
         get
         {
-            return _element;
+            return _elements;
         }
         set
         {
-            _element = value;
+            _elements = value;
         }
     }
     

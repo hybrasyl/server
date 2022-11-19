@@ -312,16 +312,7 @@ internal class Monolith
                                     template.Properties.Damage.Large.Min = minDmg;
                                     template.Properties.Damage.Large.Max = maxDmg;
                                     template.Properties.Physical.Durability = uint.MaxValue / 10;
-                                    baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element switch
-                                    {
-                                        ElementType.RandomFour => (ElementType) Random.Shared.Next(1,
-                                            5), // earth/fire/wind/water
-                                        ElementType.RandomEight => (ElementType) Random.Shared.Next(1,
-                                            9), // Above plus light/dark/metal/wood
-                                        ElementType.Random => (ElementType) Random.Shared.Next(1,
-                                            10), // Above plus undead
-                                        _ => spawn.Damage.Element
-                                    };
+                                    baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
                                     var item = new ItemObject(newTemplate);
                                     baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
@@ -358,14 +349,7 @@ internal class Monolith
 
                         baseMob.Stats.BonusAc = Ac;
                         baseMob.Stats.BonusMr = Mr;
-                        baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element switch
-                        {
-                            ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 5), // earth/fire/wind/water
-                            ElementType.RandomEight => (ElementType) Random.Shared.Next(1,
-                                9), // Above plus light/dark/metal/wood
-                            ElementType.Random => (ElementType) Random.Shared.Next(1, 10), // Above plus undead
-                            _ => spawn.Damage.Element
-                        };
+                        baseMob.Stats.DefensiveElementOverride = spawn.DefensiveElement;
                     }
 
                     foreach (var cookie in spawn.SetCookies) baseMob.SetCookie(cookie.Name, cookie.Value);

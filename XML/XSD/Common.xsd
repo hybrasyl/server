@@ -469,9 +469,8 @@
             <xs:enumeration value="Wood" />
             <xs:enumeration value="Metal" />
             <xs:enumeration value="Undead" />
-            <xs:enumeration value="RandomFour" />
-            <xs:enumeration value="RandomEight" />
-            <xs:enumeration value="Random" />
+            <xs:enumeration value="RandomTemuair" />
+            <xs:enumeration value="RandomExpanded" />
             <xs:enumeration value="Necklace"/>
             <xs:enumeration value="Belt"/>
             <xs:enumeration value="Current"/>

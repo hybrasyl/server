@@ -351,7 +351,7 @@
         <!-- Castable attributes -->
         <xs:attribute name="Icon" type="xs:unsignedByte" use="required" />
         <xs:attribute name="Book" type="hyb:Book" use="required" />
-        <xs:attribute name="Element" default="None" type="hyb:ElementType" />
+        <xs:attribute name="Elements" default="None" type="hyb:ElementList" />
         <xs:attribute name="Lines" type="xs:unsignedByte" use="optional" default="0" />
         <xs:attribute name="Class" type="hyb:ClassList" use="optional" />
         <xs:attribute name="Cooldown" use="optional" default="0" type="xs:int" />

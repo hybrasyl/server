@@ -72,13 +72,13 @@
     <xs:complexType name="SpawnDamage">
         <xs:attribute name="MinDmg" type="xs:string" use="optional" />
         <xs:attribute name="MaxDmg" type="xs:string" use="optional" />
-        <xs:attribute name="Element" type="hyb:ElementType" use="optional" default="None" />
+        <xs:attribute name="Elements" type="hyb:ElementList" use="optional" default="None" />
     </xs:complexType>
 
     <xs:complexType name="SpawnDefense">
         <xs:attribute name="Ac" type="xs:string" use="optional" />
         <xs:attribute name="Mr" type="xs:string" use="optional" />
-        <xs:attribute name="Element" type="hyb:ElementType" use="optional" default="None" />
+        <xs:attribute name="Elements" type="hyb:ElementList" use="optional" default="None" />
     </xs:complexType>
 
     <xs:complexType name="SpawnSpec">

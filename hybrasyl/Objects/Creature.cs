@@ -30,6 +30,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml;
 using Newtonsoft.Json;
+using Sentry;
 
 namespace Hybrasyl.Objects;
 
@@ -521,21 +522,18 @@ public class Creature : VisibleObject
             {
                 ElementType attackElement;
                 var damageOutput = NumberCruncher.CalculateDamage(castableXml, tar, this);
-                if (castableXml.Element == ElementType.Random)
+                attackElement = castableXml.Element switch
                 {
-                    var Elements = Enum.GetValues(typeof(ElementType));
-                    attackElement = (ElementType) Elements.GetValue(Random.Shared.Next(Elements.Length));
-                }
-                else if (castableXml.Element != ElementType.None)
-                {
-                    attackElement = castableXml.Element;
-                }
-                else
-                {
-                    attackElement = Stats.OffensiveElementOverride != ElementType.None
+                    ElementType.RandomTemuair => (ElementType) Random.Shared.Next(1, 7),
+                    ElementType.RandomExpanded => (ElementType) Random.Shared.Next(1, 10),
+                    ElementType.Belt => Equipment?.Belt?.Element ?? ElementType.None,
+                    ElementType.Necklace => Equipment?.Necklace?.Element ?? ElementType.None,
+                    ElementType.None => ElementType.None,
+                    ElementType.Current => Stats.OffensiveElementOverride != ElementType.None
                         ? Stats.OffensiveElementOverride
-                        : Stats.BaseOffensiveElement;
-                }
+                        : Stats.BaseOffensiveElement,
+                    _ => castableXml.Element
+                };
 
                 GameLog.UserActivityInfo(
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
