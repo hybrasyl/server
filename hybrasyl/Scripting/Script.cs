@@ -276,7 +276,8 @@ public class Script
         {
             DynValue udv = GetUserDataValue(value);
             Compiled.Globals.Set(key, udv);
-            GameLog.ScriptingDebug($"{key}: {value.GetType()} originally, {udv.UserData.Object.GetType()} wrapped");
+            if (udv.Type == DataType.UserData)
+                GameLog.ScriptingDebug($"{key}: {value.GetType()} originally, {udv.UserData.Object.GetType()} wrapped");
         }
     }
 
