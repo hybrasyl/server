@@ -272,7 +272,12 @@ public class Script
     public void ProcessEnvironment(ScriptEnvironment env)
     {
         if (env is null) return;
-        foreach (var (key, value) in env.Variables) Compiled.Globals.Set(key, GetUserDataValue(value));
+        foreach (var (key, value) in env.Variables)
+        {
+            DynValue udv = GetUserDataValue(value);
+            Compiled.Globals.Set(key, udv);
+            GameLog.ScriptingDebug($"{key}: {value.GetType()} originally, {udv.UserData.Object.GetType()} wrapped");
+        }
     }
 
     /// <summary>
