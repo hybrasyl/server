@@ -408,7 +408,7 @@
         </xs:sequence>
         <xs:attribute name="UseType" type="hyb:SpellUseType" default="NoTarget" use="optional" />
         <xs:attribute name="Flags" type="hyb:IntentFlagsList" use="optional" />
-        <xs:attribute name="MaxTargets" type="xs:unsignedByte" default="0" />
+        <xs:attribute name="MaxTargets" type="xs:int" default="0" />
     </xs:complexType>
 
     <!-- Bring it all together -->
