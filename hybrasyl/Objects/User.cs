@@ -2622,17 +2622,20 @@ public class User : Creature
         return false;
     }
 
-    public override bool UseCastable(Castable castableXml, Creature target = null)
+    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true)
     {
         if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
             //do something. 
             return false;
 
         // Check casting costs
-        if (!ProcessCastingCost(castableXml, target, out var message))
+        if (castCost)
         {
-            SendSystemMessage(message);
-            return false;
+            if (!ProcessCastingCost(castableXml, target, out var message))
+            {
+                SendSystemMessage(message);
+                return false;
+            }
         }
 
         if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
