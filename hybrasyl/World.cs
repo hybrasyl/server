@@ -2194,7 +2194,8 @@ public partial class World : Server
         if (string.IsNullOrEmpty(proc.Castable)) return;
         if (WorldData.TryGetValueByIndex<Castable>(proc.Castable, out Castable procCastable))
         {
-            source.UseCastable(procCastable, target);
+            if (source is User u)
+                u.UseCastable(procCastable, target, false, false);
         }
         else 
             GameLog.Error($"{source.Name}: proc references {proc.Castable}, but does not exist");
