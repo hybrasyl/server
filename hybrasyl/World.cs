@@ -2192,7 +2192,7 @@ public partial class World : Server
         }
 
         if (string.IsNullOrEmpty(proc.Castable)) return;
-        if (WorldData.TryGetValue<Castable>(proc.Castable, out Castable procCastable))
+        if (WorldData.TryGetValueByIndex<Castable>(proc.Castable, out Castable procCastable))
         {
             source.UseCastable(procCastable, target);
         }

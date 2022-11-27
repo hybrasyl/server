@@ -355,7 +355,6 @@ public abstract class Packet
         if (_position > Data.Length) _position = Data.Length;
         return _position;
     }
-
 }
 
 public enum PacketSeekOrigin
@@ -670,19 +669,11 @@ public class ClientPacket : Packet
         }
     }
 
-    public object Clone()
+    public ClientPacket Clone()
     {
-        var ms = new MemoryStream();
-        var writer = new BsonWriter(ms);
-        var reader = new BsonReader(ms);
-        var serializer = new JsonSerializer();
-        serializer.Serialize(writer, this);
-        ms.Position = 0;
-        var obj = serializer.Deserialize<ClientPacket>(reader);
-        ms.Close();
-        return obj;
+        var f = ToArray();
+        return new ClientPacket(f);
     }
-
 }
 
 [Serializable]
@@ -692,6 +683,22 @@ public class ServerPacket : Packet
     {
         Opcode = opcode;
         Data = new byte[0];
+    }
+
+    public ServerPacket(byte[] buffer)
+    {
+        Opcode = buffer[3];
+        if (ShouldEncrypt)
+        {
+            Ordinal = buffer[4];
+            Data = new byte[buffer.Length - 5];
+            Array.Copy(buffer, 5, Data, 0, Data.Length);
+        }
+        else
+        {
+            Data = new byte[buffer.Length - 4];
+            Array.Copy(buffer, 4, Data, 0, Data.Length);
+        }
     }
 
     public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E; //&& Opcode != 0x0D;
@@ -895,16 +902,11 @@ public class ServerPacket : Packet
         Data[length + 2] = (byte) (((bRand >> 8) % 256) ^ 0x64);
     }
 
-    public object Clone()
+    public ServerPacket Clone()
     {
-        var ms = new MemoryStream();
-        var writer = new BsonWriter(ms);
-        var reader = new BsonReader(ms);
-        var serializer = new JsonSerializer();
-        serializer.Serialize(writer, this);
-        ms.Position = 0;
-        var obj = serializer.Deserialize<ServerPacket>(reader);
-        ms.Close();
-        return obj;
+        var f = ToArray();
+        return new ServerPacket(f);
     }
+
+
 }
