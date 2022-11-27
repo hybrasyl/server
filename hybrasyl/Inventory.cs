@@ -1088,6 +1088,9 @@ public class Equipment : Inventory
 
     public Equipment(byte size) : base(size) { }
 
+    public bool RingEquipped => LRing != null || RRing != null;
+    public bool GauntletEquipped => LGauntlet != null || RGauntlet != null;
+
     public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
     {
         var returnList = new List<Tuple<ushort, byte>>();

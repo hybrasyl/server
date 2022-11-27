@@ -28,6 +28,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using Hybrasyl.Xml;
+using StackExchange.Redis;
 using YamlDotNet.Serialization.ObjectGraphVisitors;
 
 namespace Hybrasyl.Objects;
@@ -308,6 +309,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check item slot prohibitions
 
+        // This code is intentionally verbose
         foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
         {
             var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty
@@ -316,10 +318,11 @@ public class ItemObject : VisibleObject, IInteractable
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
-                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                        userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || userobj.Equipment[(byte) restriction.Slot] != null)
+                if (
+                    (restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
+                    (userobj.Equipment[(byte) restriction.Slot] != null)
+                )
                 {
                     message = restrictionMessage;
                     return false;
@@ -327,10 +330,11 @@ public class ItemObject : VisibleObject, IInteractable
             }
             else
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
-                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                        userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || userobj.Equipment[(byte) restriction.Slot] == null)
+                if (
+                    (restriction.Slot == Xml.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
+                    (userobj.Equipment[(byte) restriction.Slot] == null)
+                )
                 {
                     message = restrictionMessage;
                     return false;
