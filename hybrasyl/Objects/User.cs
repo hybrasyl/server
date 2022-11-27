@@ -2622,7 +2622,7 @@ public class User : Creature
         return false;
     }
 
-    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true)
+    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true, bool evalRestrictions = true)
     {
         if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
             //do something. 
@@ -2638,10 +2638,17 @@ public class User : Creature
             }
         }
 
-        if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
-            return base.UseCastable(castableXml, target);
-        SendSystemMessage(restrictionMessage);
-        return false;
+        if (evalRestrictions)
+        {
+            if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
+                return base.UseCastable(castableXml, target);
+
+            SendSystemMessage(restrictionMessage);
+            return false;
+
+        }
+
+        return true;
     }
 
     public void AssailAttack(Direction direction, Creature target = null)
