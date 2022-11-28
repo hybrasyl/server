@@ -1897,7 +1897,7 @@ public class User : Creature
         }
         // Allow a user to walk into walls, if and only if collisions are disabled (implies privileged user)
 
-        if (Map.IsWall[newX, newY] && !CollisionsDisabled)
+        if (Map.IsWall(newX, newY) && !CollisionsDisabled)
         {
             Refresh();
             return false;

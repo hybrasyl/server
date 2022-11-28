@@ -2412,7 +2412,7 @@ public partial class World : Server
         }
 
         if (count > user.Inventory[slot].Count ||
-            user.Map.IsWall[x, y] || !user.Map.IsValidPoint(x, y))
+            user.Map.IsWall(x, y) || !user.Map.IsValidPoint(x, y))
         {
             GameLog.ErrorFormat(
                 "Drop: count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
@@ -3124,7 +3124,7 @@ public partial class World : Server
         // amount of gold the player has?  Are they trying to drop the item on something that
         // is impassable (i.e. a wall)?
         if (amount > user.Gold || x >= user.Map.X || y >= user.Map.Y ||
-            x < 0 || y < 0 || user.Map.IsWall[x, y])
+            x < 0 || y < 0 || user.Map.IsWall(x, y))
         {
             GameLog.ErrorFormat("Amount {0} exceeds amount {1}, or {2},{3} is a wall, or {2},{3} is out of bounds",
                 amount, user.Gold, x, y);

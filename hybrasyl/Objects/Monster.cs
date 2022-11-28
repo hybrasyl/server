@@ -604,7 +604,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         foreach (var adj in proposedLocations)
         {
             if (adj.X >= Map.X || adj.Y >= Map.Y || adj.X < 0 || adj.Y < 0) continue;
-            if (Map.IsWall[adj.X, adj.Y]) continue;
+            if (Map.IsWall(adj.X, adj.Y)) continue;
             var creatureContents = Map.GetCreatures(adj.X, adj.Y);
             if (creatureContents.Count == 0 || creatureContents.Contains(Target) || creatureContents.Contains(this))
                 ret.Add(adj);

@@ -151,7 +151,7 @@ internal class Monolith
             // at a default interval of every 30 seconds, with (maxcount/5) spawned
             // per tick.
             // We take Coordinates into account here since we always want to have the number of
-            // monsters expected.
+            // monsters expected from coordinate references.
 
             var maxcount = Math.Max(Math.Min(20, spawnmap.X * spawnmap.Y / 30), spawn.Coordinates.Count);
             var interval = 30;
@@ -281,7 +281,7 @@ internal class Monolith
                         {
                             xcoord = Random.Shared.Next(0, spawnmap.X);
                             ycoord = Random.Shared.Next(0, spawnmap.Y);
-                        } while (spawnmap.IsWall[xcoord, ycoord]);
+                        } while (spawnmap.IsWall(xcoord, ycoord));
 
                     baseMob.X = (byte) xcoord;
                     baseMob.Y = (byte) ycoord;

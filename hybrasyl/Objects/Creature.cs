@@ -688,7 +688,7 @@ public class Creature : VisibleObject
                 return false;
             }
 
-            if (Map.IsWall[newX, newY])
+            if (Map.IsWall(newX, newY))
             {
                 Refresh();
                 return false;

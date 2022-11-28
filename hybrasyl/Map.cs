@@ -142,7 +142,6 @@ public class Map
 {
     private readonly object _lock = new();
 
-
     /// <summary>
     ///     Create a new Hybrasyl map from an XMLMap object.
     /// </summary>
@@ -165,6 +164,115 @@ public class Map
         EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
         Music = newMap.Music;
 
+        LoadMapFile();
+        LoadXml(newMap);
+    }
+
+    public ushort Id { get; set; }
+
+    [FormulaVariable] public byte X { get; set; }
+
+    [FormulaVariable] public byte Y { get; set; }
+
+    [FormulaVariable] public int Tiles => X * Y;
+
+    [FormulaVariable] public byte BaseLevel => byte.TryParse(SpawnDirectives.BaseLevel, out var b) ? b : (byte) 1;
+
+    public string Name { get; set; }
+    public byte Flags { get; set; }
+    public byte Music { get; set; }
+    public World World { get; set; }
+    public byte[] RawData { get; set; }
+    public ushort Checksum { get; set; }
+
+    private HashSet<(byte x, byte y)> Collisions { get; set; } = new();
+
+    public bool IsWall(int x, int y) => IsWall((byte) x, (byte) y);
+    public bool IsWall(byte x, byte y) => Collisions.Contains((x, y));
+
+    public void ToggleCollisions(byte x, byte y)
+    {
+        if (Collisions.Contains((x, y)))
+            Collisions.Remove((x, y));
+        else
+            Collisions.Add((x, y));
+    }
+    
+    public bool AllowCasting { get; set; }
+    public bool AllowSpeaking { get; set; }
+
+    public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
+    public string Message { get; set; }
+
+    public QuadTree<VisibleObject> EntityTree { get; set; }
+
+    private HashSet<VisibleObject> _objects { get; set; } = new();
+
+    public HashSet<VisibleObject> Objects
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _objects;
+            }
+        }
+        set
+        {
+            lock (_lock)
+            {
+                _objects = value;
+            }
+        }
+    }
+
+    public List<Monster> Monsters
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return Objects.OfType<Monster>().ToList();
+            }
+        }
+    }
+
+    public Dictionary<string, User> Users { get; private set; }
+
+    public Dictionary<(byte X, byte Y), Door> Doors { get; set; }
+    public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; }
+    public Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>> Reactors { get; set; }
+
+    public SpawnGroup SpawnDirectives { get; set; }
+
+    public bool SpawnDebug { get; set; }
+    public bool SpawningDisabled { get; set; }
+
+    public void MapMute()
+    {
+        AllowSpeaking = false;
+    }
+
+    public void MapUnmute()
+    {
+        AllowSpeaking = true;
+    }
+
+    public void Init()
+    {
+        RawData = new byte[0];
+        Objects = new HashSet<VisibleObject>();
+        Users = new Dictionary<string, User>();
+        Warps = new Dictionary<Tuple<byte, byte>, Warp>();
+        EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
+        Doors = new Dictionary<(byte X, byte Y), Door>();
+        Signposts = new Dictionary<(byte X, byte Y), Signpost>();
+        Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
+        AllowSpeaking = true;
+    }
+
+    public void LoadXml(Xml.Map newMap)
+    {
         foreach (var warpElement in newMap.Warps)
         {
             var warp = new Warp(this)
@@ -245,105 +353,6 @@ public class Map
 
             InsertSignpost(post);
         }
-
-        Load();
-    }
-
-
-    public Map()
-    {
-        Init();
-    }
-
-    public ushort Id { get; set; }
-
-    [FormulaVariable] public byte X { get; set; }
-
-    [FormulaVariable] public byte Y { get; set; }
-
-    [FormulaVariable] public int Tiles => X * Y;
-
-    [FormulaVariable] public byte BaseLevel => byte.TryParse(SpawnDirectives.BaseLevel, out var b) ? b : (byte) 1;
-
-    public string Name { get; set; }
-    public byte Flags { get; set; }
-    public byte Music { get; set; }
-    public World World { get; set; }
-    public byte[] RawData { get; set; }
-    public ushort Checksum { get; set; }
-    public bool[,] IsWall { get; set; }
-    public bool AllowCasting { get; set; }
-    public bool AllowSpeaking { get; set; }
-
-    public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
-    public string Message { get; set; }
-
-    public QuadTree<VisibleObject> EntityTree { get; set; }
-
-    private HashSet<VisibleObject> _objects { get; set; } = new();
-
-    public HashSet<VisibleObject> Objects
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _objects;
-            }
-        }
-        set
-        {
-            lock (_lock)
-            {
-                _objects = value;
-            }
-        }
-    }
-
-    public List<Monster> Monsters
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return Objects.OfType<Monster>().ToList();
-            }
-        }
-    }
-
-    public Dictionary<string, User> Users { get; private set; }
-
-    public Dictionary<(byte X, byte Y), Door> Doors { get; set; }
-    public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; }
-    public Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>> Reactors { get; set; }
-
-    public SpawnGroup SpawnDirectives { get; set; }
-
-    public bool SpawnDebug { get; set; }
-
-    public bool SpawningDisabled { get; set; }
-
-    public void MapMute()
-    {
-        AllowSpeaking = false;
-    }
-
-    public void MapUnmute()
-    {
-        AllowSpeaking = true;
-    }
-
-    public void Init()
-    {
-        RawData = new byte[0];
-        Objects = new HashSet<VisibleObject>();
-        Users = new Dictionary<string, User>();
-        Warps = new Dictionary<Tuple<byte, byte>, Warp>();
-        EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
-        Doors = new Dictionary<(byte X, byte Y), Door>();
-        Signposts = new Dictionary<(byte X, byte Y), Signpost>();
-        Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
-        AllowSpeaking = true;
     }
 
     public List<VisibleObject> GetTileContents(int x1, int y1)
@@ -415,9 +424,9 @@ public class Map
         Doors[(door.X, door.Y)] = door;
     }
 
-    public bool Load()
+    public bool LoadMapFile()
     {
-        IsWall = new bool[X, Y];
+        Collisions = new HashSet<(byte x, byte y)>();
         var filename = Path.Combine(World.MapFileDirectory, $"lod{Id}.map");
 
         if (File.Exists(filename))
@@ -426,16 +435,16 @@ public class Map
             Checksum = Crc16.Calculate(RawData);
 
             var index = 0;
-            for (var y = 0; y < Y; ++y)
-            for (var x = 0; x < X; ++x)
+            for (byte y = 0; y < Y; ++y)
+            for (byte x = 0; x < X; ++x)
             {
                 var bg = RawData[index++] | (RawData[index++] << 8);
                 var lfg = RawData[index++] | (RawData[index++] << 8);
                 var rfg = RawData[index++] | (RawData[index++] << 8);
 
-                if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) IsWall[x, y] = true;
+                if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
 
-                if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) IsWall[x, y] = true;
+                if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
 
                 var lfgu = (ushort) lfg;
                 var rfgu = (ushort) rfg;
@@ -444,17 +453,17 @@ public class Map
                 {
                     // This is a left-right door
                     GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, IsWall[x, y]);
+                        Name, x, y, Collisions.Contains((x,y)));
 
-                    InsertDoor((byte) x, (byte) y, IsWall[x, y], true,
+                    InsertDoor((byte) x, (byte) y, Collisions.Contains((x,y)), true,
                         Game.IsDoorCollision(lfgu));
                 }
                 else if (Game.DoorSprites.ContainsKey(rfgu))
                 {
                     GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, IsWall[x, y]);
+                        Name, x, y, Collisions.Contains((x,y)));
                     // THis is an up-down door 
-                    InsertDoor((byte) x, (byte) y, IsWall[x, y], false,
+                    InsertDoor((byte) x, (byte) y, Collisions.Contains((x,y)), false,
                         Game.IsDoorCollision(rfgu));
                 }
             }
@@ -464,6 +473,7 @@ public class Map
 
         return false;
     }
+
 
     public void Insert(VisibleObject obj, byte x, byte y, bool updateClient = true)
     {
@@ -519,11 +529,12 @@ public class Map
         {
             GameLog.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
                 Name, x, y, !Doors[coords].Closed);
-            IsWall[x, y] = !IsWall[x, y];
+
+            ToggleCollisions(x,y);
         }
 
         GameLog.DebugFormat("Toggling door at {0},{1}", x, y);
-        GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall[x, y]);
+        GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall(x,y));
 
         var updateViewport = GetViewport(x, y);
 
@@ -747,7 +758,7 @@ public class Map
         {
             for (var x = -1 * radius; x <= radius; x++)
             for (var y = -1 * radius; y <= radius; y++)
-                if (IsWall[xStart + x, yStart + y] ||
+                if (IsWall(xStart + x, yStart + y) ||
                     GetTileContents(xStart + x, yStart + y).Where(predicate: x => x is Creature).Count() > 0) { }
                 else
                 {
