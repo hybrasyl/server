@@ -471,6 +471,8 @@ public class User : Creature
         {
             if (Inventory[i] == null) continue;
             var item = Inventory[i];
+            if (item.Bound)
+                continue;
             RemoveItem(i);
             if (item.Perishable && (handler?.Perishable ?? true))
             {
@@ -500,6 +502,9 @@ public class User : Creature
             var item = Equipment[i];
             if (item == null)
                 continue;
+            if (item.Bound)
+                continue;
+
             RemoveEquipment(i);
             if (item.Perishable && (handler?.Perishable ?? true))
             {
@@ -1844,6 +1849,13 @@ public class User : Creature
             SendSystemMessage("You stumble around, unable to gather your bearings.");
         }
 
+        if (CurrentWeight > MaximumWeight && Condition.Alive)
+        {
+            SendSystemMessage("You cannot move, you are overburdened.");
+            Refresh();
+            return false;
+        }
+
         switch (direction)
         {
             // Calculate the differences (which are, in all cases, rectangles of height 12 / width 1 or vice versa)
@@ -2155,7 +2167,7 @@ public class User : Creature
     {
         // Weight check
 
-        if (itemObject.Weight + CurrentWeight > MaximumWeight)
+        if (itemObject.Weight + CurrentWeight > MaximumWeight && !itemObject.Bound)
         {
             SendSystemMessage("It's too heavy.");
             Map.Insert(itemObject, X, Y);
@@ -2297,6 +2309,8 @@ public class User : Creature
 
     public bool RemoveItem(byte slot, bool updateWeight = true)
     {
+        if (Inventory[slot] != null && Inventory[slot].Bound)
+            return false;
         if (Inventory.Remove(slot))
         {
             SendClearItem(slot);
@@ -2307,7 +2321,7 @@ public class User : Creature
         return false;
     }
 
-    public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true)
+    public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true, bool force = false)
     {
         var slotsToUpdate = new List<byte>();
         var slotsToClear = new List<byte>();
@@ -2316,6 +2330,9 @@ public class User : Creature
             var remaining = (int) quantity;
             var slots = Inventory.GetSlotsByName(itemName);
             foreach (var i in slots)
+            {
+                if (Inventory[i].Bound && !force)
+                    return false;
                 if (remaining > 0)
                 {
                     if (Inventory[i].Stackable)
@@ -2351,6 +2368,7 @@ public class User : Creature
                     GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
                     break;
                 }
+            }
 
             foreach (var slot in slotsToClear)
             {
@@ -2360,7 +2378,7 @@ public class User : Creature
 
             foreach (var slot in slotsToUpdate)
                 SendItemUpdate(Inventory[slot], slot);
-
+            UpdateAttributes(StatUpdateFlags.Current);
             return true;
         }
 

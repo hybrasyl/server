@@ -2432,7 +2432,10 @@ public partial class World : Server
         }
         else
         {
-            user.RemoveItem(slot);
+            if (user.Inventory[slot].Bound)
+                user.SendSystemMessage("You cannot drop this.");
+            // One last check
+            if (!user.RemoveItem(slot)) return;
         }
 
         // Item is being dropped and is "in the world" again

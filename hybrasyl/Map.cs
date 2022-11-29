@@ -608,6 +608,7 @@ public class Map
             if (Objects.Remove(obj))
             {
                 EntityTree.Remove(obj);
+
                 affectedObjects = EntityTree.GetObjects(obj.GetViewport());
 
                 if (user != null)

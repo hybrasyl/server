@@ -895,8 +895,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="name">The name of the item to be removed.</param>
     /// <param name="count">The quantity to be removed.</param>
+    /// <param name="force">Whether or not to force remove the item (override whether it is bound, etc)</param>
     /// <returns>Boolean indicating whether or not it the item was successfully removed from the player's inventory.</returns>
-    public bool TakeItem(string name, int count = 1)
+    public bool TakeItem(string name, int count = 1, bool force = true)
     {
         if (string.IsNullOrEmpty(name))
         {
@@ -907,9 +908,9 @@ public class HybrasylUser : HybrasylWorldObject
 
         if (User.Inventory.ContainsName(name))
         {
-            if (User.RemoveItem(name, (ushort) count))
+            if (User.RemoveItem(name, (ushort) count,true, force))
                 return true;
-            GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}", User.Name, name);
+            GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}, might be bound", User.Name, name);
         }
         else
         {
