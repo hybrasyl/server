@@ -314,10 +314,9 @@ public class Map
 
         foreach (var npcElement in newMap.Npcs)
         {
-            var npcTemplate = World.WorldData.Get<Npc>(npcElement.Name);
-            if (npcTemplate == null)
+            if (!Game.World.WorldData.TryGetValue(npcElement.Name, out Npc npcTemplate))
             {
-                GameLog.Error("map ${Name}: NPC ${npcElement.Name} is missing, will not be loaded");
+                GameLog.Error($"map {Name}: NPC {npcElement.Name} is missing, will not be loaded");
                 continue;
             }
 
