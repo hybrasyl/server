@@ -2654,7 +2654,13 @@ public class User : Creature
         if (evalRestrictions)
         {
             if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
+            {
+                if (castableXml.BreakStealth && Condition.IsInvisible)
+                {
+                    Condition.IsInvisible = false;
+                }
                 return base.UseCastable(castableXml, target);
+            }
 
             SendSystemMessage(restrictionMessage);
             return false;

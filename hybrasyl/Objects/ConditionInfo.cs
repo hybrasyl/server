@@ -99,7 +99,6 @@ public class ConditionInfo
                 Flags &= ~PlayerFlags.Alive;
             else
                 Flags |= PlayerFlags.Alive;
-            User?.UpdateAttributes(StatUpdateFlags.Secondary);
         }
     }
 
@@ -136,7 +135,6 @@ public class ConditionInfo
                 Conditions &= ~CreatureCondition.Paralyze;
             else
                 Conditions |= CreatureCondition.Paralyze;
-            User?.UpdateAttributes(StatUpdateFlags.Secondary);
         }
     }
 
@@ -149,7 +147,6 @@ public class ConditionInfo
                 Conditions &= ~CreatureCondition.Blind;
             else
                 Conditions |= CreatureCondition.Blind;
-            User?.UpdateAttributes(StatUpdateFlags.Secondary);
         }
     }
 
@@ -210,7 +207,6 @@ public class ConditionInfo
                 Conditions &= ~CreatureCondition.Invisible;
             else
                 Conditions |= CreatureCondition.Invisible;
-            User?.SendUpdateToUser();
         }
     }
 
