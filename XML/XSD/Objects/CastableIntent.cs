@@ -43,7 +43,7 @@ public partial class CastableIntent
     {
         _flags = new List<IntentFlags>();
         _useType = SpellUseType.NoTarget;
-        _maxTargets = ((int)(0));
+        _maxTargets = 0;
     }
     
     public object Map
@@ -151,7 +151,7 @@ public partial class CastableIntent
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(int), "0")]
+    [DefaultValue(0)]
     public int MaxTargets
     {
         get

@@ -1264,7 +1264,13 @@ public partial class World : Server
 
     public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
         ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
-    
+
+    public void EnqueueUserUpdate(Guid g) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.UpdateUser, g));
+
+    public void EnqueueShowTo(Guid g) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DisplayCreature, g));
+
     public void AddUser(User userobj, long connectionId)
     {
         WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
@@ -1688,6 +1694,9 @@ public partial class World : Server
         ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
         ControlMessageHandlers[ControlOpcodes.ModifyStats] = ControlMessage_ModifyStats;
         ControlMessageHandlers[ControlOpcodes.ProcessProc] = ControlMessage_ProcessProc;
+        ControlMessageHandlers[ControlOpcodes.UpdateUser] = ControlMessage_UpdateUser;
+        ControlMessageHandlers[ControlOpcodes.DisplayCreature] = ControlMessage_DisplayCreature;
+
     }
 
     public void SetPacketHandlers()
@@ -2202,6 +2211,29 @@ public partial class World : Server
 
     }
 
+    private void ControlMessage_UpdateUser(HybrasylControlMessage message)
+    {
+        var targetGuid = (Guid) message.Arguments[0];
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+
+        if (target is not User user) return;
+
+        user.SendUpdateToUser();
+        user.UpdateAttributes(StatUpdateFlags.Secondary);
+    }
+
+    private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
+    {
+        var targetGuid = (Guid) message.Arguments[0];
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+
+        if (target is not Creature creature) return;
+        if (target.Condition.IsInvisible)
+            target.Hide();
+        else 
+            target.Show();
+    }
+
     #endregion Control Message Handlers
 
     #region Packet Handlers
@@ -2433,7 +2465,11 @@ public partial class World : Server
         else
         {
             if (user.Inventory[slot].Bound)
+            {
                 user.SendSystemMessage("You cannot drop this.");
+                return;
+            }
+
             // One last check
             if (!user.RemoveItem(slot)) return;
         }
@@ -4042,6 +4078,11 @@ public partial class World : Server
             }
 
             GameLog.DebugFormat("actually removing item");
+            if (user.Inventory.IsFull)
+            {
+                user.SendSystemMessage("You can't carry anything else.");
+                return;
+            }
             user.RemoveEquipment(slot);
             // Add our removed item to our first empty inventory slot
             GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);

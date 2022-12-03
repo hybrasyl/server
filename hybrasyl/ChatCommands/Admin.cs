@@ -80,6 +80,25 @@ internal class ClearCookie : ChatCommand
     }
 }
 
+internal class DestroyItemCommand : ChatCommand
+{
+    public new static string Command = "destroyitem";
+    public new static string ArgumentText = "<byte slot>";
+    public new static string HelpText = "Destroy the inventory item in the specified slot";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (byte.TryParse(args[0], out byte slot))
+        {
+            user.RemoveItem(slot);
+            return Success("Destroyed.");
+        }
+
+        return Fail($"That's not a slot.");
+    }
+}
+
 internal class ClearSessionCookie : ChatCommand
 {
     public new static string Command = "clearsessioncookie";

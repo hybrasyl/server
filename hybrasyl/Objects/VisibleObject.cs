@@ -185,7 +185,17 @@ public class VisibleObject : WorldObject, IVisible
         }
     }
 
-    public virtual void Hide() { }
+    public virtual void Hide()
+    {
+        var withinViewport = Map.EntityTree.GetObjects(GetViewport());
+        GameLog.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
+
+        foreach (var obj in withinViewport)
+        {
+            GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
+            obj.AoiDeparture(this);
+        }
+    }
 
     public virtual void HideFrom(VisibleObject obj) { }
 

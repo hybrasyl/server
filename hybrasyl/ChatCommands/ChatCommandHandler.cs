@@ -143,7 +143,7 @@ public class ChatCommandHandler
             var wtf = handler.Type.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
 
             var result = (ChatCommandResult) wtf.Invoke(null, new object[] { user, splitArgs });
-
+            user.SendMessage($"[Cmd] /{command} {string.Join(" ",args)}", MessageType.Guild);
             user.SendMessage(result.Message, result.MessageType);
         }
         else

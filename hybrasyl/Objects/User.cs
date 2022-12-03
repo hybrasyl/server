@@ -350,9 +350,8 @@ public class User : Creature
 
     public override void AoiDeparture(VisibleObject obj)
     {
-        if (obj is Creature c)
-            if (!Condition.SeeInvisible && c.Condition.IsInvisible && obj != this)
-                return;
+        if (obj is Creature c && c.Condition.IsInvisible && Condition.SeeInvisible)
+            return;
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
         var removePacket = new ServerPacket(0x0E);
@@ -1436,7 +1435,7 @@ public class User : Creature
             OvercoatColor = Equipment.Overcoat?.Color ?? 0,
             SkinColor = SkinColor,
             Shield = (byte) (Equipment.Shield?.DisplaySprite ?? 0),
-            Invisible = Transparent,
+            Invisible = Condition.IsInvisible,
             NameStyle = NameStyle,
             Name = Name,
             GroupName = GroupRecruit?.Name ?? string.Empty,
@@ -2309,8 +2308,6 @@ public class User : Creature
 
     public bool RemoveItem(byte slot, bool updateWeight = true)
     {
-        if (Inventory[slot] != null && Inventory[slot].Bound)
-            return false;
         if (Inventory.Remove(slot))
         {
             SendClearItem(slot);
@@ -2331,8 +2328,6 @@ public class User : Creature
             var slots = Inventory.GetSlotsByName(itemName);
             foreach (var i in slots)
             {
-                if (Inventory[i].Bound && !force)
-                    return false;
                 if (remaining > 0)
                 {
                     if (Inventory[i].Stackable)

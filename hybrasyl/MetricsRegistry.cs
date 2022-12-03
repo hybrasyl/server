@@ -53,6 +53,8 @@ public static class HybrasylMetricsRegistry
        {14, ControlMessage_RemoveReactor},
        {15, ControlMessage_ModifyStats},
        {16, ControlMessage_ProcessProc},
+       {17, ControlMessage_UpdateUser},
+       {18, ControlMessage_DisplayCreature}
     };
 
     public static Dictionary<byte, TimerOptions> OpcodeTimerIndex = new Dictionary<byte, TimerOptions>()
@@ -782,4 +784,22 @@ public static class HybrasylMetricsRegistry
         DurationUnit = TimeUnit.Milliseconds,
         RateUnit = TimeUnit.Milliseconds,
     };
+
+    public static TimerOptions ControlMessage_UpdateUser => new TimerOptions
+    {
+        Name = "UpdateUser Control Message",
+        MeasurementUnit = Unit.Requests,
+        DurationUnit = TimeUnit.Milliseconds,
+        RateUnit = TimeUnit.Milliseconds,
+    };
+
+    public static TimerOptions ControlMessage_DisplayCreature => new TimerOptions
+    {
+        Name = "DisplayCreature Control Message",
+        MeasurementUnit = Unit.Requests,
+        DurationUnit = TimeUnit.Milliseconds,
+        RateUnit = TimeUnit.Milliseconds,
+    };
+
+
 }

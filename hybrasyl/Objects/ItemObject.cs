@@ -434,8 +434,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         if (Use?.Script != null)
         {
-            Script invokeScript;
-            if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
+            if (!World.ScriptProcessor.TryGetScript(Use.Script, out var invokeScript))
             {
                 trigger.SendSystemMessage("It doesn't work.");
                 return;
@@ -450,6 +449,50 @@ public class ItemObject : VisibleObject, IInteractable
         if (Use?.Sound != null) trigger.SendSound(Use.Sound.Id);
 
         if (Use?.Teleport != null) trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
+
+        if (Use?.Statuses != null)
+        {
+            foreach (var add in Use.Statuses.Add)
+            {
+                if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
+                {
+                    var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
+                    if (trigger.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    {
+                            trigger.SendSystemMessage($"You already have an active {applyStatus.Category}.");
+                    }
+                    else
+                    {
+                        GameLog.UserActivityInfo(
+                            $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
+                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, -1,
+                            add.Intensity));
+                    }
+                }
+                else
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - failed to add status {add.Value}, does not exist!");
+                }
+
+            }
+
+            foreach (var remove in Use.Statuses.Remove)
+            {
+
+                if (World.WorldData.TryGetValue<Status>(remove.ToLower(), out var applyStatus))
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - removing status {remove}");
+                    trigger.RemoveStatus(applyStatus.Icon);
+                }
+                else
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - failed to remove status {remove}, does not exist!");
+                }
+            }
+        }
 
         if (Procs != null)
         {

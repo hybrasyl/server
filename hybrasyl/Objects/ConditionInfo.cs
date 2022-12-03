@@ -38,7 +38,23 @@ public class ConditionInfo
     public Creature Creature { get; set; }
     public User User => Creature as User;
 
-    [JsonProperty] public CreatureCondition Conditions { get; set; }
+    private CreatureCondition _Conditions { get; set; }
+
+    [JsonProperty]
+    public CreatureCondition Conditions
+    {
+        get => _Conditions;
+        set
+        {
+            var previous = _Conditions;
+            _Conditions = value;
+            if (User?.Map == null) return;
+            Game.World.EnqueueUserUpdate(User.Guid);
+            if (value.HasFlag(CreatureCondition.Invisible) && !previous.HasFlag(CreatureCondition.Invisible) ||
+                !value.HasFlag(CreatureCondition.Invisible) && previous.HasFlag(CreatureCondition.Invisible))
+                Game.World.EnqueueShowTo(User.Guid);
+        }
+    }
 
     [JsonProperty] public PlayerFlags Flags { get; set; }
 

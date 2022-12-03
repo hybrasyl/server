@@ -296,23 +296,6 @@
         </xs:sequence>
     </xs:complexType>
 
-    <xs:complexType name="AddStatus">
-        <xs:simpleContent>
-            <xs:extension base="hyb:String8">
-                <xs:attribute name="Duration" use="optional" default="0" type="xs:int" />
-                <xs:attribute name="Intensity" use="optional" default="1.0" type="xs:float" />
-                <xs:attribute name="Speed" default="1.0" type="xs:float" />
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
-
-    <xs:complexType name="Statuses">
-        <xs:sequence minOccurs="0" maxOccurs="unbounded">
-            <xs:element name="Add" type="hyb:AddStatus" />
-            <xs:element name="Remove" type="hyb:String8" />
-        </xs:sequence>
-    </xs:complexType>
-
     <!-- Castable mastery -->
     <xs:simpleType name="MasteryModifier">
         <xs:restriction base="xs:token">
