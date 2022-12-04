@@ -24,170 +24,37 @@ using System.Collections.Generic;
 [DebuggerStepThrough]
 [DesignerCategoryAttribute("code")]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-[XmlRootAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02", IsNullable=false)]
-public partial class Creature
+public partial class ElementalResistance
 {
     #region Private fields
-    private string _description;
-    private LootList _loot;
-    private CreatureHostilitySettings _hostility;
-    private List<CreatureCookie> _setCookies;
-    private List<Creature> _types;
-    private string _name;
-    private ushort _sprite;
-    private string _behaviorSet;
-    private int _minDmg;
-    private int _maxDmg;
-    private sbyte _assailSound;
+    private ElementType _type;
+    private double _modifier;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    public Creature()
-    {
-        _minDmg = 0;
-        _maxDmg = 0;
-    }
-    
-    [StringLengthAttribute(255, MinimumLength=1)]
-    public string Description
+    [XmlAttribute]
+    public ElementType Type
     {
         get
         {
-            return _description;
+            return _type;
         }
         set
         {
-            _description = value;
-        }
-    }
-    
-    public LootList Loot
-    {
-        get
-        {
-            return _loot;
-        }
-        set
-        {
-            _loot = value;
-        }
-    }
-    
-    public CreatureHostilitySettings Hostility
-    {
-        get
-        {
-            return _hostility;
-        }
-        set
-        {
-            _hostility = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Cookie", IsNullable=false)]
-    public List<CreatureCookie> SetCookies
-    {
-        get
-        {
-            return _setCookies;
-        }
-        set
-        {
-            _setCookies = value;
-        }
-    }
-    
-    [XmlArrayItemAttribute("Type", IsNullable=false)]
-    public List<Creature> Types
-    {
-        get
-        {
-            return _types;
-        }
-        set
-        {
-            _types = value;
+            _type = value;
         }
     }
     
     [XmlAttribute]
-    public string Name
+    public double Modifier
     {
         get
         {
-            return _name;
+            return _modifier;
         }
         set
         {
-            _name = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public ushort Sprite
-    {
-        get
-        {
-            return _sprite;
-        }
-        set
-        {
-            _sprite = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public string BehaviorSet
-    {
-        get
-        {
-            return _behaviorSet;
-        }
-        set
-        {
-            _behaviorSet = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(0)]
-    public int MinDmg
-    {
-        get
-        {
-            return _minDmg;
-        }
-        set
-        {
-            _minDmg = value;
-        }
-    }
-    
-    [XmlAttribute]
-    [DefaultValue(0)]
-    public int MaxDmg
-    {
-        get
-        {
-            return _maxDmg;
-        }
-        set
-        {
-            _maxDmg = value;
-        }
-    }
-    
-    [XmlAttribute]
-    public sbyte AssailSound
-    {
-        get
-        {
-            return _assailSound;
-        }
-        set
-        {
-            _assailSound = value;
+            _modifier = value;
         }
     }
     
@@ -197,7 +64,7 @@ public partial class Creature
         {
             if ((_serializerXml == null))
             {
-                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(Creature));
+                _serializerXml = new XmlSerializerFactory().CreateSerializer(typeof(ElementalResistance));
             }
             return _serializerXml;
         }
@@ -205,7 +72,7 @@ public partial class Creature
     
     #region Serialize/Deserialize
     /// <summary>
-    /// Serialize Creature object
+    /// Serialize ElementalResistance object
     /// </summary>
     /// <returns>XML value</returns>
     public virtual string Serialize()
@@ -238,16 +105,16 @@ public partial class Creature
     }
     
     /// <summary>
-    /// Deserializes Creature object
+    /// Deserializes ElementalResistance object
     /// </summary>
     /// <param name="input">string to deserialize</param>
-    /// <param name="obj">Output Creature object</param>
+    /// <param name="obj">Output ElementalResistance object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool Deserialize(string input, out Creature obj, out Exception exception)
+    public static bool Deserialize(string input, out ElementalResistance obj, out Exception exception)
     {
         exception = null;
-        obj = default(Creature);
+        obj = default(ElementalResistance);
         try
         {
             obj = Deserialize(input);
@@ -260,19 +127,19 @@ public partial class Creature
         }
     }
     
-    public static bool Deserialize(string input, out Creature obj)
+    public static bool Deserialize(string input, out ElementalResistance obj)
     {
         Exception exception = null;
         return Deserialize(input, out obj, out exception);
     }
     
-    public static Creature Deserialize(string input)
+    public static ElementalResistance Deserialize(string input)
     {
         StringReader stringReader = null;
         try
         {
             stringReader = new StringReader(input);
-            return ((Creature)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
+            return ((ElementalResistance)(SerializerXml.Deserialize(XmlReader.Create(stringReader))));
         }
         finally
         {
@@ -283,14 +150,14 @@ public partial class Creature
         }
     }
     
-    public static Creature Deserialize(Stream s)
+    public static ElementalResistance Deserialize(Stream s)
     {
-        return ((Creature)(SerializerXml.Deserialize(s)));
+        return ((ElementalResistance)(SerializerXml.Deserialize(s)));
     }
     #endregion
     
     /// <summary>
-    /// Serializes current Creature object into file
+    /// Serializes current ElementalResistance object into file
     /// </summary>
     /// <param name="fileName">full path of outupt xml file</param>
     /// <param name="exception">output Exception value if failed</param>
@@ -331,16 +198,16 @@ public partial class Creature
     }
     
     /// <summary>
-    /// Deserializes xml markup from file into an Creature object
+    /// Deserializes xml markup from file into an ElementalResistance object
     /// </summary>
     /// <param name="fileName">File to load and deserialize</param>
-    /// <param name="obj">Output Creature object</param>
+    /// <param name="obj">Output ElementalResistance object</param>
     /// <param name="exception">output Exception value if deserialize failed</param>
     /// <returns>true if this Serializer can deserialize the object; otherwise, false</returns>
-    public static bool LoadFromFile(string fileName, out Creature obj, out Exception exception)
+    public static bool LoadFromFile(string fileName, out ElementalResistance obj, out Exception exception)
     {
         exception = null;
-        obj = default(Creature);
+        obj = default(ElementalResistance);
         try
         {
             obj = LoadFromFile(fileName);
@@ -353,13 +220,13 @@ public partial class Creature
         }
     }
     
-    public static bool LoadFromFile(string fileName, out Creature obj)
+    public static bool LoadFromFile(string fileName, out ElementalResistance obj)
     {
         Exception exception = null;
         return LoadFromFile(fileName, out obj, out exception);
     }
     
-    public static Creature LoadFromFile(string fileName)
+    public static ElementalResistance LoadFromFile(string fileName)
     {
         FileStream file = null;
         StreamReader sr = null;

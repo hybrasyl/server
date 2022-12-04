@@ -1404,6 +1404,20 @@ public class StatInfo
     [FormulaVariable] public double InboundDamageToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
 
+    public ElementalResistance Resistances
+    {
+        get
+        {
+            lock (_lock)
+                return _resistances;
+        }
+        set
+        {
+            lock (_lock)
+                _resistances = value;
+        }
+    }
+
     public ElementType BaseOffensiveElement
     {
         get
@@ -1649,6 +1663,7 @@ public class StatInfo
     private ElementType _baseDefensiveElement { get; set; } = ElementType.None;
     private ElementType _offensiveElementOverride { get; set; } = ElementType.None;
     private ElementType _defensiveElementOverride { get; set; } = ElementType.None;
+    private ElementalResistance _resistances { get; set; } = new ElementalResistance();
 
     #endregion
 
@@ -1736,8 +1751,7 @@ public class StatInfo
         BaseManaSteal += si1.BaseManaSteal;
         BaseInboundDamageToMp += si1.BaseInboundDamageToMp;
         BaseExtraFaith += si1.BaseExtraFaith;
-
-        Faith -= si1.Faith;
+        Faith += si1.Faith;
 
         if (!experience) return;
         Level += si1.Level;
@@ -1817,8 +1831,8 @@ public class StatInfo
         BaseManaSteal -= si1.BaseManaSteal;
         BaseInboundDamageToMp -= si1.BaseInboundDamageToMp;
         BaseExtraFaith -= si1.BaseExtraFaith;
-
         Faith -= si1.Faith;
+
         if (!experience) return;
         Level -= si1.Level;
         Experience -= si1.Experience;
@@ -1848,7 +1862,9 @@ public class StatInfo
 
     public bool NoExperienceChanges => Level == 0 && (Experience == 0) & (Ability == 0) && AbilityExp == 0;
 
-    public bool Empty => NoExperienceChanges && NoBonusChanges && NoBaseChanges;
+    public bool NoResistanceChanges => Resistances.Empty;
+
+    public bool Empty => NoExperienceChanges && NoBonusChanges && NoBaseChanges && NoResistanceChanges;
 
     #endregion
 }
