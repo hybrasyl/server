@@ -1,8 +1,6 @@
 ﻿using Hybrasyl.Enums;
 using Hybrasyl.Xml;
-using Microsoft.FSharp.Compiler.AbstractIL;
 using MoonSharp.Interpreter;
-using Sentry;
 
 namespace Hybrasyl.Objects;
 
