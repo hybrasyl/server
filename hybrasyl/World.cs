@@ -30,15 +30,22 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using App.Metrics;
+using App.Metrics.Gauge;
+using App.Metrics.Meter;
+using App.Metrics.Timer;
 using Humanizer;
 using Hybrasyl.Casting;
 using Hybrasyl.ChatCommands;
+using Hybrasyl.Controllers;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
@@ -167,6 +174,29 @@ public partial class World : Server
     public bool DebugEnabled { get; set; }
 
     public IEnumerable<User> ActiveUsers => WorldData.Values<User>();
+
+    #region Metrics
+    public Dictionary<byte, TimerOptions> PacketHandlerMetrics { get; set; } = new();
+    public Dictionary<ControlOpcode, TimerOptions> ControlMessageMetrics { get; set; } = new();
+
+    public MeterOptions ExceptionMeter => new MeterOptions
+    {
+        Name = "Exception Rate",
+        MeasurementUnit = Unit.Errors
+    };
+
+    public GaugeOptions QueueDepth => new GaugeOptions
+    {
+        Name = "Queue Depth (Opcodes)",
+        MeasurementUnit = Unit.Requests
+    };
+
+    public GaugeOptions ControlQueueDepth => new GaugeOptions
+    {
+        Name = "Queue Depth (Control Messages)",
+        MeasurementUnit = Unit.Requests
+    };
+    #endregion
 
     /// <summary>
     ///     Register world throttles. This should eventually use XML configuration; for now it simply
@@ -1260,16 +1290,19 @@ public partial class World : Server
     }
 
     public void EnqueueProc(Proc p, Castable castable, Guid source, Guid target) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p, castable, source, target));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ProcessProc, p, castable, source, target));
 
-    public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
+    public void EnqueueGuidStatUpdate(Guid g, StatInfo si, ICombatEvent e) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ModifyStats, g, si, e));
+
+    public void EnqueueGuidCombatLogMessage(Guid g, ICombatEvent e) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CombatLog, g, e));
 
     public void EnqueueUserUpdate(Guid g) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.UpdateUser, g));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.UpdateUser, g));
 
     public void EnqueueShowTo(Guid g) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DisplayCreature, g));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.DisplayCreature, g));
 
     public void AddUser(User userobj, long connectionId)
     {
@@ -1309,7 +1342,7 @@ public partial class World : Server
 
         session.Id = asyncSessionId;
         Game.World.WorldData.Set(asyncSessionId, session);
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, asyncSessionId));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.DialogRequest, asyncSessionId));
         return true;
     }
 
@@ -1411,8 +1444,8 @@ public partial class World : Server
             if (message != null)
             {
                 var clientMessage = (HybrasylClientMessage) message;
-                var handler = PacketHandlers[clientMessage.Packet.Opcode];
-                var timerOptions = HybrasylMetricsRegistry.OpcodeTimerIndex[clientMessage.Packet.Opcode];
+                var handler = WorldPacketHandlers[clientMessage.Packet.Opcode];
+                var timerOptions = PacketHandlerMetrics[clientMessage.Packet.Opcode];
 
                 try
                 {
@@ -1487,25 +1520,19 @@ public partial class World : Server
                             user.CancelCasting();
 
                         // Last but not least, invoke the handler
+                        var watch = Stopwatch.StartNew();
+                        WorldPacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
+                        watch.Stop();
                         if (timerOptions != null)
-                        {
-                            var watch = new Stopwatch();
-                            watch.Start();
-                            PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
-                            watch.Stop();
                             Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
-                        }
-                        else
-                        {
-                            handler.Invoke(user, clientMessage.Packet);
-                        }
                     }
                     else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                     {
                         var watch = Stopwatch.StartNew();
-                        PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                        WorldPacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                         watch.Stop();
-                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+                        if (timerOptions != null)
+                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     else
                     {
@@ -1518,7 +1545,7 @@ public partial class World : Server
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter,
+                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter, 
                         $"0x{clientMessage.Packet.Opcode}");
                     GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!",
                         clientMessage.Packet.Opcode);
@@ -1526,7 +1553,6 @@ public partial class World : Server
             }
         }
     }
-
 
     public void ControlQueueConsumer()
     {
@@ -1550,18 +1576,17 @@ public partial class World : Server
             if (message is HybrasylControlMessage hcm)
                 try
                 {
-                    var watch = Stopwatch.StartNew();
-                    var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
+                    var watch = Stopwatch.StartNew(); 
                     ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                     watch.Stop();
-                    if (timerOptions != null)
+                    if (ControlMessageMetrics.TryGetValue(hcm.Opcode, out var timerOptions))
                         Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+
                 }
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter,
-                        $"cm_{hcm.Opcode}");
+                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter, $"cm_{hcm.Opcode}");
                     GameLog.Error("Exception encountered in control message handler: {exception}", e);
                 }
         }
@@ -1676,76 +1701,40 @@ public partial class World : Server
 
     public void SetControlMessageHandlers()
     {
-        // ST: secondary threads
-        // PT: primary thread
-        ControlMessageHandlers[ControlOpcodes.CleanupUser] = ControlMessage_CleanupUser; // PT
-        ControlMessageHandlers[ControlOpcodes.SaveUser] = ControlMessage_SaveUser; // ST + user lock
-        ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer; // ST/PT
-        ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser; // ST + creature lock
-        ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser; // PT
-        ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser; // ST + creature lock
-        ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick; // ST + creature lock
-        ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster; // ST + map lock?
-        ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
-        ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
-        ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
-        ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
-        ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
-        ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
-        ControlMessageHandlers[ControlOpcodes.ModifyStats] = ControlMessage_ModifyStats;
-        ControlMessageHandlers[ControlOpcodes.ProcessProc] = ControlMessage_ProcessProc;
-        ControlMessageHandlers[ControlOpcodes.UpdateUser] = ControlMessage_UpdateUser;
-        ControlMessageHandlers[ControlOpcodes.DisplayCreature] = ControlMessage_DisplayCreature;
-
+        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Where(f => f.GetCustomAttribute<HybrasylMessageHandler>() != null);
+        foreach (var method in methods)
+        {
+            var attr = method.GetCustomAttributes<HybrasylMessageHandler>().FirstOrDefault();
+            if (attr == null) continue;
+            ControlMessageHandlers[attr.Opcode] = (ControlMessageHandler) Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
+            // Add metrics timers
+            ControlMessageMetrics[attr.Opcode] = new TimerOptions
+            {
+                Name = method.Name, MeasurementUnit = Unit.Requests, DurationUnit =  TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Milliseconds
+            };
+        }
+        GameLog.Info("Control message handlers registered");
     }
 
     public void SetPacketHandlers()
     {
-        // ST: secondary threads
-        // PT: primary thread
-        PacketHandlers[0x05] = PacketHandler_0x05_RequestMap; // ST
-        PacketHandlers[0x06] = PacketHandler_0x06_Walk;  // ST + map lock
-        PacketHandlers[0x07] = PacketHandler_0x07_PickupItem; // ST + map lock
-        PacketHandlers[0x08] = PacketHandler_0x08_DropItem; // ST + map lock
-        PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit; // primary thread 
-        PacketHandlers[0x0C] = PacketHandler_0X0C_PutGround;
-        PacketHandlers[0x0E] = PacketHandler_0x0E_Talk; // ST
-        PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell; // PT
-        PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin; // PT
-        PacketHandlers[0x11] = PacketHandler_0x11_Turn; // ST + user lock
-        PacketHandlers[0x13] = PacketHandler_0x13_Attack; // PT
-        PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList; // ST
-        PacketHandlers[0x19] = PacketHandler_0x19_Whisper; // ST
-        PacketHandlers[0x1B] = PacketHandler_0x1B_Settings; // either
-        PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem; // PT
-        PacketHandlers[0x1D] = PacketHandler_0x1D_Emote; // ST
-        PacketHandlers[0x24] = PacketHandler_0x24_DropGold; // ST + map lock
-        PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature; // ST + map/user lock
-        PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature; // ST + map/user lock
-        PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo; // ST
-        PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest; // PT
-        PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle; // PT
-        PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement; // ST + user lock
-        PacketHandlers[0x38] = PacketHandler_0x38_Refresh; // ST
-        PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu; // PT
-        PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse; // PT
-        PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages; // ST
-        PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill; // PT
-        PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick; // ST
-        PacketHandlers[0x43] = PacketHandler_0x43_PointClick; // ST?
-        PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick; // PT
-        PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat; // ST
-        PacketHandlers[0x47] = PacketHandler_0x47_StatPoint; // ST + user lock
-        PacketHandlers[0x4a] = PacketHandler_0x4A_Trade; // PT
-        PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting; // PT
-        PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine; // PT
-        PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait; // ST
-        PacketHandlers[0x55] = PacketHandler_0x55_Manufacture;
-        PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat; // ST + user lock
-        PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
-        PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
-    }
+        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Where(f => f.GetCustomAttribute<PacketHandler>() != null);
 
+        foreach (var method in methods)
+        {
+            var attr = method.GetCustomAttributes<PacketHandler>().FirstOrDefault();
+            if (attr == null) continue;
+            WorldPacketHandlers[attr.Opcode] =
+                (WorldPacketHandler) Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
+            PacketHandlerMetrics[attr.Opcode] = new TimerOptions
+            {
+                Name = method.Name, MeasurementUnit = Unit.Requests, DurationUnit =  TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Milliseconds
+            };
+        }
+        GameLog.Info("Packet handlers registered");
+    }
 
     public void SetMerchantMenuHandlers()
     {
@@ -1932,6 +1921,7 @@ public partial class World : Server
 
     #region Control Message Handlers
 
+    [HybrasylMessageHandler(ControlOpcode.CleanupUser)]
     private void ControlMessage_CleanupUser(HybrasylControlMessage message)
     {
         // clean up after a broken connection
@@ -1991,6 +1981,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.RegenUser)]
     private void ControlMessage_RegenerateUser(HybrasylControlMessage message)
     {
         // regenerate a user
@@ -2032,6 +2023,7 @@ public partial class World : Server
         user.UpdateAttributes(StatUpdateFlags.Current);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.SaveUser)]
     private void ControlMessage_SaveUser(HybrasylControlMessage message)
     {
         // save a user
@@ -2049,6 +2041,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.ShutdownServer)]
     private void ControlMessage_ShutdownServer(HybrasylControlMessage message)
     {
         // Initiate an orderly shutdown
@@ -2082,6 +2075,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.LogoffUser)]
     private void ControlMessage_LogoffUser(HybrasylControlMessage message)
     {
         // Log off the specified user
@@ -2091,6 +2085,7 @@ public partial class World : Server
         if (TryGetActiveUser(userName, out user)) user.Logoff(true);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.MailNotifyUser)]
     private void ControlMessage_MailNotifyUser(HybrasylControlMessage message)
     {
         // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
@@ -2108,6 +2103,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.StatusTick)]
     private void ControlMessage_StatusTick(HybrasylControlMessage message)
     {
         var objectId = (uint) message.Arguments[0];
@@ -2120,7 +2116,7 @@ public partial class World : Server
         }
     }
 
-
+    [HybrasylMessageHandler(ControlOpcode.TriggerRefresh)]
     private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
     {
         var connectionId = (long) message.Arguments[0];
@@ -2128,6 +2124,7 @@ public partial class World : Server
             user.Refresh();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.DialogRequest)]
     private void ControlMessage_DialogRequest(HybrasylControlMessage message)
     {
         var asyncDialogId = (uint) message.Arguments[0];
@@ -2135,6 +2132,7 @@ public partial class World : Server
             ads.ShowTo();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.HandleDeath)]
     private void ControlMessage_HandleDeath(HybrasylControlMessage message)
     {
         var creature = (Creature) message.Arguments[0];
@@ -2142,6 +2140,7 @@ public partial class World : Server
         if (creature is Monster ms && !ms.DeathProcessed) ms.OnDeath();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.GlobalMessage)]
     private void ControlMessage_GlobalMessage(HybrasylControlMessage message)
     {
         var msg = (string) message.Arguments[0];
@@ -2154,6 +2153,7 @@ public partial class World : Server
             catch (Exception) { }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.RemoveReactor)]
     private void ControlMessage_RemoveReactor(HybrasylControlMessage message)
     {
         if (message.Arguments[0] is not Guid g || !WorldData.TryGetWorldObject(g, out Reactor obj) ||
@@ -2161,6 +2161,7 @@ public partial class World : Server
         m.Remove(obj);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.ModifyStats)]
     private void ControlMessage_ModifyStats(HybrasylControlMessage message)
     {
         var guid = (Guid) message.Arguments[0];
@@ -2171,6 +2172,7 @@ public partial class World : Server
             u.UpdateAttributes(StatUpdateFlags.Full);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.ProcessProc)]
     private void ControlMessage_ProcessProc(HybrasylControlMessage message)
     {
         var proc = (Proc) message.Arguments[0];
@@ -2211,6 +2213,7 @@ public partial class World : Server
 
     }
 
+    [HybrasylMessageHandler(ControlOpcode.UpdateUser)]
     private void ControlMessage_UpdateUser(HybrasylControlMessage message)
     {
         var targetGuid = (Guid) message.Arguments[0];
@@ -2222,6 +2225,7 @@ public partial class World : Server
         user.UpdateAttributes(StatUpdateFlags.Secondary);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.DisplayCreature)]
     private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
     {
         var targetGuid = (Guid) message.Arguments[0];
@@ -2234,10 +2238,21 @@ public partial class World : Server
             target.Show();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.CombatLog)]
+    private void ControlMessage_CombatLog(HybrasylControlMessage message)
+    {
+        var targetGuid = (Guid) message.Arguments[0];
+        var logEvent = (ICombatEvent) message.Arguments[1];
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+        if (target is not User user) return;
+        user.SendCombatLogMessage(logEvent);
+    }
+
     #endregion Control Message Handlers
 
     #region Packet Handlers
 
+    [PacketHandler(0x05)]
     private void PacketHandler_0x05_RequestMap(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2258,6 +2273,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x06)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
@@ -2269,6 +2285,7 @@ public partial class World : Server
         user.Walk((Direction) direction);
     }
 
+    [PacketHandler(0x07)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
@@ -2403,6 +2420,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x08)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
@@ -2493,6 +2511,7 @@ public partial class World : Server
         user.Map.AddItem(x, y, toDrop);
     }
 
+    [PacketHandler(0x0E)]
     private void PacketHandler_0x0E_Talk(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2532,6 +2551,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x0F)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
@@ -2544,6 +2564,7 @@ public partial class World : Server
         user.Condition.Casting = false;
     }
 
+    [PacketHandler(0x0B)]
     private void PacketHandler_0x0B_ClientExit(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2580,6 +2601,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x0C)]
     private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2591,6 +2613,7 @@ public partial class World : Server
             user.AoiEntry(missingVisibleObj);
     }
 
+    [PacketHandler(0x10)]
     private void PacketHandler_0x10_ClientJoin(object obj, ClientPacket packet)
     {
         var connectionId = (long) obj;
@@ -2720,6 +2743,7 @@ public partial class World : Server
         loginUser.RequestPortrait();
     }
 
+    [PacketHandler(0x11)]
     [Prohibited(CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
     {
@@ -2730,6 +2754,7 @@ public partial class World : Server
         user.Turn((Direction) direction);
     }
 
+    [PacketHandler(0x13)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
@@ -2738,6 +2763,7 @@ public partial class World : Server
         user.AssailAttack(user.Direction);
     }
 
+    [PacketHandler(0x18)]
     private void PacketHandler_0x18_ShowPlayerList(object obj, ClientPacket packet)
     {
         var me = (User) obj;
@@ -2769,6 +2795,7 @@ public partial class World : Server
         me.Enqueue(listPacket);
     }
 
+    [PacketHandler(0x19)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x19_Whisper(object obj, ClientPacket packet)
     {
@@ -2894,7 +2921,7 @@ public partial class World : Server
         }
     }
 
-
+    [PacketHandler(0x1B)]
     private void PacketHandler_0x1B_Settings(object obj, ClientPacket packet)
     {
         // TODO: future expansion
@@ -2940,6 +2967,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x1C)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
@@ -3117,7 +3145,7 @@ public partial class World : Server
         }
     }
 
-
+    [PacketHandler(0x1D)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
@@ -3131,6 +3159,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x24)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
@@ -3199,6 +3228,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x2D)]
     private void PacketHandler_0x2D_PlayerInfo(object obj, ClientPacket packet)
     {
         //this handler also handles group management pane
@@ -3207,25 +3237,27 @@ public partial class World : Server
         user.SendProfile();
     }
 
-    /**
-     * Handle user-initiated grouping requests. There are a number of mechanisms in the client
-     * that send this packet, but generally amount to one of three serverside actions:
-     * 1) Request that the user join my group (stage 0x02).
-     * 2) Leave the group I'm currently in (stage 0x02).
-     * 3) Confirm that I'd like to accept a group request (stage 0x03).
-     * The general flow here consists of the following steps:
-     * Check to see if we should add the partner to the group, or potentially remove them
-     * 1) if user and partner are already in the same group.
-     * 2) Check to see if the partner is open for grouping. If not, fail.
-     * 3) Sending a group request to the group you're already in == ungroup request in USDA.
-     * 4) If the user's already grouped, they can't join this group.
-     * 5) Send them a dialog and have them explicitly accept.
-     * 6) If accepted, join group (see stage 0x03).
-     */
+    [PacketHandler(0x2E)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2E_GroupRequest(object obj, ClientPacket packet)
     {
+        /*
+         * Handle user-initiated grouping requests. There are a number of mechanisms in the client
+         * that send this packet, but generally amount to one of three serverside actions:
+         * 1) Request that the user join my group (stage 0x02).
+         * 2) Leave the group I'm currently in (stage 0x02).
+         * 3) Confirm that I'd like to accept a group request (stage 0x03).
+         * The general flow here consists of the following steps:
+         * Check to see if we should add the partner to the group, or potentially remove them
+         * 1) if user and partner are already in the same group.
+         * 2) Check to see if the partner is open for grouping. If not, fail.
+         * 3) Sending a group request to the group you're already in == ungroup request in USDA.
+         * 4) If the user's already grouped, they can't join this group.
+         * 5) Send them a dialog and have them explicitly accept.
+         * 6) If accepted, join group (see stage 0x03).
+         */
+
         var user = (User) obj;
 
         // stage:
@@ -3334,6 +3366,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x2F)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2F_GroupToggle(object obj, ClientPacket packet)
@@ -3357,6 +3390,7 @@ public partial class World : Server
         // are extra bytes coming through but not sure what purpose they serve.
     }
 
+    [PacketHandler(0x2A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
@@ -3411,6 +3445,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x29)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
@@ -3465,6 +3500,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x30)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x30_MoveUIElement(object obj, ClientPacket packet)
     {
@@ -3515,6 +3551,7 @@ public partial class World : Server
         // Is the slot invalid? Does at least one of the slots contain an item?
     }
 
+    [PacketHandler(0x3b)]
     private void PacketHandler_0x3B_AccessMessages(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -3596,6 +3633,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x3E)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
@@ -3607,6 +3645,7 @@ public partial class World : Server
         user.UseSkill(slot);
     }
 
+    [PacketHandler(0x3F)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
@@ -3630,6 +3669,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x38)]
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x38_Refresh(object obj, ClientPacket packet)
     {
@@ -3638,6 +3678,7 @@ public partial class World : Server
         user.Refresh();
     }
 
+    [PacketHandler(0x39)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
     {
@@ -3727,6 +3768,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x3A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
     {
@@ -3975,6 +4017,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x43)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
     {
@@ -4058,6 +4101,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x44)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
@@ -4096,6 +4140,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x45)]
     private void PacketHandler_0x45_ByteHeartbeat(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4114,6 +4159,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x47)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
@@ -4152,6 +4198,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x4A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
@@ -4239,6 +4286,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x4D)]
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
     {
@@ -4246,6 +4294,7 @@ public partial class World : Server
         user.Condition.Casting = true;
     }
 
+    [PacketHandler(0x4E)]
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
     {
@@ -4259,6 +4308,7 @@ public partial class World : Server
         user.SendCastLine(enqueue);
     }
 
+    [PacketHandler(0x4F)]
     private void PacketHandler_0x4F_ProfileTextPortrait(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4271,6 +4321,7 @@ public partial class World : Server
         user.ProfileText = profileText;
     }
 
+    [PacketHandler(0x55)]
     private void PacketHandler_0x55_Manufacture(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4280,6 +4331,7 @@ public partial class World : Server
         user.ManufactureState.ProcessManufacturePacket(packet);
     }
 
+    [PacketHandler(0x75)]
     private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4297,6 +4349,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x79)]
     private void PacketHandler_0x79_Status(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4304,6 +4357,7 @@ public partial class World : Server
         if (status <= 7) user.GroupStatus = (UserStatus) status;
     }
 
+    [PacketHandler(0x7B)]
     private void PacketHandler_0x7B_RequestMetafile(object obj, ClientPacket packet)
     {
         var user = (User) obj;

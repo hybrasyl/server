@@ -236,7 +236,7 @@ internal static class NumberCruncher
         if (source?.Stats?.OutboundHealModifier > 0)
             heal *= source.Stats.OutboundHealModifier;
         if (target.Stats.InboundHealModifier > 0)
-            heal *= source.Stats.OutboundHealModifier;
+            heal *= target.Stats.OutboundHealModifier;
 
         heal *= intensity;
 
@@ -252,6 +252,8 @@ internal static class NumberCruncher
     /// <returns></returns>
     public static CastCost CalculateCastCost(Castable castable, Creature target, Creature source)
     {
+
+        if (castable == null) return new CastCost { Mp = 0};
         var cost = new CastCost();
 
         if (castable.CastCosts.Count == 0 || !(source is User user)) return cost;
@@ -351,6 +353,8 @@ internal static class NumberCruncher
             BonusInboundDamageToMp = _evalFormula(effect.BonusInboundDamageToMp, item, source)
         };
 
+        modifiers.Resistances.Apply(effect.Resistances);
+
         if (effect.BaseOffensiveElement != ElementType.None)
             modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;
         if (effect.BaseDefensiveElement != ElementType.None)
@@ -405,8 +409,10 @@ internal static class NumberCruncher
             BonusExtraItemFind = Modify(_evalFormula(effect.BonusExtraItemFind, castable, target, source), intensity),
             BonusExtraFaith = Modify(_evalFormula(effect.BonusExtraFaith, castable, target, source), intensity),
             BonusLifeSteal = Modify(_evalFormula(effect.BonusLifeSteal, castable, target, source), intensity),
-            BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity)
+            BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity),
         };
+
+        modifiers.Resistances.Apply(effect.Resistances);
 
         if (effect.BaseOffensiveElement != ElementType.None)
             modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;

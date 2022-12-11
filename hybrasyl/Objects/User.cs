@@ -326,7 +326,7 @@ public class User : Creature
             // Forcibly destroy client and remove user from world
             PreviousConnectionId = Client.ConnectionId;
             Client = null;
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, CleanupType.ByName,
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser, CleanupType.ByName,
                 Name));
         }
     }
@@ -2538,12 +2538,24 @@ public class User : Creature
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
+    public override void OnDamage(DamageEvent damageEvent)
+    {
+        if (GetSessionCookie("combatlog") == "on")
+            SendCombatLogMessage(damageEvent);
+    }
+
+    public override void OnHeal(HealEvent healEvent)
+    {
+        if (GetSessionCookie("combatlog") == "on")
+            SendCombatLogMessage(healEvent);
+    }
+
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        bool onDeath = true)
+        Castable castable = null, bool onDeath = true)
     {
         if (Condition.Comatose || !Condition.Alive) return;
-        base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
+        base.Damage(damage, element, damageType, damageFlags, attacker, castable, false); // We handle ondeath for users here
         if (Stats.Hp == 0 && Group != null)
         {
             Stats.Hp = 1;
@@ -2573,9 +2585,9 @@ public class User : Creature
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
-    public override void Heal(double heal, Creature source = null)
+    public override void Heal(double heal, Creature source = null, Castable castable = null)
     {
-        base.Heal(heal, source);
+        base.Heal(heal, source, castable);
         if (this is User) UpdateAttributes(StatUpdateFlags.Current);
     }
 
@@ -5005,6 +5017,13 @@ public class User : Creature
         LastSystemMessage = msg;
         Client?.SendMessage(msg, 3);
     }
+
+    public void SendCombatLogMessage(ICombatEvent e)
+    {
+        foreach (var line in e.ToString().Split("\n"))
+            Client?.SendMessage(line, (byte) MessageType.Group);
+    }
+
 
     public void CancelCasting()
     {

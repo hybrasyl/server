@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Humanizer;
 using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 
@@ -216,9 +217,8 @@ public class HybrasylTime
         }
 
         return
-            $"{AgeName} {Year}, {Moon.DisplayWithOrdinal()} moon, {Sun.DisplayWithOrdinal()} sun, {hour}:{Minute.ToString("d2")} {ampm}";
+            $"{AgeName} {Year}, {Moon.Ordinalize()} moon, {Sun.Ordinalize()} sun, {hour}:{Minute.ToString("d2")} {ampm}";
     }
-
 
     public static List<HybrasylAge> Ages()
     {

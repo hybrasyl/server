@@ -495,7 +495,7 @@ internal class ShutdownCommand : ChatCommand
                 if (!int.TryParse(args[1], out delay))
                     return Fail("Delay must be a number");
 
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name, delay));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ShutdownServer, user.Name, delay));
             return Success("Shutdown request submitted.");
         }
 

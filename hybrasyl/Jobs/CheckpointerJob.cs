@@ -21,6 +21,7 @@
 
 using System;
 using System.Timers;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Jobs;
 
@@ -39,7 +40,7 @@ public static class CheckpointerJob
                 // randomly have a packet occupying shitloads of CPU time blocking
                 // everything else.
 
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.SaveUser, client.Key));
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.SaveUser, client.Key));
             GameLog.Debug("Job complete");
         }
         catch (Exception e)

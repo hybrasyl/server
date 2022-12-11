@@ -75,7 +75,21 @@
     <!-- Stat effects (buffs or debuffs) container element -->
     <!-- Can contain formulas or numbers -->
 
+    <xs:complexType name="ResistanceList">
+        <xs:sequence>
+            <xs:element name="Resistance" type="hyb:ElementalResistance" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ElementalResistance">
+        <xs:attribute name="Type" type="hyb:ElementType" use="required"/>
+        <xs:attribute name="Modifier" type="xs:float" use="required"/>
+    </xs:complexType>
+
     <xs:complexType name="StatModifiers">
+        <xs:sequence>
+            <xs:element name="Resistances" type="hyb:ResistanceList" minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
         <xs:attribute name="BaseStr" type="xs:string" />
         <xs:attribute name="BaseInt" type="xs:string" />
         <xs:attribute name="BaseWis" type="xs:string" />

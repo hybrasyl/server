@@ -1,10 +1,13 @@
-﻿using Hybrasyl.Objects;
+﻿using Hybrasyl.Enums;
+using Hybrasyl.Internals;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 
 public partial class World : Server
 {
     // TODO: don't pass maps here. that's bananas
+    [HybrasylMessageHandler(ControlOpcode.MonolithSpawn)]
     private void ControlMessage_SpawnMonster(HybrasylControlMessage message)
     {
         var monster = (Monster) message.Arguments[0];
@@ -15,6 +18,7 @@ public partial class World : Server
             $"{monster.Name} @ {monster.Map.Name} ({monster.X},{monster.Y}): Level {monster.Stats.Level} HP {monster.Stats.Hp} MP {monster.Stats.Mp} S/C/D/I/W {monster.Stats.Str}/{monster.Stats.Con}/{monster.Stats.Dex}/{monster.Stats.Int}/{monster.Stats.Wis}");
     }
 
+    [HybrasylMessageHandler(ControlOpcode.MonolithSpawn)]
     private void ControlMessage_MonolithControl(HybrasylControlMessage message)
     {
         var monster = (Monster) message.Arguments[0];

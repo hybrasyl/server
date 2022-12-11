@@ -367,7 +367,7 @@ internal class Monolith
     private static void SpawnMonster(Monster monster, Map map)
     {
         if (!World.ControlMessageQueue.IsCompleted)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
     }
 }
 
@@ -427,6 +427,6 @@ internal class MonolithControl
             // Mobs on empty maps don't move, it's a waste of time
             return;
         if (!World.ControlMessageQueue.IsCompleted)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithControl, monster, map));
     }
 }

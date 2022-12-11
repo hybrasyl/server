@@ -70,48 +70,9 @@ namespace Hybrasyl
         }
     }
 
-    public static class IntegerExtensions
-    {
-        public static string DisplayWithOrdinal(this int num)
-        {
-            if (num.ToString().EndsWith("11")) return num + "th";
-            if (num.ToString().EndsWith("12")) return num + "th";
-            if (num.ToString().EndsWith("13")) return num + "th";
-            if (num.ToString().EndsWith("1")) return num + "st";
-            if (num.ToString().EndsWith("2")) return num + "nd";
-            if (num.ToString().EndsWith("3")) return num + "rd";
-            return num + "th";
-        }
-    }
-
-
     internal class DescendingComparer<T> : IComparer<T> where T : IComparable<T>
     {
         public int Compare(T x, T y) => y.CompareTo(x);
-    }
-
-    // If you add a new control opcode here, also add it to metricsincludes.tt
-    internal static class ControlOpcodes
-    {
-        public const int CleanupUser = 0;
-        public const int SaveUser = 1;
-        public const int ChaosRising = 2;
-        public const int ShutdownServer = 3;
-        public const int RegenUser = 4;
-        public const int LogoffUser = 5;
-        public const int MailNotifyUser = 6;
-        public const int StatusTick = 7;
-        public const int MonolithSpawn = 8;
-        public const int MonolithControl = 9;
-        public const int TriggerRefresh = 10;
-        public const int HandleDeath = 11;
-        public const int DialogRequest = 12;
-        public const int GlobalMessage = 13;
-        public const int RemoveReactor = 14;
-        public const int ModifyStats = 15;
-        public const int ProcessProc = 16;
-        public const int UpdateUser = 17;
-        public const int DisplayCreature = 18;
     }
 
     internal static class ServerTypes

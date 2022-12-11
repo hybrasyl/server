@@ -154,7 +154,7 @@ public class VisibleObject : WorldObject, IVisible
     public virtual void OnClick(User invoker) { }
     public virtual void OnDeath() { }
     public virtual void OnDamage(DamageEvent damageEvent) { }
-    public virtual void OnHeal(Creature healer, uint damage) { }
+    public virtual void OnHeal(HealEvent healEvent) { }
     public virtual void OnHear(SpokenEvent e) { }
 
     public Rectangle GetBoundingBox() => new(X, Y, 1, 1);

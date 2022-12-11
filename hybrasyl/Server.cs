@@ -44,17 +44,19 @@ public class Server
 
     public ConcurrentDictionary<IntPtr, Client> Clients;
 
-
     public Server(int port, bool isDefault = false)
     {
         Clients = new ConcurrentDictionary<IntPtr, Client>();
         Port = port;
-        PacketHandlers = new WorldPacketHandler[256];
-        ControlMessageHandlers = new ControlMessageHandler[64];
+
         Throttles = new Dictionary<byte, IPacketThrottle>();
         ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
-        for (var i = 0; i < 256; ++i)
-            PacketHandlers[i] = (c, p) => GameLog.Warning($"{GetType().Name}: Unhandled opcode 0x{p.Opcode:X2}");
+        for (byte i = 0; i < 255; ++i)
+            WorldPacketHandlers[i] = (c, p) => GameLog.Warning($"{GetType().Name}: Unhandled opcode 0x{p.Opcode:X2}");
+        foreach (ControlOpcode opcode in Enum.GetValues<ControlOpcode>())
+        {
+            ControlMessageHandlers[opcode] = (p) => GameLog.Warning($"{GetType().Name}: Unhandled control message type {opcode}");
+        }
         Default = isDefault;
         Task.Run(ProcessOutbound);
         Game.RegisterServer(this);
@@ -63,10 +65,10 @@ public class Server
     public int Port { get; }
     public bool Default { get; set; }
     public Socket Listener { get; private set; }
-    public WorldPacketHandler[] PacketHandlers { get; }
+    public Dictionary<byte, WorldPacketHandler> WorldPacketHandlers { get; } = new();
     public Dictionary<byte, IPacketThrottle> Throttles { get; }
 
-    public ControlMessageHandler[] ControlMessageHandlers { get; }
+    public Dictionary<ControlOpcode, ControlMessageHandler> ControlMessageHandlers { get; } = new();
     public ConcurrentDictionary<uint, Redirect> ExpectedConnections { get; }
 
     public CancellationToken StopToken { get; set; }

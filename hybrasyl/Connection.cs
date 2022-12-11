@@ -70,7 +70,7 @@ public static class GlobalConnectionManifest
             try
             {
                 if (!World.ControlMessageQueue.IsCompleted)
-                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser,
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser,
                         CleanupType.ByConnectionId, client.ConnectionId));
             }
             catch (InvalidOperationException e)
@@ -182,9 +182,9 @@ public class HybrasylClientMessage : HybrasylMessage
 
 public class HybrasylControlMessage : HybrasylMessage
 {
-    public int Opcode;
+    public ControlOpcode Opcode;
 
-    public HybrasylControlMessage(int opcode, params object[] parameters)
+    public HybrasylControlMessage(ControlOpcode opcode, params object[] parameters)
         : base("HybrasylControlMessage", parameters)
     {
         Opcode = opcode;

@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Hybrasyl;
+using Hybrasyl.Enums;
 
 namespace HybrasylGrpc;
 
@@ -41,7 +42,7 @@ internal class PatronServer : Patron.PatronBase
         {
             if (!World.ControlMessageQueue.IsAddingCompleted)
             {
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer,
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ShutdownServer,
                     context.Peer, request.Delay));
                 resp.Message = "Shutdown request successfully submitted";
                 resp.Success = true;

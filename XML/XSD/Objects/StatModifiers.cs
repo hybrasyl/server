@@ -27,6 +27,7 @@ using System.Collections.Generic;
 public partial class StatModifiers
 {
     #region Private fields
+    private List<ElementalResistance> _resistances;
     private string _baseStr;
     private string _baseInt;
     private string _baseWis;
@@ -104,6 +105,19 @@ public partial class StatModifiers
         _baseDefensiveElement = ElementType.None;
         _offensiveElementOverride = ElementType.None;
         _defensiveElementOverride = ElementType.None;
+    }
+    
+    [XmlArrayItemAttribute("Resistance", IsNullable=false)]
+    public List<ElementalResistance> Resistances
+    {
+        get
+        {
+            return _resistances;
+        }
+        set
+        {
+            _resistances = value;
+        }
     }
     
     [XmlAttribute]
