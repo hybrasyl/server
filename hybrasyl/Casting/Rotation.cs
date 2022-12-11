@@ -8,6 +8,12 @@ namespace Hybrasyl.Casting;
 
 public class Rotation : IList<RotationEntry>
 {
+    public Rotation(CreatureCastingSet set)
+    {
+        CastingSet = set;
+        Interval = set.Interval;
+    }
+
     private List<RotationEntry> Castables { get; } = new();
     private HashSet<RotationEntry> CastablesIndex { get; } = new();
     private HashSet<RotationEntry> ThresholdCasts { get; } = new();
@@ -23,15 +29,28 @@ public class Rotation : IList<RotationEntry>
     public CreatureTargetPriority TargetPriority => CastingSet.TargetPriority;
     public bool Random => CastingSet.Random;
     public bool Active { get; set; } = true;
+
+    public RotationEntry LastCastable { get; set; }
+    public RotationEntry CurrentCastable => Castables[CurrentIndex];
+
+    public RotationEntry NextCastable
+    {
+        get
+        {
+            if (Castables.Count == 0) return null;
+            // Deal with expirations first
+            var firstExpired = ThresholdCasts.Where(predicate: x => x.SecondsSinceLastUse >= x.Directive.Interval)
+                .OrderByDescending(keySelector: x => x.Directive.Interval).FirstOrDefault();
+            if (firstExpired != null) return firstExpired;
+            if (CastingSet.Random)
+                return Castables.PickRandom();
+            return CurrentIndex == Castables.Count - 1 ? Castables[0] : Castables[CurrentIndex + 1];
+        }
+    }
+
     public int Count => Castables.Count;
 
     public bool IsReadOnly => false;
-
-    public Rotation(CreatureCastingSet set)
-    {
-        CastingSet = set;
-        Interval = set.Interval;
-    }
 
     public RotationEntry this[int index]
     {
@@ -44,37 +63,12 @@ public class Rotation : IList<RotationEntry>
         }
     }
 
-    public RotationEntry LastCastable { get; set; }
-    public RotationEntry CurrentCastable => Castables[CurrentIndex];
-
-    public RotationEntry NextCastable
-    {
-        get
-        {
-            if (Castables.Count == 0) return null;
-            // Deal with expirations first
-            var firstExpired = ThresholdCasts.Where(x => x.SecondsSinceLastUse >= x.Directive.Interval)
-                .OrderByDescending(x => x.Directive.Interval).FirstOrDefault();
-            if (firstExpired != null) return firstExpired;
-            if (CastingSet.Random)
-                return Castables.PickRandom();
-            return CurrentIndex == Castables.Count - 1 ? Castables[0] : Castables[CurrentIndex + 1];
-
-        }
-    }
-
-    public void Use()
-    {
-        LastCastable = CurrentCastable;
-        if (Castables.Count > 1)
-            CurrentIndex = CurrentIndex + 1 == Castables.Count ? 0 : CurrentIndex + 1;
-        CurrentCastable.LastUse = DateTime.Now;
-        LastUse = DateTime.Now;
-    }
-
     public int IndexOf(RotationEntry item) => Castables.IndexOf(item);
 
-    public void Insert(int index, RotationEntry item) => Castables.Insert(index, item);
+    public void Insert(int index, RotationEntry item)
+    {
+        Castables.Insert(index, item);
+    }
 
     public void RemoveAt(int index)
     {
@@ -92,14 +86,6 @@ public class Rotation : IList<RotationEntry>
         CastablesIndex.Add(item);
     }
 
-    public void Use(RotationEntry item)
-    {
-        if (!CastablesIndex.Contains(item)) return;
-        LastUse = DateTime.Now;
-        item.LastUse = DateTime.Now;
-        CurrentIndex = IndexOf(item);
-    }
-
     public void Clear()
     {
         Castables.Clear();
@@ -115,17 +101,31 @@ public class Rotation : IList<RotationEntry>
             CastablesIndex.Add(entry);
     }
 
-    public bool Remove(RotationEntry item)
-    {
-        return Castables.Remove(item) && CastablesIndex.Remove(item);
-    }
+    public bool Remove(RotationEntry item) => Castables.Remove(item) && CastablesIndex.Remove(item);
 
     public IEnumerator<RotationEntry> GetEnumerator() => Castables.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator()
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public void Use()
     {
-        return GetEnumerator();
+        LastCastable = CurrentCastable;
+        if (Castables.Count > 1)
+            CurrentIndex = CurrentIndex + 1 == Castables.Count ? 0 : CurrentIndex + 1;
+        CurrentCastable.LastUse = DateTime.Now;
+        LastUse = DateTime.Now;
     }
 
-    public override string ToString() => string.Join(", ", Castables.Select(x => x.ToString()));
+    public void Use(RotationEntry item)
+    {
+        if (!CastablesIndex.Contains(item)) return;
+        LastUse = DateTime.Now;
+        item.LastUse = DateTime.Now;
+        CurrentIndex = IndexOf(item);
+    }
+
+    public override string ToString()
+    {
+        return string.Join(", ", Castables.Select(selector: x => x.ToString()));
+    }
 }

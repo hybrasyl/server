@@ -25,10 +25,6 @@ namespace Hybrasyl.Objects;
 
 public class Door : VisibleObject
 {
-    public bool Closed { get; set; }
-    public bool IsLeftRight { get; set; }
-    public bool UpdateCollision { get; set; }
-
     public Door(byte x, byte y, bool closed = false, bool isLeftRight = false, bool updateCollision = true)
     {
         X = x;
@@ -37,6 +33,10 @@ public class Door : VisibleObject
         IsLeftRight = isLeftRight;
         UpdateCollision = updateCollision;
     }
+
+    public bool Closed { get; set; }
+    public bool IsLeftRight { get; set; }
+    public bool UpdateCollision { get; set; }
 
     public override void OnClick(User invoker)
     {

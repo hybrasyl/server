@@ -19,33 +19,28 @@
  * 
  */
 
-using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
-public class MessageStoreLocked : Exception
-{
-
-}
+public class MessageStoreLocked : Exception { }
 
 [JsonObject(MemberSerialization.OptIn)]
 public class MessageStore : IEnumerable<Message>
 {
-    [JsonProperty] public string Name;
-    [JsonProperty] public string DisplayName;
-    [JsonProperty] public List<Message> Messages;
-    [JsonProperty] public Guid Guid;
-    [JsonProperty] public short CurrentId;
-    public int Id;
-
-    public bool Full => Messages.Count == short.MaxValue;
-    public bool IsSaving;
-    public bool IsLocked;
     private readonly object Lock;
+    [JsonProperty] public short CurrentId;
+    [JsonProperty] public string DisplayName;
+    [JsonProperty] public Guid Guid;
+    public int Id;
+    public bool IsLocked;
+    public bool IsSaving;
+    [JsonProperty] public List<Message> Messages;
+    [JsonProperty] public string Name;
 
     public MessageStore(string name, string displayName = "")
     {
@@ -58,7 +53,17 @@ public class MessageStore : IEnumerable<Message>
         DisplayName = displayName != "" ? displayName : Name;
     }
 
+    public bool Full => Messages.Count == short.MaxValue;
+
     public string StorageKey => string.Concat(GetType(), ':', Name.ToLower());
+
+    public IEnumerator<Message> GetEnumerator()
+    {
+        return Messages.Take(Constants.MESSAGE_RETURN_SIZE).Where(predicate: message => !message.Deleted)
+            .GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public void Save()
     {
@@ -74,16 +79,14 @@ public class MessageStore : IEnumerable<Message>
 
     public virtual bool ReceiveMessage(Message newMessage)
     {
-        if (IsLocked || Full == true)
-        {
-            return false;
-        }
+        if (IsLocked || Full) return false;
         lock (Lock)
         {
             CurrentId++;
             newMessage.Id = CurrentId;
             Messages.Add(newMessage);
         }
+
         return true;
     }
 
@@ -92,27 +95,17 @@ public class MessageStore : IEnumerable<Message>
         if (id > Messages.Count)
             return false;
         lock (Lock)
-        { 
+        {
             Messages[id].Deleted = true;
             return true;
         }
-    }
-
-    public IEnumerator<Message> GetEnumerator()
-    {
-        return Messages.Take(Constants.MESSAGE_RETURN_SIZE).Where(message => !message.Deleted).GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 
     public Message GetMessage(int id)
     {
         if (id > Messages.Count)
             return null;
-        else return Messages[id];
+        return Messages[id];
     }
 
     public void Cleanup()
@@ -124,13 +117,11 @@ public class MessageStore : IEnumerable<Message>
             if (Messages.Count > short.MaxValue - 6500)
             {
                 // Try to remove deleted messages first.
-                Messages.RemoveAll(m => m.Deleted == true);
+                Messages.RemoveAll(match: m => m.Deleted);
                 // If we still are within 250 messages of the maximum, start deleting older messages
                 if (Messages.Count > short.MaxValue - 250)
-                {
                     // Delete 1000 of the oldest messages
                     Messages.RemoveRange(0, 1000);
-                }
                 // Renumber mailbox.
                 // This sucks, but I'm not sure how to make it better given the client restrictions.
                 CurrentId = 0;
@@ -141,6 +132,7 @@ public class MessageStore : IEnumerable<Message>
                 }
             }
         }
+
         // Unlock and save.
         IsLocked = false;
         Save();
@@ -158,6 +150,7 @@ public class MessageStore : IEnumerable<Message>
                 info.Highlight = !message.Read;
             index.Add(info);
         }
+
         return index;
     }
 }

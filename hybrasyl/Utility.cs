@@ -28,7 +28,6 @@ using System.Text.RegularExpressions;
 
 namespace Hybrasyl
 {
-
     [AttributeUsage(AttributeTargets.Class)]
     public class RedisType : Attribute { }
 
@@ -36,19 +35,12 @@ namespace Hybrasyl
     {
         public static IEnumerable<string> Split(this string str, int n)
         {
-            if (String.IsNullOrEmpty(str) || n < 1)
-            {
-                throw new ArgumentException();
-            }
+            if (string.IsNullOrEmpty(str) || n < 1) throw new ArgumentException();
 
-            for (int i = 0; i < str.Length; i += n)
-            {
-                yield return str.Substring(i, Math.Min(n, str.Length - i));
-            }
+            for (var i = 0; i < str.Length; i += n) yield return str.Substring(i, Math.Min(n, str.Length - i));
         }
 
-	public static bool IsAscii(this string value) => !Regex.Match(value, "[^\x00-\x7F]").Success;
-
+        public static bool IsAscii(this string value) => !Regex.Match(value, "[^\x00-\x7F]").Success;
     }
 
     public static class RandomExtensions
@@ -57,7 +49,7 @@ namespace Hybrasyl
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             return new string(Enumerable.Repeat(chars, length)
-              .Select(s => s[rand.Next(s.Length)]).ToArray());
+                .Select(selector: s => s[rand.Next(s.Length)]).ToArray());
         }
     }
 
@@ -69,14 +61,12 @@ namespace Hybrasyl
             return source.PickRandom(1).Single();
         }
 
-        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
-        {
-            return source.Shuffle().Take(count);
-        }
+        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count) =>
+            source.Shuffle().Take(count);
 
         public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
         {
-            return source.OrderBy(x => Guid.NewGuid());
+            return source.OrderBy(keySelector: x => Guid.NewGuid());
         }
     }
 
@@ -84,26 +74,24 @@ namespace Hybrasyl
     {
         public static string DisplayWithOrdinal(this int num)
         {
-            if (num.ToString().EndsWith("11")) return num.ToString() + "th";
-            if (num.ToString().EndsWith("12")) return num.ToString() + "th";
-            if (num.ToString().EndsWith("13")) return num.ToString() + "th";
-            if (num.ToString().EndsWith("1")) return num.ToString() + "st";
-            if (num.ToString().EndsWith("2")) return num.ToString() + "nd";
-            if (num.ToString().EndsWith("3")) return num.ToString() + "rd";
-            return num.ToString() + "th";
+            if (num.ToString().EndsWith("11")) return num + "th";
+            if (num.ToString().EndsWith("12")) return num + "th";
+            if (num.ToString().EndsWith("13")) return num + "th";
+            if (num.ToString().EndsWith("1")) return num + "st";
+            if (num.ToString().EndsWith("2")) return num + "nd";
+            if (num.ToString().EndsWith("3")) return num + "rd";
+            return num + "th";
         }
     }
 
-    class DescendingComparer<T> : IComparer<T> where T : IComparable<T>
+
+    internal class DescendingComparer<T> : IComparer<T> where T : IComparable<T>
     {
-        public int Compare(T x, T y)
-        {
-            return y.CompareTo(x);
-        }
+        public int Compare(T x, T y) => y.CompareTo(x);
     }
 
     // If you add a new control opcode here, also add it to metricsincludes.tt
-    static class ControlOpcodes
+    internal static class ControlOpcodes
     {
         public const int CleanupUser = 0;
         public const int SaveUser = 1;
@@ -121,21 +109,20 @@ namespace Hybrasyl
         public const int GlobalMessage = 13;
         public const int RemoveReactor = 14;
         public const int ModifyStats = 15;
+        public const int ProcessProc = 16;
+        public const int UpdateUser = 17;
+        public const int DisplayCreature = 18;
     }
 
-    static class ServerTypes
+    internal static class ServerTypes
     {
         public const int Lobby = 0;
         public const int Login = 1;
         public const int World = 2;
     }
 
-    static class Constants
+    internal static class Constants
     {
-        // Eventually most of these should be moved into a config file. For right now they're here.
-
-        public static int MAX_LEVEL = 99;
-        public static Regex PercentageRegex = new Regex(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
         public const int VIEWPORT_SIZE = 24;
         public const int HALF_VIEWPORT_SIZE = VIEWPORT_SIZE / 2;
         public const byte MAXIMUM_BOOK = 90;
@@ -144,7 +131,9 @@ namespace Hybrasyl
         public const int EXCHANGE_DISTANCE = 5;
         public const uint MAXIMUM_GOLD = 1000000000;
         public const int VARIANT_ID_START = 100000;
-        public const int DEFAULT_LOG_LEVEL = Hybrasyl.LogLevels.DEBUG;
+
+        public const int DEFAULT_LOG_LEVEL = LogLevels.DEBUG;
+
         // Manhattan distance between the user performing an action (killing a monster, etc) and other
         // users in the group in order to be eligible for sharing.
         public const int GROUP_SHARING_DISTANCE = 20;
@@ -171,7 +160,7 @@ namespace Hybrasyl
 
         // Monster tagging timeout
         public const int MONSTER_TAGGING_TIMEOUT = 300;
-        
+
         // Heartbeat controls
         // Every BYTE_HEARTBEAT_INTERVAL and TICK_HEARTBEAT_INTERVAL seconds, Hybrasyl sends 0x3B and 0x68 
         // heartbeat packets to clients.
@@ -205,31 +194,37 @@ namespace Hybrasyl
         public const int DIALOG_SEQUENCE_ASYNC = 65000;
         public const int DIALOG_SEQUENCE_HARDCODED = 65280;
 
-        public static Dictionary<string, int> CLASSES = new Dictionary<string, int> {
-        {"peasant", 0},
-        {"warrior", 1},
-        {"rogue", 2},
-        {"wizard", 3},
-        {"priest", 4},
-        {"monk", 5}
-        };
-
-        public static Dictionary<int, string> REVERSE_CLASSES = new Dictionary<int, string> {
-                  {0, "peasant"},
-                  {1, "warrior"},
-                  {2, "rogue"},
-                  {3, "wizard"},
-                  {4, "priest"},
-                  {5, "monk"}
-
-        };
-
         public const int MESSAGE_RETURN_SIZE = 64;
+
         // You must wait this long in seconds before sending another board message
         public const int BOARD_SEND_MESSAGE_COOLDOWN = 60;
+
         // You must wait this long in seconds before sending another mail message to the same recipient
         public const int MAIL_MESSAGE_COOLDOWN = 60;
+        // Eventually most of these should be moved into a config file. For right now they're here.
 
+        public static int MAX_LEVEL = 99;
+        public static Regex PercentageRegex = new(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
+
+        public static Dictionary<string, int> CLASSES = new()
+        {
+            { "peasant", 0 },
+            { "warrior", 1 },
+            { "rogue", 2 },
+            { "wizard", 3 },
+            { "priest", 4 },
+            { "monk", 5 }
+        };
+
+        public static Dictionary<int, string> REVERSE_CLASSES = new()
+        {
+            { 0, "peasant" },
+            { 1, "warrior" },
+            { 2, "rogue" },
+            { 3, "wizard" },
+            { 4, "priest" },
+            { 5, "monk" }
+        };
     }
 
     public static class LevelCircles
@@ -241,7 +236,7 @@ namespace Hybrasyl
     }
 
     // TODO: move to xml
-    static class StatLimitConstants
+    internal static class StatLimitConstants
     {
         public static long MIN_STAT = 1; // str, int, wis, con, dex
         public static long MAX_STAT = 255;
@@ -256,9 +251,11 @@ namespace Hybrasyl
         public static long MAX_AC = 100;
         public static double MIN_MR = -16.0;
         public static double MAX_MR = 16.0;
+        public static double MIN_REGEN = -16.0;
+        public static double MAX_REGEN = 16.0;
     }
 
-    static class DialogTypes
+    internal static class DialogTypes
     {
         public const int FUNCTION_DIALOG = -1;
         public const int SIMPLE_DIALOG = 0;
@@ -279,7 +276,7 @@ namespace Hybrasyl
         Overhead = 18
     }
 
-    static class MessageTypes
+    internal static class MessageTypes
     {
         public const int WHISPER = 0;
         public const int SYSTEM = 1;
@@ -291,7 +288,7 @@ namespace Hybrasyl
         public const int OVERHEAD = 18;
     }
 
-    static class LogLevels
+    internal static class LogLevels
     {
         public const int CRIT = 2;
         public const int ERROR = 3;
@@ -303,8 +300,6 @@ namespace Hybrasyl
 
     namespace Utility
     {
-
-
         public class MultiIndexDictionary<TKey1, TKey2, TValue>
         {
             private Dictionary<TKey1, KeyValuePair<TKey2, TValue>> _dict1;
@@ -315,6 +310,8 @@ namespace Hybrasyl
                 _dict1 = new Dictionary<TKey1, KeyValuePair<TKey2, TValue>>();
                 _dict2 = new Dictionary<TKey2, KeyValuePair<TKey1, TValue>>();
             }
+
+            public int Count => _dict1.Count;
 
             public void Add(TKey1 k1, TKey2 k2, TValue value)
             {
@@ -328,12 +325,10 @@ namespace Hybrasyl
                 _dict2 = new Dictionary<TKey2, KeyValuePair<TKey1, TValue>>();
             }
 
-            public int Count => _dict1.Count;
-
             public bool ContainsKey(TKey1 k1) => _dict1.ContainsKey(k1);
 
             public bool ContainsKey(TKey2 k2) => _dict2.ContainsKey(k2);
-         
+
             public bool Remove(TKey1 k1)
             {
                 if (_dict1.ContainsKey(k1))
@@ -341,8 +336,8 @@ namespace Hybrasyl
                     var k2obj = _dict1[k1];
                     return _dict1.Remove(k1) && _dict2.Remove(k2obj.Key);
                 }
-                else
-                    return false;
+
+                return false;
             }
 
             public bool Remove(TKey2 k2)
@@ -352,39 +347,40 @@ namespace Hybrasyl
                     var k1obj = _dict2[k2];
                     return _dict2.Remove(k2) && _dict1.Remove(k1obj.Key);
                 }
-                else
-                    return false;
+
+                return false;
             }
 
             public bool TryGetValue(TKey1 k1, out TValue value)
             {
                 value = default;
-                if (_dict1.TryGetValue(k1,out KeyValuePair<TKey2, TValue> kvp))
+                if (_dict1.TryGetValue(k1, out var kvp))
                 {
                     value = kvp.Value;
                     return true;
                 }
+
                 return false;
             }
 
             public bool TryGetValue(TKey2 k2, out TValue value)
             {
                 value = default;
-                if (_dict2.TryGetValue(k2, out KeyValuePair<TKey1,TValue> kvp))
+                if (_dict2.TryGetValue(k2, out var kvp))
                 {
                     value = kvp.Value;
                     return true;
                 }
+
                 return false;
             }
-
         }
 
         /// <summary>
-        /// A class to allow easy grabbing of assembly info; we use this in various places to
-        /// display uniform version / copyright info.
-        /// This code is modified slightly from Henning Dieterichs original class @
-        /// codeproject.com/Tips/353819/Get-all-Assembly-Information
+        ///     A class to allow easy grabbing of assembly info; we use this in various places to
+        ///     display uniform version / copyright info.
+        ///     This code is modified slightly from Henning Dieterichs original class @
+        ///     codeproject.com/Tips/353819/Get-all-Assembly-Information
         /// </summary>
         public class AssemblyInfo
         {
@@ -402,8 +398,8 @@ namespace Hybrasyl
             {
                 get
                 {
-                    string result = string.Empty;
-                    Version version = Assembly.GetName().Version;
+                    var result = string.Empty;
+                    var version = Assembly.GetName().Version;
                     if (version != null)
                         return version.ToString();
                     return "1.3.3.7";
@@ -412,7 +408,7 @@ namespace Hybrasyl
 
             public string Copyright
             {
-                get { return GetAttributeValue<AssemblyCopyrightAttribute>(a => a.Copyright); }
+                get { return GetAttributeValue<AssemblyCopyrightAttribute>(resolveFunc: a => a.Copyright); }
             }
 
             public string GitHash
@@ -429,21 +425,20 @@ namespace Hybrasyl
             protected string GetAttributeValue<TAttr>(Func<TAttr,
                 string> resolveFunc, string defaultResult = null) where TAttr : Attribute
             {
-                object[] attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
+                var attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
                 if (attributes.Length > 0)
-                    return resolveFunc((TAttr)attributes[0]);
-                else
-                    return defaultResult;
+                    return resolveFunc((TAttr) attributes[0]);
+                return defaultResult;
             }
         }
 
         /// <summary>
-        /// A prettyprinter for objects that don't have a direct string representation.
+        ///     A prettyprinter for objects that don't have a direct string representation.
         /// </summary>
         public static class PrettyPrinter
         {
             /// <summary>
-            /// Pretty print an object, which is essentially a dump of its properties, at the moment.
+            ///     Pretty print an object, which is essentially a dump of its properties, at the moment.
             /// </summary>
             /// <param name="obj">The object to be pretty printed, using Hybrasyl.Utility.Logger.</param>
             public static void PrettyPrint(object obj)
@@ -453,8 +448,8 @@ namespace Hybrasyl
                 {
                     foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(obj))
                     {
-                        string name = descriptor.Name;
-                        object value = descriptor.GetValue(obj);
+                        var name = descriptor.Name;
+                        var value = descriptor.GetValue(obj);
                         GameLog.DebugFormat("{0} = {1}", name, value);
                     }
                 }
@@ -464,53 +459,48 @@ namespace Hybrasyl
                 }
             }
         }
+
         /// <summary>
-        /// Extension methods for the Type class
+        ///     Extension methods for the Type class
         /// </summary>
         public static class TypeExtensions
         {
             /// <summary>
-            /// Return true if the type is a System.Nullable wrapper of a value type
+            ///     Return true if the type is a System.Nullable wrapper of a value type
             /// </summary>
             /// <param name="type">The type to check</param>
             /// <returns>True if the type is a System.Nullable wrapper</returns>
-            public static bool IsNullable(this Type type)
-            {
-                return type.IsGenericType
-                && (type.GetGenericTypeDefinition() == typeof(Nullable<>));
-            }
+            public static bool IsNullable(this Type type) =>
+                type.IsGenericType
+                && type.GetGenericTypeDefinition() == typeof(Nullable<>);
 
             /// <summary>
-            /// Return true if the type is an integer of any size.
+            ///     Return true if the type is an integer of any size.
             /// </summary>
             /// <param name="value">The value to check</param>
             /// <returns>True if the type is sbyte, byte, short, ushort, int, uint, long, ulong.</returns>
-            public static bool IsInteger(this object value)
-            {
-                return value is sbyte || value is byte || value is short || value is ushort || value is int || value is uint ||
+            public static bool IsInteger(this object value) =>
+                value is sbyte || value is byte || value is short || value is ushort || value is int ||
+                value is uint ||
                 value is long || value is ulong;
-            }
         } // end TypeExtensions
 
         public static class StringExtensions
         {
-            public static bool Contains(this string source, string toCheck, StringComparison comparision)
-            {
-                return source?.IndexOf(toCheck, comparision) >= 0;
-            }
+            public static bool Contains(this string source, string toCheck, StringComparison comparision) =>
+                source?.IndexOf(toCheck, comparision) >= 0;
+
             public static string Capitalize(this string s)
             {
                 if (string.IsNullOrEmpty(s))
                     return string.Empty;
 
-                char[] a = s.ToCharArray();
+                var a = s.ToCharArray();
                 a[0] = char.ToUpper(a[0]);
                 return new string(a);
             }
+
             public static string Normalize(string key) => Regex.Replace(key.ToLower(), @"\s+", "");
-
         }
-
     } // end Namespace:Utility
-
-}// end Namespace: Hybrasyl
+} // end Namespace: Hybrasyl

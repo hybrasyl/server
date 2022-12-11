@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Hybrasyl;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Scripting;
 
@@ -26,7 +25,6 @@ public interface IInteractable : ISprite
         {
             GameLog.WarningFormat("Dialog sequence {0} is being overwritten", sequence.Name);
             SequenceIndex.Remove(sequence.Name);
-
         }
 
         SequenceIndex.Add(sequence.Name, sequence);

@@ -19,10 +19,10 @@
  * 
  */
 
-using Hybrasyl.Objects;
 using System;
 using System.Linq;
 using System.Timers;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl.Jobs;
 
@@ -35,10 +35,8 @@ public static class MerchantInventoryRefreshJob
         GameLog.Debug("MerchantInventoryRefresh Job starting");
         try
         {
-            foreach (Merchant merchant in Game.World.Objects.Values.Where(x => x is Merchant))
-            {
+            foreach (Merchant merchant in Game.World.Objects.Values.Where(predicate: x => x is Merchant))
                 merchant.RestockInventory();
-            }
         }
         catch (Exception e)
         {

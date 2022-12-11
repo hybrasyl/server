@@ -34,22 +34,23 @@ public class Legend : IEnumerable<LegendMark>
 {
     public const int MaximumLegendSize = 254;
 
-    [JsonProperty]
-    private SortedDictionary<DateTime, LegendMark> _legend =
-        new SortedDictionary<DateTime, LegendMark>();
+    [JsonProperty] private SortedDictionary<DateTime, LegendMark> _legend = new();
 
-    private Dictionary<string, LegendMark> _legendIndex = new Dictionary<string, LegendMark>();
+    private Dictionary<string, LegendMark> _legendIndex = new();
+
+    public int Count => _legend.Count;
+
+    public IEnumerator<LegendMark> GetEnumerator() => _legend.Values.ToList().GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public bool TryGetMark(string searchKey, out LegendMark mark, bool byPrefix = true)
     {
-        if (byPrefix)
-            return _legendIndex.TryGetValue(searchKey, out mark);
-        else
-        {
-            // Return first mark that matches
-            mark = _legend.Values.Where(x => x.Text.ToLower().Contains(searchKey.ToLower())).First();
-            return mark != null;
-        }
+        if (byPrefix) return _legendIndex.TryGetValue(searchKey, out mark);
+
+        // Return first mark that matches
+        mark = _legend.Values.Where(predicate: x => x.Text.ToLower().Contains(searchKey.ToLower())).First();
+        return mark != null;
     }
 
     private bool _addLegendMark(LegendMark mark)
@@ -75,11 +76,13 @@ public class Legend : IEnumerable<LegendMark>
     public void RemoveMark(int count)
     {
         if (count > _legend.Count)
+        {
             Clear();
+        }
         else
         {
-            _legend.Keys.TakeLast(count);
-            foreach (var timestamp in _legend.Keys.TakeLast(count))
+            var toRemove = _legend.Keys.TakeLast(count).ToList();
+            foreach (var timestamp in toRemove)
             {
                 var mark = _legend[timestamp];
                 if (!string.IsNullOrEmpty(mark.Prefix))
@@ -90,17 +93,20 @@ public class Legend : IEnumerable<LegendMark>
     }
 
     public bool AddMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-        string prefix = default(string), bool isPublic = true, int quantity = -1, bool displaySeason = true, bool displayTimestamp = true)
+        string prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
+        bool displayTimestamp = true)
     {
-        var newMark = new LegendMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason, displayTimestamp);
+        var newMark = new LegendMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason,
+            displayTimestamp);
         return _addLegendMark(newMark);
     }
 
-    public bool AddMark(LegendIcon icon, LegendColor color, string text, string prefix = default(string),
+    public bool AddMark(LegendIcon icon, LegendColor color, string text, string prefix = default,
         bool isPublic = true, int quantity = -1, bool displaySeason = true, bool displayTimestamp = true)
     {
         var datetime = DateTime.Now;
-        var newMark = new LegendMark(icon, color, text, datetime, prefix, isPublic, quantity, displaySeason, displayTimestamp);
+        var newMark = new LegendMark(icon, color, text, datetime, prefix, isPublic, quantity, displaySeason,
+            displayTimestamp);
         return _addLegendMark(newMark);
     }
 
@@ -115,10 +121,8 @@ public class Legend : IEnumerable<LegendMark>
         if (_legendIndex.Count == _legend.Count) return;
         _legendIndex = new Dictionary<string, LegendMark>();
         foreach (var kvp in _legend)
-        {             
             if (kvp.Value.Prefix != null)
                 _legendIndex[kvp.Value.Prefix] = kvp.Value;
-        }
     }
 
     public void Clear()
@@ -126,50 +130,14 @@ public class Legend : IEnumerable<LegendMark>
         _legendIndex = new Dictionary<string, LegendMark>();
         _legend = new SortedDictionary<DateTime, LegendMark>();
     }
-
-    public int Count => _legend.Count;
-
-    public IEnumerator<LegendMark> GetEnumerator()
-    {
-        return _legend.Values.ToList().GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
 }
 
 [JsonObject(MemberSerialization.OptIn)]
 public class LegendMark
 {
-    [JsonProperty]
-    public string Prefix { get; set; }
-    [JsonProperty]
-    public LegendColor Color { get; set; }
-    [JsonProperty]
-    public LegendIcon Icon { get; set; }
-    [JsonProperty]
-    public string Text { get; set; }
-    [JsonProperty]
-    public bool Public { get; set; }
-    [JsonProperty]
-    public bool DisplaySeason { get; set; }
-    [JsonProperty]
-    public bool DisplayTimestamp { get; set; }
-    [JsonProperty]
-    public DateTime Timestamp { get; set; }
-    [JsonProperty]
-    public DateTime Created { get; }
-    [JsonProperty]
-    public DateTime LastUpdated { get; set; }
-    [JsonProperty]
-    public int Quantity { get; set; }
-
-    public HybrasylTime HybrasylDate => HybrasylTime.ConvertToHybrasyl(Timestamp);
-
     public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-        string prefix = default(string), bool isPublic = true, int quantity = -1, bool displaySeason=true, bool displayTimestamp=true)
+        string prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
+        bool displayTimestamp = true)
     {
         Icon = icon;
         Color = color;
@@ -184,6 +152,30 @@ public class LegendMark
         DisplayTimestamp = displayTimestamp;
     }
 
+    [JsonProperty] public string Prefix { get; set; }
+
+    [JsonProperty] public LegendColor Color { get; set; }
+
+    [JsonProperty] public LegendIcon Icon { get; set; }
+
+    [JsonProperty] public string Text { get; set; }
+
+    [JsonProperty] public bool Public { get; set; }
+
+    [JsonProperty] public bool DisplaySeason { get; set; }
+
+    [JsonProperty] public bool DisplayTimestamp { get; set; }
+
+    [JsonProperty] public DateTime Timestamp { get; set; }
+
+    [JsonProperty] public DateTime Created { get; }
+
+    [JsonProperty] public DateTime LastUpdated { get; set; }
+
+    [JsonProperty] public int Quantity { get; set; }
+
+    public HybrasylTime HybrasylDate => HybrasylTime.ConvertToHybrasyl(Timestamp);
+
     public void AddQuantity(int quantity)
     {
         if (Quantity == -1)
@@ -196,7 +188,7 @@ public class LegendMark
     {
         var aislingDate = HybrasylTime.ConvertToHybrasyl(Timestamp != LastUpdated ? Timestamp : LastUpdated);
         var returnstring = Text;
-        string markDate = "";
+        var markDate = "";
         if (DisplayTimestamp && DisplaySeason)
             markDate = $"{aislingDate.AgeName} {aislingDate.Year}, {aislingDate.Season}";
         else if (DisplayTimestamp)
@@ -204,10 +196,7 @@ public class LegendMark
 
         var maxLength = 254 - 15 - markDate.Length;
 
-        if (Text.Length > maxLength)
-        {
-            returnstring = Text.Substring(0, maxLength);
-        }
+        if (Text.Length > maxLength) returnstring = Text.Substring(0, maxLength);
 
         if (Quantity > 0)
             returnstring = $"{returnstring} ({Quantity})";
@@ -216,6 +205,5 @@ public class LegendMark
 
         returnstring = $"{returnstring} - {markDate}";
         return returnstring;
-
     }
 }

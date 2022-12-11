@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
-using Creature = Hybrasyl.Objects.Creature;
+using Creature = Hybrasyl.Xml.Creature;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -22,6 +22,7 @@ public class RegexTrigger : Attribute
 public class UsageText : Attribute
 {
     public string Text;
+
     public UsageText(string text)
     {
         Text = text;
@@ -40,16 +41,16 @@ public class WhisperTarget : Attribute
 
 public class CommandResult
 {
-    public bool Success = false;
+    public MessageType MessageType = MessageType.System;
     public bool ParseError = false;
     public string Response = string.Empty;
-    public MessageType MessageType = MessageType.System;
+    public bool Success;
 }
 
 public class EvalSubcommand
 {
-     public Func<User, Match, CommandResult> Delegate;
-     public string UsageText;
+    public Func<User, Match, CommandResult> Delegate;
+    public string UsageText;
 }
 
 // POC for potential improvements to chat commands / command parsing
@@ -57,20 +58,11 @@ public class EvalSubcommand
 [WhisperTarget("#")]
 public static class EvalCommand
 {
-
-    public static CommandResult Success(string response, MessageType type = MessageType.System) => 
-        new() { Success = true, Response = response, MessageType = type };
-
-    public static CommandResult Fail(string response, MessageType type = MessageType.System) =>
-        new() { Success = false, Response = response, MessageType = type };
-
-    private static Dictionary<Regex, EvalSubcommand> CommandRegexes = new();
-
-    private static string UsageTexts => string.Join("\n", CommandRegexes.Values.Select(x => x.UsageText));
+    private static readonly Dictionary<Regex, EvalSubcommand> CommandRegexes = new();
 
     static EvalCommand()
     {
-        foreach (var method in typeof(EvalCommand).GetMethods(BindingFlags.Public|BindingFlags.Static))
+        foreach (var method in typeof(EvalCommand).GetMethods(BindingFlags.Public | BindingFlags.Static))
         {
             var attr = method.GetCustomAttribute<RegexTrigger>();
             if (attr == null) continue;
@@ -86,6 +78,14 @@ public static class EvalCommand
             CommandRegexes.Add(regex, cmd);
         }
     }
+
+    private static string UsageTexts => string.Join("\n", CommandRegexes.Values.Select(selector: x => x.UsageText));
+
+    public static CommandResult Success(string response, MessageType type = MessageType.System) =>
+        new() { Success = true, Response = response, MessageType = type };
+
+    public static CommandResult Fail(string response, MessageType type = MessageType.System) =>
+        new() { Success = false, Response = response, MessageType = type };
 
     public static void Evaluate(string input, User user)
     {
@@ -110,7 +110,7 @@ public static class EvalCommand
             return;
         }
 
-        user.SendMessage("Usage:\n" + string.Join(",", UsageTexts), MessageType.SlateScrollbar); 
+        user.SendMessage("Usage:\n" + string.Join(",", UsageTexts), MessageType.SlateScrollbar);
     }
 
     [RegexTrigger(@"evalloot ""(?<spawngroup>.+)"" ""(?<spawn>.+)"" (?<numevals>\d+)")]
@@ -122,12 +122,12 @@ public static class EvalCommand
         if (!int.TryParse(match.Groups["numevals"].Value, out var numEvals))
             return Fail("couldn't parse number of evals");
 
-        var spawn = group.Spawns.FirstOrDefault(x => x.Name == match.Groups["spawn"].Value);
+        var spawn = group.Spawns.FirstOrDefault(predicate: x => x.Name == match.Groups["spawn"].Value);
 
         if (spawn == null)
             return Fail($"Group {group.Name} was found, but not spawn {match.Groups["spawn"].Value}");
 
-        if (!Game.World.WorldData.TryGetValue(spawn.Name, out Xml.Creature creature))
+        if (!Game.World.WorldData.TryGetValue(spawn.Name, out Creature creature))
             return Fail($"Inexplicably, spawngroup and spawn exist but not the creature {spawn.Name}");
 
         var loot = new Loot(0, 0);
@@ -166,9 +166,9 @@ public static class EvalCommand
 
         if (!Game.World.WorldData.TryGetValueByIndex(match.Groups["castable"].Value, out Castable castable))
             return Fail("Sorry, I couldn't find that castable.");
-        if (!Game.World.Objects.TryGetValue(target_id, out WorldObject wobj))
+        if (!Game.World.Objects.TryGetValue(target_id, out var wobj))
             return Fail($"Sorry, I couldn't find object {match.Groups[1].Value}");
-        if (wobj is not Creature creatureObj)
+        if (wobj is not Objects.Creature creatureObj)
             return Fail("Sorry, that isn't a creature.");
 
         var damages = new List<DamageOutput>();
@@ -183,8 +183,8 @@ public static class EvalCommand
             return Success($"Result: {damages[0].Amount} ({damages[0].Element}, {damages[0].Type})");
 
         var ret = string.Empty;
-        damages.ForEach(x => ret += $"{x.Amount} ({x.Element}, {x.Type})\n");
-        var avg = damages.Select(x => x.Amount).Average();
+        damages.ForEach(action: x => ret += $"{x.Amount} ({x.Element}, {x.Type})\n");
+        var avg = damages.Select(selector: x => x.Amount).Average();
         return Success($"Runs: {damages.Count}    Average: {avg}\n\n{ret}", MessageType.SlateScrollbar);
     }
 }

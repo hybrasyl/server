@@ -13,27 +13,36 @@ namespace Hybrasyl.Dialogs;
 
 public class Dialog
 {
-
-    private static string _tokenRegex = @"\{\{(?<token>[A-Za-z0-9_-]+)\}\}";
-    private Regex _regex;
+    private static readonly string _tokenRegex = @"\{\{(?<token>[A-Za-z0-9_-]+)\}\}";
+    private readonly Regex _regex;
 
     protected ushort DialogType;
-    public DialogSequence Sequence { get; private set; }
     public int Index;
+
+    public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
+    {
+        DialogType = (ushort) dialogType;
+        _displayText = displayText;
+        CallbackExpression = callbackFunction;
+        _regex = new Regex(_tokenRegex, RegexOptions.Compiled);
+        Sprite = ushort.MinValue;
+    }
+
+    public DialogSequence Sequence { get; private set; }
 
     public string CallbackExpression { get; set; }
 
     public ushort Sprite { get; set; }
 
-    private string _displayText { get; set; }
+    private string _displayText { get; }
 
     protected string DialogPath => $"{Sequence.Name}:{GetType().Name}:{Index}";
 
-    public ScriptExecutionResult LastScriptResult { get; set; } = null;
+    public ScriptExecutionResult LastScriptResult { get; set; }
 
     /// <summary>
-    /// Using the sequence associate or an override, evaluate the display text and replace
-    /// {{foo}} tokens (dialog template variables) with values from the ephemeral store.
+    ///     Using the sequence associate or an override, evaluate the display text and replace
+    ///     {{foo}} tokens (dialog template variables) with values from the ephemeral store.
     /// </summary>
     /// <param name="invocation">The current DialogInvocation representing the ongoing dialog session</param>
     /// <returns>An evaluated string</returns>
@@ -57,31 +66,21 @@ public class Dialog
         foreach (Match match in matches)
         {
             var groups = match.Groups;
-            if (ephemeral.TryGetEphemeral(groups["token"].Value, out dynamic value))
+            if (ephemeral.TryGetEphemeral(groups["token"].Value, out var value))
             {
                 ret = ret.Replace("{{" + groups["token"] + "}}", value.ToString());
                 GameLog.ScriptingInfo("{Function}: {Name}: token {Token} replaced with {String}",
-                    MethodInfo.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"], value);
+                    MethodBase.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"], value);
             }
             else
             {
                 GameLog.ScriptingError(
                     "{Function}: {Name}: template script references {Token} which could not be evaluated",
-                    MethodInfo.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"]);
-                continue;
+                    MethodBase.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"]);
             }
         }
 
         return ret;
-    }
-
-    public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
-    {
-        DialogType = (ushort)dialogType;
-        _displayText = displayText;
-        CallbackExpression = callbackFunction;
-        _regex = new Regex(_tokenRegex, RegexOptions.Compiled);
-        Sprite = ushort.MinValue;
     }
 
     // Any Dialog can have a callback function which can be used to process dialog responses, or
@@ -106,9 +105,7 @@ public class Dialog
         Log.Debug("Dialog index {Index}, count {Count}", Index, Sequence.Dialogs.Count);
         // Don't allow prev buttons after either input or options dialogs
         if (Index != 0)
-        {
             return Sequence.Dialogs.Count() > 1 && Sequence.Dialogs[Index - 1].DialogType == DialogTypes.SIMPLE_DIALOG;
-        }
         return false;
     }
 
@@ -118,7 +115,7 @@ public class Dialog
         // In addition, if we are in the last dialog in a sequence, Next should return to 
         // the main menu.
         Log.Debug("Dialog index {Index}, count {Count}", Index, Sequence.Dialogs.Count);
-        return (DialogType == DialogTypes.SIMPLE_DIALOG) && (Index + 1 < Sequence.Dialogs.Count);
+        return DialogType == DialogTypes.SIMPLE_DIALOG && Index + 1 < Sequence.Dialogs.Count;
     }
 
     public ServerPacket GenerateBasePacket(DialogInvocation invocation)
@@ -131,17 +128,17 @@ public class Dialog
         DialogObjectType objType = 0;
 
         var dialogPacket = new ServerPacket(0x30);
-        dialogPacket.WriteByte((byte)(DialogType));
+        dialogPacket.WriteByte((byte) DialogType);
 
         switch (invocation.Origin)
         {
             case Creature creature:
-                sprite = (ushort)(0x4000 + creature.Sprite);
+                sprite = (ushort) (0x4000 + creature.Sprite);
                 objType = DialogObjectType.Creature;
                 break;
             case ItemObject itemObject:
                 objType = DialogObjectType.ItemObject;
-                sprite = (ushort)(0x8000 + itemObject.Sprite);
+                sprite = (ushort) (0x8000 + itemObject.Sprite);
                 color = itemObject.Color;
                 break;
             case Reactor r:
@@ -161,7 +158,7 @@ public class Dialog
         if (sprite == 0)
             sprite = Sprite > 0 ? Sprite : Sequence?.Sprite ?? invocation.Target.DialogState.Associate.DialogSprite;
 
-        dialogPacket.WriteByte((byte)objType);
+        dialogPacket.WriteByte((byte) objType);
         dialogPacket.WriteUInt32(invocation.Origin.Id);
         dialogPacket.WriteByte(0); // Unknown value
         GameLog.Info("Sprite is {Sprite}", sprite);
@@ -172,15 +169,16 @@ public class Dialog
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
         Log.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
-        dialogPacket.WriteUInt16((ushort)Sequence.Id);
-        dialogPacket.WriteUInt16((ushort)Index);
+        dialogPacket.WriteUInt16((ushort) Sequence.Id);
+        dialogPacket.WriteUInt16((ushort) Index);
 
         dialogPacket.WriteBoolean(HasPrevDialog());
         dialogPacket.WriteBoolean(HasNextDialog());
 
         dialogPacket.WriteByte(0);
         // TODO: Allow override here from DialogSequence
-        dialogPacket.WriteString8(invocation.Origin?.Name ?? invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName);
+        dialogPacket.WriteString8(invocation.Origin?.Name ??
+                                  invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName);
         var displayText = EvaluateDisplayText(invocation);
 
         if (!string.IsNullOrEmpty(displayText))
@@ -194,8 +192,5 @@ public class Dialog
         Sequence = dialogSequence;
     }
 
-    public virtual void ShowTo(DialogInvocation invocation)
-    {
-    }
-
+    public virtual void ShowTo(DialogInvocation invocation) { }
 }

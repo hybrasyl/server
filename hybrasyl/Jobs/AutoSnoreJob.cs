@@ -19,9 +19,9 @@
  * 
  */
 
-using Hybrasyl.Objects;
 using System;
 using System.Timers;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl.Jobs;
 
@@ -44,15 +44,11 @@ public static class AutoSnoreJob
                 {
                     User user;
                     if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
-                    {
                         user.Motion(16, 120); // send snore effect
-                    }
                     else
-                    {
                         GameLog.WarningFormat(
                             "Connection id {0} marked as idle but no corresponding user found...?",
                             connectionId);
-                    }
                 }
             }
 

@@ -19,42 +19,45 @@
  * 
  */
 
-using Hybrasyl.Enums;
-using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml;
+using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 public class Prohibited : Attribute
 {
-    public List<PlayerFlags> Flags { get; set; }
-    public List<Xml.CreatureCondition> Conditions { get; set; }
-
     public Prohibited(params object[] prohibited)
     {
         Flags = new List<PlayerFlags>();
-        Conditions = new List<Xml.CreatureCondition>();
+        Conditions = new List<CreatureCondition>();
 
         foreach (var parameter in prohibited)
         {
             if (parameter.GetType() == typeof(PlayerFlags))
                 Flags.Add((PlayerFlags) parameter);
-            if (parameter.GetType() == typeof(Xml.CreatureCondition))
-                Conditions.Add((Xml.CreatureCondition) parameter);
+            if (parameter.GetType() == typeof(CreatureCondition))
+                Conditions.Add((CreatureCondition) parameter);
         }
     }
 
+    public List<PlayerFlags> Flags { get; set; }
+    public List<CreatureCondition> Conditions { get; set; }
+
     public bool Check(ConditionInfo condition)
     {
-        foreach (var flag in Flags) 
-            if (condition.Flags.HasFlag(flag)) return false;
+        foreach (var flag in Flags)
+            if (condition.Flags.HasFlag(flag))
+                return false;
 
         foreach (var cond in Conditions)
-            if (condition.Conditions.HasFlag(cond)) return false;
+            if (condition.Conditions.HasFlag(cond))
+                return false;
 
         return true;
     }
@@ -63,36 +66,37 @@ public class Prohibited : Attribute
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 public class Required : Attribute
 {
-    public List<PlayerFlags> Flags { get; set; }
-    public List<Xml.CreatureCondition> Conditions { get; set; }
-
     public Required(params object[] prohibited)
     {
         Flags = new List<PlayerFlags>();
-        Conditions = new List<Xml.CreatureCondition>();
+        Conditions = new List<CreatureCondition>();
 
         foreach (var parameter in prohibited)
         {
             if (parameter.GetType() == typeof(PlayerFlags))
-                Flags.Add((PlayerFlags)parameter);
-            if (parameter.GetType() == typeof(Xml.CreatureCondition))
-                Conditions.Add((Xml.CreatureCondition)parameter);
+                Flags.Add((PlayerFlags) parameter);
+            if (parameter.GetType() == typeof(CreatureCondition))
+                Conditions.Add((CreatureCondition) parameter);
         }
     }
+
+    public List<PlayerFlags> Flags { get; set; }
+    public List<CreatureCondition> Conditions { get; set; }
 
     public bool Check(ConditionInfo condition)
     {
         foreach (var flag in Flags)
-            if (condition.Flags.HasFlag(flag)) return true;
+            if (condition.Flags.HasFlag(flag))
+                return true;
 
         foreach (var cond in Conditions)
-            if (condition.Conditions.HasFlag(cond)) return true;
+            if (condition.Conditions.HasFlag(cond))
+                return true;
 
         return false;
     }
 }
-    
-    
+
 public interface ICreatureStatus
 {
     string Name { get; }
@@ -113,14 +117,14 @@ public interface ICreatureStatus
     double ElapsedSinceTick { get; }
     string UseCastRestrictions { get; }
     string ReceiveCastRestrictions { get; }
-    void OnStart(bool displaySfx = true);
-    void OnTick();
-    void OnEnd();
-    void OnExpire();
     SimpleStatusEffect OnStartEffect { get; }
     SimpleStatusEffect OnTickEffect { get; }
     SimpleStatusEffect OnRemoveEffect { get; }
     SimpleStatusEffect OnExpireEffect { get; }
+    void OnStart(bool displaySfx = true);
+    void OnTick();
+    void OnEnd();
+    void OnExpire();
 }
 
 public class StatusInfo
@@ -138,64 +142,20 @@ public class StatusInfo
 
 public class SimpleStatusEffect
 {
-    public double Heal { get; set; }
-    public DamageOutput Damage { get; set; }
-
     public SimpleStatusEffect(double heal, DamageOutput damage)
     {
         Heal = heal;
         Damage = damage;
     }
+
+    public double Heal { get; set; }
+    public DamageOutput Damage { get; set; }
 }
 
 public class CreatureStatus : ICreatureStatus
 {
-    public string Name => XmlStatus.Name;
-    public string Category => XmlStatus.Category;
-    public ushort Icon => XmlStatus.Icon;
-    public double Tick { get; }
-    public double Duration { get; }
-    public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
-    public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
-    public double Intensity { get; set; } = 1;
-
-    public StatusInfo Info => new StatusInfo() { Name = Name, OnStartEffect = OnStartEffect, 
-        OnRemoveEffect = OnRemoveEffect, OnTickEffect = OnTickEffect, OnExpireEffect = OnExpireEffect, 
-        Remaining = Remaining, Tick = Tick, Category = Category, Intensity = Intensity};
-
-    public Creature Target { get; }
-    public Creature Source { get; }
-    protected User TargetUser => Target as User;
-    protected User SourceUser => Target as User;
-
-    public Xml.Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
-
-    public DateTime Start { get; }
-
-    public DateTime LastTick { get; private set; }
-
-    public Xml.Castable Castable { get; set; }
-    public Xml.Status XmlStatus { get; set; }
-    public string ActionProhibitedMessage { get; set; }
-
-    public void OnStart(bool displaySfx = true) => _processStart(displaySfx);
-    public void OnEnd() => _processRemove();
-    public void OnTick() => _processTick();
-    public void OnExpire() => _processExpire();
-
-    public SimpleStatusEffect OnTickEffect { get; }
-    public SimpleStatusEffect OnStartEffect { get; }
-    public SimpleStatusEffect OnRemoveEffect { get; }
-    public SimpleStatusEffect OnExpireEffect { get; }
-    public StatInfo BonusModifiers { get; set; } = new StatInfo();
-
-    public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
-    public double Elapsed => (DateTime.Now - Start).TotalSeconds;
-    public double Remaining => Duration - Elapsed;
-
-    public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
-
-    public CreatureStatus(Xml.Status xmlstatus, Creature target, Xml.Castable castable = null, Creature source = null, int duration = -1, int tickFrequency = -1, double intensity = 1.0)
+    public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source = null,
+        int duration = -1, int tickFrequency = -1, double intensity = 1.0)
     {
         Target = target;
         XmlStatus = xmlstatus;
@@ -211,7 +171,7 @@ public class CreatureStatus : ICreatureStatus
         // (intensity, etc) in order to do damage calculations.
 
         if (castable != null)
-        {             
+        {
             var start = CalculateNumericEffects(castable, xmlstatus.Effects.OnApply, source);
             var tick = CalculateNumericEffects(castable, xmlstatus.Effects.OnTick, source);
             var end = CalculateNumericEffects(castable, xmlstatus.Effects.OnRemove, source);
@@ -220,7 +180,8 @@ public class CreatureStatus : ICreatureStatus
             OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
             OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
             OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
-            BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, intensity, xmlstatus.Effects.OnApply.StatModifiers, source, target);
+            BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, intensity,
+                xmlstatus.Effects.OnApply.StatModifiers, source, target);
         }
     }
 
@@ -229,10 +190,10 @@ public class CreatureStatus : ICreatureStatus
         Target = target;
         if (!string.IsNullOrEmpty(serialized.Name))
         {
-            if (Game.World.WorldData.TryGetValue(serialized.Name, out Xml.Status status))
+            if (Game.World.WorldData.TryGetValue(serialized.Name, out Status status))
             {
                 XmlStatus = status;
-                Start = DateTime.Now;               
+                Start = DateTime.Now;
                 Duration = serialized.Remaining;
                 Tick = serialized.Tick;
                 OnTickEffect = serialized.OnTickEffect;
@@ -243,12 +204,82 @@ public class CreatureStatus : ICreatureStatus
             }
             else
             {
-                throw new ArgumentException($"Serialized status {serialized.Name} does not exist or could not be found");
+                throw new ArgumentException(
+                    $"Serialized status {serialized.Name} does not exist or could not be found");
             }
         }
     }
 
-    private void ProcessSfx(Xml.ModifierEffect effect)
+    public string Category => XmlStatus.Category;
+    protected User TargetUser => Target as User;
+    protected User SourceUser => Target as User;
+
+    public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
+
+    public Castable Castable { get; set; }
+    public Status XmlStatus { get; set; }
+    public StatInfo BonusModifiers { get; set; } = new();
+    public string Name => XmlStatus.Name;
+    public ushort Icon => XmlStatus.Icon;
+    public double Tick { get; }
+    public double Duration { get; }
+    public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
+    public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
+    public double Intensity { get; set; } = 1;
+
+    public StatusInfo Info => new()
+    {
+        Name = Name,
+        OnStartEffect = OnStartEffect,
+        OnRemoveEffect = OnRemoveEffect,
+        OnTickEffect = OnTickEffect,
+        OnExpireEffect = OnExpireEffect,
+        Remaining = Remaining,
+        Tick = Tick,
+        Category = Category,
+        Intensity = Intensity
+    };
+
+    public Creature Target { get; }
+    public Creature Source { get; }
+
+    public DateTime Start { get; }
+
+    public DateTime LastTick { get; private set; }
+    public string ActionProhibitedMessage { get; set; }
+
+    public void OnStart(bool displaySfx = true)
+    {
+        _processStart(displaySfx);
+    }
+
+    public void OnEnd()
+    {
+        _processRemove();
+    }
+
+    public void OnTick()
+    {
+        _processTick();
+    }
+
+    public void OnExpire()
+    {
+        _processExpire();
+    }
+
+    public SimpleStatusEffect OnTickEffect { get; }
+    public SimpleStatusEffect OnStartEffect { get; }
+    public SimpleStatusEffect OnRemoveEffect { get; }
+    public SimpleStatusEffect OnExpireEffect { get; }
+
+    public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
+    public double Elapsed => (DateTime.Now - Start).TotalSeconds;
+    public double Remaining => Duration - Elapsed;
+
+    public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
+
+    private void ProcessSfx(ModifierEffect effect)
     {
         if (effect == null) return;
         if (effect.Sound != null && effect.Sound.Id != 0)
@@ -256,19 +287,22 @@ public class CreatureStatus : ICreatureStatus
             (Target as User)?.PlaySound(effect.Sound.Id);
             (Source as User)?.PlaySound(effect.Sound.Id);
         }
+
         if (effect.Animations != null)
         {
             if (effect.Animations?.Target != null && effect.Animations.Target.Id != 0)
             {
                 var animation = effect.Animations.Target;
-                if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose && animation.Id == (Game.Config.Handlers?.Death?.Coma?.Effect ?? 24)))
+                if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose &&
+                                                                        animation.Id == (Game.Config.Handlers?.Death
+                                                                            ?.Coma?.Effect ?? 24)))
                     Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
             }
+
             if (effect.Animations?.SpellEffect != null && effect.Animations?.SpellEffect.Id != 0)
-            {
                 Source?.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
-            }
         }
+
         // Message handling
         if (effect.Messages != null)
         {
@@ -279,8 +313,10 @@ public class CreatureStatus : ICreatureStatus
                 if (effect.Messages?.Group != null)
                     TargetUser.Group?.SendMessage(string.Format(effect.Messages.Group, SourceUser.Name));
             }
+
             if (effect.Messages?.Source != null && TargetUser != null && TargetUser != SourceUser)
-                (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source, TargetUser?.Name ?? string.Empty));
+                (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source,
+                    TargetUser?.Name ?? string.Empty));
             if (effect.Messages?.Say != null)
                 Target.Say(string.Format(effect.Messages.Say, Target.Name ?? string.Empty));
             if (effect.Messages?.Shout != null)
@@ -289,7 +325,7 @@ public class CreatureStatus : ICreatureStatus
     }
 
 
-    private void ProcessConditions(Xml.ModifierEffect effect)
+    private void ProcessConditions(ModifierEffect effect)
     {
         if (effect == null) return;
         if (effect.Conditions?.Set != null)
@@ -300,25 +336,20 @@ public class CreatureStatus : ICreatureStatus
 
     private void ProcessStatModifiers(bool remove = false)
     {
-        if (remove) 
+        if (remove)
             Target.Stats.Remove(BonusModifiers);
         else
             Target.Stats.Apply(BonusModifiers);
     }
 
-    private (double Heal, DamageOutput Damage) CalculateNumericEffects(Xml.Castable castable, Xml.ModifierEffect effect, Creature source)
+    private (double Heal, DamageOutput Damage) CalculateNumericEffects(Castable castable, ModifierEffect effect,
+        Creature source)
     {
         double heal = 0;
         var dmg = new DamageOutput();
         if (effect == null) return (heal, dmg);
-        if (effect.Heal != null)
-        {
-            heal = NumberCruncher.CalculateHeal(castable, effect, Target, source, Name);
-        }
-        if (effect.Damage != null)
-        {
-            dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
-        }
+        if (effect.Heal != null) heal = NumberCruncher.CalculateHeal(castable, effect, Target, source, Name);
+        if (effect.Damage != null) dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
         return (heal, dmg);
     }
 
@@ -331,7 +362,7 @@ public class CreatureStatus : ICreatureStatus
             Target.Heal(effect.Heal, Source);
     }
 
-    private void ProcessFullEffects(Xml.ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
+    private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
     {
         if (effect == null) return;
         // Stat modifiers and condition changes are only processed during start/remove
@@ -341,9 +372,9 @@ public class CreatureStatus : ICreatureStatus
             ProcessSfx(effect);
     }
 
-    private void ProcessHandler(Xml.Handler handler)
+    private void ProcessHandler(Handler handler)
     {
-        if ((handler?.Function ?? string.Empty ) == string.Empty)
+        if ((handler?.Function ?? string.Empty) == string.Empty)
             return;
 
         // If a handler is specified, check the script for it first. Note that we don't run both;
@@ -351,7 +382,7 @@ public class CreatureStatus : ICreatureStatus
         VisibleObject invoker;
         VisibleObject invokee;
 
-        if (handler.ScriptSource == Xml.ScriptSource.Target)
+        if (handler.ScriptSource == ScriptSource.Target)
         {
             invokee = Target;
             invoker = Source;
@@ -364,26 +395,26 @@ public class CreatureStatus : ICreatureStatus
 
         if (invokee.Script != null)
         {
-            invokee.Script.ExecuteFunction(handler.Function, ScriptEnvironment.CreateWithTargetAndSource(invoker, invokee));
+            invokee.Script.ExecuteFunction(handler.Function,
+                ScriptEnvironment.CreateWithTargetAndSource(invoker, invokee));
             return;
         }
 
-        Type type = invokee.GetType();
+        var type = invokee.GetType();
 
         try
         {
-            MethodInfo methodInfo = type.GetMethod(handler.Function);
-            methodInfo.Invoke(invokee,null);
+            var methodInfo = type.GetMethod(handler.Function);
+            methodInfo.Invoke(invokee, null);
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.Error("Exception processing status handler: {exception}", e);
-
         }
     }
- 
-    private void ProcessEffects(Xml.ModifierEffect effect)
+
+    private void ProcessEffects(ModifierEffect effect)
     {
         if (effect == null) return;
         ProcessSfx(effect);
@@ -399,7 +430,7 @@ public class CreatureStatus : ICreatureStatus
     private void _processTick()
     {
         LastTick = DateTime.Now;
-       
+
         ProcessEffects(XmlStatus.Effects.OnTick);
         ProcessNumericEffects(OnTickEffect);
         ProcessHandler(XmlStatus.Effects?.OnTick?.Handler);
@@ -418,5 +449,4 @@ public class CreatureStatus : ICreatureStatus
         ProcessNumericEffects(OnExpireEffect);
         ProcessHandler(XmlStatus.Effects?.OnExpire?.Handler);
     }
-
 }

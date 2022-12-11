@@ -18,32 +18,22 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Scripting;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using Hybrasyl.Controllers;
 using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
+using Hybrasyl.Scripting;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl.Objects;
 
 public class MerchantInventoryItem
 {
-    public Xml.Item Item { get; private set; }
-    public uint OnHand { get; set; }
-    public uint RestockAmount { get; private set; }
-    public int RestockInterval { get; private set; }
-    public DateTime LastRestock { get; set; }
-
-    public MerchantInventoryItem(Xml.Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
+    public MerchantInventoryItem(Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
     {
         Item = item;
         OnHand = onHand;
@@ -52,36 +42,22 @@ public class MerchantInventoryItem
         LastRestock = lastRestock;
     }
 
+    public Item Item { get; }
+    public uint OnHand { get; set; }
+    public uint RestockAmount { get; }
+    public int RestockInterval { get; }
+    public DateTime LastRestock { get; set; }
 }
 
 public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
 {
     // TODO: move these to new base class (eg Creature->NewClass->Merchant|Reactor etc)
     private readonly object inventoryLock = new();
-    public List<DialogSequence> Pursuits { get; set; } = new();
-    public Dictionary<string, string> Strings { get; set; } = new();
-    public Dictionary<string, string> Responses { get; set; } = new();
-    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
-    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
     public bool Ready;
-    public string Filename { get; set; }
     public Npc Template;
-    public MerchantJob Jobs { get; set; }
-    private MerchantController Controller { get; set; }
-    public List<MerchantInventoryItem> MerchantInventory { get; set; }
-
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
-    // TODO: remove this when base(<interface name>) is actually added to the language
-    public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);
-
-    public string GetLocalString(string key, params (string Token, string Value)[] replacements) =>
-        ((IResponseCapable) this).DefaultGetLocalString(key);
 
     public Merchant(Npc npc)
-        : base()
     {
         Template = npc;
         Sprite = npc.Appearance.Sprite;
@@ -89,10 +65,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         AllowDead = npc.AllowDead;
         Controller = new MerchantController(this);
 
-        foreach (var str in npc.Strings)
-        {
-            Strings[str.Key] = str.Value;
-        }
+        foreach (var str in npc.Strings) Strings[str.Key] = str.Value;
 
         foreach (var resp in npc.Responses)
         {
@@ -102,59 +75,88 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
 
         if (npc.Roles != null)
         {
-            if (npc.Roles.Post != null)
-            {
-                Jobs ^= MerchantJob.Post;
-            }
+            if (npc.Roles.Post != null) Jobs ^= MerchantJob.Post;
 
-            if (npc.Roles.Bank != null)
-            {
-                Jobs ^= MerchantJob.Bank;
-            }
+            if (npc.Roles.Bank != null) Jobs ^= MerchantJob.Bank;
 
-            if (npc.Roles.Repair != null)
-            {
-                Jobs ^= MerchantJob.Repair;
-            }
+            if (npc.Roles.Repair != null) Jobs ^= MerchantJob.Repair;
 
             if (npc.Roles.Train != null)
             {
-                if (npc.Roles.Train.Any(x => x.Type == "Skill")) Jobs ^= MerchantJob.Skills;
-                if (npc.Roles.Train.Any(x => x.Type == "Spell")) Jobs ^= MerchantJob.Spells;
+                if (npc.Roles.Train.Any(predicate: x => x.Type == "Skill")) Jobs ^= MerchantJob.Skills;
+                if (npc.Roles.Train.Any(predicate: x => x.Type == "Spell")) Jobs ^= MerchantJob.Spells;
             }
 
-            if (npc.Roles.Vend != null)
-            {
-                Jobs ^= MerchantJob.Vend;
-            }
-
+            if (npc.Roles.Vend != null) Jobs ^= MerchantJob.Vend;
         }
 
         Ready = false;
     }
 
+    public MerchantJob Jobs { get; set; }
+    private MerchantController Controller { get; set; }
+    public List<MerchantInventoryItem> MerchantInventory { get; set; }
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+    public List<DialogSequence> Pursuits { get; set; } = new();
+    public Dictionary<string, string> Strings { get; set; } = new();
+    public Dictionary<string, string> Responses { get; set; } = new();
+    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
+    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
+
+    public override void ShowTo(IVisible obj)
+    {
+        if (obj is not User user) return;
+        var npcPacket = new ServerPacket(0x07);
+        npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
+        npcPacket.WriteUInt16(X);
+        npcPacket.WriteUInt16(Y);
+        npcPacket.WriteUInt32(Id);
+        npcPacket.WriteUInt16((ushort) (Sprite + 0x4000));
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte((byte) Direction);
+        npcPacket.WriteByte(0);
+        npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
+        npcPacket.WriteString8(Name);
+        user.Enqueue(npcPacket);
+    }
+
+    public string Filename { get; set; }
+
+    // TODO: remove this when base(<interface name>) is actually added to the language. .NET 7 maybe
+    public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);
+
+    public string GetLocalString(string key, params (string Token, string Value)[] replacements) =>
+        ((IResponseCapable) this).DefaultGetLocalString(key, replacements);
+
     public uint GetOnHand(string itemName)
     {
-        lock(inventoryLock)
+        lock (inventoryLock)
         {
-            return MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand;
+            return MerchantInventory.FirstOrDefault(predicate: x => x.Item.Name == itemName).OnHand;
         }
     }
 
     public void ReduceInventory(string itemName, uint quantity)
     {
-        lock(inventoryLock)
+        lock (inventoryLock)
         {
-            MerchantInventory.FirstOrDefault(x => x.Item.Name == itemName).OnHand -= quantity;
+            MerchantInventory.FirstOrDefault(predicate: x => x.Item.Name == itemName).OnHand -= quantity;
         }
     }
 
     public void RestockInventory()
     {
-        lock(inventoryLock)
+        lock (inventoryLock)
         {
             if (MerchantInventory == null) return;
-            foreach (var inventoryItem in MerchantInventory.Where(inventoryItem => inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now))
+            foreach (var inventoryItem in MerchantInventory.Where(predicate: inventoryItem =>
+                         inventoryItem.LastRestock.AddMinutes(inventoryItem.RestockInterval) < DateTime.Now))
             {
                 inventoryItem.OnHand = inventoryItem.RestockAmount;
                 inventoryItem.LastRestock = DateTime.Now;
@@ -170,12 +172,16 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             if (MerchantInventory == null) return ret;
             ret.AddRange(MerchantInventory);
         }
+
         return ret;
     }
 
     // Currently, NPCs can not be healed or damaged in any way whatsoever
-    public override void Heal(double heal, Creature source = null) { return; }
-    public override void Damage(double damage, Xml.ElementType element = Xml.ElementType.None, Xml.DamageType damageType = Xml.DamageType.Direct, Xml.DamageFlags damageFlags = Xml.DamageFlags.None, Creature attacker = null, bool onDeath = true) { return; }
+    public override void Heal(double heal, Creature source = null) { }
+
+    public override void Damage(double damage, ElementType element = ElementType.None,
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
+        bool onDeath = true) { }
 
     public void OnSpawn()
     {
@@ -186,13 +192,11 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             lock (inventoryLock)
             {
                 foreach (var item in Template.Roles.Vend.Items)
-                {
-                    if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Xml.Item worldItem))
+                    if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Item worldItem))
                         MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,
                             (uint) item.Quantity, item.Restock, DateTime.Now));
                     else
                         GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
-                }
             }
         }
 
@@ -203,12 +207,14 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             Script = script;
             Script.AssociateScriptWithObject(this);
             // Clear existing pursuits, in case the OnSpawn crashes / has a bug
-            (this as IPursuitable).ResetPursuits();            
-            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin",this)));
+            (this as IPursuitable).ResetPursuits();
+            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this)));
             Ready = ret.Result == ScriptResult.Success;
         }
         else
+        {
             Ready = true;
+        }
     }
 
     public override void OnHear(SpokenEvent e)
@@ -224,7 +230,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             return;
 
         // Call/response?
-        if (Responses.TryGetValue(e.SanitizedMessage, out string response) )
+        if (Responses.TryGetValue(e.SanitizedMessage, out var response))
         {
             // TODO: improve
             Say(response.Replace("$NAME", Name));
@@ -240,14 +246,15 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
 
         // Pass onto a script
         base.OnHear(e);
-
     }
 
     public override string Status()
     {
         string ret;
         if (LastExecutionResult == null)
+        {
             ret = $"{Name}: script has never executed";
+        }
         else
         {
             ret =
@@ -270,45 +277,19 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         if (Script != null && Script.HasFunction("OnClick"))
             Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithTargetAndSource(invoker, invoker));
         else
-           (this as IPursuitable).DisplayPursuits(invoker);
+            (this as IPursuitable).DisplayPursuits(invoker);
     }
 
     public override void AoiEntry(VisibleObject obj)
     {
         base.AoiEntry(obj);
-        if (Script != null)
-        {
-            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithTargetAndSource(obj, obj));
-        }
+        if (Script != null) Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithTargetAndSource(obj, obj));
     }
 
     public override void AoiDeparture(VisibleObject obj)
     {
         base.AoiDeparture(obj);
-        if (Script != null)
-        {
-            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithTargetAndSource(obj, obj));
-        }
-    }
-
-    public override void ShowTo(IVisible obj)
-    {
-        if (obj is not User user) return;
-        var npcPacket = new ServerPacket(0x07);
-        npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
-        npcPacket.WriteUInt16(X);
-        npcPacket.WriteUInt16(Y);
-        npcPacket.WriteUInt32(Id);
-        npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte((byte)Direction);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-        npcPacket.WriteString8(Name);
-        user.Enqueue(npcPacket);
+        if (Script != null) Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithTargetAndSource(obj, obj));
     }
 }
 
@@ -386,10 +367,7 @@ public enum MerchantMenuItem : ushort
     SendParcelAccept = 0xFF52,
     SendParcelSuccess = 0xFF53,
     SendParcelFailure = 0xFF54,
-    SendParcelQuantity = 0xFF55,
-        
-        
-
+    SendParcelQuantity = 0xFF55
 }
 
 public enum MerchantDialogType : byte
@@ -513,18 +491,16 @@ public struct MerchantSkill
     public string Name;
 }
 
-
-
-
 public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);
 
 public class MerchantMenuHandler
 {
-    public MerchantJob RequiredJob { get; set; }
-    public MerchantMenuHandlerDelegate Callback { get; set; }
     public MerchantMenuHandler(MerchantJob requiredJob, MerchantMenuHandlerDelegate callback)
     {
         RequiredJob = requiredJob;
         Callback = callback;
     }
+
+    public MerchantJob RequiredJob { get; set; }
+    public MerchantMenuHandlerDelegate Callback { get; set; }
 }

@@ -1,10 +1,11 @@
 using System;
-using Hybrasyl;
-using Hybrasyl.Xml;
-using Hybrasyl.Objects;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl;
+using Hybrasyl.ClientPackets;
+using Hybrasyl.Xml;
 using Xunit;
+
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace HybrasylTests;
@@ -21,14 +22,12 @@ public class Inventory
 
     public static IEnumerable<object[]> XmlItems()
     {
-        yield return new object[] {Fixture.TestItem, Fixture.StackableTestItem};
-
+        yield return new object[] { Fixture.TestItem, Fixture.StackableTestItem };
     }
 
     public static IEnumerable<object[]> StackableXmlItems()
     {
-        yield return new object[] {Fixture.StackableTestItem};
-
+        yield return new object[] { Fixture.StackableTestItem };
     }
 
     [Fact]
@@ -105,14 +104,14 @@ public class Inventory
                 $"Inventory had {i.Name} added but is not found by template ID");
             var objList = Fixture.TestUser.Inventory.TryGetValueByName(i.Name, out var invObjName);
             Assert.True(objList, $"Inventory had {i.Name} added but TryGetValueByName fails");
-            Assert.Contains(invObjName, x => x.obj == itemObj);
+            Assert.Contains(invObjName, filter: x => x.obj == itemObj);
             //$"Inventory had {i.Name} but return list from TryGetValueByName does not contain it");
 
             Assert.True(Fixture.TestUser.Inventory.Count == numItems,
                 $"Inventory has had {numItems} items added, but count ({Fixture.TestUser.Inventory.Count}) is not equivalent");
             Assert.True(invObj.Name == i.Name,
                 $"TryGetValue: Inventory contains an item {invObj.Name} but it isn't the test item {i.Name}");
-            Assert.True(invObjName.Select(x => x.obj.Name == itemObj.Name).Count() == invObjName.Count,
+            Assert.True(invObjName.Select(selector: x => x.obj.Name == itemObj.Name).Count() == invObjName.Count,
                 $"TryGetValueByName: Inventory contains a singular item {itemObj.Name} but multiple items returned");
             Assert.True(Fixture.TestUser.Inventory.ContainsId(i.Id),
                 $"Contains: Inventory should contain {i.Name} but returned false");
@@ -136,11 +135,12 @@ public class Inventory
             Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
             Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
         }
+
         // All 10 slots contain xmlitem tagged items
         Assert.Equal(new List<byte> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 },
             Fixture.TestUser.Inventory.GetSlotsByCategory("xmlitem"));
         // Assert first five slots contain junk
-        Assert.Equal(new List<byte> {1, 2, 3, 4, 5},
+        Assert.Equal(new List<byte> { 1, 2, 3, 4, 5 },
             Fixture.TestUser.Inventory.GetSlotsByCategory("junk"));
         // Next five slots should contain "stackable"
         Assert.Equal(new List<byte> { 6, 7, 8, 9, 10 },
@@ -150,14 +150,9 @@ public class Inventory
             Fixture.TestUser.Inventory.GetSlotsByCategory("StAcKaBlE"));
 
         // After a swap, GetSlotsByCategory should return correct results
-        for (byte x = 6; x <= 10; x++)
-        {
-            Assert.True(Fixture.TestUser.Inventory.Swap(x, (byte) (59 - x)));
-        }
+        for (byte x = 6; x <= 10; x++) Assert.True(Fixture.TestUser.Inventory.Swap(x, (byte) (59 - x)));
         Assert.Equal(new List<byte> { 53, 52, 51, 50, 49 },
             Fixture.TestUser.Inventory.GetSlotsByCategory("stackable"));
-
-
     }
 
     [Theory]
@@ -179,10 +174,7 @@ public class Inventory
     {
         Fixture.TestUser.Inventory.Clear();
 
-        for (var x = 1; x < 6; x++)
-        {
-            Fixture.TestUser.AddItem(Game.World.CreateItem(items[0].Id));
-        }
+        for (var x = 1; x < 6; x++) Fixture.TestUser.AddItem(Game.World.CreateItem(items[0].Id));
 
         Assert.True(Fixture.TestUser.Inventory.Count == 5,
             $"Inventory with five items should have count of 5, count is {Fixture.TestUser.Inventory.Count}");
@@ -190,6 +182,36 @@ public class Inventory
             "First slot: Inventory contains an item but it isn't a test item");
         Assert.True(Fixture.TestUser.Inventory[5].Name == "Test Item",
             "Fifth slot: Inventory contains an item but it isn't a test item");
+    }
+
+    [Theory]
+    [MemberData(nameof(XmlItems))]
+    public void DropItemPacket(params Item[] items)
+    {
+        Fixture.TestUser.Inventory.Clear();
+        foreach (var item in items) Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+
+        var guid = Fixture.TestUser.Inventory[1].Guid;
+        var testPacket = new DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
+            (uint) Fixture.TestUser.Inventory[1].Count);
+
+        var handler = Game.World.PacketHandlers[0x08];
+        Assert.NotNull(handler);
+        handler(Fixture.TestUser, (ClientPacket) testPacket);
+
+        // Assert X,Y contains the item we just dropped
+
+        var tileContents = Fixture.TestUser.Map.GetTileContents(Fixture.TestUser.X, Fixture.TestUser.Y);
+        var tileGuids = tileContents.Select(selector: x => x.Guid);
+        // Tile should contain the user and the dropped object
+        Assert.True(tileContents.Count == 2);
+        // Tile should contain the test user
+        Assert.Contains(Fixture.TestUser, tileContents);
+        // Inventory slot should be empty
+        Assert.Null(Fixture.TestUser.Inventory[1]);
+        // Tile should contain objects with same guid as the user and the item
+        Assert.Contains(Fixture.TestUser.Guid, tileGuids);
+        Assert.Contains(guid, tileGuids);
     }
 
     [Theory]
@@ -208,10 +230,8 @@ public class Inventory
         }
 
         for (byte x = 1; x <= 10; x++)
-        {
             Assert.True(Fixture.TestUser.Inventory[x] != null,
                 "SwapItems: slot {x} is null but should not be");
-        }
         // Swap with inventory between two filled slots
         Fixture.TestUser.Inventory.Swap(1, 6);
         Assert.True(Fixture.TestUser.Inventory[1].Name == "Stackable Test Item");
@@ -223,7 +243,7 @@ public class Inventory
         Assert.True(Fixture.TestUser.Inventory[59].Name == "Test Item");
 
         // Swap with user function between two filled slots
-        Fixture.TestUser.SwapItem(3,7);
+        Fixture.TestUser.SwapItem(3, 7);
         Assert.True(Fixture.TestUser.Inventory[3].Name == "Stackable Test Item");
         Assert.True(Fixture.TestUser.Inventory[7].Name == "Test Item");
 
@@ -262,10 +282,8 @@ public class Inventory
     {
         Fixture.TestUser.Inventory.Clear();
         for (var x = 1; x <= HybrasylFixture.InventorySize; x++)
-        {
             Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item[0].Id)),
                 $"Adding item #{x} to inventory failed, sys msg {Fixture.TestUser.LastSystemMessage}");
-        }
 
         Assert.True(Fixture.TestUser.Inventory.IsFull,
             $"Inventory that is full should return isFull == true, {Fixture.TestUser.LastSystemMessage}");
@@ -279,10 +297,8 @@ public class Inventory
     {
         Fixture.TestUser.Inventory.Clear();
         for (var x = 0; x < 10; x++)
-        {
             Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item[0].Id)),
                 $"Adding item #{x} to inventory failed");
-        }
 
         Assert.False(Fixture.TestUser.Inventory.IsFull, "Non-full inventory should not be full");
         Assert.True(Fixture.TestUser.Inventory.Weight == item[0].Properties.Physical.Weight * 10,
@@ -307,41 +323,41 @@ public class Inventory
 
         // TODO: make slots uniform. haha no really
 
-        Assert.True(Fixture.TestUser.Equipment.Weapon.Name == $"Equip Test Weapon",
+        Assert.True(Fixture.TestUser.Equipment.Weapon.Name == "Equip Test Weapon",
             $"Weapon should be Equip Test Weapon, is {Fixture.TestUser.Equipment.Weapon.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Armor.Name == $"Equip Test Armor",
+        Assert.True(Fixture.TestUser.Equipment.Armor.Name == "Equip Test Armor",
             $"Armor should be Equip Test Armor, is {Fixture.TestUser.Equipment.Armor.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Shield.Name == $"Equip Test Shield",
+        Assert.True(Fixture.TestUser.Equipment.Shield.Name == "Equip Test Shield",
             $"Shield should be Equip Test Shield, is {Fixture.TestUser.Equipment.Shield.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Helmet.Name == $"Equip Test Helmet",
+        Assert.True(Fixture.TestUser.Equipment.Helmet.Name == "Equip Test Helmet",
             $"Helmet should be Equip Test Helmet, is {Fixture.TestUser.Equipment.Helmet.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Earring.Name == $"Equip Test Earring",
+        Assert.True(Fixture.TestUser.Equipment.Earring.Name == "Equip Test Earring",
             $"Earring should be Equip Test Earring, is {Fixture.TestUser.Equipment.Earring.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Necklace.Name == $"Equip Test Necklace",
+        Assert.True(Fixture.TestUser.Equipment.Necklace.Name == "Equip Test Necklace",
             $"Necklace should be Equip Test Necklace, is {Fixture.TestUser.Equipment.Necklace.Name}");
-        Assert.True(Fixture.TestUser.Equipment.LRing.Name == $"Equip Test LeftHand",
+        Assert.True(Fixture.TestUser.Equipment.LRing.Name == "Equip Test LeftHand",
             $"LRing should be Equip Test LeftHand, is {Fixture.TestUser.Equipment.LRing.Name}");
-        Assert.True(Fixture.TestUser.Equipment.RRing.Name == $"Equip Test RightHand",
+        Assert.True(Fixture.TestUser.Equipment.RRing.Name == "Equip Test RightHand",
             $"RRing should be Equip Test RightHand, is {Fixture.TestUser.Equipment.RRing.Name}");
-        Assert.True(Fixture.TestUser.Equipment.LGauntlet.Name == $"Equip Test LeftArm",
+        Assert.True(Fixture.TestUser.Equipment.LGauntlet.Name == "Equip Test LeftArm",
             $"LGauntlet should be Equip Test LeftArm, is {Fixture.TestUser.Equipment.LGauntlet.Name}");
-        Assert.True(Fixture.TestUser.Equipment.RGauntlet.Name == $"Equip Test RightArm",
+        Assert.True(Fixture.TestUser.Equipment.RGauntlet.Name == "Equip Test RightArm",
             $"RGauntlet should be Equip Test RightArm, is {Fixture.TestUser.Equipment.RGauntlet.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Belt.Name == $"Equip Test Waist",
+        Assert.True(Fixture.TestUser.Equipment.Belt.Name == "Equip Test Waist",
             $"Belt should be Equip Test Waist, is {Fixture.TestUser.Equipment.Belt.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Greaves.Name == $"Equip Test Leg",
+        Assert.True(Fixture.TestUser.Equipment.Greaves.Name == "Equip Test Leg",
             $"Greaves should be Equip Test Leg, is {Fixture.TestUser.Equipment.Greaves.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Boots.Name == $"Equip Test Foot",
+        Assert.True(Fixture.TestUser.Equipment.Boots.Name == "Equip Test Foot",
             $"Boots should be Equip Test Foot, is {Fixture.TestUser.Equipment.Boots.Name}");
-        Assert.True(Fixture.TestUser.Equipment.FirstAcc.Name == $"Equip Test FirstAcc",
+        Assert.True(Fixture.TestUser.Equipment.FirstAcc.Name == "Equip Test FirstAcc",
             $"FirstAcc should be Equip Test FirstAcc, is {Fixture.TestUser.Equipment.FirstAcc.Name}");
-        Assert.True(Fixture.TestUser.Equipment.SecondAcc.Name == $"Equip Test SecondAcc",
+        Assert.True(Fixture.TestUser.Equipment.SecondAcc.Name == "Equip Test SecondAcc",
             $"SecondAcc should be Equip Test SecondAcc, is {Fixture.TestUser.Equipment.SecondAcc.Name}");
-        Assert.True(Fixture.TestUser.Equipment.ThirdAcc.Name == $"Equip Test ThirdAcc",
+        Assert.True(Fixture.TestUser.Equipment.ThirdAcc.Name == "Equip Test ThirdAcc",
             $"ThirdAcc should be Equip Test ThirdAcc, is {Fixture.TestUser.Equipment.ThirdAcc.Name}");
-        Assert.True(Fixture.TestUser.Equipment.Overcoat.Name == $"Equip Test Trousers",
+        Assert.True(Fixture.TestUser.Equipment.Overcoat.Name == "Equip Test Trousers",
             $"Overcoat should be Equip Test Trousers, is {Fixture.TestUser.Equipment.Overcoat.Name}");
-        Assert.True(Fixture.TestUser.Equipment.DisplayHelm.Name == $"Equip Test Coat",
+        Assert.True(Fixture.TestUser.Equipment.DisplayHelm.Name == "Equip Test Coat",
             $"DisplayHelm should be Equip Test Coat, is {Fixture.TestUser.Equipment.DisplayHelm.Name}");
         Assert.True(Fixture.TestUser.Equipment.Weight == 18,
             $"Test equipment weight is 18 but equipped weight is {Fixture.TestUser.Equipment.Weight}");
@@ -368,8 +384,8 @@ public class Inventory
 
         Assert.True(u1.Inventory[1] != null, "Inventory slot 1 should be non-null after deserialization");
         Assert.True(u1.Inventory[2] != null, "Inventory slot 2 should be non-null after deserialization");
-        Assert.True(u1.Inventory.TryGetValueByName("Test Item", out _), "Deserialized inventory failed TryGetValueByName");
-
+        Assert.True(u1.Inventory.TryGetValueByName("Test Item", out _),
+            "Deserialized inventory failed TryGetValueByName");
     }
 
     [Fact]
@@ -389,44 +405,44 @@ public class Inventory
 
         Fixture.TestUser.Save();
 
-        Assert.True(Game.World.WorldData.TryGetUser("TestUser", out User u1),
+        Assert.True(Game.World.WorldData.TryGetUser("TestUser", out var u1),
             "Test user should exist after save but can't be found");
 
-        Assert.True(u1.Equipment.Weapon.Name == $"Equip Test Weapon",
+        Assert.True(u1.Equipment.Weapon.Name == "Equip Test Weapon",
             $"Weapon should be Equip Test Weapon, is {u1.Equipment.Weapon.Name}");
-        Assert.True(u1.Equipment.Armor.Name == $"Equip Test Armor",
+        Assert.True(u1.Equipment.Armor.Name == "Equip Test Armor",
             $"Armor should be Equip Test Armor, is {u1.Equipment.Armor.Name}");
-        Assert.True(u1.Equipment.Shield.Name == $"Equip Test Shield",
+        Assert.True(u1.Equipment.Shield.Name == "Equip Test Shield",
             $"Shield should be Equip Test Shield, is {u1.Equipment.Shield.Name}");
-        Assert.True(u1.Equipment.Helmet.Name == $"Equip Test Helmet",
+        Assert.True(u1.Equipment.Helmet.Name == "Equip Test Helmet",
             $"Helmet should be Equip Test Helmet, is {u1.Equipment.Helmet.Name}");
-        Assert.True(u1.Equipment.Earring.Name == $"Equip Test Earring",
+        Assert.True(u1.Equipment.Earring.Name == "Equip Test Earring",
             $"Earring should be Equip Test Earring, is {u1.Equipment.Earring.Name}");
-        Assert.True(u1.Equipment.Necklace.Name == $"Equip Test Necklace",
+        Assert.True(u1.Equipment.Necklace.Name == "Equip Test Necklace",
             $"Necklace should be Equip Test Necklace, is {u1.Equipment.Necklace.Name}");
-        Assert.True(u1.Equipment.LRing.Name == $"Equip Test LeftHand",
+        Assert.True(u1.Equipment.LRing.Name == "Equip Test LeftHand",
             $"LRing should be Equip Test LeftHand, is {u1.Equipment.LRing.Name}");
-        Assert.True(u1.Equipment.RRing.Name == $"Equip Test RightHand",
+        Assert.True(u1.Equipment.RRing.Name == "Equip Test RightHand",
             $"RRing should be Equip Test RightHand, is {u1.Equipment.RRing.Name}");
-        Assert.True(u1.Equipment.LGauntlet.Name == $"Equip Test LeftArm",
+        Assert.True(u1.Equipment.LGauntlet.Name == "Equip Test LeftArm",
             $"LGauntlet should be Equip Test LeftArm, is {u1.Equipment.LGauntlet.Name}");
-        Assert.True(u1.Equipment.RGauntlet.Name == $"Equip Test RightArm",
+        Assert.True(u1.Equipment.RGauntlet.Name == "Equip Test RightArm",
             $"RGauntlet should be Equip Test RightArm, is {u1.Equipment.RGauntlet.Name}");
-        Assert.True(u1.Equipment.Belt.Name == $"Equip Test Waist",
+        Assert.True(u1.Equipment.Belt.Name == "Equip Test Waist",
             $"Belt should be Equip Test Waist, is {u1.Equipment.Belt.Name}");
-        Assert.True(u1.Equipment.Greaves.Name == $"Equip Test Leg",
+        Assert.True(u1.Equipment.Greaves.Name == "Equip Test Leg",
             $"Greaves should be Equip Test Leg, is {u1.Equipment.Greaves.Name}");
-        Assert.True(u1.Equipment.Boots.Name == $"Equip Test Foot",
+        Assert.True(u1.Equipment.Boots.Name == "Equip Test Foot",
             $"Boots should be Equip Test Foot, is {u1.Equipment.Boots.Name}");
-        Assert.True(u1.Equipment.FirstAcc.Name == $"Equip Test FirstAcc",
+        Assert.True(u1.Equipment.FirstAcc.Name == "Equip Test FirstAcc",
             $"FirstAcc should be Equip Test FirstAcc, is {u1.Equipment.FirstAcc.Name}");
-        Assert.True(u1.Equipment.SecondAcc.Name == $"Equip Test SecondAcc",
+        Assert.True(u1.Equipment.SecondAcc.Name == "Equip Test SecondAcc",
             $"SecondAcc should be Equip Test SecondAcc, is {u1.Equipment.SecondAcc.Name}");
-        Assert.True(u1.Equipment.ThirdAcc.Name == $"Equip Test ThirdAcc",
+        Assert.True(u1.Equipment.ThirdAcc.Name == "Equip Test ThirdAcc",
             $"ThirdAcc should be Equip Test ThirdAcc, is {u1.Equipment.ThirdAcc.Name}");
-        Assert.True(u1.Equipment.Overcoat.Name == $"Equip Test Trousers",
+        Assert.True(u1.Equipment.Overcoat.Name == "Equip Test Trousers",
             $"Overcoat should be Equip Test Trousers, is {u1.Equipment.Overcoat.Name}");
-        Assert.True(u1.Equipment.DisplayHelm.Name == $"Equip Test Coat",
+        Assert.True(u1.Equipment.DisplayHelm.Name == "Equip Test Coat",
             $"DisplayHelm should be Equip Test Coat, is {u1.Equipment.DisplayHelm.Name}");
 
         u1.Equipment.RecalculateWeight();
@@ -460,11 +476,8 @@ public class Inventory
             Assert.True(Fixture.TestUser.Inventory.ContainsName(item.Name),
                 $"Inventory should contain {item.Name}, ContainsName failed");
             for (var x = 1; x <= item.Properties.Stackable.Max; x++)
-            {
                 Assert.True(Fixture.TestUser.Inventory.ContainsName(item.Name, x),
                     $"Inventory should contain {x} of {item.Name}, Contains with qty check failed");
-            }
-
         }
     }
 
@@ -513,12 +526,12 @@ public class Inventory
 
             Fixture.TestUser.Inventory.TryRemoveQuantity(item.Id, out var removed1, 5);
 
-            Assert.True(removed1.Sum(x => x.Quantity) == 5,
-                $"TryRemoveQuantity: removed 5 from 6 4 10 but removed {removed1.Sum(x => x.Quantity)} instead");
+            Assert.True(removed1.Sum(selector: x => x.Quantity) == 5,
+                $"TryRemoveQuantity: removed 5 from 6 4 10 but removed {removed1.Sum(selector: x => x.Quantity)} instead");
             Assert.True(removed1[0].Slot == 1 && removed1[0].Quantity == 5,
                 $"TryRemoveQuantity: should have removed 5 from slot 1, return indicates removed {removed1[0].Quantity} from slot {removed1[0].Slot}");
             Assert.True(removed1.Count == 1,
-                $"TryRemoveQuantity: should have removed 5 from slot 1, but return indicates multiple slots were modified");
+                "TryRemoveQuantity: should have removed 5 from slot 1, but return indicates multiple slots were modified");
 
             var remaining = Fixture.TestUser.Inventory[1].Count +
                             Fixture.TestUser.Inventory[2].Count +
@@ -532,8 +545,8 @@ public class Inventory
                 Fixture.TestUser.Inventory[2]?.Count ?? 0 +
                 Fixture.TestUser.Inventory[3]?.Count ?? 0;
             // Should now be <null> <null> 8
-            Assert.True(removed2.Sum(x => x.Quantity) == 7,
-                $"TryRemoveQuantity: Removed 7 from 1 4 10 but removed is {removed2.Sum(x => x.Quantity)} instead");
+            Assert.True(removed2.Sum(selector: x => x.Quantity) == 7,
+                $"TryRemoveQuantity: Removed 7 from 1 4 10 but removed is {removed2.Sum(selector: x => x.Quantity)} instead");
             Assert.True(removed2[0].Slot == 1 && removed2[0].Quantity == 1,
                 $"TryRemoveQuantity: should have removed 1 from slot 1, return indicates removed {removed2[0].Quantity} from slot {removed2[0].Slot}");
             Assert.True(removed2[1].Slot == 2 && removed2[1].Quantity == 4,
@@ -546,7 +559,6 @@ public class Inventory
                 "TryRemoveQuantity: slot 2 is not null after removal, but should be");
             Assert.True(Fixture.TestUser.Inventory[3].Count == 8,
                 $"TryRemoveQuantity: slot 3 count should be 8, but is {Fixture.TestUser.Inventory[3].Count}");
-
         }
     }
 }

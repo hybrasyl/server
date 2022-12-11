@@ -9,8 +9,51 @@ public partial class CreatureBehaviorSet : HybrasylLoadable, IHybrasylLoadable<C
 {
     public static string DataDirectory => "behaviorsets";
 
+    public static XmlLoadResponse<CreatureBehaviorSet> LoadAll(string baseDir)
+    {
+        var ret = new XmlLoadResponse<CreatureBehaviorSet>();
+        var imports = new Dictionary<string, CreatureBehaviorSet>();
+        foreach (var xml in GetXmlFiles(Path.Join(baseDir, DataDirectory)))
+        {
+            if (xml.Contains(".ignore"))
+                continue;
+
+            try
+            {
+                var set = LoadFromFile(xml);
+                if (!string.IsNullOrEmpty(set.Import))
+                    imports.Add(xml, set);
+                else
+                    ret.Results.Add(set);
+            }
+            catch (Exception e)
+            {
+                ret.Errors.Add(xml, e.ToString());
+            }
+        }
+
+        // Now process imports. This could be made nicer
+        foreach (var importset in imports)
+        {
+            var importedSet =
+                ret.Results.FirstOrDefault(predicate: s => s.Name.ToLower() == importset.Value.Import.ToLower());
+            if (importedSet == null)
+            {
+                ret.Errors.Add(importset.Key, $"Referenced import set {importset.Value.Import} not found");
+                continue;
+            }
+
+            var newSet = importedSet.Clone<CreatureBehaviorSet>();
+            var resolved = importset.Value & newSet;
+            resolved.Name = importset.Value.Name;
+            ret.Results.Add(resolved);
+        }
+
+        return ret;
+    }
+
     /// <summary>
-    /// Merge two behavior sets together
+    ///     Merge two behavior sets together
     /// </summary>
     /// <param name="cbs1">Target behavior set</param>
     /// <param name="cbs2">Source behavior set (import)</param>
@@ -65,45 +108,5 @@ public partial class CreatureBehaviorSet : HybrasylLoadable, IHybrasylLoadable<C
         }
 
         return newCbs;
-    }
-
-    public static XmlLoadResponse<CreatureBehaviorSet> LoadAll(string baseDir)
-    {
-        var ret = new XmlLoadResponse<CreatureBehaviorSet>();
-        var imports = new Dictionary<string, CreatureBehaviorSet>();
-        foreach (var xml in GetXmlFiles(Path.Join(baseDir, DataDirectory)))
-        {
-            if (xml.Contains(".ignore"))
-                continue;
-
-            try
-            {
-                CreatureBehaviorSet set = LoadFromFile(xml);
-                if (!string.IsNullOrEmpty(set.Import))
-                    imports.Add(xml, set);
-                else
-                    ret.Results.Add(set);
-            }
-            catch (Exception e)
-            {
-                ret.Errors.Add(xml, e.ToString());
-            }
-        }
-
-        // Now process imports. This could be made nicer
-        foreach (var importset in imports)
-        {
-            var importedSet = ret.Results.FirstOrDefault(s => s.Name.ToLower() == importset.Value.Import.ToLower());
-            if (importedSet == null)
-            {
-                ret.Errors.Add(importset.Key, $"Referenced import set {importset.Value.Import} not found");
-                continue;
-            }
-            var newSet = importedSet.Clone<CreatureBehaviorSet>();
-            var resolved = importset.Value & newSet;
-            resolved.Name = importset.Value.Name;
-            ret.Results.Add(resolved);
-        }
-        return ret;
     }
 }

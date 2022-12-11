@@ -2,14 +2,6 @@
 
 public class DialogOption
 {
-    public string OptionText { get; private set; }
-    private Dialog ParentDialog { get; set; }
-
-    public string CallbackFunction { get; private set; }
-
-    public JumpDialog JumpDialog { get; set; }
-    public DialogSequence OverrideSequence { get; set; }
-
     public DialogOption(string option, string callback, Dialog parentdialog = null)
     {
         OptionText = option;
@@ -29,4 +21,12 @@ public class DialogOption
         OptionText = option;
         OverrideSequence = sequence;
     }
+
+    public string OptionText { get; }
+    private Dialog ParentDialog { get; }
+
+    public string CallbackFunction { get; }
+
+    public JumpDialog JumpDialog { get; set; }
+    public DialogSequence OverrideSequence { get; set; }
 }

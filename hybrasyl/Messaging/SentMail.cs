@@ -19,8 +19,8 @@
  * 
  */
 
-using Newtonsoft.Json;
 using System;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
@@ -31,29 +31,23 @@ public class SentMail : MessageStore
     // TODO: correct
     public SentMail(Guid guid) : base(guid.ToString()) { }
 
-    [JsonProperty]
-    public DateTime LastMailMessageSent { get; set; }
+    [JsonProperty] public DateTime LastMailMessageSent { get; set; }
 
-    [JsonProperty]
-    public string LastMailRecipient { get; set; }
+    [JsonProperty] public string LastMailRecipient { get; set; }
 
-    [JsonProperty]
-    public DateTime LastBoardMessageSent { get; set; }
+    [JsonProperty] public DateTime LastBoardMessageSent { get; set; }
 
-    [JsonProperty]
-    public string LastBoardRecipient { get; set; }
+    [JsonProperty] public string LastBoardRecipient { get; set; }
 
     public bool HasUnreadMessages => false;
 
     public override bool ReceiveMessage(Message newMessage)
     {
-        if (IsLocked || Full == true)
-        {
-            return false;
-        }
+        if (IsLocked || Full) return false;
         CurrentId++;
         newMessage.Id = CurrentId;
-        newMessage.Body = $"{{=e(( Originally Sent: {newMessage.Created} ))\n{{=e(( Sent To: {newMessage.Recipient} ))\n\n{{=a{newMessage.Body}";
+        newMessage.Body =
+            $"{{=e(( Originally Sent: {newMessage.Created} ))\n{{=e(( Sent To: {newMessage.Recipient} ))\n\n{{=a{newMessage.Body}";
         if (newMessage.Body.Length > ushort.MaxValue)
             newMessage.Body = newMessage.Body.Substring(0, ushort.MaxValue);
         // Sent mail is always read

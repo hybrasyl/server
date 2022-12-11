@@ -1,16 +1,16 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl.Casting;
 
 public class RotationEntry
 {
+    public RotationEntry(BookSlot slot, CreatureCastable directive)
+    {
+        Slot = slot;
+        Directive = directive;
+    }
+
     public BookSlot Slot { get; }
     public string Name => Slot.Castable.Name;
     public CreatureCastable Directive { get; }
@@ -22,7 +22,9 @@ public class RotationEntry
     public Rotation Parent { get; set; }
     public CreatureTargetPriority DefaultTargetPriority => Directive.TargetPriority;
     public int Threshold => Directive.HealthPercentage;
+
     private CreatureTargetPriority currentPriority { get; set; } = CreatureTargetPriority.None;
+
     // TODO: hardcoded
     public double CastingTime => Slot.Castable.Lines * 1.25;
 
@@ -31,12 +33,6 @@ public class RotationEntry
         get => currentPriority != CreatureTargetPriority.None ? currentPriority :
             DefaultTargetPriority == CreatureTargetPriority.None ? Parent.TargetPriority : DefaultTargetPriority;
         set => currentPriority = value;
-    }
-
-    public RotationEntry(BookSlot slot, CreatureCastable directive)
-    {
-        Slot = slot;
-        Directive = directive;
     }
 
     public override string ToString()
@@ -51,6 +47,8 @@ public class RotationEntry
         return ret;
     }
 
-    public void Use() => Parent.Use();
-
+    public void Use()
+    {
+        Parent.Use();
+    }
 }

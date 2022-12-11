@@ -4,11 +4,11 @@ using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
 
-[MoonSharpUserData] 
+[MoonSharpUserData]
 public class HybrasylReactor : HybrasylWorldObject
 {
+    public HybrasylReactor(Reactor obj) : base(obj) { }
     internal Reactor Reactor => WorldObject as Reactor;
-    public static bool IsPlayer => false;
     public HybrasylUser Origin => Reactor.Origin is User u ? new HybrasylUser(u) : null;
 
     public bool Blocking => Reactor.Blocking;
@@ -18,9 +18,7 @@ public class HybrasylReactor : HybrasylWorldObject
         get => Reactor.Uses;
         set => Reactor.Uses = value;
     }
+
     public bool Expired => Reactor.Expired;
-    public long Expiration => ((DateTimeOffset)Reactor.Expiration).ToUnixTimeSeconds();
-
-    public HybrasylReactor(Reactor obj) : base(obj) {}
-
+    public long Expiration => ((DateTimeOffset) Reactor.Expiration).ToUnixTimeSeconds();
 }

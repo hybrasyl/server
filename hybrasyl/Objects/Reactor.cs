@@ -31,17 +31,39 @@ namespace Hybrasyl.Objects;
 
 public class Reactor : VisibleObject, IPursuitable
 {
+    private bool _ready;
+    public bool Blocking;
+    public string Description;
+    public string ScriptName;
+
+    public Reactor(Xml.Reactor reactor)
+    {
+        X = reactor.X;
+        Y = reactor.Y;
+        DialogSequences = new List<DialogSequence>();
+    }
+
+    public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null,
+        bool blocking = true)
+    {
+        X = x;
+        Y = y;
+        Map = map;
+        Description = description;
+        ScriptName = scriptName;
+        Blocking = blocking;
+        CreatedAt = DateTime.Now;
+        if (expiration <= 0) return;
+        Expiration = CreatedAt.AddSeconds(expiration);
+        Task.Run(function: async () => await OnExpiration());
+    }
+
     public DateTime CreatedAt { get; set; }
-    public DateTime Expiration { get; set; } = default;
-    public VisibleObject Origin { get; set; } = null;
+    public DateTime Expiration { get; set; }
+    public VisibleObject Origin { get; set; }
     public Guid CreatedBy { get; set; }
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
     public bool OnTakeCapable => Ready && !Expired && Script.HasFunction("OnTake");
-    public List<DialogSequence> Pursuits { get; set; } = new();
-    public Dictionary<string, string> Strings { get; set; } = new();
-    public Dictionary<string, string> Responses { get; set; } = new();
-    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
-    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
     public bool Ready
     {
@@ -50,20 +72,45 @@ public class Reactor : VisibleObject, IPursuitable
             if (!_ready)
                 OnSpawn();
             return _ready;
-
         }
         set => _ready = value;
     }
-    public bool Blocking;
-    public string Description;
-    public string ScriptName;
-    private bool _ready;
 
-    public Reactor(Xml.Reactor reactor)
+    public bool Expired => Uses != -1 && (Expiration < DateTime.Now || Uses == 0);
+
+    public int Uses { get; set; } = -1;
+    public List<DialogSequence> Pursuits { get; set; } = new();
+    public Dictionary<string, string> Strings { get; set; } = new();
+    public Dictionary<string, string> Responses { get; set; } = new();
+    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
+    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
+
+    public override void ShowTo(IVisible obj)
     {
-        X = reactor.X;
-        Y = reactor.Y;
-        DialogSequences = new List<DialogSequence>();
+        if (Expired) return;
+        if (obj is not User user) return;
+        // TODO: improve, this isn't sufficient to work with Say/Shout currently
+        var p = new ServerPacket(0x07);
+        p.WriteUInt16(1);
+        p.WriteUInt16(X);
+        p.WriteUInt16(Y);
+        p.WriteUInt32(Id);
+        if (Sprite != 0)
+            p.WriteUInt16((ushort) (Sprite + 0x8000));
+        else
+            p.WriteUInt16(Sprite);
+
+        p.WriteByte(0); // random 1                                                                                                                                                                                                
+        p.WriteByte(0); // random 2                                                                                                                                                                                                
+        p.WriteByte(0); // random 3                                                                                                                                                                                                
+        p.WriteByte(0); // unknown a                                                                                                                                                                                               
+        p.WriteByte((byte) Direction);
+        p.WriteByte(0); // unknown b                                                                                                                                                                                               
+        p.WriteByte(0);
+        p.WriteByte(0); // unknown d                                                                                                                                                                                               
+        p.WriteByte((byte) MonsterType.Reactor);
+        p.WriteString8(Name);
+        user.Enqueue(p);
     }
 
     public async Task OnExpiration()
@@ -76,24 +123,6 @@ public class Reactor : VisibleObject, IPursuitable
         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RemoveReactor, Map.Id, X, Y, Guid));
     }
 
-    public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null, bool blocking = true) : base()
-    {
-        X = x;
-        Y = y;
-        Map = map;
-        Description = description;
-        ScriptName = scriptName;
-        Blocking = blocking;
-        CreatedAt = DateTime.Now;
-        if (expiration <= 0) return;
-        Expiration = CreatedAt.AddSeconds(expiration);
-        Task.Run(async () => await OnExpiration());
-    }
-
-    public bool Expired => Uses != -1 && (Expiration < DateTime.Now || Uses == 0);
-
-    public int Uses { get; set; } = -1;
-        
     public void OnSpawn()
     {
         if (Expired) return;
@@ -107,6 +136,7 @@ public class Reactor : VisibleObject, IPursuitable
         {
             GameLog.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
         }
+
         // Now run our actual OnSpawn function
         if (_ready)
             Script.ExecuteFunction("OnSpawn");
@@ -121,16 +151,18 @@ public class Reactor : VisibleObject, IPursuitable
             if (!user.Condition.Alive && !AllowDead)
                 return;
         }
-        if (Ready)
-            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+
+        if (!Ready) return;
+        var wef = Script.ExecuteFunction("OnEntry",
+            ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public override void AoiEntry(VisibleObject obj)
     {
         if (Expired) return;
         base.AoiEntry(obj);
-        if (Ready)
-            Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        if (!Ready) return;
+        Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public virtual void OnLeave(VisibleObject obj)
@@ -146,8 +178,8 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         base.AoiDeparture(obj);
-        if (Ready)
-            Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this,obj,obj));
+        if (!Ready) return;
+        Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
@@ -162,8 +194,8 @@ public class Reactor : VisibleObject, IPursuitable
     public void OnMove(VisibleObject obj)
     {
         if (Expired) return;
-        if (Ready)
-            Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        if (!Ready) return;
+        Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
@@ -173,33 +205,5 @@ public class Reactor : VisibleObject, IPursuitable
         var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, taken);
         env.Add("item", taken);
         Script.ExecuteFunction("OnTake", env);
-    }
-
-    public override void ShowTo(IVisible obj)
-    {
-        if (Expired) return;
-        if (obj is not User user) return;
-        // TODO: improve, this isn't sufficient to work with Say/Shout currently
-        var p = new ServerPacket(0x07);
-        p.WriteUInt16(1);
-        p.WriteUInt16(X);
-        p.WriteUInt16(Y);
-        p.WriteUInt32(Id);
-        if (Sprite != 0)
-            p.WriteUInt16((ushort) (Sprite + 0x8000));
-        else
-            p.WriteUInt16((ushort) Sprite);
-
-        p.WriteByte(0); // random 1                                                                                                                                                                                                
-        p.WriteByte(0); // random 2                                                                                                                                                                                                
-        p.WriteByte(0); // random 3                                                                                                                                                                                                
-        p.WriteByte(0); // unknown a                                                                                                                                                                                               
-        p.WriteByte((byte) Direction);
-        p.WriteByte(0); // unknown b                                                                                                                                                                                               
-        p.WriteByte(0);
-        p.WriteByte(0); // unknown d                                                                                                                                                                                               
-        p.WriteByte((byte) MonsterType.Reactor);
-        p.WriteString8(Name);
-        user.Enqueue(p);
     }
 }

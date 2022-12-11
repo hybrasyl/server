@@ -19,7 +19,6 @@
  * 
  */
 
-using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -27,31 +26,30 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
 public static class GlobalConnectionManifest
 {
     private static long _connectionId;
+
+    public static ConcurrentDictionary<long, Client> ConnectedClients = new();
+    public static ConcurrentDictionary<long, Client> WorldClients = new();
+    public static ConcurrentDictionary<long, Redirect> Redirects = new();
+
     public static long GetNewConnectionId()
     {
         Interlocked.Increment(ref _connectionId);
         return _connectionId;
     }
 
-    public static ConcurrentDictionary<long, Client> ConnectedClients = new ConcurrentDictionary<long, Client>();
-    public static ConcurrentDictionary<long, Client> WorldClients = new ConcurrentDictionary<long, Client>();
-    public static ConcurrentDictionary<long, Redirect> Redirects = new ConcurrentDictionary<long, Redirect>();
-
     public static void RegisterRedirect(Client client, Redirect redirect)
     {
         Redirects[client.ConnectionId] = redirect;
     }
 
-    public static bool TryGetRedirect(long cid, out Redirect redirect)
-    {
-        return Redirects.TryGetValue(cid, out redirect);
-    }
+    public static bool TryGetRedirect(long cid, out Redirect redirect) => Redirects.TryGetValue(cid, out redirect);
 
     public static void RegisterClient(Client client)
     {
@@ -62,17 +60,17 @@ public static class GlobalConnectionManifest
 
     public static void DeregisterClient(Client client)
     {
-        ConnectedClients.TryRemove(client.ConnectionId, out Client _);
+        ConnectedClients.TryRemove(client.ConnectionId, out var _);
         GameLog.InfoFormat("Deregistering {0}", client.ConnectionId);
         // Send a control message to clean up after World users; Lobby and Login handle themselves
         if (client.ServerType == ServerTypes.World)
         {
-            if (!WorldClients.TryRemove(client.ConnectionId, out Client _))
+            if (!WorldClients.TryRemove(client.ConnectionId, out var _))
                 GameLog.Error("Couldn't deregister cid {id}", client.ConnectionId);
             try
             {
                 if (!World.ControlMessageQueue.IsCompleted)
-                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, 
+                    World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser,
                         CleanupType.ByConnectionId, client.ConnectionId));
             }
             catch (InvalidOperationException e)
@@ -90,7 +88,7 @@ public static class GlobalConnectionManifest
 
         try
         {
-            var seed = new Seed() { Ip = remoteAddress.ToString() };
+            var seed = new Seed { Ip = remoteAddress.ToString() };
 
             var webReq = WebRequest.Create(new Uri(endpoint));
             webReq.ContentType = "application/json";
@@ -106,7 +104,7 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+                key = (byte[]) JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
             }
         }
         catch (Exception e)
@@ -115,6 +113,7 @@ public static class GlobalConnectionManifest
             GameLog.Error("RequestEncryptionKey failure: {e}", e);
             key = Encoding.ASCII.GetBytes("NOTVALID!");
         }
+
         return key;
     }
 
@@ -138,7 +137,7 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+                valid = (bool) JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
             }
         }
         catch (Exception e)
@@ -147,43 +146,45 @@ public static class GlobalConnectionManifest
             GameLog.Error("ValidateEncryptionKey failure: {e}", e);
             return false;
         }
+
         return valid;
     }
 }
 
 public class HybrasylMessage
 {
-    public Int64 Ticks { get; private set; }
-    // Maybe this can be like, idk, function name or something? Thread context? Whatever?
-    public string Sender { get; private set; }
-    public object[] Arguments { get; private set; }
-
     public HybrasylMessage(string sender = "HybrasylMessage", params object[] parameters)
     {
         Ticks = DateTime.Now.Ticks;
         Sender = sender;
         Arguments = parameters;
     }
+
+    public long Ticks { get; }
+
+    // Maybe this can be like, idk, function name or something? Thread context? Whatever?
+    public string Sender { get; }
+    public object[] Arguments { get; }
 }
 
 public class HybrasylClientMessage : HybrasylMessage
 {
-    public ClientPacket Packet { get; private set; }
-    public long ConnectionId { get; private set; }
-
-    public HybrasylClientMessage(ClientPacket packet, long connectionId, params object[] arguments) : 
+    public HybrasylClientMessage(ClientPacket packet, long connectionId, params object[] arguments) :
         base("HybrasylClientMessage", arguments)
     {
         Packet = packet;
         ConnectionId = connectionId;
     }
+
+    public ClientPacket Packet { get; }
+    public long ConnectionId { get; }
 }
 
 public class HybrasylControlMessage : HybrasylMessage
 {
     public int Opcode;
- 
-    public HybrasylControlMessage(int opcode, params object[] parameters) 
+
+    public HybrasylControlMessage(int opcode, params object[] parameters)
         : base("HybrasylControlMessage", parameters)
     {
         Opcode = opcode;

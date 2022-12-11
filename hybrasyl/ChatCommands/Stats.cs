@@ -18,16 +18,16 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Enums;
-using Hybrasyl.Xml;
-using Hybrasyl.Objects;
+
 using System;
 using System.Linq;
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.ChatCommands;
 
-class HpCommand : ChatCommand
+internal class HpCommand : ChatCommand
 {
     public new static string Command = "hp";
     public new static string ArgumentText = "<uint hp>";
@@ -36,17 +36,18 @@ class HpCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (uint.TryParse(args[0], out uint hp))
+        if (uint.TryParse(args[0], out var hp))
         {
             user.Stats.Hp = hp;
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"HP now {hp}");
         }
+
         return Fail("The value you specified could not be parsed (uint).");
     }
 }
 
-class BaseHpCommand : ChatCommand
+internal class BaseHpCommand : ChatCommand
 {
     public new static string Command = "basehp";
     public new static string ArgumentText = "<uint hp>";
@@ -55,17 +56,18 @@ class BaseHpCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (uint.TryParse(args[0], out uint hp))
+        if (uint.TryParse(args[0], out var hp))
         {
             user.Stats.BaseHp = hp;
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"Base HP now {hp}");
         }
+
         return Fail("The value you specified could not be parsed (uint)");
     }
 }
 
-class MpCommand : ChatCommand
+internal class MpCommand : ChatCommand
 {
     public new static string Command = "mp";
     public new static string ArgumentText = "<uint mp>";
@@ -74,17 +76,18 @@ class MpCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (uint.TryParse(args[0], out uint mp))
+        if (uint.TryParse(args[0], out var mp))
         {
             user.Stats.Mp = mp;
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"MP now {mp}");
         }
+
         return Fail("The value you specified could not be parsed (uint).");
     }
 }
 
-class BaseMpCommand : ChatCommand
+internal class BaseMpCommand : ChatCommand
 {
     public new static string Command = "basemp";
     public new static string ArgumentText = "<uint mp>";
@@ -93,17 +96,18 @@ class BaseMpCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (uint.TryParse(args[0], out uint mp))
+        if (uint.TryParse(args[0], out var mp))
         {
             user.Stats.BaseMp = mp;
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"Base MP now {mp}");
         }
+
         return Fail("The value you specified could not be parsed (uint)");
     }
 }
 
-class AttrCommand : ChatCommand
+internal class AttrCommand : ChatCommand
 {
     public new static string Command = "attr";
     public new static string ArgumentText = "<string attribute> <byte value>";
@@ -112,11 +116,8 @@ class AttrCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-
-        if (!Byte.TryParse(args[1], out byte newStat))
-        {
+        if (!byte.TryParse(args[1], out var newStat))
             return Fail($"The value you specified for attribute {args[0]} could not be parsed (byte)");
-        }
 
         switch (args[0].ToLower())
         {
@@ -138,12 +139,13 @@ class AttrCommand : ChatCommand
             default:
                 return Fail($"Unknown attribute {args[0].ToLower()}");
         }
+
         user.UpdateAttributes(StatUpdateFlags.Stats);
         return Success($"{args[0].ToLower()} now {newStat}.");
     }
 }
 
-class GoldCommand : ChatCommand
+internal class GoldCommand : ChatCommand
 {
     public new static string Command = "gold";
     public new static string ArgumentText = "<uint gold>";
@@ -152,7 +154,7 @@ class GoldCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (!uint.TryParse(args[0], out uint amount))
+        if (!uint.TryParse(args[0], out var amount))
             return Fail("The value you specified could not be parsed (uint)");
 
         user.Stats.Gold = amount;
@@ -161,24 +163,23 @@ class GoldCommand : ChatCommand
     }
 }
 
-class DamageCommand : ChatCommand
+internal class DamageCommand : ChatCommand
 {
     public new static string Command = "damage";
     public new static string ArgumentText = "<double damage>";
     public new static string HelpText = "Damage yourself for the specified amount. Careful...";
     public new static bool Privileged = true;
-        
+
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (!double.TryParse(args[0], out double amount))
+        if (!double.TryParse(args[0], out var amount))
             return Fail("The value you specified could not be parsed (double)");
         user.Damage(amount);
         return Success($"{user.Name} - damaged by {amount}.");
-
     }
 }
 
-class DamageInvCommand : ChatCommand
+internal class DamageInvCommand : ChatCommand
 {
     public new static string Command = "damageinv";
     public new static string ArgumentText = "";
@@ -189,19 +190,19 @@ class DamageInvCommand : ChatCommand
     {
         var dura = string.Empty;
         foreach (var item in user.Inventory)
-        {
             if (item.Durability != 0)
             {
                 item.Durability /= 2;
                 dura += $"{item.Name} -> {item.Durability} / {item.MaximumDurability}\n";
             }
-        }
+
         user.SendInventory();
 
         return Success(dura, (byte) MessageType.SlateScrollbar);
     }
 }
-class ExpCommand : ChatCommand
+
+internal class ExpCommand : ChatCommand
 {
     public new static string Command = "exp";
     public new static string ArgumentText = "<uint experience>";
@@ -210,16 +211,14 @@ class ExpCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (!uint.TryParse(args[0], out uint amount))
+        if (!uint.TryParse(args[0], out var amount))
             return Fail("The value you specified could not be parsed (uint)");
         user.ShareExperience(amount, user.Stats.Level);
         return Success($"{user.Name} - awarded {amount} XP.");
-
     }
-
 }
 
-class ExpResetCommand : ChatCommand
+internal class ExpResetCommand : ChatCommand
 {
     public new static string Command = "expreset";
     public new static string ArgumentText = "";
@@ -233,11 +232,10 @@ class ExpResetCommand : ChatCommand
         user.Stats.Experience = 0;
         user.UpdateAttributes(StatUpdateFlags.Full);
         return Success($"{user.Name} - XP reset.");
-
     }
 }
 
-class NationCommand : ChatCommand
+internal class NationCommand : ChatCommand
 {
     public new static string Command = "nation";
     public new static string ArgumentText = "<string nation>";
@@ -251,12 +249,12 @@ class NationCommand : ChatCommand
             user.Nation = nation;
             return Success($"Citizenship set to {args[0]}");
         }
-        else return Fail("Nation not found");
 
+        return Fail("Nation not found");
     }
 }
 
-class ClassCommand : ChatCommand
+internal class ClassCommand : ChatCommand
 {
     public new static string Command = "class";
     public new static string ArgumentText = "<string class>";
@@ -266,17 +264,17 @@ class ClassCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         var cls = args[0].ToLower();
-        if (Constants.CLASSES.TryGetValue(args[0].ToLower(), out int classValue))
+        if (Constants.CLASSES.TryGetValue(args[0].ToLower(), out var classValue))
         {
-            user.Class = (Class)classValue;
+            user.Class = (Class) classValue;
             return Success($"Class changed to {args[0]}.");
         }
-        return Fail("I know nothing about that class");
 
+        return Fail("I know nothing about that class");
     }
 }
 
-class LevelCommand : ChatCommand
+internal class LevelCommand : ChatCommand
 {
     public new static string Command = "level";
     public new static string ArgumentText = "<byte level>";
@@ -285,18 +283,18 @@ class LevelCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Byte.TryParse(args[0], out byte newLevel))
+        if (byte.TryParse(args[0], out var newLevel))
         {
-            user.Stats.Level = newLevel > Constants.MAX_LEVEL ? (byte)Constants.MAX_LEVEL : newLevel;
+            user.Stats.Level = newLevel > Constants.MAX_LEVEL ? (byte) Constants.MAX_LEVEL : newLevel;
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"Level changed to {newLevel}");
         }
-        else return Fail("The value you specified could not be parsed (byte)");
 
+        return Fail("The value you specified could not be parsed (byte)");
     }
 }
 
-class ForgetCommand : ChatCommand
+internal class ForgetCommand : ChatCommand
 {
     public new static string Command = "forget";
     public new static string ArgumentText = "<string castable>";
@@ -320,14 +318,18 @@ class ForgetCommand : ChatCommand
                 user.SendClearSkill(i);
             }
             else
+            {
                 return Fail("You don't know that skill or spell.");
+            }
+
             return Success($"{args[0]} removed.");
         }
+
         return Fail("That castable does not exist.");
     }
 }
 
-class ClevelCommand : ChatCommand
+internal class ClevelCommand : ChatCommand
 {
     public new static string Command = "clevel";
     public new static string ArgumentText = "<string skillName> <int level>";
@@ -339,32 +341,36 @@ class ClevelCommand : ChatCommand
         BookSlot slot;
         if (Game.World.WorldData.TryGetValueByIndex(args[0], out Castable castable))
         {
-            if (!uint.TryParse(args[1], out uint i))
+            if (!uint.TryParse(args[1], out var i))
                 return Fail("What kind of level is that?");
 
             if (user.SpellBook.Contains(castable.Id))
             {
-                slot = user.SpellBook.Single(x => x.Castable.Name == castable.Name);
-                var uses = ((double)castable.Mastery.Uses) * ((double)i / 100);
+                slot = user.SpellBook.Single(predicate: x => x.Castable.Name == castable.Name);
+                var uses = castable.Mastery.Uses * ((double) i / 100);
                 slot.UseCount = Convert.ToUInt32(uses);
                 user.SendSpellUpdate(slot, user.SpellBook.SlotOf(castable.Id));
             }
             else if (user.SkillBook.Contains(castable.Id))
             {
-                slot = user.SkillBook.Single(x => x.Castable.Name == castable.Name);
-                var uses = ((double)castable.Mastery.Uses) * ((double)i / 100);
+                slot = user.SkillBook.Single(predicate: x => x.Castable.Name == castable.Name);
+                var uses = castable.Mastery.Uses * ((double) i / 100);
                 slot.UseCount = Convert.ToUInt32(uses);
                 user.SendSkillUpdate(slot, user.SkillBook.SlotOf(castable.Id));
             }
             else
+            {
                 return Fail("You don't know that spell or skill.");
+            }
+
             return Success($"Castable {slot.Castable.Name} set to level {i}.");
         }
+
         return Fail("Castable not found");
     }
 }
 
-class SkillCommand : ChatCommand
+internal class SkillCommand : ChatCommand
 {
     public new static string Command = "skill";
     public new static string ArgumentText = "<string skillName>";
@@ -378,12 +384,12 @@ class SkillCommand : ChatCommand
             user.AddSkill(castable);
             return Success($"{castable.Name} added to skillbook.");
         }
-        else return Fail($"The castable {args[0]} could not be found");
 
+        return Fail($"The castable {args[0]} could not be found");
     }
 }
 
-class SpellCommand : ChatCommand
+internal class SpellCommand : ChatCommand
 {
     public new static string Command = "spell";
     public new static string ArgumentText = "<string spellName>";
@@ -397,12 +403,12 @@ class SpellCommand : ChatCommand
             user.AddSpell(castable);
             return Success($"{castable.Name} added to spellbook.");
         }
-        else return Fail($"The castable {args[0]} could not be found");
 
+        return Fail($"The castable {args[0]} could not be found");
     }
 }
 
-class MasterCommand : ChatCommand
+internal class MasterCommand : ChatCommand
 {
     public new static string Command = "master";
     public new static string ArgumentText = "none";
@@ -413,12 +419,10 @@ class MasterCommand : ChatCommand
     {
         user.IsMaster = !user.IsMaster;
         return Success(user.IsMaster ? "Mastership granted" : "Mastership removed");
-
     }
-
 }
 
-class EquipmentDurabilityCommand : ChatCommand
+internal class EquipmentDurabilityCommand : ChatCommand
 {
     public new static string Command = "dura";
     public new static string ArgumentText = "<uint value>";
@@ -427,7 +431,7 @@ class EquipmentDurabilityCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (uint.TryParse(args[0], out uint dura))
+        if (uint.TryParse(args[0], out var dura))
         {
             for (byte i = 1; i <= user.Equipment.Size; i++)
             {
@@ -444,9 +448,11 @@ class EquipmentDurabilityCommand : ChatCommand
                 user.Inventory[i].Durability = dura;
                 user.SendItemUpdate(user.Inventory[i], i);
             }
+
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"Durability is now {dura} for all items.");
         }
+
         return Fail("The value you specified could not be parsed (uint)");
     }
 }

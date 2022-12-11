@@ -19,18 +19,20 @@
  * 
  */
 
-using Hybrasyl.Objects;
-using Hybrasyl.Scripting;
 using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
+using Creature = Hybrasyl.Xml.Creature;
 
 namespace Hybrasyl.ChatCommands;
 // Various admin commands are implemented here.
 
-class ShowCookies : ChatCommand
+internal class ShowCookies : ChatCommand
 {
     public new static string Command = "showcookies";
     public new static string ArgumentText = "<string playername>";
@@ -39,9 +41,9 @@ class ShowCookies : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+        if (Game.World.WorldData.TryGetValue(args[0], out User target))
         {
-            string cookies = $"User {target.Name} Cookie List\n\n---Permanent Cookies---\n";
+            var cookies = $"User {target.Name} Cookie List\n\n---Permanent Cookies---\n";
             foreach (var cookie in target.GetCookies())
                 cookies = $"{cookies}\n{cookie.Key} : {cookie.Value}\n";
             cookies = $"{cookies}\n---Session Cookies---\n";
@@ -49,11 +51,12 @@ class ShowCookies : ChatCommand
                 cookies = $"{cookies}\n{cookie.Key} : {cookie.Value}\n";
             return Success($"{cookies}", MessageTypes.SLATE_WITH_SCROLLBAR);
         }
+
         return Fail($"User {args[0]} not logged in");
     }
 }
 
-class ClearCookie : ChatCommand
+internal class ClearCookie : ChatCommand
 {
     public new static string Command = "clearcookie";
     public new static string ArgumentText = "<string playername> <string cookie>";
@@ -62,20 +65,41 @@ class ClearCookie : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+        if (Game.World.WorldData.TryGetValue(args[0], out User target))
         {
             if (target.HasCookie(args[1]))
             {
                 target.DeleteCookie(args[1]);
                 return Success($"User {target.Name}: cookie {args[1]} deleted");
             }
-            else return Fail($"User {args[0]} doesn't have cookie {args[1]}");
+
+            return Fail($"User {args[0]} doesn't have cookie {args[1]}");
         }
+
         return Fail($"User {args[0]} not logged in");
     }
 }
 
-class ClearSessionCookie : ChatCommand
+internal class DestroyItemCommand : ChatCommand
+{
+    public new static string Command = "destroyitem";
+    public new static string ArgumentText = "<byte slot>";
+    public new static string HelpText = "Destroy the inventory item in the specified slot";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (byte.TryParse(args[0], out byte slot))
+        {
+            user.RemoveItem(slot);
+            return Success("Destroyed.");
+        }
+
+        return Fail($"That's not a slot.");
+    }
+}
+
+internal class ClearSessionCookie : ChatCommand
 {
     public new static string Command = "clearsessioncookie";
     public new static string ArgumentText = "<string playername> <string cookie>";
@@ -84,20 +108,22 @@ class ClearSessionCookie : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+        if (Game.World.WorldData.TryGetValue(args[0], out User target))
         {
             if (target.HasSessionCookie(args[1]))
             {
                 target.DeleteSessionCookie(args[1]);
                 return Success($"User {target.Name}: session cookie {args[1]} deleted");
             }
-            else return Fail($"User {args[0]} doesn't have session cookie {args[1]}");
+
+            return Fail($"User {args[0]} doesn't have session cookie {args[1]}");
         }
+
         return Fail($"User {args[0]} not logged in");
     }
 }
 
-class DumpMetadata : ChatCommand
+internal class DumpMetadata : ChatCommand
 {
     public new static string Command = "dumpmetadata";
     public new static string ArgumentText = "<string metadatafile>";
@@ -113,11 +139,12 @@ class DumpMetadata : ChatCommand
             File.WriteAllBytes($"{filepath}\\{args[0]}.mdf", file.Data);
             return Success($"{filepath}\\{args[0]}.mdf written to disk");
         }
+
         return Fail("Look chief idk about all that");
     }
 }
 
-class SetCookie : ChatCommand
+internal class SetCookie : ChatCommand
 {
     public new static string Command = "setcookie";
     public new static string ArgumentText = "<string playername> <string cookie> <string value>";
@@ -126,16 +153,17 @@ class SetCookie : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+        if (Game.World.WorldData.TryGetValue(args[0], out User target))
         {
             target.SetCookie(args[1], args[2]);
             return Success($"User {target.Name}: cookie {args[1]} set");
         }
+
         return Fail($"User {args[0]} not logged in");
     }
 }
 
-class Immortal : ChatCommand
+internal class Immortal : ChatCommand
 {
     public new static string Command = "immortal";
     public new static string ArgumentText = "none";
@@ -149,12 +177,11 @@ class Immortal : ChatCommand
         user.PhysicalImmortal = !user.PhysicalImmortal;
         if (user.AbsoluteImmortal)
             return Success("You cannot be harmed.");
-        else
-            return Success("You return to the realm of the mortal.");
+        return Success("You return to the realm of the mortal.");
     }
 }
 
-class ShowEphemeral : ChatCommand
+internal class ShowEphemeral : ChatCommand
 {
     public new static string Command = "showephemeral";
     public new static string ArgumentText = "<string mundane>";
@@ -165,16 +192,17 @@ class ShowEphemeral : ChatCommand
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
-            string ephemerals = $"Mundane {merchant.Name} Ephemeral Store\n\n";
+            var ephemerals = $"Mundane {merchant.Name} Ephemeral Store\n\n";
             foreach (var kv in (merchant as IEphemeral).GetEphemeralValues())
                 ephemerals = $"{ephemerals}\n{kv.Item1} : {kv.Item2}\n";
             return Success($"{ephemerals}", MessageTypes.SLATE_WITH_SCROLLBAR);
         }
+
         return Fail($"Mundane {args[0]} could not be found");
     }
 }
 
-class SetEphemeral : ChatCommand
+internal class SetEphemeral : ChatCommand
 {
     public new static string Command = "setephemeral";
     public new static string ArgumentText = "<string mundane> <string key> <string value>";
@@ -188,11 +216,12 @@ class SetEphemeral : ChatCommand
             (merchant as IEphemeral).SetEphemeral(args[1], args[2]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
         }
-        else return Fail($"NPC {args[0]} not found.");
+
+        return Fail($"NPC {args[0]} not found.");
     }
 }
 
-class ClearEphemeral : ChatCommand
+internal class ClearEphemeral : ChatCommand
 {
     public new static string Command = "clearephemeral";
     public new static string ArgumentText = "<string mundane> <string key>";
@@ -206,11 +235,12 @@ class ClearEphemeral : ChatCommand
             (merchant as IEphemeral).ClearEphemeral(args[1]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
         }
-        else return Fail($"NPC {args[0]} not found.");
+
+        return Fail($"NPC {args[0]} not found.");
     }
 }
 
-class SetSessionCookie : ChatCommand
+internal class SetSessionCookie : ChatCommand
 {
     public new static string Command = "setsessioncookie";
     public new static string ArgumentText = "<string playername> <string cookie> <string value>";
@@ -219,20 +249,24 @@ class SetSessionCookie : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue<User>(args[0], out User target))
+        if (Game.World.WorldData.TryGetValue(args[0], out User target))
         {
             target.SetSessionCookie(args[1], args[2]);
             return Success($"User {target.Name}: cookie {args[1]} set");
         }
+
         return Fail($"User {args[0]} not logged in");
     }
 }
 
-class DeleteSessionCookie : ChatCommand
+internal class DeleteSessionCookie : ChatCommand
 {
     public new static string Command = "deletesessioncookie";
     public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
-    public new static string HelpText = "Clear (delete) a given session (transient) scripting cookie. This is useful when working with scripts that modify player state.";
+
+    public new static string HelpText =
+        "Clear (delete) a given session (transient) scripting cookie. This is useful when working with scripts that modify player state.";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
@@ -242,24 +276,24 @@ class DeleteSessionCookie : ChatCommand
             user.DeleteSessionCookie(args[0]);
             return Success($"Session flag {args[0]} deleted.");
         }
-        else
-        {
-            var target = Game.World.WorldData.Get<User>(args[0]);
 
-            if (target.AuthInfo.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling.");
-            else
-                target.DeleteSessionCookie(args[1]);
-            return Success($"Player {target.Name}: flag {args[1]} removed.");
-        }
+        var target = Game.World.WorldData.Get<User>(args[0]);
+
+        if (target.AuthInfo.IsExempt)
+            return Fail($"User {target.Name} is exempt from your meddling.");
+        target.DeleteSessionCookie(args[1]);
+        return Success($"Player {target.Name}: flag {args[1]} removed.");
     }
 }
 
-class DeleteCookie : ChatCommand
+internal class DeleteCookie : ChatCommand
 {
     public new static string Command = "deletecookie";
     public new static string ArgumentText = "<string cookie> | <string playername> <string cookie>";
-    public new static string HelpText = "Clear (delete) a given scripting cookie. This is useful when working with scripts that modify player state.";
+
+    public new static string HelpText =
+        "Clear (delete) a given scripting cookie. This is useful when working with scripts that modify player state.";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
@@ -269,20 +303,17 @@ class DeleteCookie : ChatCommand
             user.DeleteCookie(args[0]);
             return Success($"Session flag {args[0]} deleted.");
         }
-        else
-        {
-            var target = Game.World.WorldData.Get<User>(args[0]);
 
-            if (target.AuthInfo.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling.");
-            else
-                target.DeleteCookie(args[1]);
-            return Success($"Player {target.Name}: flag {args[1]} removed.");
-        }
+        var target = Game.World.WorldData.Get<User>(args[0]);
+
+        if (target.AuthInfo.IsExempt)
+            return Fail($"User {target.Name} is exempt from your meddling.");
+        target.DeleteCookie(args[1]);
+        return Success($"Player {target.Name}: flag {args[1]} removed.");
     }
 }
 
-class SummonCommand : ChatCommand
+internal class SummonCommand : ChatCommand
 {
     public new static string Command = "summon";
     public new static string ArgumentText = "<string playerName>";
@@ -291,7 +322,7 @@ class SummonCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.TryGetActiveUser(args[0], out User target))
+        if (Game.World.TryGetActiveUser(args[0], out var target))
         {
             if (target.AuthInfo.IsExempt)
                 return Fail($"User {target.Name} is exempt from your meddling.");
@@ -299,13 +330,12 @@ class SummonCommand : ChatCommand
             target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
             return Success($"User {target.Name} has been summoned.");
         }
-        else
-            return Fail($"User {args[0]} not logged in");
 
+        return Fail($"User {args[0]} not logged in");
     }
 }
 
-class KickCommand : ChatCommand
+internal class KickCommand : ChatCommand
 {
     public new static string Command = "kick";
     public new static string ArgumentText = "<string playerName>";
@@ -314,23 +344,20 @@ class KickCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.TryGetActiveUser(args[0], out User target))
+        if (Game.World.TryGetActiveUser(args[0], out var target))
         {
             if (target.AuthInfo.IsExempt)
                 return Fail($"User {target.Name} is exempt from your meddling");
-            else
-                target.Logoff(true);
+            target.Logoff(true);
 
             return Success($"User {target.Name} was kicked.");
         }
+
         return Fail($"User {args[0]} not logged in");
-
-
     }
-
 }
 
-class GcmCommand : ChatCommand
+internal class GcmCommand : ChatCommand
 {
     public new static string Command = "gcm";
     public new static string ArgumentText = "none";
@@ -359,30 +386,28 @@ class GcmCommand : ChatCommand
                     serverType = "World";
                     break;
             }
+
             try
             {
                 gcmContents = gcmContents + string.Format("{0}:{1} - {2}:{3}\n", pair.Key,
-                    ((IPEndPoint)pair.Value.Socket.RemoteEndPoint).Address.ToString(),
-                    ((IPEndPoint)pair.Value.Socket.RemoteEndPoint).Port, serverType);
+                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Address,
+                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Port, serverType);
             }
             catch
             {
                 gcmContents = gcmContents + string.Format("{0}:{1} disposed\n", pair.Key, serverType);
             }
         }
-        foreach (var tehuser in Game.World.WorldData.Values<User>())
-        {
-            userContents = userContents + tehuser.Name + "\n";
-        }
+
+        foreach (var tehuser in Game.World.WorldData.Values<User>()) userContents = userContents + tehuser.Name + "\n";
 
         // Report to the end user
         return Success($"{gcmContents}\n\n{userContents}",
             MessageTypes.SLATE_WITH_SCROLLBAR);
     }
-
 }
 
-class MuteCommand : ChatCommand
+internal class MuteCommand : ChatCommand
 {
     public new static string Command = "mute";
     public new static string ArgumentText = "<string playerName>";
@@ -391,22 +416,20 @@ class MuteCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.TryGetActiveUser(args[0], out User target))
+        if (Game.World.TryGetActiveUser(args[0], out var target))
         {
             if (target.AuthInfo.IsExempt)
                 return Fail($"User {target.Name} is exempt from your meddling.");
-            else
-                target.IsMuted = true;
+            target.IsMuted = true;
 
             return Success($"User {target.Name} was muted.");
         }
+
         return Fail($"User {args[0]} not logged in.");
-
     }
-
 }
 
-class UnmuteCommand : ChatCommand
+internal class UnmuteCommand : ChatCommand
 {
     public new static string Command = "unmute";
     public new static string ArgumentText = "<string playerName>";
@@ -415,34 +438,31 @@ class UnmuteCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.TryGetActiveUser(args[0], out User target))
+        if (Game.World.TryGetActiveUser(args[0], out var target))
         {
             if (target.AuthInfo.IsExempt)
                 return Fail($"User {target.Name} is exempt from your meddling");
-            else
-                target.IsMuted = false;
+            target.IsMuted = false;
 
             return Success($"User {target.Name} was unmuted.");
         }
+
         return Fail($"User {args[0]} not logged in");
     }
-
 }
 
-class ReloadCommand : ChatCommand
+internal class ReloadCommand : ChatCommand
 {
     public new static string Command = "reload";
     public new static string ArgumentText = "none";
     public new static string HelpText = "Reload world data.";
     public new static bool Privileged = true;
 
-    public new static ChatCommandResult Run(User user, params string[] args)
-    {
-        return Success("This feature is not yet implemented.");
-    }
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Success("This feature is not yet implemented.");
 }
 
-class WallsCommand : ChatCommand
+internal class WallsCommand : ChatCommand
 {
     public new static string Command = "walls";
     public new static string ArgumentText = "none";
@@ -454,12 +474,12 @@ class WallsCommand : ChatCommand
         var disableCollisions = user.Flags.ContainsKey("disablecollisions") ? user.Flags["disablecollisions"] : false;
         user.Flags["disablecollisions"] = !disableCollisions;
         var msg = user.Flags["disablecollisions"] ? Success("Wall walking enabled") : Success("Wall walking disabled");
-        user.UpdateAttributes(Enums.StatUpdateFlags.Primary);
+        user.UpdateAttributes(StatUpdateFlags.Primary);
         return msg;
     }
 }
 
-class ShutdownCommand : ChatCommand
+internal class ShutdownCommand : ChatCommand
 {
     public new static string Command = "shutdown";
     public new static string ArgumentText = "<string noreally> [<int delay>]";
@@ -478,6 +498,7 @@ class ShutdownCommand : ChatCommand
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, user.Name, delay));
             return Success("Shutdown request submitted.");
         }
+
         return Fail("You have to really mean it.");
     }
 }
@@ -528,56 +549,57 @@ class ShutdownCommand : ChatCommand
 //    }
 //}
 
-class NpcstatusCommand : ChatCommand
+internal class NpcstatusCommand : ChatCommand
 {
     public new static string Command = "npcstatus";
     public new static string ArgumentText = "<string npcname>";
     public new static string HelpText = "Display detailed debugging info for the given NPC";
     public new static bool Privileged = true;
 
-    public new static ChatCommandResult Run(User user, params string[] args)
-    {
-        return Game.World.WorldData.TryGetValue(args[0], out Merchant merchant)
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Game.World.WorldData.TryGetValue(args[0], out Merchant merchant)
             ? Success(merchant.Status(), (byte) MessageType.SlateScrollbar)
             : Fail($"NPC {args[0]} not found.");
-    }
 }
 
-class ReloadnpcCommand : ChatCommand
+internal class ReloadnpcCommand : ChatCommand
 {
     public new static string Command = "reloadnpc";
     public new static string ArgumentText = "<string npcname>";
     public new static string HelpText = "Reload the given NPC (dump the script and reload from disk)";
     public new static bool Privileged = true;
-
+    
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
         {
-            if (Game.World.ScriptProcessor.TryGetScript(merchant.Name, out Script script))
+            if (Game.World.ScriptProcessor.TryGetScript(merchant.Name, out var script))
             {
                 script.Reload();
                 merchant.Ready = false; // Force reload next time NPC processes an interaction
                 merchant.Say("...What? What happened?");
                 return Success($"NPC {args[0]} - script {script.Name} reloaded. Clicking should re-run OnSpawn.");
             }
-            else return Fail("NPC found but script not found...?");
-        }
-        else return Fail($"NPC {args[0]} not found.");
 
+            return Fail("NPC found but script not found...?");
+        }
+
+        return Fail($"NPC {args[0]} not found.");
     }
 }
 
-class TeleportCommand : ChatCommand
+internal class TeleportCommand : ChatCommand
 {
     public new static string Command = "teleport";
-    public new static string ArgumentText = "<string playername> | <string npcname> | <string mapname> <byte x> <byte y> | <uint mapnumber> <byte x> <byte y>";
+
+    public new static string ArgumentText =
+        "<string playername> | <string npcname> | <string mapname> <byte x> <byte y> | <uint mapnumber> <byte x> <byte y>";
+
     public new static string HelpText = "Teleport to the specified player, or the given map number and coordinates.";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-
         if (args.Length == 1)
         {
             // Either user or npc
@@ -585,71 +607,67 @@ class TeleportCommand : ChatCommand
             {
                 var target = Game.World.WorldData.Get<User>(args[0]);
                 user.Teleport(target.Location.MapId, target.Location.X, target.Location.Y);
-                return Success($"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
+                return Success(
+                    $"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
             }
+
             if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
             {
-                (var x, var y) = merchant.Map.FindEmptyTile((byte)(merchant.Map.X / 2), (byte)(merchant.Map.Y / 2));
+                var (x, y) = merchant.Map.FindEmptyTile((byte) (merchant.Map.X / 2), (byte) (merchant.Map.Y / 2));
                 if (x > 0 && y > 0)
                 {
                     user.Teleport(merchant.Map.Id, x, y);
                     return Success($"Teleported to {merchant.Name} - {merchant.Map.Name} ({x}, {y})");
                 }
+
                 return Fail("Sorry, something went wrong (empty tile could not be found..?)");
             }
+
             return Fail($"Sorry, user or npc {args[0]} not found.");
         }
+
+        ushort? mapnum = null;
+        if (ushort.TryParse(args[0], out var num))
+            mapnum = num;
+        else if (Game.World.WorldData.TryGetValueByIndex(args[0], out Map targetMap))
+            mapnum = targetMap.Id;
         else
+            return Fail("Unknown map id or map name");
+
+        if (Game.World.WorldData.TryGetValue(mapnum, out Map map))
         {
-            ushort? mapnum = null;
-            if (ushort.TryParse(args[0], out ushort num))
-                mapnum = num;
-            else if (Game.World.WorldData.TryGetValueByIndex<Map>(args[0], out Map targetMap))
-                mapnum = targetMap.Id;
-            else
-                return Fail("Unknown map id or map name");
-
-            if (Game.World.WorldData.TryGetValue<Map>(mapnum, out Map map))
+            if (byte.TryParse(args[1], out var x) && byte.TryParse(args[2], out var y))
             {
-                if (byte.TryParse(args[1], out byte x) && byte.TryParse(args[2], out byte y))
+                if (x < map.X && y < map.Y)
                 {
+                    user.Teleport(map.Id, x, y);
+                    return Success($"Teleported to {map.Name} ({x},{y}).");
+                }
 
-                    if (x < map.X && y < map.Y)
-                    {
-                        user.Teleport(map.Id, x, y);
-                        return Success($"Teleported to {map.Name} ({x},{y}).");
-                    }
-                    else
-                        return Fail("Invalid x/y specified (hint: mapsize is {map.X}x{map.Y})");
-                }
-                else
-                {
-                    return Fail("Couldn't parse map number or coordinates (uint / byte / byte)");
-                }
+                return Fail("Invalid x/y specified (hint: mapsize is {map.X}x{map.Y})");
             }
-            else
-                return Fail("Map number {mapnum} not found");
+
+            return Fail("Couldn't parse map number or coordinates (uint / byte / byte)");
         }
 
+        return Fail("Map number {mapnum} not found");
     }
 }
 
-class QueuedepthCommand : ChatCommand
+internal class QueuedepthCommand : ChatCommand
 {
     public new static string Command = "queuedepth";
     public new static string ArgumentText = "None";
     public new static string HelpText = "Display current queue depths.";
     public new static bool Privileged = true;
 
-    public new static ChatCommandResult Run(User user, params string[] args)
-    {
-        return Success($"Packet Queue Depth: {World.MessageQueue.Count}\n\nControl Message Queue Depth: {World.ControlMessageQueue.Count}",
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Success(
+            $"Packet Queue Depth: {World.MessageQueue.Count}\n\nControl Message Queue Depth: {World.ControlMessageQueue.Count}",
             MessageTypes.SLATE_WITH_SCROLLBAR);
-    }
-
 }
 
-class ResurrectCommand : ChatCommand
+internal class ResurrectCommand : ChatCommand
 {
     public new static string Command = "resurrect";
     public new static string ArgumentText = "None";
@@ -663,11 +681,12 @@ class ResurrectCommand : ChatCommand
             user.Resurrect();
             return Success("Saved from the clutches of Sgrios.");
         }
+
         return Success("You're already alive..");
     }
 }
 
-class ReturnCommand : ChatCommand
+internal class ReturnCommand : ChatCommand
 {
     public new static string Command = "return";
     public new static string ArgumentText = "None";
@@ -681,13 +700,13 @@ class ReturnCommand : ChatCommand
             user.Resurrect(true);
             return Success("Be more careful next time.");
         }
+
         user.Teleport(user.Location.DeathMap.Id, user.Location.DeathMapX, user.Location.DeathMapY);
         return Success("Recalled.");
     }
-
 }
 
-class DebugCommand : ChatCommand
+internal class DebugCommand : ChatCommand
 {
     public new static string Command = "debug";
     public new static string ArgumentText = "None";
@@ -703,7 +722,7 @@ class DebugCommand : ChatCommand
     }
 }
 
-class ListMobCommand : ChatCommand
+internal class ListMobCommand : ChatCommand
 {
     public new static string Command = "listmob";
     public new static string ArgumentText = "None";
@@ -712,20 +731,18 @@ class ListMobCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-
-        string moblist = String.Format("{0,25}", "Name") + " " + String.Format("{0,40}", "Details") + "\n";
-        foreach (var mob in user.Map.Objects.Where(x => x is Monster).Select(y => y as Monster))
+        var moblist = string.Format("{0,25}", "Name") + " " + string.Format("{0,40}", "Details") + "\n";
+        foreach (var mob in user.Map.Objects.Where(predicate: x => x is Monster).Select(selector: y => y as Monster))
         {
             var mobdetails = $"({mob.X},{mob.Y}) {mob.Stats}";
-            moblist += String.Format("{0,25}", "Name") + " " + String.Format("{0,40}", mobdetails) + "\n";
+            moblist += string.Format("{0,25}", "Name") + " " + string.Format("{0,40}", mobdetails) + "\n";
         }
+
         return Success(moblist, MessageTypes.SLATE_WITH_SCROLLBAR);
     }
 }
 
-
-
-class SpawnCommand : ChatCommand
+internal class SpawnCommand : ChatCommand
 {
     public new static string Command = "spawn";
     public new static string ArgumentText = "<string creature> <string behaviorSet> <level>";
@@ -734,24 +751,25 @@ class SpawnCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue(args[0], out Xml.Creature creature) && 
-            Game.World.WorldData.TryGetValue(args[1], out Xml.CreatureBehaviorSet cbs))
+        if (Game.World.WorldData.TryGetValue(args[0], out Creature creature) &&
+            Game.World.WorldData.TryGetValue(args[1], out CreatureBehaviorSet cbs))
         {
-            if (byte.TryParse(args[2], out byte x))
+            if (byte.TryParse(args[2], out var x))
             {
-                Monster newMob = new Monster(creature, Xml.SpawnFlags.Active, x, null, cbs);
+                var newMob = new Monster(creature, SpawnFlags.Active, x, null, cbs);
                 user.World.Insert(newMob);
                 user.Map.Insert(newMob, user.X, user.Y);
                 return Success($"{creature.Name} spawned.");
             }
-            else return Fail("Level must be a byte between 1 and 255");
-        }
-        else return Fail($"Creature {args[0]} not found");
 
+            return Fail("Level must be a byte between 1 and 255");
+        }
+
+        return Fail($"Creature {args[0]} not found");
     }
 }
 
-class ReloadXml : ChatCommand
+internal class ReloadXml : ChatCommand
 {
     public new static string Command = "reloadxml";
     public new static string ArgumentText = "<string> type <string> filename";
@@ -763,7 +781,7 @@ class ReloadXml : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (args.Length < 2) return Fail($"Wrong number of arguments supplied.");
+        if (args.Length < 2) return Fail("Wrong number of arguments supplied.");
 
         switch (args[0].ToLower())
         {
@@ -771,33 +789,27 @@ class ReloadXml : ChatCommand
             {
                 //Game.World.Reload(IXmlReloadable);
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedCastable = Xml.Castable.LoadFromFile(reloaded);
+                var reloadedCastable = Castable.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedCastable.Id, out Xml.Castable castable))
+                if (Game.World.WorldData.TryGetValue(reloadedCastable.Id, out Castable castable))
                 {
-                    Game.World.WorldData.Remove<Xml.Castable>(castable.Id);
+                    Game.World.WorldData.Remove<Castable>(castable.Id);
                     Game.World.WorldData.SetWithIndex(reloadedCastable.Id, reloadedCastable, reloadedCastable.Name);
                     foreach (var activeuser in Game.World.ActiveUsers)
-                    {
                         if (reloadedCastable.Book == Xml.Book.PrimarySkill ||
                             reloadedCastable.Book == Xml.Book.SecondarySkill ||
                             reloadedCastable.Book == Xml.Book.UtilitySkill)
                         {
                             if (activeuser.SkillBook.Contains(reloadedCastable.Id))
-                            {
                                 activeuser.SkillBook[activeuser.SkillBook.SlotOf(reloadedCastable.Id)].Castable =
                                     reloadedCastable;
-                            }
                         }
                         else
                         {
                             if (activeuser.SpellBook.Contains(reloadedCastable.Id))
-                            {
                                 activeuser.SpellBook[activeuser.SpellBook.SlotOf(reloadedCastable.Id)].Castable =
                                     reloadedCastable;
-                            }
                         }
-                    }
 
                     return Success($"Castable {reloadedCastable.Name} set to world data");
                 }
@@ -807,11 +819,11 @@ class ReloadXml : ChatCommand
             case "npc":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedNpc = Xml.Npc.LoadFromFile(reloaded);
+                var reloadedNpc = Npc.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedNpc.Name, out Xml.Npc npc))
+                if (Game.World.WorldData.TryGetValue(reloadedNpc.Name, out Npc npc))
                 {
-                    Game.World.WorldData.Remove<Xml.Npc>(npc.Name);
+                    Game.World.WorldData.Remove<Npc>(npc.Name);
                     Game.World.WorldData.Set(reloadedNpc.Name, reloadedNpc);
                     return Success($"Npc {reloadedNpc.Name} set to world data. Reload NPC to activate.");
                 }
@@ -821,11 +833,11 @@ class ReloadXml : ChatCommand
             case "lootset":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedLootSet = Xml.LootSet.LoadFromFile(reloaded);
+                var reloadedLootSet = LootSet.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedLootSet.Id, out Xml.LootSet lootSet))
+                if (Game.World.WorldData.TryGetValue(reloadedLootSet.Id, out LootSet lootSet))
                 {
-                    Game.World.WorldData.Remove<Xml.LootSet>(lootSet.Id);
+                    Game.World.WorldData.Remove<LootSet>(lootSet.Id);
                     Game.World.WorldData.SetWithIndex(reloadedLootSet.Id, reloadedLootSet, reloadedLootSet.Name);
                     return Success($"LootSet {reloadedLootSet.Name} set to world data");
                 }
@@ -835,11 +847,11 @@ class ReloadXml : ChatCommand
             case "nation":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedNation = Xml.Nation.LoadFromFile(reloaded);
+                var reloadedNation = Nation.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Xml.Nation nation))
+                if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Nation nation))
                 {
-                    Game.World.WorldData.Remove<Xml.Nation>(nation.Name);
+                    Game.World.WorldData.Remove<Nation>(nation.Name);
                     Game.World.WorldData.Set(reloadedNation.Name, reloadedNation);
                     return Success($"Nation {reloadedNation.Name} set to world data");
                 }
@@ -851,38 +863,36 @@ class ReloadXml : ChatCommand
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
                 var reloadedMap = Xml.Map.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
+                if (!Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
+                    return Fail($"{args[0]} {args[1]} was not found");
+
+                var newMap = new Map(reloadedMap, Game.World);
+                Game.World.WorldData.RemoveIndex<Map>(map.Name);
+                Game.World.WorldData.Remove<Map>(map.Id);
+                var mapObjs = map.Objects.ToList();
+                foreach (var obj in mapObjs) 
                 {
-
-                    var newMap = new Map(reloadedMap, Game.World);
-                    Game.World.WorldData.RemoveIndex<Map>(map.Name);
-                    Game.World.WorldData.Remove<Map>(map.Id);
-                    Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
-                    var mapObjs = map.Objects.ToList();
-                    for (var i = 0; i < mapObjs.Count; i++)
+                    map.Remove(obj);
+                    switch (obj)
                     {
-                        var obj = mapObjs[i];
-                        map.Remove(obj);
-                        if (obj is User usr)
-                        {
+                        case User usr:
                             newMap.Insert(usr, usr.X, usr.Y);
-                        }
-
-                        if (obj is Monster mob)
-                        {
+                            break;
+                        case Monster mob:
                             Game.World.Remove(mob);
-                        }
-
-                        if (obj is ItemObject itm)
-                        {
+                            break;
+                        case ItemObject itm:
                             Game.World.Remove(itm);
-                        }
+                            break;
+                        case Merchant npc:
+                            npc.Map = newMap;
+                            break;
                     }
-
-                    return Success($"Map {reloadedMap.Name} set to world data");
                 }
+                Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
 
-                return Fail($"{args[0]} {args[1]} was not found");
+                return Success($"Map {reloadedMap.Name} set to world data");
+
             }
             case "item":
             {
@@ -894,16 +904,16 @@ class ReloadXml : ChatCommand
             }
             case "spawngroup":
             {
-                return Fail($"Not supported yet");
+                return Fail("Not supported yet");
             }
             case "status":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedStatus = Xml.Status.LoadFromFile(reloaded);
+                var reloadedStatus = Status.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedStatus.Name, out Xml.Status status))
+                if (Game.World.WorldData.TryGetValue(reloadedStatus.Name, out Status status))
                 {
-                    Game.World.WorldData.Remove<Xml.Status>(status.Name);
+                    Game.World.WorldData.Remove<Status>(status.Name);
                     Game.World.WorldData.Set(reloadedStatus.Name, reloadedStatus);
                     return Success($"Status {reloadedStatus.Name} set to world data");
                 }
@@ -927,13 +937,13 @@ class ReloadXml : ChatCommand
             case "element":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedElementTable = Xml.ElementTable.LoadFromFile(reloaded);
+                var reloadedElementTable = ElementTable.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue("ElementTable", out Xml.ElementTable table))
+                if (Game.World.WorldData.TryGetValue("ElementTable", out ElementTable table))
                 {
-                    Game.World.WorldData.Remove<Xml.ElementTable>("ElementTable");
+                    Game.World.WorldData.Remove<ElementTable>("ElementTable");
                     Game.World.WorldData.Set("ElementTable", reloadedElementTable);
-                    return Success($"ElementTable set to world data");
+                    return Success("ElementTable set to world data");
                 }
 
                 return Fail($"{args[0]} {args[1]} was not found");
@@ -941,74 +951,68 @@ class ReloadXml : ChatCommand
             case "localization":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                Game.World.Strings = Xml.LocalizedStringGroup.LoadFromFile(reloaded);
-                return Success($"Localization strings set to World");
+                Game.World.Strings = LocalizedStringGroup.LoadFromFile(reloaded);
+                return Success("Localization strings set to World");
             }
             default:
                 return Fail("Bad input.");
         }
-
     }
 }
 
-class LoadXml : ChatCommand
+internal class LoadXml : ChatCommand
 {
     public new static string Command = "loadxml";
     public new static string ArgumentText = "<string> type <string> filename";
-    public new static string HelpText = "Loads a specified xml file into world data, i.e. \"castable\" \"wizard_psp_srad\" (Valid arguments are: \n\n castable npc item lootset nation map itemvariant spawngroup status worldmap";
+
+    public new static string HelpText =
+        "Loads a specified xml file into world data, i.e. \"castable\" \"wizard_psp_srad\" (Valid arguments are: \n\n castable npc item lootset nation map itemvariant spawngroup status worldmap";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (args.Length < 2) return Fail($"Wrong number of arguments supplied.");
+        if (args.Length < 2) return Fail("Wrong number of arguments supplied.");
 
         switch (args[0].ToLower())
         {
             case "castable":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedCastable = Xml.Castable.LoadFromFile(reloaded);
+                var reloadedCastable = Castable.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedCastable.Id, out Xml.Castable castable))
-                {
+                if (Game.World.WorldData.TryGetValue(reloadedCastable.Id, out Castable castable))
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 Game.World.WorldData.SetWithIndex(reloadedCastable.Id, reloadedCastable, reloadedCastable.Name);
                 return Success($"Castable {reloadedCastable.Name} set to world data");
             }
             case "npc":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedNpc = Xml.Npc.LoadFromFile(reloaded);
+                var reloadedNpc = Npc.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedNpc.Name, out Xml.Npc npc))
-                {
+                if (Game.World.WorldData.TryGetValue(reloadedNpc.Name, out Npc npc))
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 Game.World.WorldData.Set(reloadedNpc.Name, reloadedNpc);
                 return Success($"Npc {reloadedNpc.Name} set to world data.");
             }
             case "lootset":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedLootSet = Xml.LootSet.LoadFromFile(reloaded);
+                var reloadedLootSet = LootSet.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedLootSet.Id, out Xml.LootSet lootSet))
-                {
+                if (Game.World.WorldData.TryGetValue(reloadedLootSet.Id, out LootSet lootSet))
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 Game.World.WorldData.SetWithIndex(reloadedLootSet.Id, reloadedLootSet, reloadedLootSet.Name);
                 return Success($"Npc {reloadedLootSet.Name} set to world data.");
             }
             case "nation":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedNation = Xml.Nation.LoadFromFile(reloaded);
+                var reloadedNation = Nation.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Xml.Nation nation))
-                {
+                if (Game.World.WorldData.TryGetValue(reloadedNation.Name, out Nation nation))
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 Game.World.WorldData.Set(reloadedNation.Name, reloadedNation);
                 return Success($"Nation {reloadedNation.Name} set to world data");
             }
@@ -1018,9 +1022,7 @@ class LoadXml : ChatCommand
                 var reloadedMap = Xml.Map.LoadFromFile(reloaded);
 
                 if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
-                {
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 var newMap = new Map(reloadedMap, Game.World);
                 Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
                 return Success($"Map {reloadedMap.Name} set to world data");
@@ -1040,12 +1042,10 @@ class LoadXml : ChatCommand
             case "status":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedStatus = Xml.Status.LoadFromFile(reloaded);
+                var reloadedStatus = Status.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedStatus.Name, out Xml.Status status))
-                {
+                if (Game.World.WorldData.TryGetValue(reloadedStatus.Name, out Status status))
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 Game.World.WorldData.Set(reloadedStatus.Name, reloadedStatus);
                 return Success($"Status {reloadedStatus.Name} set to world data");
             }
@@ -1055,20 +1055,17 @@ class LoadXml : ChatCommand
                 var reloadedWorldMap = Xml.WorldMap.LoadFromFile(reloaded);
 
                 if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.WorldMap status))
-                {
                     return Fail($"{args[0]} {args[1]} already exists.");
-                }
                 Game.World.WorldData.Set(reloadedWorldMap.Name, reloadedWorldMap);
                 return Success($"WorldMap {reloadedWorldMap.Name} set to world data");
             }
             default:
                 return Fail("Bad input.");
         }
-
     }
 }
 
-class GenerateArmor : ChatCommand
+internal class GenerateArmor : ChatCommand
 {
     public static int GeneratedId;
     public new static string Command = "generate";
@@ -1078,91 +1075,92 @@ class GenerateArmor : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (args.Length < 4) return Fail($"Wrong number of arguments supplied.");
+        if (args.Length < 4) return Fail("Wrong number of arguments supplied.");
         ushort sprite;
         ushort displaysprite;
-        if(!ushort.TryParse(args[2], out sprite)) return Fail($"Sprite must be a number.");
-        if (!ushort.TryParse(args[3], out displaysprite)) return Fail($"Displaysprite must be a number.");
+        if (!ushort.TryParse(args[2], out sprite)) return Fail("Sprite must be a number.");
+        if (!ushort.TryParse(args[3], out displaysprite)) return Fail("Displaysprite must be a number.");
         switch (args[0].ToLower())
         {
             case "armor":
             {
-                var item = new Xml.Item()
+                var item = new Item
                 {
                     Name = "GeneratedArmor" + GeneratedId,
-                    Properties = new Xml.ItemProperties()
+                    Properties = new ItemProperties
                     {
-                        Stackable = new Xml.Stackable() { Max = 1 },
-                        Physical = new Xml.Physical()
+                        Stackable = new Stackable { Max = 1 },
+                        Physical = new Physical
                         {
                             Durability = 1000,
                             Value = 1,
                             Weight = 1
                         },
-                        Restrictions = new Xml.ItemRestrictions()
+                        Restrictions = new ItemRestrictions
                         {
-                            Gender = (Xml.Gender)Enum.Parse(typeof(Xml.Gender), args[1]),
-                            Level = new Xml.RestrictionsLevel()
+                            Gender = (Gender) Enum.Parse(typeof(Gender), args[1]),
+                            Level = new RestrictionsLevel
                             {
                                 Min = 1
                             }
                         },
-                        Appearance = new Xml.Appearance()
+                        Appearance = new Appearance
                         {
-                            BodyStyle = (Xml.ItemBodyStyle)Enum.Parse(typeof(Xml.ItemBodyStyle), args[1]),
+                            BodyStyle = (ItemBodyStyle) Enum.Parse(typeof(ItemBodyStyle), args[1]),
                             Sprite = sprite,
                             DisplaySprite = displaysprite
                         },
-                        Equipment = new Xml.Equipment()
+                        Equipment = new Xml.Equipment
                         {
-                            Slot = Xml.EquipmentSlot.Armor
+                            Slot = EquipmentSlot.Armor
                         }
                     }
                 };
-                Game.World.WorldData.SetWithIndex<Xml.Item>(item.Id, item, item.Name);
-                user.AddItem(item.Name, 1);
+                Game.World.WorldData.SetWithIndex(item.Id, item, item.Name);
+                user.AddItem(item.Name);
             }
                 break;
             case "coat":
             {
-                var item = new Xml.Item()
+                var item = new Item
                 {
                     Name = "GeneratedArmor" + GeneratedId,
-                    Properties = new Xml.ItemProperties()
+                    Properties = new ItemProperties
                     {
-                        Stackable = new Xml.Stackable() { Max = 1 },
-                        Physical = new Xml.Physical()
+                        Stackable = new Stackable { Max = 1 },
+                        Physical = new Physical
                         {
                             Durability = 1000,
                             Value = 1,
                             Weight = 1
                         },
-                        Restrictions = new Xml.ItemRestrictions()
+                        Restrictions = new ItemRestrictions
                         {
-                            Gender = (Xml.Gender)Enum.Parse(typeof(Xml.Gender), args[1]),
-                            Level = new Xml.RestrictionsLevel()
+                            Gender = (Gender) Enum.Parse(typeof(Gender), args[1]),
+                            Level = new RestrictionsLevel
                             {
                                 Min = 1
                             }
                         },
-                        Appearance = new Xml.Appearance()
+                        Appearance = new Appearance
                         {
-                            BodyStyle = (Xml.ItemBodyStyle)Enum.Parse(typeof(Xml.ItemBodyStyle), args[1]),
+                            BodyStyle = (ItemBodyStyle) Enum.Parse(typeof(ItemBodyStyle), args[1]),
                             Sprite = sprite,
                             DisplaySprite = displaysprite
                         },
-                        Equipment = new Xml.Equipment()
+                        Equipment = new Xml.Equipment
                         {
-                            Slot = Xml.EquipmentSlot.Trousers
+                            Slot = EquipmentSlot.Trousers
                         }
                     }
                 };
-                Game.World.WorldData.SetWithIndex<Xml.Item>(item.Id, item, item.Name);
-                user.AddItem(item.Name, 1);
+                Game.World.WorldData.SetWithIndex(item.Id, item, item.Name);
+                user.AddItem(item.Name);
             }
                 break;
         }
+
         GeneratedId++;
-        return Success($"GeneratedArmor{GeneratedId -1} added to World Data.");
+        return Success($"GeneratedArmor{GeneratedId - 1} added to World Data.");
     }
 }

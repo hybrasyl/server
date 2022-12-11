@@ -28,24 +28,22 @@ namespace Hybrasyl.Scripting;
 [MoonSharpUserData]
 public class HybrasylMap
 {
-    internal Map Map { get; set; }
-
     public HybrasylMap(Map map)
     {
         Map = map;
     }
 
+    public ushort Id => Map.Id;
+
+    internal Map Map { get; set; }
+
     public string Name => Map.Name;
 
-    public bool CreateItem(string name, int x = -1, int y = -1)
-    {
-        return false;
-    }
+    public bool CreateItem(string name, int x = -1, int y = -1) => false;
 
     public void DropItem(HybrasylWorldObject obj, int x, int y)
     {
         if (obj.Obj is ItemObject)
             Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
     }
-
 }

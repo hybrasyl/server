@@ -24,11 +24,11 @@ namespace Hybrasyl.Messaging;
 // A simple class used to pass around message information to packet structures
 public class MessageInfo
 {
+    public string Body;
+    public byte Day;
     public bool Highlight;
     public short Id;
-    public string Sender;
     public byte Month;
-    public byte Day;
+    public string Sender;
     public string Subject;
-    public string Body;
 }

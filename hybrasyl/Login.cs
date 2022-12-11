@@ -19,20 +19,18 @@
  * 
  */
 
-using System.Net;
-using Hybrasyl.Objects;
 using System;
 using System.Collections;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
-using StackExchange.Redis;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl;
 
 public class Login : Server
 {
-    public new LoginPacketHandler[] PacketHandlers { get; private set; }
-
     public Login(int port, bool isDefault = false)
         : base(port, isDefault)
     {
@@ -40,7 +38,7 @@ public class Login : Server
 
         PacketHandlers = new LoginPacketHandler[256];
 
-        for (int i = 0; i < 256; ++i)
+        for (var i = 0; i < 256; ++i)
             PacketHandlers[i] = (c, p) => GameLog.WarningFormat("Login: Unhandled opcode 0x{0:X2}", p.Opcode);
 
         PacketHandlers[0x02] = PacketHandler_0x02_CreateA;
@@ -51,6 +49,8 @@ public class Login : Server
         PacketHandlers[0x4B] = PacketHandler_0x4B_RequestNotification;
         PacketHandlers[0x68] = PacketHandler_0x68_RequestHomepage;
     }
+
+    public new LoginPacketHandler[] PacketHandlers { get; }
 
     public World World { get; private set; }
 
@@ -95,7 +95,7 @@ public class Login : Server
         var password = packet.ReadString8();
         GameLog.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
-        if (Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
+        if (Game.World.WorldData.TryGetAuthInfo(name, out var login))
         {
             if (string.IsNullOrEmpty(login.PasswordHash))
             {
@@ -135,7 +135,7 @@ public class Login : Server
                     client.LoginMessage("An unknown error occurred. Please contact Hybrasyl support.", 3);
                     return;
                 }
-    
+
                 GameLog.DebugFormat("cid {0} ({1}): logging in", client.ConnectionId, name);
                 client.LoginMessage("\0", 0);
                 client.SendMessage("Welcome to Hybrasyl!", 3);
@@ -146,7 +146,7 @@ public class Login : Server
                 GameLog.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
                     client.ConnectionId, name);
                 login.LastLogin = DateTime.Now;
-                login.LastLoginFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 login.CurrentState = UserState.Redirect;
                 login.LastStateChange = login.LastLogin;
                 login.Save();
@@ -158,7 +158,7 @@ public class Login : Server
                 client.LoginMessage("Incorrect password", 3);
                 login.LastLoginFailure = DateTime.Now;
                 login.LoginFailureCount++;
-                login.LastLoginFailureFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastLoginFailureFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 login.CurrentState = UserState.Login;
                 login.LastStateChange = login.LastLoginFailure;
                 login.Save();
@@ -168,16 +168,12 @@ public class Login : Server
         {
             client.LoginMessage("That character does not exist", 3);
             GameLog.InfoFormat("cid {0}: attempt to login as nonexistent character {1}", client.ConnectionId, name);
-            return;
         }
     }
 
     private void PacketHandler_0x04_CreateB(Client client, ClientPacket packet)
     {
-        if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword))
-        {
-            return;
-        }
+        if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword)) return;
         var hairStyle = packet.ReadByte();
         var gender = packet.ReadByte();
         var hairColor = packet.ReadByte();
@@ -206,14 +202,14 @@ public class Login : Server
         {
             var newPlayer = new User();
             newPlayer.Name = client.NewCharacterName;
-            newPlayer.Gender = (Xml.Gender) gender;
-            newPlayer.Location.Direction = Xml.Direction.South;
+            newPlayer.Gender = (Gender) gender;
+            newPlayer.Location.Direction = Direction.South;
             newPlayer.Location.Map = map;
-            newPlayer.Location.X = 10; 
+            newPlayer.Location.X = 10;
             newPlayer.Location.Y = 10;
             newPlayer.HairColor = hairColor;
             newPlayer.HairStyle = hairStyle;
-            newPlayer.Class = Xml.Class.Peasant;
+            newPlayer.Class = Class.Peasant;
             newPlayer.Stats.Level = 1;
             newPlayer.Stats.BaseStr = 3;
             newPlayer.Stats.BaseInt = 3;
@@ -234,7 +230,7 @@ public class Login : Server
             newPlayer.AuthInfo.Save();
             newPlayer.Nation = Game.World.DefaultNation;
 
-            IDatabase cache = World.DatastoreConnection.GetDatabase();
+            var cache = World.DatastoreConnection.GetDatabase();
             cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
             var vault = new Vault(newPlayer.Guid);
             vault.Save();
@@ -243,8 +239,8 @@ public class Login : Server
             client.LoginMessage("\0", 0);
         }
     }
- 
-        
+
+
     private void PacketHandler_0x10_ClientJoin(Client client, ClientPacket packet)
     {
         var seed = packet.ReadByte();
@@ -254,7 +250,7 @@ public class Login : Server
         var id = packet.ReadUInt32();
 
         var redirect = ExpectedConnections[id];
-        if (Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
+        if (Game.World.WorldData.TryGetAuthInfo(name, out var login))
         {
             login.CurrentState = UserState.Login;
             login.Save();
@@ -262,7 +258,7 @@ public class Login : Server
 
         if (redirect.Matches(name, key, seed))
         {
-            ((IDictionary)ExpectedConnections).Remove(id);
+            ((IDictionary) ExpectedConnections).Remove(id);
 
             client.EncryptionKey = key;
             client.EncryptionSeed = seed;
@@ -275,7 +271,6 @@ public class Login : Server
                 client.Enqueue(x60);
             }
         }
-
     }
 
     // Chart for all error password-related error codes were provided by kojasou@ on
@@ -289,7 +284,7 @@ public class Login : Server
         // that they matched if 0x26 request is sent from the client.
         var newPass = packet.ReadString8();
 
-        if (!Game.World.WorldData.TryGetAuthInfo(name, out AuthInfo login))
+        if (!Game.World.WorldData.TryGetAuthInfo(name, out var login))
         {
             client.LoginMessage(GetPasswordError(0x0E), 0x0E);
             GameLog.InfoFormat("cid {0}: Password change attempt on nonexistent player {1}", client.ConnectionId, name);
@@ -299,7 +294,7 @@ public class Login : Server
         if (login.VerifyPassword(currentPass))
         {
             // Check if the password is valid.
-            if (ValidPassword(newPass, out byte err))
+            if (ValidPassword(newPass, out var err))
             {
                 login.PasswordHash = HashPassword(newPass);
                 login.LastPasswordChange = DateTime.Now;
@@ -322,12 +317,12 @@ public class Login : Server
             GameLog.ErrorFormat("Invalid current password during password change attempt for `{0}`", name);
         }
     }
-        
+
     private void PacketHandler_0x4B_RequestNotification(Client client, ClientPacket packet)
     {
         var x60 = new ServerPacket(0x60);
         x60.WriteByte(0x01);
-        x60.WriteUInt16((ushort)Game.Notification.Length);
+        x60.WriteUInt16((ushort) Game.Notification.Length);
         x60.Write(Game.Notification);
         client.Enqueue(x60);
     }
@@ -344,10 +339,8 @@ public class Login : Server
          * Hashes the provided password and returns the hashed version. This method should be used
          * any time a raw password is being stored.
          */
-    private string HashPassword(string password)
-    {
-        return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
-    }
+    private string HashPassword(string password) =>
+        BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
 
     /**
          * Checks that a string is a valid password.
@@ -364,7 +357,7 @@ public class Login : Server
         }
 
         // Examples: 12345, 84943
-        if (password.Length < 6 && password.All(Char.IsDigit))
+        if (password.Length < 6 && password.All(char.IsDigit))
         {
             code = 0x07;
             return false;
@@ -378,7 +371,7 @@ public class Login : Server
         }
 
         // Examples: party@11, temP.49
-        Regex r = new Regex("^[a-zA-Z0-9]*$");
+        var r = new Regex("^[a-zA-Z0-9]*$");
         if (!r.IsMatch(password))
         {
             code = 0x09;

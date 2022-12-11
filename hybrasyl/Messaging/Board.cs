@@ -19,8 +19,8 @@
  * 
  */
 
-using Newtonsoft.Json;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
@@ -28,6 +28,13 @@ namespace Hybrasyl.Messaging;
 public class Board : MessageStore
 {
     [JsonProperty] public bool Global;
+
+    public Board(string name) : base(name)
+    {
+        Global = false;
+        InitializeStorage();
+    }
+
     [JsonProperty] public HashSet<string> ModeratorList { get; private set; }
     [JsonProperty] public HashSet<string> ReaderList { get; private set; }
     [JsonProperty] public HashSet<string> WriterList { get; private set; }
@@ -43,21 +50,12 @@ public class Board : MessageStore
 
     public static string GetStorageKey(string name) => $"{typeof(Board).FullName}:{name.ToLower()}";
 
-    public Board(string name) : base(name)
-    {
-        Global = false;
-        InitializeStorage();
-    }
-
     public override bool ReceiveMessage(Message newMessage)
     {
         // Ensure board messages are not received highlighted or unread
         newMessage.Read = true;
         newMessage.Highlighted = false;
-        if (CheckAccessLevel(newMessage.Sender, BoardAccessLevel.Write))
-        {
-            return base.ReceiveMessage(newMessage);
-        }
+        if (CheckAccessLevel(newMessage.Sender, BoardAccessLevel.Write)) return base.ReceiveMessage(newMessage);
         return false;
     }
 
@@ -74,12 +72,14 @@ public class Board : MessageStore
         switch (level)
         {
             case BoardAccessLevel.Read:
-                return ReaderList.Count == 0 || ReaderList.Contains(checkname) || WriterList.Contains(checkname) || ReaderList.Contains("*");
+                return ReaderList.Count == 0 || ReaderList.Contains(checkname) || WriterList.Contains(checkname) ||
+                       ReaderList.Contains("*");
             case BoardAccessLevel.Write:
                 return WriterList.Count == 0 || WriterList.Contains(checkname) || WriterList.Contains("*");
             case BoardAccessLevel.Moderate:
                 return ModeratorList.Contains(checkname);
         }
+
         return false;
     }
 

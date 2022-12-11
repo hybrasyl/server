@@ -1,6 +1,6 @@
-﻿using Hybrasyl.Objects;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 // TODO: this is a first pass quick and dirty implementation
@@ -14,19 +14,17 @@ public enum SocialEventType
 
 public class SocialEvent
 {
-    public ushort MapId;
-    public DateTime StartTime;
     public DateTime EndTime;
+    public ushort MapId;
     public User Origin;
+    public List<string> Speakers;
+    public DateTime StartTime;
     public byte StartX;
     public byte StartY;
     public string Subtype;
     public SocialEventType Type;
-    public List<string> Speakers;
 
-    public bool Active => EndTime != default && EndTime > StartTime;
-
-    public SocialEvent(User origin, SocialEventType type, string subtype=null)
+    public SocialEvent(User origin, SocialEventType type, string subtype = null)
     {
         if (subtype == null)
             Subtype = "Unknown";
@@ -41,12 +39,15 @@ public class SocialEvent
         Type = type;
         GameLog.UserActivityInfo($"Event beginning: {origin}, type {type} ({subtype}) at {origin.Map.Name}");
         // Lastly, we need to be able to talk
-        Speakers = new List<string>() { origin.Name };
+        Speakers = new List<string> { origin.Name };
     }
+
+    public bool Active => EndTime != default && EndTime > StartTime;
 
     public void End()
     {
         EndTime = DateTime.Now;
-        GameLog.UserActivityInfo($"Event ending: {Origin}, type {Type} ({Subtype}), elapsed time {(DateTime.Now - StartTime).TotalSeconds}s");
+        GameLog.UserActivityInfo(
+            $"Event ending: {Origin}, type {Type} ({Subtype}), elapsed time {(DateTime.Now - StartTime).TotalSeconds}s");
     }
 }

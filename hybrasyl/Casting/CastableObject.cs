@@ -12,8 +12,10 @@ namespace Hybrasyl.Casting;
 [MoonSharpUserData]
 public class CastableObject : IInteractable
 {
-    public uint Id { get; set; }
     public Guid Guid { get; set; }
+    public Castable Template { get; set; }
+    public HybrasylInteractable ScriptedDialogs { get; set; }
+    public uint Id { get; set; }
 
     public ushort Sprite
     {
@@ -22,11 +24,10 @@ public class CastableObject : IInteractable
     }
 
     public ushort DialogSprite { get; set; }
-    public Xml.Castable Template { get; set; }
     public string Name => Template.Name;
     public bool AllowDead => false;
-    public HybrasylInteractable ScriptedDialogs { get; set; }
     public Script Script { get; set; }
+
     public List<DialogSequence> DialogSequences
     {
         get => ScriptedDialogs.Sequences;
@@ -38,6 +39,4 @@ public class CastableObject : IInteractable
         get => ScriptedDialogs.Index;
         set => throw new NotImplementedException();
     }
-
 }
-

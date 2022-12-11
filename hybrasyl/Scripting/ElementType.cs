@@ -1,5 +1,6 @@
-﻿using MoonSharp.Interpreter;
-using System;
+﻿using System;
+using Hybrasyl.Xml;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
 
@@ -18,6 +19,5 @@ public class Element
     public static int Metal = 8;
     public static int Undead = 9;
 
-    public static string ToString(int e) => Enum.GetName(typeof(Xml.ElementType), e);
+    public static string ToString(int e) => Enum.GetName(typeof(ElementType), e);
 }
-

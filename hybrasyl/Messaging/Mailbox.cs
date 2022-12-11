@@ -19,9 +19,9 @@
  * 
  */
 
-using Newtonsoft.Json;
 using System;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
@@ -33,6 +33,6 @@ public class Mailbox : MessageStore
 
     public bool HasUnreadMessages
     {
-        get { return Messages.Where(m => m.Read == false).Count() > 0; }
+        get { return Messages.Any(predicate: m => m.Read == false); }
     }
 }

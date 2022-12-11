@@ -23,62 +23,86 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Hybrasyl.Xml;
+using iTextSharp.text;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
 
+
+[MoonSharpUserData]
+public class QuestMetadata
+{
+    public string Title; 
+    public string Id;
+    public int Circle = 0;
+    public SortedSet<Class> AllowedClasses;
+    public string Summary;
+    public string Result;
+    public string Prerequisite; // who knows
+    public string Reward;
+
+    // Client expects a string like "123", "12345" etc
+
+    public QuestMetadata()
+    {
+        AllowedClasses = new SortedSet<Class> { Class.Monk, Class.Priest, Class.Wizard, Class.Rogue, Class.Warrior };
+    }
+
+    public void AddClass(Class c) => AllowedClasses.Add(c);
+
+    public string Classes => AllowedClasses.Aggregate(string.Empty, (current, c) => current + (byte) c);
+
+}
+
 public class Metafile
 {
-    public string Name { get; set; }
-    public List<MetafileNode> Nodes { get; private set; }
     public Metafile(string name)
     {
         Name = name;
         Nodes = new List<MetafileNode>();
     }
+
     public Metafile(string name, params MetafileNode[] elements)
     {
         Name = name;
         Nodes = new List<MetafileNode>(elements);
     }
-    public CompiledMetafile Compile()
-    {
-        return new CompiledMetafile(this);
-    }
+
+    public string Name { get; set; }
+    public List<MetafileNode> Nodes { get; }
+
+    public CompiledMetafile Compile() => new(this);
 }
 
 public class MetafileNode
 {
-    public string Text { get; set; }
-    public List<string> Properties { get; private set; }
     public MetafileNode(string text)
     {
         Text = text;
         Properties = new List<string>();
     }
+
     public MetafileNode(string text, params string[] properties)
     {
         Text = text;
         Properties = new List<string>(properties);
     }
+
     public MetafileNode(string text, params object[] properties)
     {
         Text = text;
-        Properties = new List<string>(properties.Select(o => o.ToString()));
+        Properties = new List<string>(properties.Select(selector: o => o.ToString()));
     }
-    public static implicit operator MetafileNode(string text)
-    {
-        return new MetafileNode(text);
-    }
+
+    public string Text { get; set; }
+    public List<string> Properties { get; }
+
+    public static implicit operator MetafileNode(string text) => new(text);
 }
 
 public class CompiledMetafile
 {
-    public string Name { get; private set; }
-    public Metafile Source { get; private set; }
-    public uint Checksum { get; private set; }
-    public byte[] Data { get; private set; }
-
-    public byte[] Decompressed { get; private set; }
     public CompiledMetafile(Metafile file)
     {
         Name = file.Name;
@@ -86,22 +110,23 @@ public class CompiledMetafile
 
         using (var metaFileStream = new MemoryStream())
         {
-            using (var metaFileWriter = new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
+            using (var metaFileWriter =
+                   new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
             {
-                metaFileWriter.Write((byte)(file.Nodes.Count / 256));
-                metaFileWriter.Write((byte)(file.Nodes.Count % 256));
+                metaFileWriter.Write((byte) (file.Nodes.Count / 256));
+                metaFileWriter.Write((byte) (file.Nodes.Count % 256));
                 foreach (var node in file.Nodes)
                 {
-                    byte[] nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
-                    metaFileWriter.Write((byte)nodeBuffer.Length);
+                    var nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
+                    metaFileWriter.Write((byte) nodeBuffer.Length);
                     metaFileWriter.Write(nodeBuffer);
-                    metaFileWriter.Write((byte)(node.Properties.Count / 256));
-                    metaFileWriter.Write((byte)(node.Properties.Count % 256));
+                    metaFileWriter.Write((byte) (node.Properties.Count / 256));
+                    metaFileWriter.Write((byte) (node.Properties.Count % 256));
                     foreach (var property in node.Properties)
                     {
-                        byte[] propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
-                        metaFileWriter.Write((byte)(propertyBuffer.Length / 256));
-                        metaFileWriter.Write((byte)(propertyBuffer.Length % 256));
+                        var propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
+                        metaFileWriter.Write((byte) (propertyBuffer.Length / 256));
+                        metaFileWriter.Write((byte) (propertyBuffer.Length % 256));
                         metaFileWriter.Write(propertyBuffer);
                     }
                 }
@@ -117,4 +142,11 @@ public class CompiledMetafile
             }
         }
     }
+
+    public string Name { get; }
+    public Metafile Source { get; }
+    public uint Checksum { get; }
+    public byte[] Data { get; }
+
+    public byte[] Decompressed { get; private set; }
 }

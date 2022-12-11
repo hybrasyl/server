@@ -18,16 +18,15 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Objects;
-using System;
+
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
 
-class MaplistCommand : ChatCommand
+internal class MaplistCommand : ChatCommand
 {
     public new static string Command = "maplist";
     public new static string ArgumentText = "<string searchTerm>";
@@ -47,7 +46,7 @@ class MaplistCommand : ChatCommand
                 where term.IsMatch(amap.Name)
                 select amap;
 
-            var result = queryMaps.Aggregate("", (current, map) => current + $"{map.Id} - {map.Name}\n");
+            var result = queryMaps.Aggregate("", func: (current, map) => current + $"{map.Id} - {map.Name}\n");
             if (result.Length > 65400)
                 result = $"{result.Substring(0, 65400)}\n(Results truncated)";
 
@@ -61,20 +60,20 @@ class MaplistCommand : ChatCommand
     }
 }
 
-class VersionCommand : ChatCommand
+internal class VersionCommand : ChatCommand
 {
     public new static string Command = "version";
     public new static string ArgumentText = "none";
     public new static string HelpText = "Displays the current version of the running server.";
     public new static bool Privileged = false;
 
-    public new static ChatCommandResult Run(User user, params string[] args)
-    {
-        return Success($"Hybrasyl {Game.Assemblyinfo.Version}\n\nRunning commit {Game.Assemblyinfo.GitHash}:\n\n{Game.CommitLog}\n\n(C) 2020 ERISCO, LLC", MessageTypes.SLATE_WITH_SCROLLBAR);
-    }
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Success(
+            $"Hybrasyl {Game.Assemblyinfo.Version}\n\nRunning commit {Game.Assemblyinfo.GitHash}:\n\n{Game.CommitLog}\n\n(C) 2020 ERISCO, LLC",
+            MessageTypes.SLATE_WITH_SCROLLBAR);
 }
 
-class RecentkillsCommand : ChatCommand
+internal class RecentkillsCommand : ChatCommand
 {
     public new static string Command = "recentkills";
     public new static string ArgumentText = "none";
@@ -83,11 +82,13 @@ class RecentkillsCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        return Success($"Kill List\n---------\n\n{string.Join("", user.RecentKills.Select(x => $"{x.Name} - {x.Timestamp}\n").ToList())}", MessageTypes.SLATE_WITH_SCROLLBAR);
+        return Success(
+            $"Kill List\n---------\n\n{string.Join("", user.RecentKills.Select(selector: x => $"{x.Name} - {x.Timestamp}\n").ToList())}",
+            MessageTypes.SLATE_WITH_SCROLLBAR);
     }
 }
 
-class HelpCommand : ChatCommand
+internal class HelpCommand : ChatCommand
 {
     public new static string Command = "help";
     public new static string ArgumentText = "none";
@@ -96,34 +97,44 @@ class HelpCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        string helpString = "Command Help\n------------\n\n";
-        helpString = $"{helpString}Note: String arguments containing spaces should be quoted when used, \"like this\".\n\n";
+        var helpString = "Command Help\n------------\n\n";
+        helpString =
+            $"{helpString}Note: String arguments containing spaces should be quoted when used, \"like this\".\n\n";
 
         if (args.Length == 0)
         {
-            foreach (var x in typeof(ChatCommand).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ChatCommand))))
+            foreach (var x in typeof(ChatCommand).Assembly.GetTypes()
+                         .Where(predicate: type => type.IsSubclassOf(typeof(ChatCommand))))
             {
-                string command = (string)x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                string argtext = (string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                bool priv = (bool)x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                string helptext = (string)x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var command = (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                    .GetValue(null);
+                var priv = (bool) x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var helptext =
+                    (string) x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                 if (priv && !user.AuthInfo.IsPrivileged) continue;
                 helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
             }
         }
         else
         {
-            if (World.CommandHandler.TryGetHandler(args[0], out Type handler))
+            if (World.CommandHandler.TryGetHandler(args[0], out var handler))
             {
-                string command = (string)handler.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                string argtext = (string)handler.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                bool priv = (bool)handler.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                string helptext = (string)handler.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var command = (string) handler.GetField("Command", BindingFlags.Public | BindingFlags.Static)
+                    .GetValue(null);
+                var argtext = (string) handler.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                    .GetValue(null);
+                var priv = (bool) handler.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
+                    .GetValue(null);
+                var helptext = (string) handler.GetField("HelpText", BindingFlags.Public | BindingFlags.Static)
+                    .GetValue(null);
                 if (priv && !user.AuthInfo.IsPrivileged) return Fail("Access denied");
                 helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
             }
             else
+            {
                 return Fail("Command not found");
+            }
         }
 
         return Success(helpString, MessageTypes.SLATE_WITH_SCROLLBAR);

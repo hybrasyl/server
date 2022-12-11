@@ -1,34 +1,27 @@
-﻿using Hybrasyl.Objects;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl;
 
 public class LootRecursionError : Exception
 {
-    public LootRecursionError()
-    {
-    }
+    public LootRecursionError() { }
 
     public LootRecursionError(string message)
-        : base(message)
-    {
-    }
+        : base(message) { }
 
     public LootRecursionError(string message, Exception inner)
-        : base(message, inner)
-    {
-    }
+        : base(message, inner) { }
 }
 
 public class Loot
 {
-    public uint Xp;
     public uint Gold;
     public List<string> Items;
+    public uint Xp;
 
     public Loot(uint xp, uint gold, List<string> items = null)
     {
@@ -47,30 +40,26 @@ public class Loot
         return ret;
     }
 
-    public static Loot operator +(Loot a, Loot b) => new Loot(a.Xp + b.Xp, a.Gold + b.Gold, a.Items.Concat(b.Items).ToList());
+    public static Loot operator +(Loot a, Loot b) =>
+        new(a.Xp + b.Xp, a.Gold + b.Gold, a.Items.Concat(b.Items).ToList());
 
-    public override string ToString()
-    {
-        return $"XP: {Xp}\nGold: {Gold}\nItems: " + string.Join(",", Items);
-    }
+    public override string ToString() => $"XP: {Xp}\nGold: {Gold}\nItems: " + string.Join(",", Items);
 }
 
 /// <summary>
-/// Resolve loot tables, sets, droprates, etc etc into, you know. Loot.
+///     Resolve loot tables, sets, droprates, etc etc into, you know. Loot.
 /// </summary>
 public static class LootBox
 {
-
-
     /// <summary>
-    /// Generate a random number in a threadsafe manner.
+    ///     Generate a random number in a threadsafe manner.
     /// </summary>
     /// <returns>random double</returns>
     public static double Roll() => Random.Shared.NextDouble();
 
     /// <summary>
-    /// Given the specified number of rolls and the chance, calculate how many wins (if any) occurred for  
-    /// looting purposes.
+    ///     Given the specified number of rolls and the chance, calculate how many wins (if any) occurred for
+    ///     looting purposes.
     /// </summary>
     /// <param name="numRolls">Number of rolls (chances) to win</param>
     /// <param name="chance">The chance (decimalized percentage) of a given roll winning</param>
@@ -86,7 +75,7 @@ public static class LootBox
     }
 
     /// <summary>
-    /// Generate a random number between two unsigned ints in a threadsafe manner.
+    ///     Generate a random number between two unsigned ints in a threadsafe manner.
     /// </summary>
     /// <param name="a">Lower bound</param>
     /// <param name="b">Upper bound</param>
@@ -95,9 +84,9 @@ public static class LootBox
 
     public static Loot CalculateLoot(LootSet set, int rolls, float chance)
     {
-        var loot = new Loot(0,0);
+        var loot = new Loot(0, 0);
         var tables = new List<LootTable>();
- 
+
         // If rolls == 0, all tables fire
         if (rolls == 0)
         {
@@ -106,7 +95,6 @@ public static class LootBox
         }
 
         for (var x = 0; x < rolls; x++)
-        {
             if (Roll() <= chance)
             {
                 GameLog.SpawnInfo("Processing loot set {Name}: set hit, looting", set.Name);
@@ -134,15 +122,15 @@ public static class LootBox
                 }
             }
             else
+            {
                 GameLog.SpawnInfo("Processing loot set {Name}: Set subtable missed", set.Name);
-        }
+            }
 
-        return tables.Aggregate(loot, (current, table) => current + CalculateTable(table));
-
+        return tables.Aggregate(loot, func: (current, table) => current + CalculateTable(table));
     }
 
     /// <summary>
-    /// Calculate loot for a given loot list (can be defined at spawngroup / creature / spawn level)
+    ///     Calculate loot for a given loot list (can be defined at spawngroup / creature / spawn level)
     /// </summary>
     /// <param name="list"></param>
     /// <returns></returns>
@@ -157,12 +145,9 @@ public static class LootBox
             // Is the set present?
             GameLog.SpawnInfo("Processing loot set {Name}", set.Name);
             if (Game.World.WorldData.TryGetValueByIndex(set.Name, out LootSet lootset))
-            {
                 loot += CalculateLoot(lootset, set.Rolls, set.Chance);
-            }
             else
-                GameLog.Warning("Loot set {name} referenced in list, but could not be loaded",  set.Name);
-
+                GameLog.Warning("Loot set {name} referenced in list, but could not be loaded", set.Name);
         }
 
         // Now, calculate loot for any tables attached to the spawn
@@ -173,11 +158,10 @@ public static class LootBox
                 tables.Add(table);
                 continue;
             }
+
             for (var z = 0; z <= table.Rolls; z++)
-            {
                 if (Roll() <= table.Chance)
                     tables.Add(table);
-            }
         }
 
         // Now that we have all tables that fired, we need to calculate actual loot
@@ -186,11 +170,10 @@ public static class LootBox
             loot += CalculateTable(table);
 
         return loot;
-
     }
 
     /// <summary>
-    /// Calculate drops from a specific loot table.
+    ///     Calculate drops from a specific loot table.
     /// </summary>
     /// <param name="table">The table to be evaluated.</param>
     /// <returns>Loot structure containing Xp/Gold/List of items to be awarded.</returns>
@@ -205,6 +188,7 @@ public static class LootBox
                 tableLoot.Gold += table.Gold.Min;
             GameLog.SpawnInfo("Processing loot: added {Gold} gp", tableLoot.Gold);
         }
+
         if (table.Xp != null)
         {
             if (table.Xp.Max != 0)
@@ -213,19 +197,18 @@ public static class LootBox
                 tableLoot.Xp += table.Xp.Min;
             GameLog.SpawnInfo("Processing loot: added {Xp} xp", tableLoot.Xp);
         }
+
         // Handle items now
         if (table.Items != null)
-        {
             foreach (var itemlist in table.Items)
                 tableLoot.Items.AddRange(CalculateItems(itemlist));
-        }
         else
             GameLog.SpawnWarning("Loot table is null!");
         return tableLoot;
     }
 
     /// <summary>
-    /// Given a list of items in a loot table, return the items awarded.
+    ///     Given a list of items in a loot table, return the items awarded.
     /// </summary>
     /// <param name="list">LootTableItemList containing items</param>
     /// <returns>List of items</returns>
@@ -237,18 +220,19 @@ public static class LootBox
         var itemList = new List<ItemObject>();
 
         // First, process any "always" items, which always drop when the container fires
-        foreach (var item in list.Item.Where(i => i.Always))
+        foreach (var item in list.Item.Where(predicate: i => i.Always))
         {
             GameLog.SpawnInfo("Processing loot: added always item {item}", item.Value);
             loot.Add(item);
         }
+
         var totalRolls = 0;
 
         // Process the rest of the rolls now
         do
         {
             // Get a random item from the list
-            var item = list.Item.Where(i => !i.Always).PickRandom();
+            var item = list.Item.Where(predicate: i => !i.Always).PickRandom();
             // As soon as we get an item from our table, we've "rolled"; we'll add another roll below if needed
             rolls--;
             totalRolls++;
@@ -262,13 +246,12 @@ public static class LootBox
                 continue;
 
             // Check max quantity.
-            if (item.Max > 0 && loot.Count(i => i.Value == item.Value) >= item.Max)
+            if (item.Max > 0 && loot.Count(predicate: i => i.Value == item.Value) >= item.Max)
                 continue;
 
             // If quantity and uniqueness are good, add the item
             loot.Add(item);
-        }
-        while (rolls > 0);
+        } while (rolls > 0);
 
         // Now we have the canonical droplist, which needs resolving into Items
 
@@ -286,20 +269,26 @@ public static class LootBox
                 {
                     // Determine overlap between available variants and specified variants
                     var lootedVariant = lootitem.Variants.PickRandom();
-                    if (xmlItem.Variants.TryGetValue(lootedVariant, out List<Item> variantItems))
+                    if (xmlItem.Variants.TryGetValue(lootedVariant, out var variantItems))
                         itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                     else
                         GameLog.SpawnError("Spawn loot calculation: variant group {name} not found", lootedVariant);
                 }
                 else
+                {
                     itemList.Add(Game.World.CreateItem(xmlItem.Id));
+                }
             }
             else
+            {
                 GameLog.SpawnError("Spawn loot calculation: item {name} not found!", lootitem.Value);
-
+            }
         }
+
         // We store loot as strings inside mobs to avoid having tens or hundreds of thousands of ItemObjects or
         // Items lying around - they're made into real objects at the time of mob death
-        return itemList.Count > 0 ? itemList.Where(x => x != null).Select(y => y.Name).ToList() : new List<string>();
+        return itemList.Count > 0
+            ? itemList.Where(predicate: x => x != null).Select(selector: y => y.Name).ToList()
+            : new List<string>();
     }
 }

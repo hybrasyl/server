@@ -1,14 +1,14 @@
-﻿using Hybrasyl.Interfaces;
-using Hybrasyl.Objects;
-using Hybrasyl.Scripting;
+﻿using Hybrasyl.Scripting;
 
 namespace Hybrasyl.Dialogs;
 
-
 /// <summary>
-/// Function dialogs allow a script to insert an arbitrary function (e.g. an effect display, teleport, etc) into a dialog sequence.
-/// Its ShowTo is responsible for carrying out the action. In this way, FunctionDialogs can be used exactly the same as all other dialog types.
-/// For the purposes of the client, the FunctionDialog is a "hidden" dialog; it runs its command and then calls the next dialog (if any) from its sequence.
+///     Function dialogs allow a script to insert an arbitrary function (e.g. an effect display, teleport, etc) into a
+///     dialog sequence.
+///     Its ShowTo is responsible for carrying out the action. In this way, FunctionDialogs can be used exactly the same as
+///     all other dialog types.
+///     For the purposes of the client, the FunctionDialog is a "hidden" dialog; it runs its command and then calls the
+///     next dialog (if any) from its sequence.
 /// </summary>
 public class FunctionDialog : Dialog
 {

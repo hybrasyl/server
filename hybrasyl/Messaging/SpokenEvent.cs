@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Hybrasyl.Objects;
-using MoonSharp.Interpreter;
+﻿using Hybrasyl.Objects;
 
-namespace Hybrasyl.Messaging
+namespace Hybrasyl.Messaging;
+
+public record SpokenEvent(VisibleObject Speaker, string Message, string From = null, bool Shout = false)
 {
-    public record SpokenEvent(VisibleObject Speaker, string Message, string From = null, bool Shout = false)
-    {
-        public string SanitizedMessage => Message.ToLower().Trim();
-    }
+    public string SanitizedMessage => Message.ToLower().Trim();
 }

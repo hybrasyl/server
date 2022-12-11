@@ -25,14 +25,8 @@ namespace Hybrasyl.Objects;
 
 public class Signpost : VisibleObject
 {
-    public string Message { get; set; }
-    public bool IsMessageboard { get; set; }
-    public string BoardKey { get; set; }
-    public Board Board { get; private set; }
-
     public Signpost(byte postX, byte postY, string message, bool messageboard = false,
         string boardkey = null)
-        : base()
     {
         X = postX;
         Y = postY;
@@ -44,13 +38,28 @@ public class Signpost : VisibleObject
             Board = Game.World.WorldData.GetBoard(BoardKey);
     }
 
+    public string Message { get; set; }
+    public bool IsMessageboard { get; set; }
+    public string BoardKey { get; set; }
+    public Board Board { get; private set; }
+    public ushort AoiEntryEffect { get; set; }
+    public short AoiEntryEffectSpeed { get; set; }
+
     public override void OnClick(User invoker)
     {
         GameLog.DebugFormat("Signpost was clicked");
         if (!IsMessageboard)
-            invoker.SendMessage(Message, Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
+            invoker.SendMessage(Message,
+                Message.Length < 1024 ? (byte) MessageTypes.SLATE : (byte) MessageTypes.SLATE_WITH_SCROLLBAR);
         else
-            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort)Board.Id, 0, true).Packet());
+            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board.Id, 0, true)
+                .Packet());
+    }
 
+    public override void AoiEntry(VisibleObject obj)
+    {
+        if (AoiEntryEffect != 0 && obj is User u)
+            u.SendEffect(X,Y,AoiEntryEffect,AoiEntryEffectSpeed);
+        base.AoiEntry(obj);
     }
 }

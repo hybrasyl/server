@@ -19,51 +19,27 @@
  * 
  */
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
 [JsonObject(MemberSerialization.OptIn)]
 public class Message : ICloneable
 {
-    [JsonProperty] public string Subject;
-    [JsonProperty] public string Body;
-    [JsonProperty] public string Sender;
-    [JsonProperty] public string Recipient;
-    [JsonProperty] public DateTime Created;
-    [JsonProperty] public bool Highlighted;
-    [JsonProperty] public bool Deleted;
     [JsonProperty] private bool _read;
-
-    public MessageInfo Info => new MessageInfo()
-    {
-        Body = Body,
-        Day = (byte)Created.Day,
-        Month = (byte)Created.Month,
-        Highlight = Highlighted,
-        Id = (short)Id,
-        Sender = Sender,
-        Subject = Subject
-    };
-
-    public List<MessageInfo> InfoAsList => new List<MessageInfo>() { Info };
-
-    public bool Read
-    {
-        get { return _read; }
-        set
-        {
-            _read = value;
-            if (value == true)
-                ReadTime = DateTime.Now;
-        }
-    }
+    [JsonProperty] public string Body;
+    [JsonProperty] public DateTime Created;
+    [JsonProperty] public bool Deleted;
+    [JsonProperty] public string Guid;
+    [JsonProperty] public bool Highlighted;
+    [JsonProperty] public int Id;
 
     [JsonProperty] public DateTime ReadTime;
-    [JsonProperty] public string Guid;
-    [JsonProperty] public int Id;
+    [JsonProperty] public string Recipient;
+    [JsonProperty] public string Sender;
+    [JsonProperty] public string Subject;
 
     public Message(string recipient, string sender, string subject, string body)
     {
@@ -76,6 +52,30 @@ public class Message : ICloneable
         Highlighted = false;
         Guid = System.Guid.NewGuid().ToString();
         Read = false;
+    }
+
+    public MessageInfo Info => new()
+    {
+        Body = Body,
+        Day = (byte) Created.Day,
+        Month = (byte) Created.Month,
+        Highlight = Highlighted,
+        Id = (short) Id,
+        Sender = Sender,
+        Subject = Subject
+    };
+
+    public List<MessageInfo> InfoAsList => new() { Info };
+
+    public bool Read
+    {
+        get => _read;
+        set
+        {
+            _read = value;
+            if (value)
+                ReadTime = DateTime.Now;
+        }
     }
 
     public object Clone()

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.Plugins;
 
@@ -16,13 +17,13 @@ public interface IMessagePluginResponse : IPluginResponse
 
 public interface IHandlerConfiguration
 {
-    public void LoadXmlConfig(List<Xml.PluginConfig> config);
+    public void LoadXmlConfig(List<PluginConfig> config);
     public bool StoreValue(string key, string value);
     public bool TryGetValue(string key, out string value);
 }
 
 /// <summary>
-/// A base interface for message handlers.
+///     A base interface for message handlers.
 /// </summary>
 public interface IMessageHandler
 {

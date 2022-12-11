@@ -19,35 +19,34 @@
  * 
  */
 
-using Hybrasyl.Enums;
-using Hybrasyl.Objects;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.ChatCommands;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
 using Hybrasyl.Threading;
 using Hybrasyl.Xml;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Hybrasyl;
 
 public class Exchange
 {
-    private Inventory _sourceItems;
-    private Inventory _targetItems;
-    private uint _sourceGold;
-    private uint _targetGold;
-    private int _sourceSize;
-    private int _targetSize;
-    private User _source;
-    private User _target;
+    private readonly User _source;
+    private readonly Inventory _sourceItems;
+    private readonly int _sourceSize;
+    private readonly User _target;
+    private readonly Inventory _targetItems;
+    private readonly int _targetSize;
     private bool _active;
-    private int _sourceWeight;
-    private int _targetWeight;
     private bool _sourceConfirmed;
+    private uint _sourceGold;
+    private int _sourceWeight;
     private bool _targetConfirmed;
+    private uint _targetGold;
+    private int _targetWeight;
 
     public Exchange(User source, User target)
     {
@@ -62,6 +61,13 @@ public class Exchange
         _sourceSize = source.Inventory.EmptySlots;
         _targetSize = target.Inventory.EmptySlots;
     }
+
+    public bool ConditionsValid =>
+        _source.Map == _target.Map && _source.IsInViewport(_target) &&
+        _target.IsInViewport(_source) &&
+        _source.Condition.InExchange &&
+        _target.Condition.InExchange &&
+        _active;
 
     public static bool StartConditionsValid(User source, User target, out string errorMessage)
     {
@@ -86,13 +92,6 @@ public class Exchange
         return errorMessage == string.Empty;
     }
 
-    public bool ConditionsValid =>
-        _source.Map == _target.Map && _source.IsInViewport(_target) &&
-        _target.IsInViewport(_source) &&
-        _source.Condition.InExchange &&
-        _target.Condition.InExchange &&
-        _active;
-
     public bool AddItem(User giver, byte slot, byte quantity = 1)
     {
         ItemObject toAdd;
@@ -105,11 +104,12 @@ public class Exchange
             _target.SendMessage("Maximum exchange size reached. No more items can be added.", MessageTypes.SYSTEM);
             return false;
         }
+
         // Check if either participant's inventory would be full as a result of confirmation
         if (_sourceItems.Count == _sourceSize || _targetItems.Count == _targetSize)
         {
             _source.SendMessage("Inventory full.", MessageTypes.SYSTEM);
-            _target.SendMessage("Inventory full.", MessageTypes.SYSTEM); 
+            _target.SendMessage("Inventory full.", MessageTypes.SYSTEM);
             return false;
         }
 
@@ -149,7 +149,9 @@ public class Exchange
 
         if (theItem.Stackable && theItem.Count > 1)
         {
-            var targetItem = giver == _target ? _source.Inventory.FindById(theItem.Name) : _target.Inventory.FindById(theItem.Name);
+            var targetItem = giver == _target
+                ? _source.Inventory.FindById(theItem.Name)
+                : _target.Inventory.FindById(theItem.Name);
 
             // Check to see that giver has sufficient number of whatever, and also that the quantity is a positive number
             if (quantity <= 0)
@@ -179,8 +181,10 @@ public class Exchange
                     _source.SendSystemMessage($"They can't carry any more {theItem.Name}");
                     _target.SendSystemMessage($"You can't carry any more {theItem.Name}.");
                 }
+
                 return false;
             }
+
             giver.RemoveItem(theItem.Name, quantity);
             toAdd = new ItemObject(theItem);
             toAdd.Count = quantity;
@@ -203,12 +207,13 @@ public class Exchange
         // Now add the ItemObject to the active exchange and make sure we update weight
         if (giver == _source)
         {
-            var exchangeSlot = (byte)_sourceItems.Count;
+            var exchangeSlot = (byte) _sourceItems.Count;
             _sourceItems.AddItem(toAdd);
             _source.SendExchangeUpdate(toAdd, exchangeSlot);
             _target.SendExchangeUpdate(toAdd, exchangeSlot, false);
             _targetWeight += toAdd.Weight;
         }
+
         if (giver == _target)
         {
             var exchangeSlot = (byte) _targetItems.Count;
@@ -216,7 +221,6 @@ public class Exchange
             _target.SendExchangeUpdate(toAdd, exchangeSlot);
             _source.SendExchangeUpdate(toAdd, exchangeSlot, false);
             _sourceWeight += toAdd.Weight;
-
         }
 
         return true;
@@ -231,17 +235,18 @@ public class Exchange
                 _source.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
                 return false;
             }
+
             if (amount > _source.Gold)
             {
                 _source.SendMessage("You don't have that much gold.", MessageTypes.SYSTEM);
                 return false;
             }
+
             _sourceGold += amount;
             _source.SendExchangeUpdate(amount);
             _target.SendExchangeUpdate(amount, false);
             _source.Stats.Gold -= amount;
             _source.UpdateAttributes(StatUpdateFlags.Experience);
-
         }
         else if (giver == _target)
         {
@@ -250,6 +255,7 @@ public class Exchange
                 _target.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
                 return false;
             }
+
             _targetGold += amount;
             _target.SendExchangeUpdate(amount);
             _source.SendExchangeUpdate(amount, false);
@@ -257,10 +263,11 @@ public class Exchange
             _target.UpdateAttributes(StatUpdateFlags.Experience);
         }
         else
+        {
             return false;
+        }
 
         return true;
-
     }
 
     public bool StartExchange()
@@ -278,19 +285,13 @@ public class Exchange
     }
 
     /// <summary>
-    /// Cancel the exchange, returning all items from the window back to each player.
+    ///     Cancel the exchange, returning all items from the window back to each player.
     /// </summary>
     /// <returns>Boolean indicating success. Better hope this is always true.</returns>
     public bool CancelExchange(User requestor)
     {
-        foreach (var item in _sourceItems)
-        {
-            _source.AddItem(item);
-        }
-        foreach (var item in _targetItems)
-        {
-            _target.AddItem(item);
-        }
+        foreach (var item in _sourceItems) _source.AddItem(item);
+        foreach (var item in _targetItems) _target.AddItem(item);
         _source.AddGold(_sourceGold);
         _target.AddGold(_targetGold);
         _source.SendExchangeCancellation(requestor == _source);
@@ -303,20 +304,14 @@ public class Exchange
     }
 
     /// <summary>
-    /// Perform the exchange once confirmation from both sides is received.
+    ///     Perform the exchange once confirmation from both sides is received.
     /// </summary>
     /// <returns></returns>
     public void PerformExchange()
     {
         GameLog.Info("Performing exchange");
-        foreach (var item in _sourceItems)
-        {
-            _target.AddItem(item);
-        }
-        foreach (var item in _targetItems)
-        {
-            _source.AddItem(item);
-        }
+        foreach (var item in _sourceItems) _target.AddItem(item);
+        foreach (var item in _targetItems) _source.AddItem(item);
         _source.AddGold(_targetGold);
         _target.AddGold(_sourceGold);
 
@@ -327,7 +322,7 @@ public class Exchange
     }
 
     /// <summary>
-    /// Confirm the exchange. Once both sides confirm, perform the exchange.
+    ///     Confirm the exchange. Once both sides confirm, perform the exchange.
     /// </summary>
     /// <returns>Boolean indicating success.</returns>
     public void ConfirmExchange(User requestor)
@@ -338,12 +333,14 @@ public class Exchange
             _sourceConfirmed = true;
             _target.SendExchangeConfirmation(false);
         }
+
         if (_target == requestor)
         {
             GameLog.InfoFormat("Exchange: target ({0}) confirmed", _target.Name);
             _targetConfirmed = true;
             _source.SendExchangeConfirmation(false);
         }
+
         if (_sourceConfirmed && _targetConfirmed)
         {
             GameLog.Info("Exchange: Both sides confirmed");
@@ -358,34 +355,9 @@ public class Exchange
 [RedisType]
 public class Vault
 {
-    [JsonProperty]
-    public Guid OwnerGuid { get; set; }
-    [JsonProperty]
-    public uint GoldLimit { get; private set; }
-    [JsonProperty]
-    public uint CurrentGold { get; private set; }
-    [JsonProperty]
-    public ushort ItemLimit { get; private set; }
-    [JsonProperty]
-    public ushort CurrentItemCount => (ushort)Items.Count;
-    public bool CanDepositGold => CurrentGold != GoldLimit;
-    public uint RemainingGold => GoldLimit - CurrentGold;
-    public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
     public bool IsSaving;
-    public bool IsFull => CurrentItemCount == ItemLimit;
-
-    public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
-
-    [JsonProperty]
-    public Dictionary<string, uint> Items { get; private set; } //item name, quantity
 
     public Vault() { }
-
-    public void Clear()
-    {
-        CurrentGold = 0;
-        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
-    }
 
     public Vault(Guid ownerGuid)
     {
@@ -403,7 +375,32 @@ public class Vault
         Items = new Dictionary<string, uint>();
         OwnerGuid = ownerGuid;
     }
-        
+
+    [JsonProperty] public Guid OwnerGuid { get; set; }
+
+    [JsonProperty] public uint GoldLimit { get; private set; }
+
+    [JsonProperty] public uint CurrentGold { get; private set; }
+
+    [JsonProperty] public ushort ItemLimit { get; private set; }
+
+    [JsonProperty] public ushort CurrentItemCount => (ushort) Items.Count;
+
+    public bool CanDepositGold => CurrentGold != GoldLimit;
+    public uint RemainingGold => GoldLimit - CurrentGold;
+    public ushort RemainingItems => (ushort) (ItemLimit - CurrentItemCount);
+    public bool IsFull => CurrentItemCount == ItemLimit;
+
+    public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
+
+    [JsonProperty] public Dictionary<string, uint> Items { get; private set; } //item name, quantity
+
+    public void Clear()
+    {
+        CurrentGold = 0;
+        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+    }
+
     public bool AddGold(uint gold)
     {
         if (gold <= RemainingGold)
@@ -413,11 +410,9 @@ public class Vault
             GameLog.Info($"{gold} gold added to vault {OwnerGuid}");
             return true;
         }
-        else
-        {
-            GameLog.Info($"Attempt to add {gold} gold to vault {OwnerGuid}, but only {RemainingGold} available");
-            return false;
-        }
+
+        GameLog.Info($"Attempt to add {gold} gold to vault {OwnerGuid}, but only {RemainingGold} available");
+        return false;
     }
 
     public bool RemoveGold(uint gold)
@@ -428,18 +423,16 @@ public class Vault
             GameLog.Info($"{gold} gold removed from vault {OwnerGuid}");
             return true;
         }
-        else
-        {
-            GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerGuid}, but only {CurrentGold} available");
-            return false;
-        }
+
+        GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerGuid}, but only {CurrentGold} available");
+        return false;
     }
 
     public bool AddItem(string itemName, ushort quantity = 1)
     {
-        if(CurrentItemCount < ItemLimit)
+        if (CurrentItemCount < ItemLimit)
         {
-            if(Items.ContainsKey(itemName))
+            if (Items.ContainsKey(itemName))
             {
                 Items[itemName] += quantity;
                 GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {OwnerGuid}");
@@ -449,20 +442,19 @@ public class Vault
                 Items.Add(itemName, quantity);
                 GameLog.Info($"{itemName} [{quantity}] added as new item in vault {OwnerGuid}");
             }
+
             return true;
         }
-        else
-        {
-            GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerGuid}, but user doesn't have it?");
-            return false;
-        }
+
+        GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerGuid}, but user doesn't have it?");
+        return false;
     }
 
     public bool RemoveItem(string itemName, ushort quantity = 1)
     {
-        if(Items.ContainsKey(itemName))
+        if (Items.ContainsKey(itemName))
         {
-            if(Items[itemName] > quantity)
+            if (Items[itemName] > quantity)
             {
                 Items[itemName] -= quantity;
                 GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {OwnerGuid}");
@@ -472,12 +464,11 @@ public class Vault
                 Items.Remove(itemName);
                 GameLog.Info($"{itemName} removed from vault {OwnerGuid}");
             }
+
             return true;
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public void Save()
@@ -486,44 +477,40 @@ public class Vault
         IsSaving = true;
         var cache = World.DatastoreConnection.GetDatabase();
         cache.Set(StorageKey, this);
-        Game.World.WorldData.Set<Vault>(OwnerGuid, this);
+        Game.World.WorldData.Set(OwnerGuid, this);
         IsSaving = false;
     }
 }
-
 
 [JsonObject(MemberSerialization.OptIn)]
 [RedisType]
 public class GuildVault : Vault
 {
-    //strings are guid identifiers
-    [JsonProperty]
-    public Guid GuildMasterGuid { get; private set; } //no restrictions
-    [JsonProperty]
-    public List<Guid> AuthorizedViewerGuids { get; private set; } //authorized to see what is stored, but cannot withdraw
-    [JsonProperty]
-    public List<Guid> AuthorizedWithdrawalGuids { get; private set; } //authorized to withdraw,  up to limit
-    [JsonProperty]
-    public List<Guid> CouncilMemberGuids { get; private set; } //possible restrictions?
-    [JsonProperty]
-    public int AuthorizedWithdrawalLimit { get;  private set; }
-    [JsonProperty]
-    public int CouncilMemberLimit { get; private set; }
+    public GuildVault() { }
 
-    public GuildVault() : base()
-    { }
-    public GuildVault(Guid ownerGuid) : base(ownerGuid)
-    { }
+    public GuildVault(Guid ownerGuid) : base(ownerGuid) { }
 
     public GuildVault(Guid ownerGuid, uint goldLimit, ushort itemLimit) : base(ownerGuid, goldLimit, itemLimit) { }
+
+    //strings are guid identifiers
+    [JsonProperty] public Guid GuildMasterGuid { get; private set; } //no restrictions
+
+    [JsonProperty]
+    public List<Guid>
+        AuthorizedViewerGuids { get; private set; } //authorized to see what is stored, but cannot withdraw
+
+    [JsonProperty]
+    public List<Guid> AuthorizedWithdrawalGuids { get; private set; } //authorized to withdraw,  up to limit
+
+    [JsonProperty] public List<Guid> CouncilMemberGuids { get; private set; } //possible restrictions?
+
+    [JsonProperty] public int AuthorizedWithdrawalLimit { get; private set; }
+
+    [JsonProperty] public int CouncilMemberLimit { get; private set; }
 }
 
 public class Parcel
 {
-    public string Sender { get; set; }
-    public string Item { get; set; }
-    public uint Quantity { get; set; }
-
     public Parcel() { }
 
     public Parcel(string sender, string item, uint quantity)
@@ -532,38 +519,35 @@ public class Parcel
         Item = item;
         Quantity = quantity;
     }
+
+    public string Sender { get; set; }
+    public string Item { get; set; }
+    public uint Quantity { get; set; }
 }
 
 public class Moneygram
 {
-    public string Sender { get; set; }
-    public uint Amount { get; set; }
-
     public Moneygram() { }
+
     public Moneygram(string sender, uint amount)
     {
         Sender = sender;
         Amount = amount;
     }
+
+    public string Sender { get; set; }
+    public uint Amount { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]
 [RedisType]
 public class ParcelStore
 {
-    private readonly object _lock = new object();
-
-    [JsonProperty] public Guid OwnerGuid { get; set; }
-    [JsonProperty] public List<Parcel> Items { get; set; } //storage id, named tuple
-    [JsonProperty] public List<Moneygram> Gold { get; set; } //storage id, named tuple
+    private readonly object _lock = new();
 
     public bool IsSaving;
 
-    public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
-
-    public ParcelStore()
-    {
-    }
+    public ParcelStore() { }
 
     public ParcelStore(Guid ownerGuid)
     {
@@ -571,6 +555,12 @@ public class ParcelStore
         Gold = new List<Moneygram>();
         OwnerGuid = ownerGuid;
     }
+
+    [JsonProperty] public Guid OwnerGuid { get; set; }
+    [JsonProperty] public List<Parcel> Items { get; set; } //storage id, named tuple
+    [JsonProperty] public List<Moneygram> Gold { get; set; } //storage id, named tuple
+
+    public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
     public void Save()
     {
@@ -589,7 +579,6 @@ public class ParcelStore
     {
         lock (_lock)
         {
-
             Items.Add(new Parcel(sender, item, quantity));
         }
 
@@ -663,8 +652,11 @@ public class EquipmentConverter : JsonConverter
             if (equip[i] == null) continue;
             var slot = new InventorySlot
             {
-                Count = equip[i].Count, Id = equip[i].TemplateId, Name = equip[i].Name,
-                Durability = equip[i].Durability, Guid = equip[i].Guid.ToString()
+                Count = equip[i].Count,
+                Id = equip[i].TemplateId,
+                Name = equip[i].Name,
+                Durability = equip[i].Durability,
+                Guid = equip[i].Guid.ToString()
             };
             output[i] = slot;
         }
@@ -679,10 +671,9 @@ public class EquipmentConverter : JsonConverter
         var equipment = new Equipment(Equipment.DefaultSize);
 
         for (byte i = 1; i <= Equipment.DefaultSize; i++)
-        {
             if (equipJObj.TryGetValue(i, out var slot))
             {
-                if (Game.World.WorldData.TryGetValue<Item>(slot.Id, out Item ItemTemplate))
+                if (Game.World.WorldData.TryGetValue(slot.Id, out Item ItemTemplate))
                 {
                     equipment[i] = new ItemObject(slot.Id, Game.GetDefaultServerGuid<World>(), new Guid(slot.Guid))
                     {
@@ -697,22 +688,18 @@ public class EquipmentConverter : JsonConverter
                 }
             }
             else
+            {
                 equipment[i] = null;
-        }
+            }
 
         return equipment;
     }
 
-    public override bool CanConvert(Type objectType)
-    {
-        return objectType == typeof(Equipment);
-    }
-
+    public override bool CanConvert(Type objectType) => objectType == typeof(Equipment);
 }
 
 public class InventoryConverter : JsonConverter
 {
-
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
         var equip = (Inventory) value;
@@ -740,10 +727,9 @@ public class InventoryConverter : JsonConverter
         var equipment = new Inventory(Inventory.DefaultSize);
 
         for (byte i = 1; i <= equipment.Size; i++)
-        {
             if (equipJObj.TryGetValue(i, out var slot))
             {
-                if (Game.World.WorldData.TryGetValue<Item>(slot.Id, out Item ItemTemplate))
+                if (Game.World.WorldData.TryGetValue(slot.Id, out Item ItemTemplate))
                 {
                     equipment[i] = new ItemObject(slot.Id, Game.GetDefaultServerGuid<World>(), new Guid(slot.Guid))
                     {
@@ -758,17 +744,15 @@ public class InventoryConverter : JsonConverter
                 }
             }
             else
+            {
                 equipment[i] = null;
-        }
+            }
 
         return equipment;
     }
 
 
-    public override bool CanConvert(Type objectType)
-    {
-        return objectType == typeof(Inventory);
-    }
+    public override bool CanConvert(Type objectType) => objectType == typeof(Inventory);
 
     public bool TryGetValue(JToken token, out dynamic item)
     {
@@ -786,25 +770,23 @@ public class Inventory : IEnumerable<ItemObject>
     public const byte DefaultSize = 59;
 
     protected readonly object ContainerLock = new();
+    protected Dictionary<string, List<(byte Slot, ItemObject Item)>> CategoryIndex = new();
+    protected Dictionary<string, List<(byte Slot, ItemObject Item)>> ItemIndex = new();
 
     protected Dictionary<byte, ItemObject> Items = new();
-    protected Dictionary<string, List<(byte Slot, ItemObject Item)>> ItemIndex = new();
-    protected Dictionary<string, List<(byte Slot, ItemObject Item)>> CategoryIndex = new();
-    private HashSet<Guid> GuidIndex { get; set; } = new();
+
+    public Inventory(byte size)
+    {
+        for (byte x = 1; x <= size; x++) Items[x] = null;
+
+        _size = new Lockable<int>(size);
+    }
+
+    private HashSet<Guid> GuidIndex { get; } = new();
 
     protected Lockable<int> _size { get; }
     protected Lockable<int> _count { get; } = new(0);
     protected Lockable<int> _weight { get; } = new(0);
-
-    public Inventory(byte size)
-    {
-        for (byte x = 1; x <= size; x++)
-        {
-            Items[x] = null;
-        }
-
-        _size = new Lockable<int>(size);
-    }
 
     public int Size => _size.Value;
 
@@ -824,20 +806,11 @@ public class Inventory : IEnumerable<ItemObject>
 
     public int EmptySlots => Size - Count;
 
-    public virtual void RecalculateWeight()
-    {
-        var newWeight = this.Sum(obj => obj.Weight);
-        Weight = newWeight;
-    }
-
     public ItemObject this[byte slot]
     {
         get
         {
-            if (slot < 1 || slot > Size)
-            {
-                throw new ArgumentException("Inventory slot does not exist");
-            }
+            if (slot < 1 || slot > Size) throw new ArgumentException("Inventory slot does not exist");
             return Items[slot];
         }
         internal set
@@ -852,7 +825,20 @@ public class Inventory : IEnumerable<ItemObject>
                     _addToIndexes(slot, value);
                 Items[slot] = value;
             }
-        }   
+        }
+    }
+
+    public IEnumerator<ItemObject> GetEnumerator()
+    {
+        return Items.Values.Where(predicate: x => x is not null).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public virtual void RecalculateWeight()
+    {
+        var newWeight = this.Sum(selector: obj => obj.Weight);
+        Weight = newWeight;
     }
 
     private void _addToIndexes(byte slot, ItemObject obj)
@@ -862,27 +848,17 @@ public class Inventory : IEnumerable<ItemObject>
             var index = (Slot: slot, Item: obj);
 
             if (ItemIndex.TryGetValue(obj.TemplateId, out var itemList))
-            {
                 itemList.Add(index);
-            }
             else
-            {
                 ItemIndex.Add(obj.TemplateId,
                     new List<(byte Slot, ItemObject Item)> { index });
-            }
             // Index by item categories
 
-            foreach (var category in obj.Categories.Select(x => x.ToLower()))
-            {
+            foreach (var category in obj.Categories.Select(selector: x => x.ToLower()))
                 if (CategoryIndex.TryGetValue(category, out var categoryList))
-                {
                     categoryList.Add(index);
-                }
                 else
-                {
-                    CategoryIndex.Add(category, new List<(byte Slot, ItemObject Item)> {index});
-                }
-            }
+                    CategoryIndex.Add(category, new List<(byte Slot, ItemObject Item)> { index });
             GuidIndex.Add(obj.Guid);
         }
     }
@@ -895,10 +871,7 @@ public class Inventory : IEnumerable<ItemObject>
             itemList.Remove((slot, obj));
             if (itemList.Count == 0)
                 ItemIndex.Remove(obj.TemplateId);
-            foreach (var category in obj.Categories)
-            {
-                CategoryIndex[category].RemoveAll(x => x.Slot == slot);
-            }
+            foreach (var category in obj.Categories) CategoryIndex[category].RemoveAll(match: x => x.Slot == slot);
 
             GuidIndex.Remove(obj.Guid);
         }
@@ -911,17 +884,13 @@ public class Inventory : IEnumerable<ItemObject>
         var potentialIds = Item.GenerateIds(name);
 
         foreach (var id in potentialIds)
-        {
             if (ItemIndex.TryGetValue(id, out var foundItems))
-            {
                 itemList.AddRange(foundItems);
-            }
-        }
 
-        return itemList.Count != 0; 
+        return itemList.Count != 0;
     }
 
-    public bool TryRemoveQuantity(string id, out List<(byte Slot, int Quantity)> affectedSlots, int quantity=1)
+    public bool TryRemoveQuantity(string id, out List<(byte Slot, int Quantity)> affectedSlots, int quantity = 1)
     {
         var removed = 0;
         affectedSlots = new List<(byte Slot, int Quantity)>();
@@ -952,14 +921,11 @@ public class Inventory : IEnumerable<ItemObject>
 
         return removed == quantity;
     }
-        
+
     public List<byte> GetSlotsByName(string name)
     {
         var ret = new List<byte>();
-        foreach (var id in Item.GenerateIds(name))
-        {
-            ret.AddRange(GetSlotsById(id));
-        }
+        foreach (var id in Item.GenerateIds(name)) ret.AddRange(GetSlotsById(id));
 
         return ret;
     }
@@ -968,7 +934,7 @@ public class Inventory : IEnumerable<ItemObject>
     {
         var ret = new List<byte>();
         if (ItemIndex.ContainsKey(id))
-            ret.AddRange(ItemIndex[id].Select(x => x.Slot));
+            ret.AddRange(ItemIndex[id].Select(selector: x => x.Slot));
         return ret;
     }
 
@@ -982,31 +948,42 @@ public class Inventory : IEnumerable<ItemObject>
 
     public bool Contains(ItemObject io) => GuidIndex.Contains(io.Guid);
 
-    public bool ContainsName(string name, int quantity = 1) => Item.GenerateIds(name).Any(x => ContainsId(x, quantity));
+    public bool ContainsName(string name, int quantity = 1)
+    {
+        return Item.GenerateIds(name).Any(predicate: x => ContainsId(x, quantity));
+    }
 
-    public bool ContainsId(string id, int quantity = 1) => ItemIndex.ContainsKey(id) && ItemIndex[id].Sum(x => x.Item.Count) >= quantity;
+    public bool ContainsId(string id, int quantity = 1)
+    {
+        return ItemIndex.ContainsKey(id) && ItemIndex[id].Sum(selector: x => x.Item.Count) >= quantity;
+    }
 
-    public byte FindEmptySlot() => Items.First(x => x.Value == null).Key;
+    public byte FindEmptySlot()
+    {
+        return Items.First(predicate: x => x.Value == null).Key;
+    }
 
     public byte SlotOfId(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
 
-    public byte SlotOfName(string name) => (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Slot).FirstOrDefault();
+    public byte SlotOfName(string name) =>
+        (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Slot)
+        .FirstOrDefault();
 
     public List<byte> GetSlotsByCategory(params string[] categories)
     {
-        var lower = categories.Select(x => x.ToLower()).ToList();
+        var lower = categories.Select(selector: x => x.ToLower()).ToList();
         var ret = new List<byte>();
-        foreach (var kvp in CategoryIndex.Where(kvp => lower.Contains(kvp.Key)))
-        {
-            ret.AddRange(kvp.Value.Select(x => x.Slot));
-        }
+        foreach (var kvp in CategoryIndex.Where(predicate: kvp => lower.Contains(kvp.Key)))
+            ret.AddRange(kvp.Value.Select(selector: x => x.Slot));
 
         return ret;
     }
 
     public ItemObject FindById(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Item : null;
 
-    public ItemObject FindByName(string name) => (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Item).FirstOrDefault();
+    public ItemObject FindByName(string name) =>
+        (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Item)
+        .FirstOrDefault();
 
     public bool AddItem(ItemObject itemObject)
     {
@@ -1068,10 +1045,7 @@ public class Inventory : IEnumerable<ItemObject>
             Items.Clear();
             ItemIndex.Clear();
             CategoryIndex.Clear();
-            for (byte x = 1; x <= Size; x++)
-            {
-                Items[x] = null;
-            }
+            for (byte x = 1; x <= Size; x++) Items[x] = null;
             Count = 0;
             Weight = 0;
         }
@@ -1089,31 +1063,69 @@ public class Inventory : IEnumerable<ItemObject>
         {
             Items[slot].Count += amount;
         }
+
         return true;
     }
 
     public bool Decrease(byte slot, int amount)
     {
-        if (slot == 0 || slot > Size || Items[slot] == null || Items[slot].Count < amount)  
+        if (slot == 0 || slot > Size || Items[slot] == null || Items[slot].Count < amount)
             return false;
         return Items[slot].Count > 0 || Remove(slot);
     }
 
-    public IEnumerator<ItemObject> GetEnumerator() => Items.Values.Where(x => x is not null).GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator()
+    public override string ToString()
     {
-        return GetEnumerator();
+        return Items.Where(predicate: x => x.Value != null).Aggregate(string.Empty, func: (current, item)
+            => $"{current}\nslot {item.Key}: {item.Value.Name}, qty {item.Value.Count}");
     }
-
-    public override string ToString() => Items.Where(x => x.Value != null).Aggregate(string.Empty, (current, item) 
-        => $"{current}\nslot {item.Key}: {item.Value.Name}, qty {item.Value.Count}");
 }
 
 [JsonConverter(typeof(EquipmentConverter))]
 public class Equipment : Inventory
 {
     public new const byte DefaultSize = 18;
+
+    public Equipment(byte size) : base(size) { }
+
+    public bool RingEquipped => LRing != null || RRing != null;
+    public bool GauntletEquipped => LGauntlet != null || RGauntlet != null;
+
+    public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
+    {
+        var returnList = new List<Tuple<ushort, byte>>();
+
+        foreach (var slot in Enum.GetValues(typeof(ItemSlots)))
+            switch (slot)
+            {
+                // Work around a very weird edge case in the client
+                case ItemSlots.Foot:
+                    returnList.Add(Items[(byte) ItemSlots.FirstAcc] == null
+                        ? new Tuple<ushort, byte>(0, 0)
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.FirstAcc].EquipSprite),
+                            Items[
+                                (byte) ItemSlots.FirstAcc].Color));
+                    break;
+                case ItemSlots.FirstAcc:
+                    returnList.Add(Items[(byte) ItemSlots.Foot] == null
+                        ? new Tuple<ushort, byte>(0, 0)
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite), Items[
+                            (byte) ItemSlots.Foot].Color));
+                    break;
+                case ItemSlots.None:
+                case ItemSlots.Ring:
+                case ItemSlots.Gauntlet:
+                    break;
+                default:
+                    returnList.Add(Items[(byte) slot] == null
+                        ? new Tuple<ushort, byte>(0, 0)
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) slot].EquipSprite),
+                            Items[(byte) slot].Color));
+                    break;
+            }
+
+        return returnList;
+    }
 
     #region Equipment Properties
 
@@ -1154,43 +1166,4 @@ public class Equipment : Inventory
     public ItemObject ThirdAcc => Items[(byte) ItemSlots.ThirdAcc];
 
     #endregion Equipment Properties
-
-    public Equipment(byte size) : base(size) {}
-
-    public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
-    {
-        var returnList = new List<Tuple<ushort, byte>>();
-
-        foreach (var slot in Enum.GetValues(typeof(ItemSlots)))
-        {
-            switch (slot)
-            {
-                // Work around a very weird edge case in the client
-                case ItemSlots.Foot:
-                    returnList.Add(Items[(byte) ItemSlots.FirstAcc] == null
-                        ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) ItemSlots.FirstAcc].EquipSprite), Items[
-                            (byte) ItemSlots.FirstAcc].Color));
-                    break;
-                case ItemSlots.FirstAcc:
-                    returnList.Add(Items[(byte) ItemSlots.Foot] == null
-                        ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite), Items[
-                            (byte)ItemSlots.Foot].Color));
-                    break;
-                case ItemSlots.None:
-                case ItemSlots.Ring:
-                case ItemSlots.Gauntlet:
-                    break;
-                default:
-                    returnList.Add(Items[(byte) slot] == null
-                        ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte) slot].EquipSprite), Items[(byte) slot].Color));
-                    break;
-            }
-        }
-
-        return returnList;
-    }
-
 }

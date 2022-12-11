@@ -18,12 +18,18 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
+
 using Hybrasyl.Interfaces;
 
 namespace Hybrasyl.Objects;
 
 public class Gold : VisibleObject
 {
+    public Gold(uint amount)
+    {
+        Amount = amount;
+    }
+
     public uint Amount { get; set; }
 
     public override string Name
@@ -50,11 +56,6 @@ public class Gold : VisibleObject
             if (Amount < 10000) return 137;
             return 140;
         }
-    }
-
-    public Gold(uint amount)
-    {
-        Amount = amount;
     }
 
     public override void ShowTo(IVisible obj)

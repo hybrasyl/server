@@ -20,10 +20,11 @@
  */
 
 using Hybrasyl.Objects;
+using Hybrasyl.Xml;
 
 namespace Hybrasyl.ChatCommands;
 
-class ClearDialogCommand : ChatCommand
+internal class ClearDialogCommand : ChatCommand
 {
     public new static string Command = "cleardialog";
     public new static string ArgumentText = "<string username>";
@@ -39,14 +40,13 @@ class ClearDialogCommand : ChatCommand
 
         if (target.AuthInfo.IsExempt)
             return Fail($"User {target.Name} is exempt from your meddling.");
-        else
-            target.ClearDialogState();
+        target.ClearDialogState();
 
         return Success($"User {target.Name}: dialog state cleared.");
     }
 }
 
-class MapDebugCommand : ChatCommand
+internal class MapDebugCommand : ChatCommand
 {
     public new static string Command = "mapdebug";
     public new static string ArgumentText = "";
@@ -61,7 +61,7 @@ class MapDebugCommand : ChatCommand
     }
 }
 
-class MapSpawnToggleCommand : ChatCommand
+internal class MapSpawnToggleCommand : ChatCommand
 {
     public new static string Command = "mapspawntoggle";
     public new static string ArgumentText = "";
@@ -76,7 +76,7 @@ class MapSpawnToggleCommand : ChatCommand
     }
 }
 
-class SpawnToggleCommand : ChatCommand
+internal class SpawnToggleCommand : ChatCommand
 {
     public new static string Command = "spawntoggle";
     public new static string ArgumentText = "<string spawngroup>";
@@ -85,13 +85,13 @@ class SpawnToggleCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValueByIndex<Xml.SpawnGroup>(args[0], out Xml.SpawnGroup group))
+        if (Game.World.WorldData.TryGetValueByIndex(args[0], out SpawnGroup group))
         {
             group.Disabled = !group.Disabled;
             var str = group.Disabled ? "on" : "off";
             return Success($"Spawngroup {args[0]}: spawning {str}");
         }
-        else
-            return Fail($"Spawngroup {args[0]} not found");
+
+        return Fail($"Spawngroup {args[0]} not found");
     }
 }

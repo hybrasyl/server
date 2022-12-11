@@ -18,12 +18,13 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
+
+using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
 
-class GroupCommand : ChatCommand
+internal class GroupCommand : ChatCommand
 {
     public new static string Command = "group";
     public new static string ArgumentText = "<string username>";
@@ -32,14 +33,21 @@ class GroupCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (!Game.World.TryGetActiveUser(args[0], out User newMember))
+        if (!Game.World.TryGetActiveUser(args[0], out var newMember))
             return Fail($"The user {args[0]} could not be found");
-        user.InviteToGroup(newMember);
-        return Success($"{args[0]} invited to your group.");
+        if (!newMember.Grouping)
+            return Fail($"{args[0]} is not accepting group invites.");
+        var response = new ServerPacket(0x63);
+        response.WriteByte((byte) GroupServerPacketType.Ask);
+        response.WriteString8(user.Name);
+        response.WriteByte(0);
+        response.WriteByte(0);
+        newMember.Enqueue(response);
+        return Success($"{args[0]} has been invited to your group.");
     }
 }
 
-class UngroupCommand : ChatCommand
+internal class UngroupCommand : ChatCommand
 {
     public new static string Command = "ungroup";
     public new static string ArgumentText = "none";
@@ -53,7 +61,7 @@ class UngroupCommand : ChatCommand
             user.Group.Remove(user);
             return Success("You have left the group.");
         }
+
         return Fail("You are not in a group");
     }
-
 }

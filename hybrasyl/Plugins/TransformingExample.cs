@@ -3,14 +3,14 @@
 namespace Hybrasyl.Plugins;
 
 /// <summary>
-/// An example of a transforming message handler.
+///     An example of a transforming message handler.
 /// </summary>
-class TransformingExample : MessagePlugin, IProcessingMessageHandler
+internal class TransformingExample : MessagePlugin, IProcessingMessageHandler
 {
     public IMessagePluginResponse Process(Message inbound)
     {
         inbound.Text.Replace("lol", "Amusing", StringComparison.InvariantCultureIgnoreCase);
-        return new MessagePluginResponse()
+        return new MessagePluginResponse
         {
             Message = inbound,
             Success = true,

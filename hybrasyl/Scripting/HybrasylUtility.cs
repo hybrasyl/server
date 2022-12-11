@@ -19,49 +19,50 @@
  * 
  */
 
-using MoonSharp.Interpreter;
 using System;
+using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml;
-using Hybrasyl.Enums;
+using MoonSharp.Interpreter;
+using Creature = Hybrasyl.Xml.Creature;
 
 namespace Hybrasyl.Scripting;
 
 /// <summary>
-/// A variety of utility functions for scripts that are statically accessible from a global `utility` object.
+///     A variety of utility functions for scripts that are statically accessible from a global `utility` object.
 /// </summary>
 [MoonSharpUserData]
 public static class HybrasylUtility
 {
     /// <summary>
-    /// Get the current Terran hour for the local (timezone of the server) time.
+    ///     Get the current Terran hour for the local (timezone of the server) time.
     /// </summary>
     /// <returns></returns>
     public static int GetCurrentHour() => DateTime.Now.Hour;
 
     /// <summary>
-    /// Get the current Terran day for the local (timezone of the server) time.
+    ///     Get the current Terran day for the local (timezone of the server) time.
     /// </summary>
     /// <returns></returns>
     public static int GetCurrentDay() => DateTime.Now.Day;
 
     /// <summary>
-    /// Get current Unix time.
+    ///     Get current Unix time.
     /// </summary>
     /// <returns></returns>
     public static long GetUnixTime() => new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds();
 
     /// <summary>
-    /// Calculate the number of hours (float) between two Unix timestamps t1 and t2.
+    ///     Calculate the number of hours (float) between two Unix timestamps t1 and t2.
     /// </summary>
     /// <param name="t1">First timestamp</param>
     /// <param name="t2">Second timestamp</param>
     /// <returns></returns>
-    public static long HoursBetweenUnixTimes(long t1, long t2) => ((t2 - t1) / 3600);
+    public static long HoursBetweenUnixTimes(long t1, long t2) => (t2 - t1) / 3600;
 
     /// <summary>
-    /// Calculate the number of hours (float) between two Unix timestamps represented as strings.
+    ///     Calculate the number of hours (float) between two Unix timestamps represented as strings.
     /// </summary>
     /// <param name="t1"></param>
     /// <param name="t2"></param>
@@ -70,9 +71,11 @@ public static class HybrasylUtility
     {
         if (string.IsNullOrEmpty(t1) || string.IsNullOrEmpty(t2))
         {
-            GameLog.ScriptingError("HoursBetweenUnixTimes: t1 (first argument) or t2 (second argument) was null or empty, returning 0");
+            GameLog.ScriptingError(
+                "HoursBetweenUnixTimes: t1 (first argument) or t2 (second argument) was null or empty, returning 0");
             return 0;
         }
+
         try
         {
             return (Convert.ToInt64(t2) - Convert.ToInt64(t1)) / 3600;
@@ -80,21 +83,25 @@ public static class HybrasylUtility
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.ScriptingError("HoursBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
+            GameLog.ScriptingError(
+                "HoursBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
             return 0;
         }
     }
 
     /// <summary>
-    /// Calculate the number of minutes (float) between two Unix timestamps t1 and t2.
+    ///     Calculate the number of minutes (float) between two Unix timestamps t1 and t2.
     /// </summary>
     /// <param name="t1">First timestamp</param>
     /// <param name="t2">Second timestamp</param>
     /// <returns></returns>
-    public static long MinutesBetweenUnixTimes(long t1, long t2) => ((t2 - t1) / 60);
+    public static long MinutesBetweenUnixTimes(long t1, long t2) => (t2 - t1) / 60;
+
+    public static int Rand(int minVal, int maxVal) => Random.Shared.Next(minVal, maxVal);
+    public static int Rand(int maxVal) => Random.Shared.Next(maxVal);
 
     /// <summary>
-    /// Calculate the number of hours (float) between two Unix timestamps represented as strings.
+    ///     Calculate the number of hours (float) between two Unix timestamps represented as strings.
     /// </summary>
     /// <param name="t1">First timestamp</param>
     /// <param name="t2">Second timestamp</param>
@@ -103,9 +110,11 @@ public static class HybrasylUtility
     {
         if (string.IsNullOrEmpty(t1) || string.IsNullOrEmpty(t2))
         {
-            GameLog.ScriptingError("MinutesBetweenUnixTimes: t1 (first argument) or t2 (second argument) was null or empty, returning 0");
+            GameLog.ScriptingError(
+                "MinutesBetweenUnixTimes: t1 (first argument) or t2 (second argument) was null or empty, returning 0");
             return 0;
         }
+
         try
         {
             return (Convert.ToInt64(t2) - Convert.ToInt64(t1)) / 60;
@@ -113,13 +122,14 @@ public static class HybrasylUtility
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.ScriptingError("MinutesBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
+            GameLog.ScriptingError(
+                "MinutesBetweenUnixTimes: Exception occurred doing time conversion, returning 0 - {exception}", e);
             return 0;
         }
     }
 
     /// <summary>
-    /// Send an in-game mail to a player.
+    ///     Send an in-game mail to a player.
     /// </summary>
     /// <param name="to">The recipient (must be a player)</param>
     /// <param name="from">The sender (can be any string)</param>
@@ -137,13 +147,13 @@ public static class HybrasylUtility
         if (ret)
             userObj.Mailbox.Save();
         if (!userObj.AuthInfo.IsLoggedIn) return ret;
-        userObj.UpdateAttributes(StatUpdateFlags.UnreadMail);
+        userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         return ret;
     }
 
     /// <summary>
-    /// Send an in-game parcel to a player. The user will receive a message telling them to go to their
-    /// town's post office to pick up the parcel. If they are online, they will also receive a system message.
+    ///     Send an in-game parcel to a player. The user will receive a message telling them to go to their
+    ///     town's post office to pick up the parcel. If they are online, they will also receive a system message.
     /// </summary>
     /// <param name="to">The recipient (must be a player)</param>
     /// <param name="from">The sender (can be any string)</param>
@@ -161,17 +171,53 @@ public static class HybrasylUtility
         var mboxString = Game.World.GetLocalString("send_parcel_mailbox_message", ("$SENDER", from),
             ("$ITEM", $"{itemName} (qty {quantity})"));
 
-        userObj.Mailbox.ReceiveMessage(new Message(to, from, Game.World.GetLocalString("send_parcel_mailbox_subject", ("$NAME", from)), mboxString));
+        userObj.Mailbox.ReceiveMessage(new Message(to, from,
+            Game.World.GetLocalString("send_parcel_mailbox_subject", ("$NAME", from)), mboxString));
         userObj.ParcelStore.AddItem(from, itemName, (uint) quantity);
         userObj.ParcelStore.Save();
         if (userObj.AuthInfo.IsLoggedIn)
         {
             userObj.SendSystemMessage(Game.World.GetLocalString("send_parcel_system_msg", ("$NAME", from)));
-            userObj.UpdateAttributes(StatUpdateFlags.UnreadMail);
+            userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         }
 
-        userObj.ParcelStore.AddItem(from, itemName, (uint)quantity);
+        userObj.ParcelStore.AddItem(from, itemName, (uint) quantity);
         return true;
     }
 
+    public static bool RegisterQuest(string id, string title, string summary, string result, string reward, string prerequisite, int circle)
+    => Game.World.WorldData.RegisterQuest(new QuestMetadata()
+        {
+            Id = id, Circle = circle, Result = result, Reward = reward, Prerequisite = prerequisite, Summary = summary, Title = title
+        });
+
+    public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldData.RegisterQuest(data);
+
+    public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level, bool aggro)
+    {
+        if (!Game.World.WorldData.TryGetValue<Creature>(creatureName, out var creature))
+        {
+            GameLog.ScriptingError($"CreateMonster: Creature {creatureName} does not exist");
+            return;
+        }
+
+        if (!Game.World.WorldData.TryGetValue<CreatureBehaviorSet>(behaviorSet, out var cbs))
+        {
+            GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
+            return;
+        }
+
+        if (!Game.World.WorldData.TryGetValue<Map>(mapId, out var map))
+        {
+            GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
+            return;
+        }
+
+        var monster = new Monster(creature, SpawnFlags.Active, (byte) level, null, cbs);
+        monster.X = x;
+        monster.Y = y;
+        monster.Hostility = aggro ? new CreatureHostilitySettings { Players = new CreatureHostility() } : new CreatureHostilitySettings();
+        
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
+    }
 }

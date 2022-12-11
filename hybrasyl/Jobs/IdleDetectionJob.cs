@@ -35,10 +35,7 @@ public static class IdleDetectionJob
             GameLog.Debug("Job starting");
 
             var now = DateTime.Now.Ticks;
-            foreach (var client in GlobalConnectionManifest.WorldClients.Values)
-            {
-                client.CheckIdle();
-            }
+            foreach (var client in GlobalConnectionManifest.WorldClients.Values) client.CheckIdle();
             GameLog.Debug("Job complete");
         }
         catch (Exception e)

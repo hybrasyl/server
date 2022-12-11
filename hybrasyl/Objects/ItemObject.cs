@@ -18,32 +18,222 @@
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
- 
-using Hybrasyl.Enums;
-using Hybrasyl.Scripting;
-using Hybrasyl.Threading;
+
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Hybrasyl.ChatCommands;
-using Hybrasyl.Xml;
 using Hybrasyl.Dialogs;
+using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Serilog.Debugging;
+using Hybrasyl.Scripting;
+using Hybrasyl.Threading;
+using Hybrasyl.Xml;
+using StackExchange.Redis;
+using YamlDotNet.Serialization.ObjectGraphVisitors;
 
 namespace Hybrasyl.Objects;
 
 public class ItemObject : VisibleObject, IInteractable
 {
+    private Item _template;
+
+    public ItemObject(string id, Guid containingWorld = default, Guid guid = default)
+    {
+        ServerGuid = containingWorld;
+        TemplateId = id;
+        _durability = new Lockable<double>(MaximumDurability);
+        _count = new Lockable<int>(1);
+        Guid = guid != default ? guid : Guid.NewGuid();
+    }
+
+    public ItemObject(Item template, Guid containingWorld = default, Guid guid = default)
+    {
+        Template = template;
+        TemplateId = template.Id;
+        ServerGuid = containingWorld;
+        _count = new Lockable<int>(1);
+        _durability = new Lockable<double>(MaximumDurability);
+        Guid = guid != default ? guid : Guid.NewGuid();
+    }
+
+    // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results
+    // in the creation of a new ItemObject.
+    public ItemObject(ItemObject previousItemObject)
+    {
+        _count = new Lockable<int>(previousItemObject.Count);
+        _durability = new Lockable<double>(previousItemObject.Durability);
+        ServerGuid = previousItemObject.ServerGuid;
+        TemplateId = previousItemObject.TemplateId;
+        Durability = previousItemObject.Durability;
+        Count = previousItemObject.Count;
+        Guid = Guid.NewGuid();
+    }
+
     public string TemplateId { get; private set; }
 
     public StatInfo Stats { get; private set; }
 
+    public Item Template
+    {
+        get => _template ?? World.WorldData.Get<Item>(TemplateId);
+        set => _template = value;
+    }
+
+    public bool Usable => Template.Properties.Use != null;
+    public Use Use => Template.Properties.Use;
+
+    public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0
+        ? Template.Properties.Appearance.Sprite
+        : Template.Properties.Appearance.EquipSprite;
+
+    public ItemObjectType ItemObjectType
+    {
+        get
+        {
+            if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
+                return ItemObjectType.Equipment;
+            if (Template.Properties.Flags.HasFlag(ItemFlags.Consumable) || Template.Use != null)
+                return ItemObjectType.CanUse;
+            return ItemObjectType.CannotUse;
+        }
+    }
+
+    public WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
+    public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
+    public string SlotName => Enum.GetName(typeof(EquipmentSlot), EquipmentSlot) ?? "None";
+
+    public int Weight => Template.Properties.Physical.Weight > int.MaxValue
+        ? int.MaxValue
+        : Convert.ToInt32(Template.Properties.Physical.Weight);
+
+    public int MaximumStack => Template.MaximumStack;
+    public bool Stackable => Template.Stackable;
+
+    public List<CastModifier> CastModifiers => Template.Properties.CastModifiers;
+
+    public uint MaximumDurability => Template.Properties?.Physical?.Durability > uint.MaxValue
+        ? uint.MaxValue
+        : Convert.ToUInt32(Template.Properties.Physical.Durability);
+
+    public uint RepairCost
+    {
+        get
+        {
+            if (MaximumDurability != 0)
+                return Durability == 0 ? Value : (uint) (Durability / MaximumDurability * Value);
+            return 0;
+        }
+    }
+
+    // For future use / expansion re: unidentified items.
+    // Should pull from template and only allow false to be set when
+    // Identifiable flag is set.
+    public bool Identified => true;
+
+    public byte MinLevel => Template.MinLevel;
+    public byte MinAbility => Template.MinAbility;
+    public byte MaxLevel => Template.MaxLevel;
+    public byte MaxAbility => Template.MaxAbility;
+
+    public Class Class => Template.Class;
+    public Gender Gender => Template.Gender;
+
+    public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
+    public List<string> Categories => Template.Categories;
+
+    public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
+
+    public ElementType Element => Template.Element;
+
+    public ushort MinLDamage => Template.MinLDamage;
+    public ushort MaxLDamage => Template.MaxLDamage;
+    public ushort MinSDamage => Template.MinSDamage;
+    public ushort MaxSDamage => Template.MaxSDamage;
+    public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
+
+    public uint Value => Template.Properties.Physical.Value > uint.MaxValue
+        ? uint.MaxValue
+        : Convert.ToUInt32(Template.Properties.Physical.Value);
+
+    public bool HideBoots => Template.Properties.Appearance.HideBoots;
+
+    public byte AssailSound => Template.Properties?.Use?.Sound?.Id ?? 0;
+    public List<Proc> Procs => Template.Properties.Procs;
+
+    public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
+    public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
+
+    public bool Consecratable => Template.Properties.Flags.HasFlag(ItemFlags.Consecratable);
+
+    public bool Tailorable => Template.Properties.Flags.HasFlag(ItemFlags.Tailorable);
+
+    public bool Smithable => Template.Properties.Flags.HasFlag(ItemFlags.Smithable);
+
+    public bool Exchangeable => Template.Properties.Flags.HasFlag(ItemFlags.Exchangeable);
+
+    public bool MasterOnly => Template.Properties.Flags.HasFlag(ItemFlags.MasterOnly);
+
+    public bool Perishable => Template.Properties.Flags.HasFlag(ItemFlags.Perishable);
+
+    public bool UniqueInventory => Template.Properties.Flags.HasFlag(ItemFlags.UniqueInventory);
+
+    public bool UniqueEquipped => Template.Properties.Flags.HasFlag(ItemFlags.UniqueEquipped);
+
+    public bool Consumable => Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
+
+    public bool Undamageable => Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
+    public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
+
+    public bool IsVariant => Template.IsVariant;
+
+    public Item ParentItem => Template.ParentItem;
+
+    public Variant CurrentVariant => Template.CurrentVariant;
+
+    private Lockable<int> _count { get; set; }
+
+    public int Count
+    {
+        get => _count.Value;
+        set => _count.Value = value;
+    }
+
+    private Lockable<double> _durability { get; set; }
+
+    public double Durability
+    {
+        get => _durability.Value;
+        set => _durability.Value = value;
+    }
+
+    public uint DisplayDurability => Convert.ToUInt32(Math.Round(Durability));
+
+    public new string Name => Template.Name;
+
+    public new ushort Sprite => Template.Properties.Appearance.Sprite;
+
+    public virtual List<DialogSequence> DialogSequences
+    {
+        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
+        set => throw new NotImplementedException();
+    }
+
+    public virtual Dictionary<string, DialogSequence> SequenceIndex
+    {
+        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
+        set => throw new NotImplementedException();
+    }
+
+    public virtual Script Script
+    {
+        get => Game.World.ScriptProcessor.TryGetScript(Use.Script, out var script) ? script : null;
+        set => throw new NotImplementedException();
+    }
+
     /// <summary>
-    /// Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
-    /// the ItemObject can be equipped and if not, sets the message reference to contain an appropriate
-    /// message to be sent to the user.
+    ///     Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
+    ///     the ItemObject can be equipped and if not, sets the message reference to contain an appropriate
+    ///     message to be sent to the user.
     /// </summary>
     /// <param name="userobj">User object to check for meeting this ItemObject's requirements.</param>
     /// <param name="message">A reference that will be used in the case of failure to set an appropriate error message.</param>
@@ -56,7 +246,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check gender
 
-        if (Gender != 0 && (Gender != userobj.Gender))
+        if (Gender != 0 && Gender != userobj.Gender)
         {
             message = World.GetLocalString("item_equip_wrong_gender");
             return false;
@@ -64,9 +254,9 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check class
 
-        if (userobj.Class != Class && Class != Xml.Class.Peasant)
+        if (userobj.Class != Class && Class != Class.Peasant)
         {
-            message = userobj.Class == Xml.Class.Peasant
+            message = userobj.Class == Class.Peasant
                 ? World.GetLocalString("item_equip_peasant")
                 : World.GetLocalString("item_equip_wrong_class");
             return false;
@@ -95,7 +285,7 @@ public class ItemObject : VisibleObject, IInteractable
         // Check if user is equipping a shield while holding a two-handed weapon
 
         if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon != null &&
-            userobj.Equipment.Weapon.WeaponType == Xml.WeaponType.TwoHand)
+            userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHand)
         {
             message = World.GetLocalString("item_equip_shield_2h");
             return false;
@@ -104,7 +294,7 @@ public class ItemObject : VisibleObject, IInteractable
         // Check if user is equipping a two-handed weapon while holding a shield
 
         if (EquipmentSlot == (byte) ItemSlots.Weapon &&
-            (WeaponType == Xml.WeaponType.TwoHand || WeaponType == Xml.WeaponType.Staff) &&
+            (WeaponType == WeaponType.TwoHand || WeaponType == WeaponType.Staff) &&
             userobj.Equipment.Shield != null)
         {
             message = World.GetLocalString("item_equip_2h_shield");
@@ -120,6 +310,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check item slot prohibitions
 
+        // This code is intentionally verbose
         foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
         {
             var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty
@@ -128,11 +319,11 @@ public class ItemObject : VisibleObject, IInteractable
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
-                     userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                          userobj.Equipment.LGauntlet != null ||
-                                                          userobj.Equipment.RGauntlet != null)
-                                                      || userobj.Equipment[(byte) restriction.Slot] != null)
+                if (
+                    (restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
+                    (userobj.Equipment[(byte) restriction.Slot] != null)
+                )
                 {
                     message = restrictionMessage;
                     return false;
@@ -140,11 +331,11 @@ public class ItemObject : VisibleObject, IInteractable
             }
             else
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
-                     userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                          userobj.Equipment.LGauntlet != null ||
-                                                          userobj.Equipment.RGauntlet != null)
-                                                      || userobj.Equipment[(byte) restriction.Slot] == null)
+                if (
+                    (restriction.Slot == Xml.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
+                    (userobj.Equipment[(byte) restriction.Slot] == null)
+                )
                 {
                     message = restrictionMessage;
                     return false;
@@ -153,8 +344,10 @@ public class ItemObject : VisibleObject, IInteractable
         }
 
         // Check other equipped item slot restrictions 
-        var items = userobj.Equipment.Where(x => x.Template.Properties.Restrictions?.SlotRestrictions != null);
-        foreach (var restriction in items.SelectMany(x => x.Template.Properties.Restrictions.SlotRestrictions))
+        var items = userobj.Equipment.Where(
+            predicate: x => x.Template.Properties.Restrictions?.SlotRestrictions != null);
+        foreach (var restriction in
+                 items.SelectMany(selector: x => x.Template.Properties.Restrictions.SlotRestrictions))
         {
             var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty
                 ? "item_equip_slot_restriction"
@@ -163,12 +356,11 @@ public class ItemObject : VisibleObject, IInteractable
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
                 if ((restriction.Slot == Xml.EquipmentSlot.Ring &&
-                     EquipmentSlot == (byte) Xml.EquipmentSlot.LeftHand ||
-                     EquipmentSlot == (byte) Xml.EquipmentSlot.RightHand) ||
+                     EquipmentSlot == (byte) Xml.EquipmentSlot.LeftHand) ||
+                    EquipmentSlot == (byte) Xml.EquipmentSlot.RightHand ||
                     (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                     EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm ||
-                     EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm) ||
-                    EquipmentSlot == (byte) restriction.Slot)
+                     EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm) ||
+                    EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm || EquipmentSlot == (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -176,17 +368,15 @@ public class ItemObject : VisibleObject, IInteractable
             }
             else
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null ||
-                     userobj.Equipment.RRing != null) || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                          userobj.Equipment.LGauntlet != null ||
-                                                          userobj.Equipment.RGauntlet != null)
-                                                      || EquipmentSlot != (byte) restriction.Slot)
+                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
+                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                                                        userobj.Equipment.LGauntlet != null) ||
+                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
                 }
             }
-
         }
 
         // Check castable requirements
@@ -195,13 +385,9 @@ public class ItemObject : VisibleObject, IInteractable
             var hasCast = false;
             // Behavior is ANY castable, not ALL in list
             foreach (var castable in Template.Properties.Restrictions.Castables)
-            {
                 if (userobj.SkillBook.IndexOf(castable) != -1 ||
                     userobj.SpellBook.IndexOf(castable) != -1)
-                {
                     hasCast = true;
-                }
-            }
 
             if (!hasCast && Template.Properties.Restrictions.Castables.Count > 0)
             {
@@ -211,7 +397,7 @@ public class ItemObject : VisibleObject, IInteractable
         }
 
         // Check mastership requirement
-        if (MasterOnly && (!userobj.IsMaster))
+        if (MasterOnly && !userobj.IsMaster)
         {
             message = World.GetLocalString("item_equip_not_master");
             return false;
@@ -219,144 +405,6 @@ public class ItemObject : VisibleObject, IInteractable
 
         return true;
     }
-
-    private Xml.Item _template;
-
-    public Xml.Item Template
-    {
-        get { return _template ?? World.WorldData.Get<Item>(TemplateId); }
-        set => _template = value;
-    }
-
-    public new string Name => Template.Name;
-
-    public new ushort Sprite => Template.Properties.Appearance.Sprite;
-
-    public bool Usable => Template.Properties.Use != null;
-    public Xml.Use Use => Template.Properties.Use;
-
-    public ushort EquipSprite => Template.Properties.Appearance.EquipSprite == 0
-        ? Template.Properties.Appearance.Sprite
-        : Template.Properties.Appearance.EquipSprite;
-
-    public ItemObjectType ItemObjectType
-    {
-        get
-        {
-            if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
-                return ItemObjectType.Equipment;
-            else if (Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable) || Template.Use != null)
-                return ItemObjectType.CanUse;
-            return ItemObjectType.CannotUse;
-        }
-    }
-
-    public Xml.WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
-    public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
-    public string SlotName => Enum.GetName(typeof(Xml.EquipmentSlot), EquipmentSlot) ?? "None";
-
-    public int Weight => Template.Properties.Physical.Weight > int.MaxValue
-        ? int.MaxValue
-        : Convert.ToInt32(Template.Properties.Physical.Weight);
-
-    public int MaximumStack => Template.MaximumStack;
-    public bool Stackable => Template.Stackable;
-
-    public List<Xml.CastModifier> CastModifiers => Template.Properties.CastModifiers;
-
-    public uint MaximumDurability => Template.Properties?.Physical?.Durability > uint.MaxValue
-        ? uint.MaxValue
-        : Convert.ToUInt32(Template.Properties.Physical.Durability);
-
-    public uint RepairCost
-    {
-        get
-        {
-            if (MaximumDurability != 0)
-                return Durability == 0 ? Value : (uint) ((Durability / MaximumDurability) * Value);
-            return 0;
-        }
-    }
-
-    // For future use / expansion re: unidentified items.
-    // Should pull from template and only allow false to be set when
-    // Identifiable flag is set.
-    public bool Identified => true;
-
-    public byte MinLevel => Template.MinLevel;
-    public byte MinAbility => Template.MinAbility;
-    public byte MaxLevel => Template.MaxLevel;
-    public byte MaxAbility => Template.MaxAbility;
-
-    public Xml.Class Class => Template.Class;
-    public Xml.Gender Gender => Template.Gender;
-
-    public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
-    public List<string> Categories => Template.Categories;
-
-    public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
-
-    public Xml.ElementType Element => Template.Element;
-
-    public ushort MinLDamage => Template.MinLDamage;
-    public ushort MaxLDamage => Template.MaxLDamage;
-    public ushort MinSDamage => Template.MinSDamage;
-    public ushort MaxSDamage => Template.MaxSDamage;
-    public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
-
-    public uint Value => Template.Properties.Physical.Value > uint.MaxValue
-        ? uint.MaxValue
-        : Convert.ToUInt32(Template.Properties.Physical.Value);
-
-    public bool HideBoots => Template.Properties.Appearance.HideBoots;
-
-
-    public bool Enchantable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Enchantable);
-    public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
-
-    public bool Consecratable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consecratable);
-
-    public bool Tailorable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Tailorable);
-
-    public bool Smithable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Smithable);
-
-    public bool Exchangeable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Exchangeable);
-
-    public bool MasterOnly => Template.Properties.Flags.HasFlag(Xml.ItemFlags.MasterOnly);
-
-    public bool Perishable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Perishable);
-
-    public bool UniqueInventory => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueInventory);
-
-    public bool UniqueEquipped => Template.Properties.Flags.HasFlag(Xml.ItemFlags.UniqueEquipped);
-
-    public bool Consumable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Consumable);
-
-    public bool Undamageable => Template.Properties.Flags.HasFlag(Xml.ItemFlags.Undamageable);
-
-    public bool IsVariant => Template.IsVariant;
-
-    public Xml.Item ParentItem => Template.ParentItem;
-
-    public Xml.Variant CurrentVariant => Template.CurrentVariant;
-
-    private Lockable<int> _count { get; set; }
-
-    public int Count
-    {
-        get { return _count.Value; }
-        set { _count.Value = value; }
-    }
-
-    private Lockable<double> _durability { get; set; }
-
-    public double Durability
-    {
-        get { return _durability.Value; }
-        set { _durability.Value = value; }
-    }
-
-    public uint DisplayDurability => Convert.ToUInt32(Math.Round(Durability));
 
     public void EvalFormula(Creature source)
     {
@@ -386,8 +434,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         if (Use?.Script != null)
         {
-            Script invokeScript;
-            if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
+            if (!World.ScriptProcessor.TryGetScript(Use.Script, out var invokeScript))
             {
                 trigger.SendSystemMessage("It doesn't work.");
                 return;
@@ -397,80 +444,71 @@ public class ItemObject : VisibleObject, IInteractable
             invokeScript.ExecuteFunction("OnUse", env);
         }
 
-        if (Use?.Effect != null)
+        if (Use?.Effect != null) trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed);
+
+        if (Use?.Sound != null) trigger.SendSound(Use.Sound.Id);
+
+        if (Use?.Teleport != null) trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
+
+        if (Use?.Statuses != null)
         {
-            trigger.SendEffect(trigger.Id, Use.Effect.Id, Use.Effect.Speed);
+            foreach (var add in Use.Statuses.Add)
+            {
+                if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
+                {
+                    var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
+                    if (trigger.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    {
+                            trigger.SendSystemMessage($"You already have an active {applyStatus.Category}.");
+                    }
+                    else
+                    {
+                        GameLog.UserActivityInfo(
+                            $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
+                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, -1,
+                            add.Intensity));
+                    }
+                }
+                else
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - failed to add status {add.Value}, does not exist!");
+                }
+
+            }
+
+            foreach (var remove in Use.Statuses.Remove)
+            {
+
+                if (World.WorldData.TryGetValue<Status>(remove.ToLower(), out var applyStatus))
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - removing status {remove}");
+                    trigger.RemoveStatus(applyStatus.Icon);
+                }
+                else
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - failed to remove status {remove}, does not exist!");
+                }
+            }
         }
 
-        if (Use?.Sound != null)
+        if (Procs != null)
         {
-            trigger.SendSound((byte) Use.Sound.Id);
+            foreach (var proc in Procs.Where(proc =>
+                         Random.Shared.NextDouble() <= proc.Chance && proc.Type == ProcEventType.OnUse))
+            {
+                Game.World.EnqueueProc(proc, null, trigger.Guid, Guid.Empty);
+            }
         }
 
-        if (Use?.Teleport != null)
-        {
-            trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
-        }
-
-        if (Consumable)
-        {
-            Count--;
-        }
+        if (Consumable) Count--;
     }
 
-    public ItemObject(string id, Guid containingWorld = default, Guid guid = default)
-    {
-        ServerGuid = containingWorld;
-        TemplateId = id;
-        _durability = new Lockable<double>(MaximumDurability);
-        _count = new Lockable<int>(1);
-        Guid = guid != default ? guid : Guid.NewGuid();
-    }
-
-    public ItemObject(Xml.Item template, Guid containingWorld = default, Guid guid = default)
-    {
-        Template = template;
-        TemplateId = template.Id;
-        ServerGuid = containingWorld;
-        _count = new Lockable<int>(1);
-        _durability = new Lockable<double>(MaximumDurability);
-        Guid = guid != default ? guid : Guid.NewGuid();
-    }
-
-    // Simple copy constructor for an ItemObject, mostly used when we split a stack and it results
-    // in the creation of a new ItemObject.
-    public ItemObject(ItemObject previousItemObject)
-    {
-        _count = new Lockable<int>(previousItemObject.Count);
-        _durability = new Lockable<double>(previousItemObject.Durability);
-        ServerGuid = previousItemObject.ServerGuid;
-        TemplateId = previousItemObject.TemplateId;
-        Durability = previousItemObject.Durability;
-        Count = previousItemObject.Count;
-        Guid = Guid.NewGuid();
-    }
-
-    public new void ShowTo(IVisible obj)
+    public override void ShowTo(IVisible obj)
     {
         if (obj is not User user) return;
         user.SendVisibleItem(this);
-    }
-
-    public virtual List<DialogSequence> DialogSequences
-    {
-        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
-        set => throw new NotImplementedException();
-    }
-
-    public virtual Dictionary<string, DialogSequence> SequenceIndex
-    {
-        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
-        set => throw new NotImplementedException();
-    }
-
-    public virtual Script Script
-    {
-        get => Game.World.ScriptProcessor.TryGetScript(Use.Script, out var script) ? script : null;
-        set => throw new NotImplementedException();
     }
 }

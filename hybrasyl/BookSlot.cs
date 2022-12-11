@@ -1,5 +1,4 @@
-﻿using Hybrasyl.Objects;
-using System;
+﻿using System;
 using Hybrasyl.Xml;
 
 namespace Hybrasyl;
@@ -11,10 +10,9 @@ public class BookSlot
     public uint MasteryLevel { get; set; }
     public DateTime LastCast { get; set; }
 
-    public bool OnCooldown => (Castable.Cooldown > 0) &&
-                              ((DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown);
+    public bool OnCooldown => Castable.Cooldown > 0 &&
+                              (DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown;
 
     public bool HasBeenUsed => LastCast != default;
     public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
 }
-

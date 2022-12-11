@@ -4,20 +4,18 @@ using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 using Xunit;
 using Creature = Hybrasyl.Xml.Creature;
-using Map = Hybrasyl.Map;
 
 namespace HybrasylTests;
-
 
 [Collection("Hybrasyl")]
 public class Status
 {
-    public HybrasylFixture Fixture { get; set; }
-
     public Status(HybrasylFixture fixture)
     {
         Fixture = fixture;
     }
+
+    public HybrasylFixture Fixture { get; set; }
 
     [Fact]
     public void ApplyStatus()
@@ -26,11 +24,12 @@ public class Status
         Fixture.TestUser.Stats.BaseMp = 1000;
         Fixture.TestUser.Stats.Mp = 1000;
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        var castable = Game.World.WorldData.FindCastables(x => x.Name == "Plus AC").FirstOrDefault();
+        var castable = Game.World.WorldData.FindCastables(condition: x => x.Name == "Plus AC").FirstOrDefault();
         Assert.NotNull(castable);
         Fixture.TestUser.SpellBook.Add(castable);
         Fixture.TestUser.UseCastable(castable, Fixture.TestUser);
-        Assert.True(Fixture.TestUser.Stats.Ac == beforeAc - 20, $"ac should be {beforeAc-20} but is {Fixture.TestUser.Stats.Ac}");
+        Assert.True(Fixture.TestUser.Stats.Ac == beforeAc - 20,
+            $"ac should be {beforeAc - 20} but is {Fixture.TestUser.Stats.Ac}");
     }
 
     [Fact]
@@ -39,7 +38,7 @@ public class Status
         Fixture.TestUser.Stats.BaseMp = 1000;
         Fixture.TestUser.Stats.Mp = 1000;
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        var castable = Game.World.WorldData.FindCastables(x => x.Name == "Sleep").FirstOrDefault();
+        var castable = Game.World.WorldData.FindCastables(condition: x => x.Name == "Sleep").FirstOrDefault();
         Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
             "Gabbaghoul test monster not found");
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
