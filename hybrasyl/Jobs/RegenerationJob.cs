@@ -20,6 +20,7 @@
  */
 
 using System.Timers;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Jobs;
 
@@ -30,6 +31,6 @@ public static class RegenerationJob
     public static void Execute(object obj, ElapsedEventArgs args)
     {
         foreach (var connId in GlobalConnectionManifest.WorldClients.Keys)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RegenUser, connId));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.RegenUser, connId));
     }
 }

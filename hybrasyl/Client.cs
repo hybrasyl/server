@@ -570,7 +570,7 @@ public class Client
                                 throttleResult == ThrottleResult.SquelchEnd)
                                 World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
                             else if (packet.Opcode == 0x06)
-                                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.TriggerRefresh,
+                                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.TriggerRefresh,
                                     ConnectionId));
                         }
                     }

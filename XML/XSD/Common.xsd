@@ -83,7 +83,7 @@
 
     <xs:complexType name="ElementalResistance">
         <xs:attribute name="Type" type="hyb:ElementType" use="required"/>
-        <xs:attribute name="Modifier" type="xs:double" use="required"/>
+        <xs:attribute name="Modifier" type="xs:float" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="StatModifiers">

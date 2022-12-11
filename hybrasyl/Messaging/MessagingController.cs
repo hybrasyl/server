@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Enums;
 using Hybrasyl.Plugins;
 
 namespace Hybrasyl.Messaging;
@@ -400,7 +401,7 @@ internal static class MessagingController
                     {
                         response = $"Your letter to {recipient} was sent.";
                         GameLog.InfoFormat("mail: {0} sent message to {1}", senderRef.UserName, recipient);
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MailNotifyUser,
                             recipient));
                         senderSentMail.LastMailRecipient = recipient;
                         senderSentMail.LastMailMessageSent = DateTime.Now;

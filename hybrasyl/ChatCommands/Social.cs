@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
@@ -14,7 +15,7 @@ internal class AnnounceMass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name} will be giving a mass at the temple of {char.ToUpper(args[0][0])}{args[0][1..]}"));
         return Success();
     }
@@ -29,7 +30,7 @@ internal class AnnounceClass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name} will be giving a {char.ToUpper(args[0][0])}{args[0][1..]} class at Loures College."));
         return Success();
     }
@@ -44,7 +45,7 @@ internal class BeginMass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name}'s {char.ToUpper(args[0][0])}{args[0][1..]} mass is starting."));
         if (Game.World.WorldData.TryGetSocialEvent(user, out var _))
             return Fail("An event is already occurring here.");
@@ -64,7 +65,7 @@ internal class BeginClass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name}'s {char.ToUpper(args[0][0])}{args[0][1..]} class is starting."));
         user.SendSystemMessage("Use your spark.");
         if (Game.World.WorldData.TryGetSocialEvent(user, out var _))

@@ -32,9 +32,9 @@ public static class MetricsJob
         if (Game.MetricsStore.Options.ReportingEnabled)
         {
             // Store queue depth before we run our report
-            Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.QueueDepth,
+            Game.MetricsStore.Measure.Gauge.SetValue(Game.World.QueueDepth,
                 World.MessageQueue.Count);
-            Game.MetricsStore.Measure.Gauge.SetValue(HybrasylMetricsRegistry.ControlQueueDepth,
+            Game.MetricsStore.Measure.Gauge.SetValue(Game.World.ControlQueueDepth,
                 World.MessageQueue.Count);
 
             // this shouldn't be how this happens, but it doesn't work otherwise

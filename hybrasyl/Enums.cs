@@ -283,6 +283,30 @@ namespace Hybrasyl
             public const byte QuestInfo = 0x8A;
         }
 
+        public enum ControlOpcode
+        {
+            CleanupUser,
+            SaveUser,
+            ChaosRising,
+            ShutdownServer,
+            RegenUser,
+            LogoffUser,
+            MailNotifyUser,
+            StatusTick,
+            MonolithSpawn,
+            MonolithControl,
+            TriggerRefresh,
+            HandleDeath,
+            DialogRequest,
+            GlobalMessage,
+            RemoveReactor,
+            ModifyStats,
+            ProcessProc,
+            UpdateUser,
+            DisplayCreature,
+            CombatLog
+        }
+
         #endregion
 
         #region Messaging types
@@ -316,6 +340,21 @@ namespace Hybrasyl
             Spawn = 4,
             Packet = 5,
             XmlData = 6
+        }
+
+        public enum CombatLogEventType
+        {
+            Unknown,
+            Dodge,
+            Damage, 
+            Heal,
+            CriticalFailure,
+            CriticalMagicFailure,
+            ReflectMagical,
+            ReflectPhysical,
+            LifeSteal,
+            ManaSteal,
+            ConvertDamageToMp
         }
 
         public enum UserStatus : byte

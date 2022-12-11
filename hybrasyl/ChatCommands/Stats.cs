@@ -166,16 +166,39 @@ internal class GoldCommand : ChatCommand
 internal class DamageCommand : ChatCommand
 {
     public new static string Command = "damage";
-    public new static string ArgumentText = "<double damage>";
-    public new static string HelpText = "Damage yourself for the specified amount. Careful...";
+    public new static string ArgumentText = "<double damage> <string element>";
+    public new static string HelpText = "Damage yourself for the specified amount, with the specified element. Careful...";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
+        var element = ElementType.None;
         if (!double.TryParse(args[0], out var amount))
             return Fail("The value you specified could not be parsed (double)");
-        user.Damage(amount);
-        return Success($"{user.Name} - damaged by {amount}.");
+        if (!Enum.TryParse(args[1], true, out element))
+            return Fail("I don't know what element that is. Sorry.");
+        user.Damage(amount, element);
+        return Success($"{user.Name} - damaged by {element}:{amount}");
+    }
+}
+
+internal class ResistancesCommand : ChatCommand
+{
+    public new static string Command = "resistances";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Display current elemental resistances.";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var str = "Resistances\n-----------\n";
+        foreach (var element in Enum.GetValues<ElementType>())
+        {
+            str += $"{element} {user.Stats.Resistances.GetResistance(element)}\n";
+        }
+
+        user.SendMessage(str, MessageType.SlateScrollbar);
+        return Success();
     }
 }
 
@@ -454,5 +477,19 @@ internal class EquipmentDurabilityCommand : ChatCommand
         }
 
         return Fail("The value you specified could not be parsed (uint)");
+    }
+}
+
+internal class CombatLogCommand : ChatCommand
+{
+    public new static string Command = "combatlog";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Enable or disable the combat log (WARNING: can be a lot of text)";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        user.SetSessionCookie("combatlog", user.GetSessionCookie("combatlog") == "on" ? "off" : "on");
+        return Success($"Combat log is {user.GetSessionCookie("combatlog")}");
     }
 }

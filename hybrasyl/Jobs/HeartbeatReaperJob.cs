@@ -50,7 +50,7 @@ public static class HeartbeatReaperJob
                         GameLog.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",
                             user.Name, connectionId);
                         GlobalConnectionManifest.DeregisterClient(client);
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser,
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser,
                             CleanupType.ByConnectionId, connectionId));
                     }
             }

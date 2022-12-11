@@ -170,19 +170,16 @@ public class CreatureStatus : ICreatureStatus
         // to have damage effects as the castable itself has fields we need to access 
         // (intensity, etc) in order to do damage calculations.
 
-        if (castable != null)
-        {
-            var start = CalculateNumericEffects(castable, xmlstatus.Effects.OnApply, source);
-            var tick = CalculateNumericEffects(castable, xmlstatus.Effects.OnTick, source);
-            var end = CalculateNumericEffects(castable, xmlstatus.Effects.OnRemove, source);
-            var expire = CalculateNumericEffects(castable, xmlstatus.Effects.OnExpire, source);
-            OnStartEffect = new SimpleStatusEffect(start.Heal, start.Damage);
-            OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
-            OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
-            OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
-            BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, intensity,
-                xmlstatus.Effects.OnApply.StatModifiers, source, target);
-        }
+        var start = CalculateNumericEffects(castable, xmlstatus.Effects.OnApply, source);
+        var tick = CalculateNumericEffects(castable, xmlstatus.Effects.OnTick, source);
+        var end = CalculateNumericEffects(castable, xmlstatus.Effects.OnRemove, source);
+        var expire = CalculateNumericEffects(castable, xmlstatus.Effects.OnExpire, source);
+        OnStartEffect = new SimpleStatusEffect(start.Heal, start.Damage);
+        OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
+        OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
+        OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
+        BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, intensity,
+            xmlstatus.Effects.OnApply.StatModifiers, source, target);
     }
 
     public CreatureStatus(StatusInfo serialized, Creature target)
@@ -357,9 +354,9 @@ public class CreatureStatus : ICreatureStatus
     {
         if (effect == null) return;
         if (effect.Damage != null && effect.Damage.Amount != 0)
-            Target.Damage(effect.Damage.Amount, effect.Damage.Element, effect.Damage.Type, effect.Damage.Flags, Source);
+            Target.Damage(effect.Damage.Amount, effect.Damage.Element, effect.Damage.Type, effect.Damage.Flags, Source, Castable);
         if (effect.Heal != 0)
-            Target.Heal(effect.Heal, Source);
+            Target.Heal(effect.Heal, Source, Castable);
     }
 
     private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)

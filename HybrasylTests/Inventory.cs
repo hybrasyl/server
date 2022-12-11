@@ -195,7 +195,7 @@ public class Inventory
         var testPacket = new DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
             (uint) Fixture.TestUser.Inventory[1].Count);
 
-        var handler = Game.World.PacketHandlers[0x08];
+        var handler = Game.World.WorldPacketHandlers[0x08];
         Assert.NotNull(handler);
         handler(Fixture.TestUser, (ClientPacket) testPacket);
 

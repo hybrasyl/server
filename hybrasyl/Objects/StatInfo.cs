@@ -1752,6 +1752,7 @@ public class StatInfo
         BaseInboundDamageToMp += si1.BaseInboundDamageToMp;
         BaseExtraFaith += si1.BaseExtraFaith;
         Faith += si1.Faith;
+        Resistances.Apply(si1.Resistances);
 
         if (!experience) return;
         Level += si1.Level;
@@ -1833,6 +1834,7 @@ public class StatInfo
         BaseExtraFaith -= si1.BaseExtraFaith;
         Faith -= si1.Faith;
 
+        Resistances.Remove(si1.Resistances);
         if (!experience) return;
         Level -= si1.Level;
         Experience -= si1.Experience;

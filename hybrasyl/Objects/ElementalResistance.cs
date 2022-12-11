@@ -51,11 +51,29 @@ public class ElementalResistance
             Resistances[element] = mod;
     }
 
+    public void Apply(List<Xml.ElementalResistance> er1)
+    {
+        foreach (var resistance in er1)
+        {
+            Resistances[resistance.Type] += resistance.Modifier;
+            GameLog.Info($"{resistance.Type}: {resistance.Modifier}");
+        }
+    }
+
+    public void Remove(List<Xml.ElementalResistance> er1)
+    {
+        foreach (var resistance in er1)
+        {
+            Resistances[resistance.Type] -= resistance.Modifier;
+        }
+    }
+
     public void Apply(ElementalResistance er1)
     {
         foreach (ElementType type in Enum.GetValues(typeof(ElementType)))
         {
             Resistances[type] += er1.Resistances[type];
+            GameLog.Info($"{type}: {Resistances[type]}");
         }
     }
 

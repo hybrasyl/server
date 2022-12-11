@@ -380,12 +380,12 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         lock (_lock)
         {
-            if (damageEvent.Attacker != null && !damageEvent.Flags.HasFlag(DamageFlags.NoThreat))
+            if (damageEvent.Source != null && !damageEvent.Flags.HasFlag(DamageFlags.NoThreat))
             {
-                if (!ThreatInfo.ContainsThreat(damageEvent.Attacker))
-                    ThreatInfo.AddNewThreat(damageEvent.Attacker, damageEvent.Damage);
+                if (!ThreatInfo.ContainsThreat(damageEvent.Source))
+                    ThreatInfo.AddNewThreat(damageEvent.Source, damageEvent.Amount);
                 else
-                    ThreatInfo.IncreaseThreat(damageEvent.Attacker, damageEvent.Damage);
+                    ThreatInfo.IncreaseThreat(damageEvent.Source, damageEvent.Amount);
             }
 
             Condition.Asleep = false;
@@ -393,23 +393,24 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
+            if (damageEvent.Source is User user)
+                user.SendCombatLogMessage(damageEvent);
 
             if (Script == null) return;
 
-            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Attacker);
-            env.Add("damage", damageEvent.Damage);
-
+            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Amount);
+            env.Add("damage", damageEvent);
             Script.ExecuteFunction("OnDamage", env);
         }
     }
 
-    public override void OnHeal(Creature healer, uint heal)
+    public override void OnHeal(HealEvent healEvent)
     {
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healer, this, healer);
-        env.Add("heal", heal);
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healEvent.Source, this, healEvent.Source);
+        env.Add("heal", healEvent);
         Script.ExecuteFunction("OnHeal", env);
     }
 

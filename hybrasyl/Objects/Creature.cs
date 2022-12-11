@@ -538,7 +538,7 @@ public class Creature : VisibleObject
                 GameLog.UserActivityInfo(
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
-                tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, castableXml, false);
                 ProcessProcs(ProcEventType.OnHit, castableXml, tar);
 
                 if (tar is User u && !castableXml.IsAssail)
@@ -556,7 +556,7 @@ public class Creature : VisibleObject
             else if (castableXml.Effects?.Heal != null && !castableXml.Effects.Heal.IsEmpty)
             {
                 var healOutput = NumberCruncher.CalculateHeal(castableXml, tar, this);
-                tar.Heal(healOutput, this);
+                tar.Heal(healOutput, this, castableXml);
                 ProcessProcs(ProcEventType.OnHit, castableXml, tar);
                 if (this is User)
                 {
@@ -608,7 +608,7 @@ public class Creature : VisibleObject
 
         // Now flood away
         foreach (var dead in deadMobs)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.HandleDeath, dead));
         Condition.Casting = false;
         return true;
     }
@@ -822,9 +822,9 @@ public class Creature : VisibleObject
         }
     }
 
-    public virtual void Heal(double heal, Creature source = null)
+    public virtual void Heal(double heal, Creature source = null, Castable castable = null)
     {
-        OnHeal(source, (uint) heal);
+        OnHeal(new HealEvent { Amount = Convert.ToUInt32(heal), Source = source, SourceCastable = castable, Target = this});
 
         if (AbsoluteImmortal || PhysicalImmortal) return;
         if (Stats.Hp == Stats.MaximumHp) return;
@@ -845,9 +845,14 @@ public class Creature : VisibleObject
 
     public virtual void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
-        Creature attacker = null, bool onDeath = true)
+        Creature attacker = null, Castable castable = null, bool onDeath = true)
     {
         if (this is Monster ms && !Condition.Alive) return;
+        var damageEvent = new DamageEvent();
+        damageEvent.Source = attacker;
+        damageEvent.SourceCastable = castable;
+        damageEvent.Target = this;
+        damageEvent.Element = element;
 
         // Handle dodging first
         if (damageType == DamageType.Physical && Stats.Dodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
@@ -856,6 +861,7 @@ public class Creature : VisibleObject
             if (Random.Shared.Next(100) <= Stats.Dodge - dodgeReduction)
             {
                 Effect(115, 100);
+
                 return;
             }
         }
@@ -885,17 +891,20 @@ public class Creature : VisibleObject
             double armor = Stats.Ac * -1 + 100;
             var reduction = damage * (armor / (armor + 50));
             damage -= reduction;
+            damageEvent.ArmorReduction = Convert.ToUInt32(reduction);
         }
 
         // handle elements
         if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoElement))
         {
             var elementTable = Game.World.WorldData.Get<ElementTable>("ElementTable");
-            if (elementTable != null)
+            var multiplierList = elementTable?.Source.First(predicate: x => x.Element == element).Target;
+            if (multiplierList != null)
             {
-                var multiplier = elementTable.Source.First(predicate: x => x.Element == element).Target;
-                var ass = multiplier.FirstOrDefault(predicate: x => x.Element == Stats.BaseDefensiveElement).Multiplier;
-                damage *= ass;
+                var multiplier = multiplierList
+                    .FirstOrDefault(predicate: x => x.Element == Stats.BaseDefensiveElement)?.Multiplier ?? 1.0;
+                damageEvent.ElementalInteraction = Convert.ToUInt32(damage * multiplier);
+                damage *= multiplier;
             }
         }
 
@@ -904,23 +913,38 @@ public class Creature : VisibleObject
         {
             _mLastHitter = attacker.Id;
             if (attacker.Stats.Dmg > 0)
+            {
                 damage += damage * attacker.Stats.Dmg;
+                damageEvent.BonusDmg = Convert.ToUInt32(damage * attacker.Stats.Dmg);
+            }
             else
+            {
                 damage -= damage * attacker.Stats.Dmg;
+                damageEvent.BonusDmg = Convert.ToUInt32(damage * attacker.Stats.Dmg * -1);
+            }
+
+
             if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
                 if (Stats.Mr > 0)
+                {
                     damage -= damage * Stats.Mr;
+                    damageEvent.MagicResisted = Convert.ToUInt32(damage * Stats.Mr);
+                }
                 else
+                {
                     damage += damage * Stats.Mr * -1;
+                    damageEvent.MagicResisted = Convert.ToUInt32(damage * Stats.Mr * -1);
+                }
             }
 
             if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical &&
                 !damageFlags.HasFlag(DamageFlags.NoCrit))
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
-                    damage += damage * 0.5;
-                    Effect(24, 100);
+                   damage += damage * 0.5;
+                   damageEvent.Crit = true;
+                   Effect(24, 100);
                 }
 
             if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical &&
@@ -928,6 +952,7 @@ public class Creature : VisibleObject
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
                     damage += damage * 2;
+                    damageEvent.MagicCrit = true;
                     Effect(24, 100);
                 }
 
@@ -936,9 +961,15 @@ public class Creature : VisibleObject
                 if (Random.Shared.Next(100) <= Stats.Dodge * -1)
                 {
                     Effect(68, 100);
+                    var selfDamage = damage * -1 * 0.25;
                     (attacker as User)?.SendSystemMessage("You fumble, and strike yourself hard!");
                     attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
-                        new StatInfo { DeltaHp = (long) (damage * -1 * 0.25) });
+                        new StatInfo { DeltaHp = (long) selfDamage },
+                        new StatChangeEvent
+                        {
+                            Amount = Convert.ToUInt32(selfDamage),
+                            EventType = CombatLogEventType.CriticalFailure, Source = attacker, Target = this
+                        });
                     return;
                 }
 
@@ -947,13 +978,30 @@ public class Creature : VisibleObject
                 if (Random.Shared.Next(100) <= Stats.MagicDodge * -1)
                 {
                     Effect(68, 100);
+                    var selfDamage = damage * -1 * 0.25;
                     (attacker as User)?.SendSystemMessage("You stammer, and flames envelop you!");
                     attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
-                        new StatInfo { DeltaHp = (long) (damage * -1 * 0.25) });
+                        new StatInfo { DeltaHp = (long) selfDamage },
+                        new StatChangeEvent
+                        {
+                            Amount = Convert.ToUInt32(selfDamage),
+                            EventType = CombatLogEventType.CriticalMagicFailure, Source = attacker, Target = this
+                        });
                     return;
                 }
         }
 
+
+        // Apply elemental resistances, if they exist
+        var resisted = Stats.Resistances.GetResistance(element);
+
+        if (resisted != 0.0)
+        {
+            damage += damage * resisted;
+            damageEvent.ElementalResisted = Convert.ToUInt32(damage * resisted);
+        }
+
+        // Now, normalize damage for uint (max hp)
         var normalized = (uint) damage;
 
         if (normalized > Stats.Hp && damageFlags.HasFlag(DamageFlags.Nonlethal))
@@ -961,17 +1009,17 @@ public class Creature : VisibleObject
         else if (normalized > Stats.Hp)
             normalized = Stats.Hp;
 
-        OnDamage(new DamageEvent { Attacker = attacker, Damage = normalized, Flags = damageFlags, Type = damageType });
-
-        if (AbsoluteImmortal || Condition.IsInvulnerable) return;
-
         switch (damageType)
         {
             case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
             case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
-            case DamageType.Direct when AbsoluteImmortal:
+            case DamageType.Direct when AbsoluteImmortal || Condition.IsInvulnerable:
+                damageEvent.Applied = false;
                 return;
         }
+
+        damageEvent.Amount = normalized;
+        OnDamage(damageEvent);
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects
         // without mitigation.
@@ -979,28 +1027,48 @@ public class Creature : VisibleObject
         {
             var reflected = Stats.ReflectMagical / 100 * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1) });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1) },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(reflected * -1), EventType = CombatLogEventType.ReflectMagical,
+                        Source = attacker, Target = this
+                    });
         }
 
         if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
         {
             var reflected = Stats.ReflectPhysical / 100 * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(reflected * -1), EventType = CombatLogEventType.ReflectPhysical,
+                        Source = attacker, Target = this
+                    });
         }
 
         if (attacker != null && attacker.Stats.LifeSteal > 0)
         {
             var stolen = normalized * (Stats.LifeSteal / 100);
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(stolen),
+                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this
+                    });
         }
 
         if (attacker != null && attacker.Stats.ManaSteal > 0)
         {
             var stolen = normalized * (Stats.ManaSteal / 100);
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(stolen),
+                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this
+                    });
         }
 
         // Lastly, handle damage to MP redirection
@@ -1009,7 +1077,12 @@ public class Creature : VisibleObject
         {
             var redirected = Stats.InboundDamageToMp / 100 * normalized;
             if (redirected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) redirected });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) redirected },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(redirected),
+                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this, SourceCastable = castable
+                    });
         }
 
         Stats.Hp = (int) Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
@@ -1061,7 +1134,6 @@ public class Creature : VisibleObject
 
     public string GetSessionCookie(string cookieName) =>
         SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
-
 
     public bool HasCookie(string cookieName) => Cookies.ContainsKey(cookieName);
 
