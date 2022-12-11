@@ -7,6 +7,8 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Bson;
 
 namespace Hybrasyl.Xml;
 
@@ -55,13 +57,14 @@ public partial class Item
     public Item Clone()
     {
         var ms = new MemoryStream();
-        var bf = new BinaryFormatter();
-        bf.Serialize(ms, this);
+        var writer = new BsonWriter(ms);
+        var reader = new BsonReader(ms);
+        var serializer = new JsonSerializer();
+        serializer.Serialize(writer, this);
         ms.Position = 0;
-        var obj = bf.Deserialize(ms);
+        var obj = serializer.Deserialize<Item>(reader);
         ms.Close();
-        return (Item) obj;
-    }
+        return obj;    }
 
     public Item RandomVariant(string variant)
     {

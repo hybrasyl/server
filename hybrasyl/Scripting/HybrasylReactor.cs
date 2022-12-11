@@ -9,7 +9,6 @@ public class HybrasylReactor : HybrasylWorldObject
 {
     public HybrasylReactor(Reactor obj) : base(obj) { }
     internal Reactor Reactor => WorldObject as Reactor;
-    public static bool IsPlayer => false;
     public HybrasylUser Origin => Reactor.Origin is User u ? new HybrasylUser(u) : null;
 
     public bool Blocking => Reactor.Blocking;

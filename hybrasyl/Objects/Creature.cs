@@ -24,13 +24,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using DotLiquid;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml;
 using Newtonsoft.Json;
+using Sentry;
 
 namespace Hybrasyl.Objects;
 
@@ -230,17 +230,23 @@ public class Creature : VisibleObject
         return ret;
     }
 
-    public void ProcessProcs(Castable castable, Creature target = null)
+    public void ProcessProcs(ProcEventType type, Castable castable, Creature target)
     {
-        foreach (var proc in castable.Effects.Procs)
+        foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
         {
             // Proc fires
-            if (Random.Shared.NextDouble() <= proc.Chance)
-            {
-            }
+            Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
+        }
 
+        if (!castable.IsAssail || Equipment?.Weapon?.Procs == null) 
+            return;
+
+        foreach (var proc in Equipment.Weapon.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
+        {
+            Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
         }
     }
+
 
     public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
     {
@@ -420,6 +426,16 @@ public class Creature : VisibleObject
             GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
             return false;
         }
+
+        // Check to see if creature is immune.
+        // Only handle monster immunity for now
+        if (target is Monster monster && monster.Immunities.Contains(castableXml.Name) && this is User client)
+        {
+            client.SendSystemMessage($"{Name} cannot be harmed by {castableXml.Name}.");
+            return false;
+        }
+
+        ProcessProcs(ProcEventType.OnCast, castableXml, null);
         // Is this a pvpable spell? If so, is pvp enabled?
 
         // We do these next steps to ensure effects are displayed uniformly and as fast as possible
@@ -461,7 +477,7 @@ public class Creature : VisibleObject
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castableXml.Script, out var script))
             {
-                Game.World.WorldData.TryGetValueByIndex(castableXml.Guid, out CastableObject castableObj);
+                Game.World.WorldData.TryGetValue(castableXml.Guid, out CastableObject castableObj);
                 var ret = script.ExecuteFunction("OnUse",
                     ScriptEnvironment.Create(("target", target), ("origin", castableObj), ("source", this),
                         ("castable", castableObj)));
@@ -506,26 +522,24 @@ public class Creature : VisibleObject
             {
                 ElementType attackElement;
                 var damageOutput = NumberCruncher.CalculateDamage(castableXml, tar, this);
-                if (castableXml.Element == ElementType.Random)
+                attackElement = castableXml.Element switch
                 {
-                    var Elements = Enum.GetValues(typeof(ElementType));
-                    attackElement = (ElementType) Elements.GetValue(Random.Shared.Next(Elements.Length));
-                }
-                else if (castableXml.Element != ElementType.None)
-                {
-                    attackElement = castableXml.Element;
-                }
-                else
-                {
-                    attackElement = Stats.OffensiveElementOverride != ElementType.None
+                    ElementType.RandomTemuair => (ElementType) Random.Shared.Next(1, 7),
+                    ElementType.RandomExpanded => (ElementType) Random.Shared.Next(1, 10),
+                    ElementType.Belt => Equipment?.Belt?.Element ?? ElementType.None,
+                    ElementType.Necklace => Equipment?.Necklace?.Element ?? ElementType.None,
+                    ElementType.None => ElementType.None,
+                    ElementType.Current => Stats.OffensiveElementOverride != ElementType.None
                         ? Stats.OffensiveElementOverride
-                        : Stats.BaseOffensiveElement;
-                }
+                        : Stats.BaseOffensiveElement,
+                    _ => castableXml.Element
+                };
 
                 GameLog.UserActivityInfo(
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                ProcessProcs(ProcEventType.OnHit, castableXml, tar);
 
                 if (tar is User u && !castableXml.IsAssail)
                     u.SendSystemMessage($"{Name} attacks you with {castableXml.Name}.");
@@ -543,13 +557,13 @@ public class Creature : VisibleObject
             {
                 var healOutput = NumberCruncher.CalculateHeal(castableXml, tar, this);
                 tar.Heal(healOutput, this);
+                ProcessProcs(ProcEventType.OnHit, castableXml, tar);
                 if (this is User)
                 {
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} healing: {healOutput}");
                     if (Equipment.Weapon is { Undamageable: false })
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
-                                                            (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
+                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
                 }
             }
 
@@ -674,7 +688,7 @@ public class Creature : VisibleObject
                 return false;
             }
 
-            if (Map.IsWall[newX, newY])
+            if (Map.IsWall(newX, newY))
             {
                 Refresh();
                 return false;

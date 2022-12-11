@@ -151,7 +151,7 @@ internal class Monolith
             // at a default interval of every 30 seconds, with (maxcount/5) spawned
             // per tick.
             // We take Coordinates into account here since we always want to have the number of
-            // monsters expected.
+            // monsters expected from coordinate references.
 
             var maxcount = Math.Max(Math.Min(20, spawnmap.X * spawnmap.Y / 30), spawn.Coordinates.Count);
             var interval = 30;
@@ -281,10 +281,16 @@ internal class Monolith
                         {
                             xcoord = Random.Shared.Next(0, spawnmap.X);
                             ycoord = Random.Shared.Next(0, spawnmap.Y);
-                        } while (spawnmap.IsWall[xcoord, ycoord]);
+                        } while (spawnmap.IsWall(xcoord, ycoord));
 
                     baseMob.X = (byte) xcoord;
                     baseMob.Y = (byte) ycoord;
+
+                    if (spawn.Hostility != null)
+                        baseMob.Hostility = spawn.Hostility;
+
+                    if (spawn.Immunities != null)
+                        baseMob.Immunities = spawn.Immunities;
 
                     if (spawn.Damage != null)
                     {
@@ -306,16 +312,7 @@ internal class Monolith
                                     template.Properties.Damage.Large.Min = minDmg;
                                     template.Properties.Damage.Large.Max = maxDmg;
                                     template.Properties.Physical.Durability = uint.MaxValue / 10;
-                                    baseMob.Stats.OffensiveElementOverride = spawn.Damage.Element switch
-                                    {
-                                        ElementType.RandomFour => (ElementType) Random.Shared.Next(1,
-                                            5), // earth/fire/wind/water
-                                        ElementType.RandomEight => (ElementType) Random.Shared.Next(1,
-                                            9), // Above plus light/dark/metal/wood
-                                        ElementType.Random => (ElementType) Random.Shared.Next(1,
-                                            10), // Above plus undead
-                                        _ => spawn.Damage.Element
-                                    };
+                                    baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
                                     var item = new ItemObject(newTemplate);
                                     baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
@@ -352,14 +349,7 @@ internal class Monolith
 
                         baseMob.Stats.BonusAc = Ac;
                         baseMob.Stats.BonusMr = Mr;
-                        baseMob.Stats.DefensiveElementOverride = spawn.Defense.Element switch
-                        {
-                            ElementType.RandomFour => (ElementType) Random.Shared.Next(1, 5), // earth/fire/wind/water
-                            ElementType.RandomEight => (ElementType) Random.Shared.Next(1,
-                                9), // Above plus light/dark/metal/wood
-                            ElementType.Random => (ElementType) Random.Shared.Next(1, 10), // Above plus undead
-                            _ => spawn.Damage.Element
-                        };
+                        baseMob.Stats.DefensiveElementOverride = spawn.DefensiveElement;
                     }
 
                     foreach (var cookie in spawn.SetCookies) baseMob.SetCookie(cookie.Name, cookie.Value);

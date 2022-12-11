@@ -67,7 +67,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     public Class PreviousClass => User.PreviousClass;
 
-    public static bool IsPlayer => true;
+    public override bool IsPlayer => true;
 
     /// <summary>
     ///     The gender of the player. For Darkages purpose, this will evaluate to Male or Female.
@@ -895,8 +895,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="name">The name of the item to be removed.</param>
     /// <param name="count">The quantity to be removed.</param>
+    /// <param name="force">Whether or not to force remove the item (override whether it is bound, etc)</param>
     /// <returns>Boolean indicating whether or not it the item was successfully removed from the player's inventory.</returns>
-    public bool TakeItem(string name, int count = 1)
+    public bool TakeItem(string name, int count = 1, bool force = true)
     {
         if (string.IsNullOrEmpty(name))
         {
@@ -907,9 +908,9 @@ public class HybrasylUser : HybrasylWorldObject
 
         if (User.Inventory.ContainsName(name))
         {
-            if (User.RemoveItem(name, (ushort) count))
+            if (User.RemoveItem(name, (ushort) count,true, force))
                 return true;
-            GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}", User.Name, name);
+            GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}, might be bound", User.Name, name);
         }
         else
         {
@@ -1104,7 +1105,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
     /// <param name="associateOverride">An IInteractable to associate with the dialog as the origin.</param>
-    public void StartSequence(string sequenceName, IInteractable associateOverride = null)
+    public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1112,7 +1113,6 @@ public class HybrasylUser : HybrasylWorldObject
                 User.Name);
             return;
         }
-
         DialogSequence sequence = null;
         IInteractable associate = null;
         GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
@@ -1130,7 +1130,7 @@ public class HybrasylUser : HybrasylWorldObject
         }
         else
         {
-            associate = associateOverride;
+            associate = associateOverride.WorldObject as IInteractable;
         }
 
         // If we didn't get a sequence before, try with our associate. Either we know it implements an Interactable 

@@ -17,7 +17,9 @@ public enum ControlOpcodes
   GlobalMessage = 13,
   RemoveReactor = 14,
   ModifyStats = 15,
-  ProcessProc = 16
+  ProcessProc = 16,
+  UpdateUser = 17,
+  DisplayCreature = 18
 }
 
 #>

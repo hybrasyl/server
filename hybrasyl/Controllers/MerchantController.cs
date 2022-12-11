@@ -320,8 +320,7 @@ public class MerchantController
         var first = slot.First();
         var fee = (uint) Math.Round(first.obj.Value * 0.10, 0);
 
-        // TODO: HS-1257
-        if (!first.obj.Depositable)
+        if (!first.obj.Depositable || first.obj.Bound)
         {
             Merchant.Say("No. I don't even want to touch it.");
             return;
@@ -344,6 +343,7 @@ public class MerchantController
             Merchant.Say("I can't take any more of your items.");
             return;
         }
+
 
         if (user.Inventory[first.slot].Stackable && user.Inventory[first.slot].Count > 1)
             user.RemoveItem(first.obj.Name);

@@ -33,6 +33,8 @@ public class HybrasylMap
         Map = map;
     }
 
+    public ushort Id => Map.Id;
+
     internal Map Map { get; set; }
 
     public string Name => Map.Name;

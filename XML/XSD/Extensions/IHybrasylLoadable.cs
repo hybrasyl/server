@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Bson;
 
 namespace Hybrasyl.Xml;
 
@@ -24,12 +26,14 @@ public abstract class HybrasylLoadable
     public T Clone<T>()
     {
         var ms = new MemoryStream();
-        var bf = new BinaryFormatter();
-        bf.Serialize(ms, this);
+        var writer = new BsonWriter(ms);
+        var reader = new BsonReader(ms);
+        var serializer = new JsonSerializer();
+        serializer.Serialize(writer, this);
         ms.Position = 0;
-        var obj = bf.Deserialize(ms);
+        var obj = serializer.Deserialize<T>(reader);
         ms.Close();
-        return (T) obj;
+        return obj;
     }
 
     public static List<string> GetXmlFiles(string Path)

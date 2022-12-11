@@ -4,6 +4,7 @@ namespace Hybrasyl;
 
 public partial class World : Server
 {
+    // TODO: don't pass maps here. that's bananas
     private void ControlMessage_SpawnMonster(HybrasylControlMessage message)
     {
         var monster = (Monster) message.Arguments[0];

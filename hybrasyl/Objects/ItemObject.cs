@@ -28,6 +28,8 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using Hybrasyl.Xml;
+using StackExchange.Redis;
+using YamlDotNet.Serialization.ObjectGraphVisitors;
 
 namespace Hybrasyl.Objects;
 
@@ -155,7 +157,8 @@ public class ItemObject : VisibleObject, IInteractable
 
     public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
-    public byte AssailSound => Template.Properties.Use.Sound.Id;
+    public byte AssailSound => Template.Properties?.Use?.Sound?.Id ?? 0;
+    public List<Proc> Procs => Template.Properties.Procs;
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
     public bool Depositable => Template.Properties.Flags.HasFlag(ItemFlags.Depositable);
@@ -179,6 +182,7 @@ public class ItemObject : VisibleObject, IInteractable
     public bool Consumable => Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
 
     public bool Undamageable => Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
+    public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
 
     public bool IsVariant => Template.IsVariant;
 
@@ -306,6 +310,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check item slot prohibitions
 
+        // This code is intentionally verbose
         foreach (var restriction in Template.Properties.Restrictions?.SlotRestrictions ?? new List<SlotRestriction>())
         {
             var restrictionMessage = World.GetLocalString(restriction.Message == string.Empty
@@ -314,10 +319,11 @@ public class ItemObject : VisibleObject, IInteractable
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
-                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                        userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || userobj.Equipment[(byte) restriction.Slot] != null)
+                if (
+                    (restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
+                    (userobj.Equipment[(byte) restriction.Slot] != null)
+                )
                 {
                     message = restrictionMessage;
                     return false;
@@ -325,10 +331,11 @@ public class ItemObject : VisibleObject, IInteractable
             }
             else
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
-                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                                                        userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || userobj.Equipment[(byte) restriction.Slot] == null)
+                if (
+                    (restriction.Slot == Xml.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
+                    (userobj.Equipment[(byte) restriction.Slot] == null)
+                )
                 {
                     message = restrictionMessage;
                     return false;
@@ -427,8 +434,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         if (Use?.Script != null)
         {
-            Script invokeScript;
-            if (!World.ScriptProcessor.TryGetScript(Use.Script, out invokeScript))
+            if (!World.ScriptProcessor.TryGetScript(Use.Script, out var invokeScript))
             {
                 trigger.SendSystemMessage("It doesn't work.");
                 return;
@@ -443,6 +449,59 @@ public class ItemObject : VisibleObject, IInteractable
         if (Use?.Sound != null) trigger.SendSound(Use.Sound.Id);
 
         if (Use?.Teleport != null) trigger.Teleport(Use.Teleport.Value, Use.Teleport.X, Use.Teleport.Y);
+
+        if (Use?.Statuses != null)
+        {
+            foreach (var add in Use.Statuses.Add)
+            {
+                if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
+                {
+                    var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
+                    if (trigger.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    {
+                            trigger.SendSystemMessage($"You already have an active {applyStatus.Category}.");
+                    }
+                    else
+                    {
+                        GameLog.UserActivityInfo(
+                            $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
+                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, -1,
+                            add.Intensity));
+                    }
+                }
+                else
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - failed to add status {add.Value}, does not exist!");
+                }
+
+            }
+
+            foreach (var remove in Use.Statuses.Remove)
+            {
+
+                if (World.WorldData.TryGetValue<Status>(remove.ToLower(), out var applyStatus))
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - removing status {remove}");
+                    trigger.RemoveStatus(applyStatus.Icon);
+                }
+                else
+                {
+                    GameLog.UserActivityError(
+                        $"Invoke: {trigger.Name} using {Name} - failed to remove status {remove}, does not exist!");
+                }
+            }
+        }
+
+        if (Procs != null)
+        {
+            foreach (var proc in Procs.Where(proc =>
+                         Random.Shared.NextDouble() <= proc.Chance && proc.Type == ProcEventType.OnUse))
+            {
+                Game.World.EnqueueProc(proc, null, trigger.Guid, Guid.Empty);
+            }
+        }
 
         if (Consumable) Count--;
     }

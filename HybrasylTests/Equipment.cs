@@ -316,6 +316,25 @@ public class Equipment
     }
 
     [Fact]
+    public void UnequipFailIfInventoryFull()
+    {
+        Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Stats.BaseStr = 255;
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ringObj = Game.World.CreateItem(ring);
+        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
+        while (!Fixture.TestUser.Inventory.IsFull)
+        {
+            var anotherRingObj = Game.World.CreateItem(ring);
+            Fixture.TestUser.AddItem(anotherRingObj);
+        }
+        Assert.True(Fixture.TestUser.Inventory.IsFull);
+        Assert.False(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.Map.GetTileContents(Fixture.TestUser.X,Fixture.TestUser.Y).Count == 1);
+    }
+
+    [Fact]
     public void EquipEquipmentBonuses()
     {
         Fixture.TestUser.Equipment.Clear();

@@ -80,6 +80,25 @@ internal class ClearCookie : ChatCommand
     }
 }
 
+internal class DestroyItemCommand : ChatCommand
+{
+    public new static string Command = "destroyitem";
+    public new static string ArgumentText = "<byte slot>";
+    public new static string HelpText = "Destroy the inventory item in the specified slot";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (byte.TryParse(args[0], out byte slot))
+        {
+            user.RemoveItem(slot);
+            return Success("Destroyed.");
+        }
+
+        return Fail($"That's not a slot.");
+    }
+}
+
 internal class ClearSessionCookie : ChatCommand
 {
     public new static string Command = "clearsessioncookie";
@@ -549,7 +568,7 @@ internal class ReloadnpcCommand : ChatCommand
     public new static string ArgumentText = "<string npcname>";
     public new static string HelpText = "Reload the given NPC (dump the script and reload from disk)";
     public new static bool Privileged = true;
-
+    
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (Game.World.WorldData.TryGetValue(args[0], out Merchant merchant))
@@ -844,28 +863,36 @@ internal class ReloadXml : ChatCommand
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
                 var reloadedMap = Xml.Map.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
+                if (!Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
+                    return Fail($"{args[0]} {args[1]} was not found");
+
+                var newMap = new Map(reloadedMap, Game.World);
+                Game.World.WorldData.RemoveIndex<Map>(map.Name);
+                Game.World.WorldData.Remove<Map>(map.Id);
+                var mapObjs = map.Objects.ToList();
+                foreach (var obj in mapObjs) 
                 {
-                    var newMap = new Map(reloadedMap, Game.World);
-                    Game.World.WorldData.RemoveIndex<Map>(map.Name);
-                    Game.World.WorldData.Remove<Map>(map.Id);
-                    Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
-                    var mapObjs = map.Objects.ToList();
-                    for (var i = 0; i < mapObjs.Count; i++)
+                    map.Remove(obj);
+                    switch (obj)
                     {
-                        var obj = mapObjs[i];
-                        map.Remove(obj);
-                        if (obj is User usr) newMap.Insert(usr, usr.X, usr.Y);
-
-                        if (obj is Monster mob) Game.World.Remove(mob);
-
-                        if (obj is ItemObject itm) Game.World.Remove(itm);
+                        case User usr:
+                            newMap.Insert(usr, usr.X, usr.Y);
+                            break;
+                        case Monster mob:
+                            Game.World.Remove(mob);
+                            break;
+                        case ItemObject itm:
+                            Game.World.Remove(itm);
+                            break;
+                        case Merchant npc:
+                            npc.Map = newMap;
+                            break;
                     }
-
-                    return Success($"Map {reloadedMap.Name} set to world data");
                 }
+                Game.World.WorldData.SetWithIndex(newMap.Id, newMap, newMap.Name);
 
-                return Fail($"{args[0]} {args[1]} was not found");
+                return Success($"Map {reloadedMap.Name} set to world data");
+
             }
             case "item":
             {

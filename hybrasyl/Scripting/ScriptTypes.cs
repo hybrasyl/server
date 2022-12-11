@@ -143,10 +143,10 @@ public class ScriptEnvironment
 
     public static ScriptEnvironment CreateWithTargetAndSource(dynamic target, dynamic source) =>
         Create(("target", target), ("source", source));
-
+      
     public static ScriptEnvironment CreateWithOriginAndTarget(dynamic origin, dynamic target) =>
-        Create(("origin", target), ("target", target));
+        Create(("origin", origin), ("target", target));
 
     public static ScriptEnvironment CreateWithOriginTargetAndSource(dynamic origin, dynamic target, dynamic source) =>
-        Create(("origin", target), ("target", target), ("source", source));
+        Create(("origin", origin), ("target", target), ("source", source));
 }

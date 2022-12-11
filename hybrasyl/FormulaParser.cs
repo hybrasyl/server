@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Hybrasyl.Objects;
@@ -111,8 +112,15 @@ internal static class FormulaParser
         if (string.IsNullOrEmpty(expression)) return 0.0;
         Expression e = new(expression);
         e = Parameterize(e, evalEnvironment);
-        var ret = e.Evaluate();
-        //GameLog.Info($"Eval of {expression} : {ret} ");
-        return Convert.ToDouble(ret);
+        try
+        {
+            //GameLog.Info($"Eval of {expression} : {ret} ");
+            return Convert.ToDouble(e.Evaluate());
+        }
+        catch (Exception ex)
+        {
+            GameLog.SpawnError($"Eval error: expression {expression} - {ex}");
+            return 0.0;
+        }
     }
 }

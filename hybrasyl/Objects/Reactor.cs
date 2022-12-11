@@ -152,16 +152,17 @@ public class Reactor : VisibleObject, IPursuitable
                 return;
         }
 
-        if (Ready)
-            Script.ExecuteFunction("OnEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        if (!Ready) return;
+        var wef = Script.ExecuteFunction("OnEntry",
+            ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public override void AoiEntry(VisibleObject obj)
     {
         if (Expired) return;
         base.AoiEntry(obj);
-        if (Ready)
-            Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        if (!Ready) return;
+        Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public virtual void OnLeave(VisibleObject obj)
@@ -177,8 +178,8 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         base.AoiDeparture(obj);
-        if (Ready)
-            Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        if (!Ready) return;
+        Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
@@ -193,8 +194,8 @@ public class Reactor : VisibleObject, IPursuitable
     public void OnMove(VisibleObject obj)
     {
         if (Expired) return;
-        if (Ready)
-            Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        if (!Ready) return;
+        Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)

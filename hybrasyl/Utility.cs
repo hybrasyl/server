@@ -84,6 +84,7 @@ namespace Hybrasyl
         }
     }
 
+
     internal class DescendingComparer<T> : IComparer<T> where T : IComparable<T>
     {
         public int Compare(T x, T y) => y.CompareTo(x);
@@ -109,6 +110,8 @@ namespace Hybrasyl
         public const int RemoveReactor = 14;
         public const int ModifyStats = 15;
         public const int ProcessProc = 16;
+        public const int UpdateUser = 17;
+        public const int DisplayCreature = 18;
     }
 
     internal static class ServerTypes

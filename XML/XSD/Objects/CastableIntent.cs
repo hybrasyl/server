@@ -35,7 +35,7 @@ public partial class CastableIntent
     private List<CastableConeIntent> _cone;
     private SpellUseType _useType;
     private List<IntentFlags> _flags;
-    private byte _maxTargets;
+    private int _maxTargets;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -43,7 +43,7 @@ public partial class CastableIntent
     {
         _flags = new List<IntentFlags>();
         _useType = SpellUseType.NoTarget;
-        _maxTargets = ((byte)(0));
+        _maxTargets = 0;
     }
     
     public object Map
@@ -151,8 +151,8 @@ public partial class CastableIntent
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(byte), "0")]
-    public byte MaxTargets
+    [DefaultValue(0)]
+    public int MaxTargets
     {
         get
         {

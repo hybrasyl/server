@@ -342,6 +342,7 @@ internal static class NumberCruncher
             BonusOutboundHealModifier = _evalFormula(effect.BonusOutboundHealModifier, item, source),
             BonusReflectMagical = _evalFormula(effect.BonusReflectMagical, item, source),
             BonusReflectPhysical = _evalFormula(effect.BonusReflectPhysical, item, source),
+            BonusExtraFaith = _evalFormula(effect.BonusExtraFaith, item, source),
             BonusExtraGold = _evalFormula(effect.BonusExtraGold, item, source),
             BonusExtraXp = _evalFormula(effect.BonusExtraXp, item, source),
             BonusExtraItemFind = _evalFormula(effect.BonusExtraItemFind, item, source),
@@ -402,6 +403,7 @@ internal static class NumberCruncher
             BonusMagicDodge = Modify(_evalFormula(effect.BonusMagicDodge, castable, target, source), intensity),
             BonusExtraXp = Modify(_evalFormula(effect.BonusExtraXp, castable, target, source), intensity),
             BonusExtraItemFind = Modify(_evalFormula(effect.BonusExtraItemFind, castable, target, source), intensity),
+            BonusExtraFaith = Modify(_evalFormula(effect.BonusExtraFaith, castable, target, source), intensity),
             BonusLifeSteal = Modify(_evalFormula(effect.BonusLifeSteal, castable, target, source), intensity),
             BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity)
         };

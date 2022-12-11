@@ -29,12 +29,14 @@ public partial class CastableConeIntent
     #region Private fields
     private byte _radius;
     private IntentDirection _direction;
+    private VisualEffectType _visualEffect;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public CastableConeIntent()
     {
         _direction = IntentDirection.None;
+        _visualEffect = VisualEffectType.Targets;
     }
     
     [XmlAttribute]
@@ -61,6 +63,20 @@ public partial class CastableConeIntent
         set
         {
             _direction = value;
+        }
+    }
+    
+    [XmlAttribute]
+    [DefaultValue(VisualEffectType.Targets)]
+    public VisualEffectType VisualEffect
+    {
+        get
+        {
+            return _visualEffect;
+        }
+        set
+        {
+            _visualEffect = value;
         }
     }
     

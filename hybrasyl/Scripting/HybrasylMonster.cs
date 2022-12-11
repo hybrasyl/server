@@ -38,11 +38,6 @@ public class HybrasylMonster : HybrasylWorldObject
         Monster.ThreatInfo.ForceThreatChange(invoker.User);
     }
 
-    public void MakeHostile()
-    {
-        Monster.MakeHostile();
-    }
-
     /// <summary>
     ///     Deal damage to the current player.
     /// </summary>
@@ -88,7 +83,7 @@ public class HybrasylMonster : HybrasylWorldObject
         s += $"AbsoluteImmortal: {Monster.AbsoluteImmortal}\n";
         s += $"PhysicalImmortal: {Monster.PhysicalImmortal}\n";
         s += $"MagicalImmortal: {Monster.MagicalImmortal}\n";
-        s += $"IsHostile: {Monster.IsHostile}\n";
+        
         s += $"ShouldWander: {Monster.ShouldWander}\n";
 
         if (Monster.Target != null) s += $"Target: {Monster.Target.Name}\n";

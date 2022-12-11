@@ -22,23 +22,11 @@ using System.Collections.Generic;
 [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Xml", "4.8.4161.0")]
 [Serializable]
 [XmlTypeAttribute(Namespace="http://www.hybrasyl.com/XML/Hybrasyl/2020-02")]
-public enum ElementType
+public enum VisualEffectType
 {
-    None,
-    Fire,
-    Water,
-    Wind,
-    Earth,
-    Light,
-    Dark,
-    Wood,
-    Metal,
-    Undead,
-    RandomTemuair,
-    RandomExpanded,
-    Necklace,
-    Belt,
-    Current,
+    Targets,
+    AllTiles,
+    Caster,
 }
 }
 #pragma warning restore

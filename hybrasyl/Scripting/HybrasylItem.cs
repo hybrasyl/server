@@ -14,7 +14,6 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
 {
     public HybrasylItemObject(ItemObject obj) : base(obj) { }
     internal ItemObject Item => WorldObject as ItemObject;
-    public static bool IsPlayer => false;
     public double Durability => Item.Durability;
     public uint MaximumDurability => Item.MaximumDurability;
     public int Weight => Item.Weight;

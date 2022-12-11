@@ -45,7 +45,6 @@ using Hybrasyl.Plugins;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog.Events;
@@ -1260,12 +1259,18 @@ public partial class World : Server
         WorldData.Remove<User>(username);
     }
 
-    public void EnqueueProc(Proc p) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p));
+    public void EnqueueProc(Proc p, Castable castable, Guid source, Guid target) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p, castable, source, target));
 
     public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
         ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
-    
+
+    public void EnqueueUserUpdate(Guid g) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.UpdateUser, g));
+
+    public void EnqueueShowTo(Guid g) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DisplayCreature, g));
+
     public void AddUser(User userobj, long connectionId)
     {
         WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
@@ -1688,6 +1693,10 @@ public partial class World : Server
         ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
         ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
         ControlMessageHandlers[ControlOpcodes.ModifyStats] = ControlMessage_ModifyStats;
+        ControlMessageHandlers[ControlOpcodes.ProcessProc] = ControlMessage_ProcessProc;
+        ControlMessageHandlers[ControlOpcodes.UpdateUser] = ControlMessage_UpdateUser;
+        ControlMessageHandlers[ControlOpcodes.DisplayCreature] = ControlMessage_DisplayCreature;
+
     }
 
     public void SetPacketHandlers()
@@ -2162,6 +2171,69 @@ public partial class World : Server
             u.UpdateAttributes(StatUpdateFlags.Full);
     }
 
+    private void ControlMessage_ProcessProc(HybrasylControlMessage message)
+    {
+        var proc = (Proc) message.Arguments[0];
+        var castable = (Castable) message.Arguments[1];
+        var sourceGuid = (Guid) message.Arguments[2];
+        var targetGuid = (Guid) message.Arguments[3];
+
+        var source = WorldData.GetWorldObject<Creature>(sourceGuid);
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+
+        if (source == null)
+        {
+            GameLog.Error("Proc: guid {sourceGuid} could not be located");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(proc.Script))
+        {
+            if (ScriptProcessor.TryGetScript(proc.Script, out Script script))
+            {
+                var env = ScriptEnvironment.CreateWithOriginTargetAndSource(source, target, source);
+                var result = script.ExecuteFunction("OnProc", env);
+                if (result.Result != ScriptResult.Success)
+                    GameLog.ScriptingError($"{source.Name}: proc for {castable.Name}, script {script.Name}: {result.Error}");
+            }
+            else 
+                GameLog.Error($"Proc: references {script} but does not exist");
+        }
+
+        if (string.IsNullOrEmpty(proc.Castable)) return;
+        if (WorldData.TryGetValueByIndex<Castable>(proc.Castable, out Castable procCastable))
+        {
+            if (source is User u)
+                u.UseCastable(procCastable, target, false, false);
+        }
+        else 
+            GameLog.Error($"{source.Name}: proc references {proc.Castable}, but does not exist");
+
+    }
+
+    private void ControlMessage_UpdateUser(HybrasylControlMessage message)
+    {
+        var targetGuid = (Guid) message.Arguments[0];
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+
+        if (target is not User user) return;
+
+        user.SendUpdateToUser();
+        user.UpdateAttributes(StatUpdateFlags.Secondary);
+    }
+
+    private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
+    {
+        var targetGuid = (Guid) message.Arguments[0];
+        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+
+        if (target is not Creature creature) return;
+        if (target.Condition.IsInvisible)
+            target.Hide();
+        else 
+            target.Show();
+    }
+
     #endregion Control Message Handlers
 
     #region Packet Handlers
@@ -2372,7 +2444,7 @@ public partial class World : Server
         }
 
         if (count > user.Inventory[slot].Count ||
-            user.Map.IsWall[x, y] || !user.Map.IsValidPoint(x, y))
+            user.Map.IsWall(x, y) || !user.Map.IsValidPoint(x, y))
         {
             GameLog.ErrorFormat(
                 "Drop: count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
@@ -2392,7 +2464,14 @@ public partial class World : Server
         }
         else
         {
-            user.RemoveItem(slot);
+            if (user.Inventory[slot].Bound)
+            {
+                user.SendSystemMessage("You cannot drop this.");
+                return;
+            }
+
+            // One last check
+            if (!user.RemoveItem(slot)) return;
         }
 
         // Item is being dropped and is "in the world" again
@@ -3084,7 +3163,7 @@ public partial class World : Server
         // amount of gold the player has?  Are they trying to drop the item on something that
         // is impassable (i.e. a wall)?
         if (amount > user.Gold || x >= user.Map.X || y >= user.Map.Y ||
-            x < 0 || y < 0 || user.Map.IsWall[x, y])
+            x < 0 || y < 0 || user.Map.IsWall(x, y))
         {
             GameLog.ErrorFormat("Amount {0} exceeds amount {1}, or {2},{3} is a wall, or {2},{3} is out of bounds",
                 amount, user.Gold, x, y);
@@ -3999,6 +4078,11 @@ public partial class World : Server
             }
 
             GameLog.DebugFormat("actually removing item");
+            if (user.Inventory.IsFull)
+            {
+                user.SendSystemMessage("You can't carry anything else.");
+                return;
+            }
             user.RemoveEquipment(slot);
             // Add our removed item to our first empty inventory slot
             GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);

@@ -29,6 +29,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Xml;
 using MoonSharp.Interpreter;
 using Serilog;
+using Path = System.IO.Path;
 using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Scripting;
@@ -153,7 +154,7 @@ public class Script
     private string ExtractLuaSource(int linenumber)
     {
         var lines = RawSource.Split('\n').ToList();
-        if (lines.Count < linenumber || lines.Count < 3)
+        if (lines.Count < linenumber || lines.Count < 3 || linenumber < 2)
             return RawSource;
         var lua = $"## {lines[linenumber - 2]}\n## --->{lines[linenumber - 1]}\n";
         if (linenumber < lines.Count)
@@ -271,7 +272,13 @@ public class Script
     public void ProcessEnvironment(ScriptEnvironment env)
     {
         if (env is null) return;
-        foreach (var (key, value) in env.Variables) Compiled.Globals.Set(key, GetUserDataValue(value));
+        foreach (var (key, value) in env.Variables)
+        {
+            DynValue udv = GetUserDataValue(value);
+            Compiled.Globals.Set(key, udv);
+            if (udv.Type == DataType.UserData)
+                GameLog.ScriptingDebug($"{key}: {value.GetType()} originally, {udv.UserData.Object.GetType()} wrapped");
+        }
     }
 
     /// <summary>

@@ -42,6 +42,7 @@ public class HybrasylWorldObject : IScriptable
 
     public WorldObject Obj => WorldObject as WorldObject;
 
+    public virtual bool IsPlayer => false;
     //public Xml.Direction Direction => WorldObject.Direction;
     public string Guid => Obj.Guid.ToString();
 
@@ -417,7 +418,7 @@ public class HybrasylWorldObject : IScriptable
     {
         if (Obj is Creature creature)
         {
-            if (!creature.Map.IsWall[x, y])
+            if (!creature.Map.IsWall(x, y))
             {
                 if (!creature.Map.GetTileContents(x, y).Any(predicate: o => o is Creature))
                     return true;

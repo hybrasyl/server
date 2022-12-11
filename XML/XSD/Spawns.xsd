@@ -55,6 +55,7 @@
             <xs:element name="Base" minOccurs="0" maxOccurs="1" type="hyb:SpawnBase" />
             <xs:element name="Hostility" minOccurs="0" maxOccurs="1" type="hyb:CreatureHostilitySettings" />
             <xs:element name="SetCookies" minOccurs="0" maxOccurs="1" type="hyb:CreatureCookies" />
+            <xs:element name="Immunities" minOccurs="0" maxOccurs="1" type="hyb:CreatureImmunities"/>
         </xs:sequence>
         <xs:attribute name="Import" type="xs:string" use="optional" />
         <xs:attribute name="Name" type="xs:string" use="optional" />
@@ -71,13 +72,13 @@
     <xs:complexType name="SpawnDamage">
         <xs:attribute name="MinDmg" type="xs:string" use="optional" />
         <xs:attribute name="MaxDmg" type="xs:string" use="optional" />
-        <xs:attribute name="Element" type="hyb:ElementType" use="optional" default="None" />
+        <xs:attribute name="Elements" type="hyb:ElementList" use="optional" default="None" />
     </xs:complexType>
 
     <xs:complexType name="SpawnDefense">
         <xs:attribute name="Ac" type="xs:string" use="optional" />
         <xs:attribute name="Mr" type="xs:string" use="optional" />
-        <xs:attribute name="Element" type="hyb:ElementType" use="optional" default="None" />
+        <xs:attribute name="Elements" type="hyb:ElementList" use="optional" default="None" />
     </xs:complexType>
 
     <xs:complexType name="SpawnSpec">

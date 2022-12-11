@@ -63,6 +63,8 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public byte AssailSound;
 
+    public List<string> Immunities { get; set; }
+
     public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {
@@ -90,6 +92,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         Name = creature.Name;
         Sprite = creature.Sprite;
         AssailSound = creature.AssailSound;
+        Immunities = BehaviorSet?.Immunities ?? new List<string>();
 
         // TODO: remove this and fix
         Stats.Level = level;
@@ -97,13 +100,10 @@ public class Monster : Creature, ICloneable, IEphemeral
 
         Loot = loot;
 
-        IsHostile = !AiDisabled;
-
         if (flags.HasFlag(SpawnFlags.MovementDisabled))
             ShouldWander = false;
-        else
-            ShouldWander = IsHostile == false;
 
+        Hostility = creature.Hostility;
         ThreatInfo = new ThreatInfo(Guid);
         DeathProcessed = false;
         AllocateStats();
@@ -113,13 +113,39 @@ public class Monster : Creature, ICloneable, IEphemeral
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }
-
+    
     public CastableController CastableController { get; set; }
-
     private CreatureBehaviorSet _behaviorSet { get; set; }
+    public CreatureHostilitySettings Hostility { get; set; }
     public DateTime CreationTime { get; set; }
     public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
+    
+    public bool IsHostile(Creature hostile = null)
+    {
+        // Default to no aggressiveness in the absence of a <Hostility> tag or no <Player> tag;
+        // also don't handle monster -> monster combat cases yet
+        if (Hostility?.Players == null || hostile is not User user)
+        {
+            GameLog.SpawnDebug($"Monster {Name}: hostility null or non-user");
+            return false;
+        }
+        // If the creature in question has hit us previously, obviously we don't like it
 
+        if (!string.IsNullOrEmpty(Hostility.Players.ExceptCookie))
+        {
+            GameLog.SpawnDebug($"Monster {Name}: except cookie");
+            return !user.HasCookie(Hostility.Players.ExceptCookie);
+        }
+
+        if (!string.IsNullOrEmpty(Hostility.Players.OnlyCookie))
+        {
+            GameLog.SpawnDebug($"Monster {Name}: only cookie");
+            return user.HasCookie(Hostility.Players.OnlyCookie);
+        }
+
+        GameLog.SpawnDebug($"Monster {Name}: hostile towards {user.Name}");
+        return true;
+    }
 
     public CreatureBehaviorSet BehaviorSet
     {
@@ -141,7 +167,6 @@ public class Monster : Creature, ICloneable, IEphemeral
     public DateTime LastAction { get; set; } = DateTime.MinValue;
     public DateTime LastSkill { get; set; } = DateTime.MinValue;
     public DateTime LastSpell { get; set; } = DateTime.MinValue;
-    public bool IsHostile { get; set; }
     public bool ShouldWander { get; set; }
     public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
     public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
@@ -350,11 +375,6 @@ public class Monster : Creature, ICloneable, IEphemeral
         Script.ExecuteFunction("OnHear", env);
     }
 
-    public void MakeHostile()
-    {
-        ShouldWander = false;
-        IsHostile = true;
-    }
 
     public override void OnDamage(DamageEvent damageEvent)
     {
@@ -369,7 +389,6 @@ public class Monster : Creature, ICloneable, IEphemeral
             }
 
             Condition.Asleep = false;
-            IsHostile = true;
             ShouldWander = false;
 
             // FIXME: in the glorious future, run asynchronously with locking
@@ -585,7 +604,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         foreach (var adj in proposedLocations)
         {
             if (adj.X >= Map.X || adj.Y >= Map.Y || adj.X < 0 || adj.Y < 0) continue;
-            if (Map.IsWall[adj.X, adj.Y]) continue;
+            if (Map.IsWall(adj.X, adj.Y)) continue;
             var creatureContents = Map.GetCreatures(adj.X, adj.Y);
             if (creatureContents.Count == 0 || creatureContents.Contains(Target) || creatureContents.Contains(this))
                 ret.Add(adj);
@@ -746,32 +765,27 @@ public class Monster : Creature, ICloneable, IEphemeral
     public void NextAction()
     {
         var next = 0;
-        if (Stats.Hp == 0) _actionQueue.Enqueue(MobAction.Death);
-
-        if (!IsHostile)
+        if (Stats.Hp == 0)
         {
-            next = Random.Shared.Next(2, 4); //move or idle
-            _actionQueue.Enqueue((MobAction) next);
+            _actionQueue.Enqueue(MobAction.Death);
+            return;
         }
-        else
+
+        if (ThreatInfo.HighestThreat != null)
         {
-            if (ThreatInfo.HighestThreat != null)
+            if (Distance(ThreatInfo.HighestThreat) == 1)
             {
-                if (Distance(ThreatInfo.HighestThreat) == 1)
-                {
-                    _actionQueue.Enqueue(MobAction.Attack);
-                }
-                else
-                {
-                    next = Random.Shared.Next(1, 3); //cast or move
-                    _actionQueue.Enqueue((MobAction) next);
-                }
+                _actionQueue.Enqueue(MobAction.Attack);
             }
             else
             {
-                next = 2; //move
+                next = Random.Shared.Next(1, 3); //cast or move
                 _actionQueue.Enqueue((MobAction) next);
             }
+        }
+        else
+        {
+            _actionQueue.Enqueue(MobAction.Move);
         }
     }
 
@@ -816,22 +830,23 @@ public class Monster : Creature, ICloneable, IEphemeral
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
-                case MobAction.Move when (!IsHostile && ShouldWander) || Condition.Blinded:
+                case MobAction.Move when ShouldWander || Condition.Blinded:
                 {
-                    var which = Random.Shared.Next(0, 2); //turn or move
-                    if (which == 0)
+                    var rand = Random.Shared.NextDouble();
+                    var dir = Random.Shared.Next(0, 4);
+                    if (rand > 0.33)
                     {
-                        var dir = Random.Shared.Next(0, 4);
                         if (Direction == (Direction) dir)
-                            Walk((Direction) dir);
-                        else
-                            Turn((Direction) dir);
+                            if (!Walk(Direction))
+                            {
+                                Turn(Opposite(Direction));
+                                Walk(Opposite(Direction));
+                            }
+                            else
+                                Turn((Direction) dir);
                     }
                     else
-                    {
-                        var dir = Random.Shared.Next(0, 4);
-                        Turn((Direction) dir);
-                    }
+                        Walk(Direction);
 
                     break;
                 }
@@ -939,7 +954,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0) Active = true;
 
-                if (IsHostile && ThreatInfo.HighestThreat == null)
+                if (IsHostile(user) && ThreatInfo.HighestThreat == null)
                 {
                     ThreatInfo.OnRangeEnter(user);
                     ShouldWander = false;

@@ -336,7 +336,8 @@ public class User : Creature
         GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
         if (obj is Creature c)
         {
-            if (!Condition.SeeInvisible && c.Condition.IsInvisible) return;
+
+            if (!Condition.SeeInvisible && c.Condition.IsInvisible && obj != this) return;
             base.AoiEntry(obj);
             obj.ShowTo(this);
         }
@@ -349,9 +350,8 @@ public class User : Creature
 
     public override void AoiDeparture(VisibleObject obj)
     {
-        if (obj is Creature c)
-            if (!Condition.SeeInvisible && c.Condition.IsInvisible)
-                return;
+        if (obj is Creature c && c.Condition.IsInvisible && Condition.SeeInvisible)
+            return;
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
         var removePacket = new ServerPacket(0x0E);
@@ -470,6 +470,8 @@ public class User : Creature
         {
             if (Inventory[i] == null) continue;
             var item = Inventory[i];
+            if (item.Bound)
+                continue;
             RemoveItem(i);
             if (item.Perishable && (handler?.Perishable ?? true))
             {
@@ -499,6 +501,9 @@ public class User : Creature
             var item = Equipment[i];
             if (item == null)
                 continue;
+            if (item.Bound)
+                continue;
+
             RemoveEquipment(i);
             if (item.Perishable && (handler?.Perishable ?? true))
             {
@@ -1391,6 +1396,9 @@ public class User : Creature
         var offset = Equipment.Armor?.BodyStyle ?? 0;
         if (!Condition.Alive)
             offset += 0x20;
+        else if (Condition.IsInvisible)
+            offset += 0x40;
+        
 
         GameLog.Debug($"Offset is: {offset.ToString("X")}");
         // Figure out what we're sending as the "helmet"
@@ -1427,7 +1435,7 @@ public class User : Creature
             OvercoatColor = Equipment.Overcoat?.Color ?? 0,
             SkinColor = SkinColor,
             Shield = (byte) (Equipment.Shield?.DisplaySprite ?? 0),
-            Invisible = Transparent,
+            Invisible = Condition.IsInvisible,
             NameStyle = NameStyle,
             Name = Name,
             GroupName = GroupRecruit?.Name ?? string.Empty,
@@ -1840,6 +1848,13 @@ public class User : Creature
             SendSystemMessage("You stumble around, unable to gather your bearings.");
         }
 
+        if (CurrentWeight > MaximumWeight && Condition.Alive)
+        {
+            SendSystemMessage("You cannot move, you are overburdened.");
+            Refresh();
+            return false;
+        }
+
         switch (direction)
         {
             // Calculate the differences (which are, in all cases, rectangles of height 12 / width 1 or vice versa)
@@ -1893,7 +1908,7 @@ public class User : Creature
         }
         // Allow a user to walk into walls, if and only if collisions are disabled (implies privileged user)
 
-        if (Map.IsWall[newX, newY] && !CollisionsDisabled)
+        if (Map.IsWall(newX, newY) && !CollisionsDisabled)
         {
             Refresh();
             return false;
@@ -2151,7 +2166,7 @@ public class User : Creature
     {
         // Weight check
 
-        if (itemObject.Weight + CurrentWeight > MaximumWeight)
+        if (itemObject.Weight + CurrentWeight > MaximumWeight && !itemObject.Bound)
         {
             SendSystemMessage("It's too heavy.");
             Map.Insert(itemObject, X, Y);
@@ -2303,7 +2318,7 @@ public class User : Creature
         return false;
     }
 
-    public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true)
+    public bool RemoveItem(string itemName, ushort quantity = 0x01, bool updateWeight = true, bool force = false)
     {
         var slotsToUpdate = new List<byte>();
         var slotsToClear = new List<byte>();
@@ -2312,6 +2327,7 @@ public class User : Creature
             var remaining = (int) quantity;
             var slots = Inventory.GetSlotsByName(itemName);
             foreach (var i in slots)
+            {
                 if (remaining > 0)
                 {
                     if (Inventory[i].Stackable)
@@ -2347,6 +2363,7 @@ public class User : Creature
                     GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
                     break;
                 }
+            }
 
             foreach (var slot in slotsToClear)
             {
@@ -2356,7 +2373,7 @@ public class User : Creature
 
             foreach (var slot in slotsToUpdate)
                 SendItemUpdate(Inventory[slot], slot);
-
+            UpdateAttributes(StatUpdateFlags.Current);
             return true;
         }
 
@@ -2618,23 +2635,39 @@ public class User : Creature
         return false;
     }
 
-    public override bool UseCastable(Castable castableXml, Creature target = null)
+    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true, bool evalRestrictions = true)
     {
         if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
             //do something. 
             return false;
 
         // Check casting costs
-        if (!ProcessCastingCost(castableXml, target, out var message))
+        if (castCost)
         {
-            SendSystemMessage(message);
-            return false;
+            if (!ProcessCastingCost(castableXml, target, out var message))
+            {
+                SendSystemMessage(message);
+                return false;
+            }
         }
 
-        if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
-            return base.UseCastable(castableXml, target);
-        SendSystemMessage(restrictionMessage);
-        return false;
+        if (evalRestrictions)
+        {
+            if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
+            {
+                if (castableXml.BreakStealth && Condition.IsInvisible)
+                {
+                    Condition.IsInvisible = false;
+                }
+                return base.UseCastable(castableXml, target);
+            }
+
+            SendSystemMessage(restrictionMessage);
+            return false;
+
+        }
+
+        return true;
     }
 
     public void AssailAttack(Direction direction, Creature target = null)
@@ -2642,7 +2675,7 @@ public class User : Creature
         target ??= GetDirectionalTarget(direction);
         var animation = false;
 
-        foreach (var c in SkillBook.Where(predicate: c => c.Castable.IsAssail))
+        foreach (var c in SkillBook.Where(c => c.Castable is { IsAssail: true }))
             if (target != null && target.GetType() != typeof(Merchant))
             {
                 UseSkill(SkillBook.SlotOf(c.Castable.Name));
@@ -2673,7 +2706,7 @@ public class User : Creature
                 if (Equipment.Shield != null) motionId = 1;
             }
 
-            var firstAssail = SkillBook.FirstOrDefault(predicate: x => x.Castable.IsAssail);
+            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable is {IsAssail:true});
             var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte) 1;
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);
@@ -2761,7 +2794,6 @@ public class User : Creature
 
     public void SendAnimation(uint id, byte motion, short speed)
     {
-        // 1a 00 00 87 af   88  00 28  ff     a2 53 23
         var anim = new ServerPacketStructures.PlayerAnimation { Animation = motion, Speed = speed, UserId = id };
         Enqueue(anim.Packet());
     }

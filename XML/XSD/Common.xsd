@@ -397,6 +397,23 @@
     </xs:simpleType>
 
     <!-- Status effects -->
+    
+    <xs:complexType name="AddStatus">
+        <xs:simpleContent>
+            <xs:extension base="hyb:String8">
+                <xs:attribute name="Duration" use="optional" default="0" type="xs:int" />
+                <xs:attribute name="Intensity" use="optional" default="1.0" type="xs:float" />
+                <xs:attribute name="Speed" default="1.0" type="xs:float" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="Statuses">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="Add" type="hyb:AddStatus" />
+            <xs:element name="Remove" type="hyb:String8" />
+        </xs:sequence>
+    </xs:complexType>
 
     <xs:simpleType name="CreatureCondition">
         <xs:restriction>
@@ -469,9 +486,11 @@
             <xs:enumeration value="Wood" />
             <xs:enumeration value="Metal" />
             <xs:enumeration value="Undead" />
-            <xs:enumeration value="RandomFour" />
-            <xs:enumeration value="RandomEight" />
-            <xs:enumeration value="Random" />
+            <xs:enumeration value="RandomTemuair" />
+            <xs:enumeration value="RandomExpanded" />
+            <xs:enumeration value="Necklace"/>
+            <xs:enumeration value="Belt"/>
+            <xs:enumeration value="Current"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -829,9 +848,16 @@
             <xs:element name="StatAlloc" minOccurs="0" maxOccurs="1" type="CreatureStatAlloc" />
             <xs:element name="Castables" minOccurs="0" maxOccurs="1" type="CreatureCastables" />
             <xs:element name="Behavior" minOccurs="0" maxOccurs="1" type="CreatureBehavior" />
+            <xs:element name="Immunities" minOccurs="0" maxOccurs="1" type="CreatureImmunities "/>
         </xs:sequence>
         <xs:attribute name="Name" type="xs:string" use="required" />
         <xs:attribute name="Import" type="xs:string" use="optional" />
+    </xs:complexType>
+
+    <xs:complexType name="CreatureImmunities">
+        <xs:sequence>
+            <xs:element name="Immunity" type="xs:string" minOccurs="1" maxOccurs="unbounded" />
+		</xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="CreatureCastable">
