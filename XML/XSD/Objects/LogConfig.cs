@@ -27,22 +27,14 @@ using System.Collections.Generic;
 public partial class LogConfig
 {
     #region Private fields
-    private string _type;
-    private string _target;
+    private LogType _type;
+    private string _destination;
     private LogLevel _level;
     private static XmlSerializer _serializerXml;
     #endregion
     
-    public LogConfig()
-    {
-        _type = "file";
-        _target = "hybrasyl.log";
-        _level = LogLevel.Info;
-    }
-    
     [XmlAttribute]
-    [DefaultValue("file")]
-    public string Type
+    public LogType Type
     {
         get
         {
@@ -55,21 +47,19 @@ public partial class LogConfig
     }
     
     [XmlAttribute]
-    [DefaultValue("hybrasyl.log")]
-    public string Target
+    public string Destination
     {
         get
         {
-            return _target;
+            return _destination;
         }
         set
         {
-            _target = value;
+            _destination = value;
         }
     }
     
     [XmlAttribute]
-    [DefaultValue(LogLevel.Info)]
     public LogLevel Level
     {
         get

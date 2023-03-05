@@ -331,16 +331,7 @@ namespace Hybrasyl
 
         #endregion
 
-        public enum LogType
-        {
-            General = 0,
-            Scripting = 1,
-            GmActivity = 2,
-            UserActivity = 3,
-            Spawn = 4,
-            Packet = 5,
-            XmlData = 6
-        }
+
 
         public enum CombatLogEventType
         {

@@ -93,6 +93,18 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="LogType">
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="General"/>
+            <xs:enumeration value="Scripting"/>
+            <xs:enumeration value="GmActivity"/>
+            <xs:enumeration value="UserActivity"/>
+            <xs:enumeration value="Spawn"/>
+            <xs:enumeration value="Packet"/>
+            <xs:enumeration value="WorldData"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:complexType name="Access">
         <xs:sequence>
             <xs:element name="Privileged" minOccurs="0" maxOccurs="1">
@@ -130,10 +142,16 @@
         </xs:sequence>
     </xs:complexType>
 
+    <xs:complexType name="LogConfigList">
+        <xs:sequence>
+            <xs:element name="Log" type="hyb:LogConfig" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
     <xs:complexType name="LogConfig">
-        <xs:attribute name="Type" type="xs:string" default="file" />
-        <xs:attribute name="Target" type="xs:string" default="hybrasyl.log" />
-        <xs:attribute name="Level" type="hyb:LogLevel" default="Info" />
+        <xs:attribute name="Type" type="hyb:LogType" use="required"/>
+        <xs:attribute name="Destination" type="xs:string" use="required"/>
+        <xs:attribute name="Level" type="hyb:LogLevel" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="MessagePluginTargets">
@@ -198,7 +216,7 @@
 
     <xs:complexType name="ServerConfig">
         <xs:sequence>
-            <xs:element name="Logging" type="hyb:LogConfig" minOccurs="0" maxOccurs="1" />
+            <xs:element name="Logging" type="hyb:LogConfigList" minOccurs="0" maxOccurs="1" />
             <xs:element name="DataStore" type="hyb:DataStore" minOccurs="1" maxOccurs="1" />
             <xs:element name="Network" type="hyb:Network" minOccurs="1" maxOccurs="1" />
             <xs:element name="ApiEndpoints" type="hyb:ApiEndpoints" minOccurs="1" maxOccurs="1" />

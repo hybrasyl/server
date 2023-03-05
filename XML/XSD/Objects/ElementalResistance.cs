@@ -28,7 +28,7 @@ public partial class ElementalResistance
 {
     #region Private fields
     private ElementType _type;
-    private double _modifier;
+    private float _modifier;
     private static XmlSerializer _serializerXml;
     #endregion
     
@@ -46,7 +46,7 @@ public partial class ElementalResistance
     }
     
     [XmlAttribute]
-    public double Modifier
+    public float Modifier
     {
         get
         {

@@ -28,7 +28,7 @@ using System.Collections.Generic;
 public partial class ServerConfig
 {
     #region Private fields
-    private LogConfig _logging;
+    private List<LogConfig> _logging;
     private DataStore _dataStore;
     private Network _network;
     private ApiEndpoints _apiEndpoints;
@@ -51,7 +51,8 @@ public partial class ServerConfig
         _dataStore = new DataStore();
     }
     
-    public LogConfig Logging
+    [XmlArrayItemAttribute("Log", IsNullable=false)]
+    public List<LogConfig> Logging
     {
         get
         {

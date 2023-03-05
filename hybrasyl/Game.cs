@@ -232,10 +232,6 @@ public static class Game
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
 
-        // Default is info
-        LevelSwitch = new LoggingLevelSwitch();
-        LevelSwitch.MinimumLevel = LogEventLevel.Information;
-
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
@@ -306,24 +302,15 @@ public static class Game
         }
 
         // Configure logging 
-
-        // We log every LogType defined in our enumeration to its own file. Only the "general" type is sent to the console.
-        var log = new LoggerConfiguration().MinimumLevel.ControlledBy(LevelSwitch).Enrich.WithThreadId().Enrich
-            .WithExceptionData().WriteTo
-            .Map("LogType", "General",
-                configure: (name, wt) => wt.File($"{Path.Combine(dataDirectory, "logs")}/{name}-.log",
-                    rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true))
-            .WriteTo.Logger(configureLogger: lc => lc.Filter.ByIncludingOnly(GameLog.IsGeneralEvent).WriteTo.Console())
-            .CreateLogger();
+        GameLog.Initialize(dataDirectory, Config.Logging);
 
         // We don't want any of NCalc's garbage 
         Trace.Listeners.RemoveAt(0);
 
-        Log.Logger = log;
         Log.Information("Hybrasyl log begin");
         Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
-
-        Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash} starting.");
+        
+        Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash}) starting.");
         Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.",
             Assemblyinfo.Copyright);
 
