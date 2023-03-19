@@ -876,13 +876,9 @@ public partial class World : Server
         if (variant.Properties.Flags != 0)
             variantItem.Properties.Flags = variant.Properties.Flags;
 
-        var newValue = item.Properties.Physical.Value * variant.Properties.Physical.Value;
-        var newDura = item.Properties.Physical.Durability * variant.Properties.Physical.Durability;
-        var newWeight = item.Properties.Physical.Weight * variant.Properties.Physical.Weight;
-
-        variantItem.Properties.Physical.Value = newValue > ushort.MaxValue ? ushort.MaxValue : newValue;
-        variantItem.Properties.Physical.Durability = newDura > ushort.MaxValue ? ushort.MaxValue : newDura;
-        variantItem.Properties.Physical.Weight = newWeight > ushort.MaxValue ? ushort.MaxValue : newWeight;
+        variantItem.Properties.Physical.Value = item.Properties.Physical.Value * variant.Properties.Physical.Value;
+        variantItem.Properties.Physical.Durability = item.Properties.Physical.Durability * variant.Properties.Physical.Durability;
+        variantItem.Properties.Physical.Weight = item.Properties.Physical.Weight * variant.Properties.Physical.Weight;
 
         // ensure boot hiding is carried to variants
         variantItem.Properties.Appearance.HideBoots = item.Properties.Appearance.HideBoots;

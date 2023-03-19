@@ -27,6 +27,7 @@ using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
+using Hybrasyl.Scripting;
 using Hybrasyl.Xml;
 using Newtonsoft.Json;
 
@@ -155,7 +156,16 @@ public class VisibleObject : WorldObject, IVisible
     public virtual void OnDeath() { }
     public virtual void OnDamage(DamageEvent damageEvent) { }
     public virtual void OnHeal(HealEvent healEvent) { }
-    public virtual void OnHear(SpokenEvent e) { }
+
+    public virtual void OnHear(SpokenEvent e)
+    {
+        if (Script == null) return;
+        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
+            ("origin", this));
+
+        env.Add("event", e);
+        Script.ExecuteFunction("OnHear", env);
+    }
 
     public Rectangle GetBoundingBox() => new(X, Y, 1, 1);
 

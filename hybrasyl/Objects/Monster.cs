@@ -364,15 +364,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
-        if (Script == null) return;
-        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
-            ("origin", new HybrasylWorldObject(this)));
-
-        if (e.Speaker is User user)
-            env.Add("source", new HybrasylUser(user));
-        else
-            env.Add("source", new HybrasylWorldObject(e.Speaker));
-        Script.ExecuteFunction("OnHear", env);
+        base.OnHear(e);
     }
 
 

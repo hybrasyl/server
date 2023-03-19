@@ -27,20 +27,20 @@ using System.Collections.Generic;
 public partial class ItemDamageLarge
 {
     #region Private fields
-    private ushort _min;
-    private ushort _max;
+    private float _min;
+    private float _max;
     private static XmlSerializer _serializerXml;
     #endregion
     
     public ItemDamageLarge()
     {
-        _min = ((ushort)(0));
-        _max = ((ushort)(0));
+        _min = ((float)(0F));
+        _max = ((float)(0F));
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(ushort), "0")]
-    public ushort Min
+    [DefaultValue(typeof(float), "0")]
+    public float Min
     {
         get
         {
@@ -53,8 +53,8 @@ public partial class ItemDamageLarge
     }
     
     [XmlAttribute]
-    [DefaultValue(typeof(ushort), "0")]
-    public ushort Max
+    [DefaultValue(typeof(float), "0")]
+    public float Max
     {
         get
         {

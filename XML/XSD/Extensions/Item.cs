@@ -113,13 +113,13 @@ public partial class Item
 
     [XmlIgnore] public Gender Gender => Properties.Restrictions?.Gender ?? Gender.Neutral;
 
-    [XmlIgnore] public ushort MinLDamage => Properties.Damage?.Large.Min ?? 0;
+    [XmlIgnore] public ushort MinLDamage => Convert.ToUInt16(Properties.Damage?.Large.Min ?? 0);
 
-    [XmlIgnore] public ushort MaxLDamage => Properties.Damage?.Large.Max ?? 0;
+    [XmlIgnore] public ushort MaxLDamage => Convert.ToUInt16(Properties.Damage?.Large.Max ?? 0);
 
-    [XmlIgnore] public ushort MinSDamage => Properties.Damage?.Small.Min ?? 0;
+    [XmlIgnore] public ushort MinSDamage => Convert.ToUInt16(Properties.Damage?.Small.Min ?? 0);
 
-    [XmlIgnore] public ushort MaxSDamage => Properties.Damage?.Small.Max ?? 0;
+    [XmlIgnore] public ushort MaxSDamage => Convert.ToUInt16(Properties.Damage?.Small.Max ?? 0);
 
     [XmlIgnore] public Variant CurrentVariant { get; set; }
 
