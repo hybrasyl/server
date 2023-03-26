@@ -434,7 +434,7 @@ public partial class World : Server
 
                 foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
                 {
-                    if (Path.Contains(".ignore"))
+                    if (asdf.Contains(".ignore"))
                         continue;
                     wef.Add(asdf.Replace(Path, ""));
                 }

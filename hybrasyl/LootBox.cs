@@ -272,7 +272,7 @@ public static class LootBox
                     if (xmlItem.Variants.TryGetValue(lootedVariant, out var variantItems))
                         itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                     else
-                        GameLog.SpawnError("Spawn loot calculation: variant group {name} not found", lootedVariant);
+                        GameLog.SpawnError("Loot: variant group {name} specified for {xmlItem.Name} but that item does not have the specified variant", lootedVariant);
                 }
                 else
                 {
