@@ -130,6 +130,7 @@ public class Script
     {
         if (obj == null)
             return DynValue.NewNil();
+        
 
         return obj switch
         {
@@ -145,9 +146,8 @@ public class Script
             ItemObject item => UserData.Create(new HybrasylItemObject(item)),
             WorldObject wobj => UserData.Create(new HybrasylWorldObject(wobj)),
             HybrasylInteractable hi => UserData.Create(hi),
-            // todo: wrapper?
             CastableObject co => UserData.Create(co),
-            _ => DynValue.NewNil()
+            _ => UserData.Create(obj)
         };
     }
 
