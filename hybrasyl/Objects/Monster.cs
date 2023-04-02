@@ -389,8 +389,8 @@ public class Monster : Creature, ICloneable, IEphemeral
                 user.SendCombatLogMessage(damageEvent);
 
             if (Script == null) return;
-
-            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Amount);
+            
+            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Source);
             env.Add("damage", damageEvent);
             Script.ExecuteFunction("OnDamage", env);
         }
