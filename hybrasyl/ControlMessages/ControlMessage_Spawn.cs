@@ -18,7 +18,7 @@ public partial class World : Server
             $"{monster.Name} @ {monster.Map.Name} ({monster.X},{monster.Y}): Level {monster.Stats.Level} HP {monster.Stats.Hp} MP {monster.Stats.Mp} S/C/D/I/W {monster.Stats.Str}/{monster.Stats.Con}/{monster.Stats.Dex}/{monster.Stats.Int}/{monster.Stats.Wis}");
     }
 
-    [HybrasylMessageHandler(ControlOpcode.MonolithSpawn)]
+    [HybrasylMessageHandler(ControlOpcode.MonolithControl)]
     private void ControlMessage_MonolithControl(HybrasylControlMessage message)
     {
         var monster = (Monster) message.Arguments[0];
