@@ -232,10 +232,13 @@ public class Creature : VisibleObject
 
     public void ProcessProcs(ProcEventType type, Castable castable, Creature target)
     {
-        foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
+        if (castable.Effects?.Procs != null)
         {
-            // Proc fires
-            Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
+            foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
+            {
+                // Proc fires
+                Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
+            }
         }
 
         if (!castable.IsAssail || Equipment?.Weapon?.Procs == null) 
