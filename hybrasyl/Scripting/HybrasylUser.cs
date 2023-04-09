@@ -49,12 +49,12 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     The item in the first inventory slot of the player.
     /// </summary>
-    public HybrasylWorldObject FirstInventorySlot
+    public HybrasylItemObject FirstInventorySlot
     {
         get
         {
             var f = User.Inventory[1];
-            return f is null ? null : new HybrasylWorldObject(f);
+            return f is null ? null : new HybrasylItemObject(f);
         }
     }
 
