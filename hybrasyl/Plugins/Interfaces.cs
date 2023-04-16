@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Plugins;
 

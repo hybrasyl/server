@@ -24,7 +24,7 @@ using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;

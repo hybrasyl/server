@@ -33,7 +33,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -3184,9 +3184,9 @@ public class User : Creature
             if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
 
-        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySkill) ||
-            (SkillBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySkill) ||
-            (SkillBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySkill))
+        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Objects.Book.PrimarySkill) ||
+            (SkillBook.IsSecondaryFull && castable.Book == Xml.Objects.Book.SecondarySkill) ||
+            (SkillBook.IsUtilityFull && castable.Book == Xml.Objects.Book.UtilitySkill))
             prompt = merchant.GetLocalString("learn_skill_book_full");
 
         if (prompt == string.Empty)
@@ -3440,9 +3440,9 @@ public class User : Creature
             if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
 
-        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySpell) ||
-            (SpellBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySpell) ||
-            (SpellBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySpell))
+        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Objects.Book.PrimarySpell) ||
+            (SpellBook.IsSecondaryFull && castable.Book == Xml.Objects.Book.SecondarySpell) ||
+            (SpellBook.IsUtilityFull && castable.Book == Xml.Objects.Book.UtilitySpell))
             prompt = merchant.GetLocalString("learn_spell_book_full");
 
         if (prompt == string.Empty)

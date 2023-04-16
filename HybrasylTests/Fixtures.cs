@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Serilog;
 using Xunit;
 using Xunit.Abstractions;
@@ -53,7 +53,7 @@ public class HybrasylFixture : IDisposable
             Name = "Test Item"
         };
         TestItem.Properties.Stackable.Max = 1;
-        TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment
+        TestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
             { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         TestItem.Properties.Categories = new List<Category>
@@ -68,7 +68,7 @@ public class HybrasylFixture : IDisposable
             Name = "Stackable Test Item"
         };
         StackableTestItem.Properties.Stackable.Max = 20;
-        StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment
+        StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
             { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         StackableTestItem.Properties.Categories = new List<Category>
@@ -84,7 +84,7 @@ public class HybrasylFixture : IDisposable
         {
             var item = new Item { Name = $"Equip Test {slot}" };
             item.Properties.Stackable.Max = 1;
-            item.Properties.Equipment = new Hybrasyl.Xml.Equipment
+            item.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
                 { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
             item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Set(item.Id, item);

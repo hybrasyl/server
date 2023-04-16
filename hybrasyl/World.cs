@@ -51,7 +51,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog.Events;
@@ -108,7 +108,7 @@ public partial class World : Server
     private readonly object _lock = new();
     private readonly object asyncLock = new();
 
-    private readonly Dictionary<Xml.MessageType, List<IMessageHandler>> MessagePlugins = new();
+    private readonly Dictionary<Xml.Objects.MessageType, List<IMessageHandler>> MessagePlugins = new();
 
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
@@ -594,7 +594,7 @@ public partial class World : Server
         foreach (var xml in GetXmlFiles(MapDirectory))
             try
             {
-                var newMap = Xml.Map.LoadFromFile(xml);
+                var newMap = Xml.Objects.Map.LoadFromFile(xml);
                 var map = new Map(newMap, this);
                 if (!WorldData.SetWithIndex(map.Id, map, map.Name))
                     GameLog.DataLogInfo($"SetWithIndex fail for {map.Name}..?");
@@ -658,7 +658,7 @@ public partial class World : Server
 
         XmlLoadLog<CreatureBehaviorSet>(behaviorSets.Errors.Count);
 
-        var creatures = Xml.Creature.LoadAll(XmlDirectory);
+        var creatures = Xml.Objects.Creature.LoadAll(XmlDirectory);
 
         foreach (var creature in creatures.Results)
         {
@@ -708,7 +708,7 @@ public partial class World : Server
         foreach (var xml in GetXmlFiles(WorldMapDirectory))
             try
             {
-                var newWorldMap = Xml.WorldMap.LoadFromFile(xml);
+                var newWorldMap = Xml.Objects.WorldMap.LoadFromFile(xml);
                 var worldmap = new WorldMap(newWorldMap);
                 WorldData.Set(worldmap.Name, worldmap);
                 foreach (var point in worldmap.Points)
@@ -1268,7 +1268,7 @@ public partial class World : Server
             GameLog.Error($"Scripts: {numErrors} scripts had errors - check scripting log");
     }
 
-    public IMessageHandler ResolveMessagingPlugin(Xml.MessageType type, Message message)
+    public IMessageHandler ResolveMessagingPlugin(Xml.Objects.MessageType type, Message message)
     {
         // Do we have a plugin that would handle this message?
         if (MessagePlugins.TryGetValue(type, out var pluginList))

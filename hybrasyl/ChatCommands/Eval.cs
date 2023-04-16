@@ -4,8 +4,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
-using Creature = Hybrasyl.Xml.Creature;
+using Hybrasyl.Xml.Objects;
+using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.ChatCommands;
 

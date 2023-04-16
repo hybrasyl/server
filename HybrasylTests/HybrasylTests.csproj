@@ -28,7 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\hybrasyl\Hybrasyl.csproj" />
-    <ProjectReference Include="..\XML\XML.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">

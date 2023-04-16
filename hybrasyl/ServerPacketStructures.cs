@@ -24,7 +24,7 @@ using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 

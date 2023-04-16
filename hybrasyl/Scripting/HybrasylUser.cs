@@ -26,7 +26,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Reactor = Hybrasyl.Objects.Reactor;
 

@@ -25,7 +25,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using NCalc;
 using Creature = Hybrasyl.Objects.Creature;
 

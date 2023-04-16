@@ -26,7 +26,7 @@ using System.Linq;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Threading;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

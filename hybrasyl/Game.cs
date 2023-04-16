@@ -34,7 +34,7 @@ using System.Threading.Tasks;
 using App.Metrics;
 using Grpc.Core;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using HybrasylGrpc;
 using Newtonsoft.Json.Linq;
 using Sentry;

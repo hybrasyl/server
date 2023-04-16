@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;

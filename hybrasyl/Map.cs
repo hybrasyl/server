@@ -28,7 +28,7 @@ using System.Text;
 using C3;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Creature = Hybrasyl.Objects.Creature;
 using Reactor = Hybrasyl.Objects.Reactor;
 
@@ -91,7 +91,7 @@ public class MapPoint
 
 public class WorldMap
 {
-    public WorldMap(Xml.WorldMap newWorldMap)
+    public WorldMap(Xml.Objects.WorldMap newWorldMap)
     {
         Points = new List<MapPoint>();
         Name = newWorldMap.Name;
@@ -147,7 +147,7 @@ public class Map
     /// </summary>
     /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
     /// <param name="theWorld">A world object where the map will be placed</param>
-    public Map(Xml.Map newMap, World theWorld)
+    public Map(Xml.Objects.Map newMap, World theWorld)
     {
         Init();
         World = theWorld;
@@ -271,7 +271,7 @@ public class Map
         AllowSpeaking = true;
     }
 
-    public void LoadXml(Xml.Map newMap)
+    public void LoadXml(Xml.Objects.Map newMap)
     {
         foreach (var warpElement in newMap.Warps)
         {

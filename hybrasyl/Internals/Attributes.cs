@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using App.Metrics.Timer;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Internals;
 

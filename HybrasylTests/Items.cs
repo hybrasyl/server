@@ -1,6 +1,6 @@
 ﻿using Hybrasyl;
 using Hybrasyl.Enums;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace HybrasylTests;

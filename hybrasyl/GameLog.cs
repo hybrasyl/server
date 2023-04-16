@@ -21,11 +21,12 @@
 
 using System;
 using System.Collections.Generic;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using System.IO;
+using Hybrasyl.Enums;
 namespace Hybrasyl;
 
 

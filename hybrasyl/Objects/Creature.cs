@@ -28,7 +28,7 @@ using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using Sentry;
 

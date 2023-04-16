@@ -26,7 +26,7 @@ using System.Text.RegularExpressions;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Serilog;
 using Path = System.IO.Path;

@@ -1,5 +1,5 @@
 ﻿using Hybrasyl.Enums;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;

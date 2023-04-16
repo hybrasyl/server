@@ -20,7 +20,7 @@
  */
 
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.ChatCommands;
 

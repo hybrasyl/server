@@ -36,7 +36,7 @@ public class Reactor : VisibleObject, IPursuitable
     public string Description;
     public string ScriptName;
 
-    public Reactor(Xml.Reactor reactor)
+    public Reactor(Xml.Objects.Reactor reactor)
     {
         X = reactor.X;
         Y = reactor.Y;

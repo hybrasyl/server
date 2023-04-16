@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace HybrasylTests;

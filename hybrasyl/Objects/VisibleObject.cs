@@ -28,7 +28,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;

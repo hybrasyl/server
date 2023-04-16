@@ -1,5 +1,5 @@
 ﻿using System;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;

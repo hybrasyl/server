@@ -26,8 +26,8 @@ using System.Net;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
-using Creature = Hybrasyl.Xml.Creature;
+using Hybrasyl.Xml.Objects;
+using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.ChatCommands;
 // Various admin commands are implemented here.
@@ -796,9 +796,9 @@ internal class ReloadXml : ChatCommand
                     Game.World.WorldData.Remove<Castable>(castable.Id);
                     Game.World.WorldData.SetWithIndex(reloadedCastable.Id, reloadedCastable, reloadedCastable.Name);
                     foreach (var activeuser in Game.World.ActiveUsers)
-                        if (reloadedCastable.Book == Xml.Book.PrimarySkill ||
-                            reloadedCastable.Book == Xml.Book.SecondarySkill ||
-                            reloadedCastable.Book == Xml.Book.UtilitySkill)
+                        if (reloadedCastable.Book == Xml.Objects.Book.PrimarySkill ||
+                            reloadedCastable.Book == Xml.Objects.Book.SecondarySkill ||
+                            reloadedCastable.Book == Xml.Objects.Book.UtilitySkill)
                         {
                             if (activeuser.SkillBook.Contains(reloadedCastable.Id))
                                 activeuser.SkillBook[activeuser.SkillBook.SlotOf(reloadedCastable.Id)].Castable =
@@ -861,7 +861,7 @@ internal class ReloadXml : ChatCommand
             case "map":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedMap = Xml.Map.LoadFromFile(reloaded);
+                var reloadedMap = Xml.Objects.Map.LoadFromFile(reloaded);
 
                 if (!Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
                     return Fail($"{args[0]} {args[1]} was not found");
@@ -923,11 +923,11 @@ internal class ReloadXml : ChatCommand
             case "worldmap":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedWorldMap = Xml.WorldMap.LoadFromFile(reloaded);
+                var reloadedWorldMap = Xml.Objects.WorldMap.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.WorldMap status))
+                if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.Objects.WorldMap status))
                 {
-                    Game.World.WorldData.Remove<Xml.WorldMap>(status.Name);
+                    Game.World.WorldData.Remove<Xml.Objects.WorldMap>(status.Name);
                     Game.World.WorldData.Set(reloadedWorldMap.Name, reloadedWorldMap);
                     return Success($"WorldMap {reloadedWorldMap.Name} set to world data");
                 }
@@ -1019,7 +1019,7 @@ internal class LoadXml : ChatCommand
             case "map":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedMap = Xml.Map.LoadFromFile(reloaded);
+                var reloadedMap = Xml.Objects.Map.LoadFromFile(reloaded);
 
                 if (Game.World.WorldData.TryGetValue(reloadedMap.Id, out Map map))
                     return Fail($"{args[0]} {args[1]} already exists.");
@@ -1052,9 +1052,9 @@ internal class LoadXml : ChatCommand
             case "worldmap":
             {
                 var reloaded = Game.World.GetXmlFile(args[0], args[1]);
-                var reloadedWorldMap = Xml.WorldMap.LoadFromFile(reloaded);
+                var reloadedWorldMap = Xml.Objects.WorldMap.LoadFromFile(reloaded);
 
-                if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.WorldMap status))
+                if (Game.World.WorldData.TryGetValue(reloadedWorldMap.Name, out Xml.Objects.WorldMap status))
                     return Fail($"{args[0]} {args[1]} already exists.");
                 Game.World.WorldData.Set(reloadedWorldMap.Name, reloadedWorldMap);
                 return Success($"WorldMap {reloadedWorldMap.Name} set to world data");
@@ -1110,7 +1110,7 @@ internal class GenerateArmor : ChatCommand
                             Sprite = sprite,
                             DisplaySprite = displaysprite
                         },
-                        Equipment = new Xml.Equipment
+                        Equipment = new Xml.Objects.Equipment
                         {
                             Slot = EquipmentSlot.Armor
                         }
@@ -1148,7 +1148,7 @@ internal class GenerateArmor : ChatCommand
                             Sprite = sprite,
                             DisplaySprite = displaysprite
                         },
-                        Equipment = new Xml.Equipment
+                        Equipment = new Xml.Objects.Equipment
                         {
                             Slot = EquipmentSlot.Trousers
                         }

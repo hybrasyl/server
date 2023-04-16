@@ -23,7 +23,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using iTextSharp.text;
 using MoonSharp.Interpreter;
 

@@ -329,11 +329,8 @@ internal static class MessagingController
         try
         {
             IMessageHandler handler;
-            Xml.MessageType type;
-            if (boardId == 0)
-                type = Xml.MessageType.Mail;
-            else
-                type = Xml.MessageType.BoardMessage;
+            Xml.Objects.MessageType type;
+            type = boardId == 0 ? Xml.Objects.MessageType.Mail : Xml.Objects.MessageType.BoardMessage;
 
             var message = new Plugins.Message(type, senderRef.UserName, recipient, subject, body);
 
@@ -341,7 +338,7 @@ internal static class MessagingController
 
             if (handler is IProcessingMessageHandler pmh && success)
             {
-                var msg = new Plugins.Message(Xml.MessageType.Mail, senderRef.UserName, recipient, subject, body);
+                var msg = new Plugins.Message(Xml.Objects.MessageType.Mail, senderRef.UserName, recipient, subject, body);
                 var resp = pmh.Process(msg);
                 if (!pmh.Passthrough)
                 {

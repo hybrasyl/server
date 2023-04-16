@@ -1,9 +1,9 @@
 ﻿using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
-using Creature = Hybrasyl.Xml.Creature;
+using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace HybrasylTests;
 

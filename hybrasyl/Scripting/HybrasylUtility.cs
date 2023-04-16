@@ -23,9 +23,9 @@ using System;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Creature = Hybrasyl.Xml.Creature;
+using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.Scripting;
 

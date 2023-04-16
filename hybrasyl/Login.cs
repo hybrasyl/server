@@ -26,7 +26,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 

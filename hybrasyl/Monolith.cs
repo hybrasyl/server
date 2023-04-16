@@ -27,8 +27,8 @@ using System.Linq;
 using System.Threading;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
-using Creature = Hybrasyl.Xml.Creature;
+using Hybrasyl.Xml.Objects;
+using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl;
 

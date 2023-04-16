@@ -28,7 +28,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using StackExchange.Redis;
 
 namespace Hybrasyl;
@@ -461,8 +461,6 @@ public class WorldDataStore
             ItemByCategory[category].Add(item);
         }
     }
-
-    public bool ImportAll<T>(XmlLoadResponse<T> response) where T : IHybrasylLoadable<T> => false;
 
     public IEnumerable<Castable> FindCastables(Func<Castable, bool> condition) => Values<Castable>().Where(condition);
 

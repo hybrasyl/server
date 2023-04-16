@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Script = Hybrasyl.Scripting.Script;
 

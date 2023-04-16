@@ -20,7 +20,7 @@
  */
 
 using System;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
