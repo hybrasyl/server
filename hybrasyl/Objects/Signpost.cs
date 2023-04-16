@@ -68,7 +68,7 @@ public class Signpost : VisibleObject
     public async void SendAoiEntryEffect(User u)
     {
         // TODO: improve, v hacky
-        await Task.Delay(3000);
+        await Task.Delay(6000);
         u.SendEffect(X,Y,AoiEntryEffect,AoiEntryEffectSpeed);
     }
 }
