@@ -22,7 +22,7 @@ public class CastableController : IEnumerable<Rotation>
     public Dictionary<string, BookSlot> Castables { get; set; } = new();
 
     public Guid MonsterGuid { get; set; }
-    public Monster MonsterObj => Game.World.WorldData.GetWorldObject<Monster>(MonsterGuid);
+    public Monster MonsterObj => Game.World.WorldState.GetWorldObject<Monster>(MonsterGuid);
     public bool HasAssailSkills { get; set; }
 
     public bool Enabled { get; set; }
@@ -55,14 +55,14 @@ public class CastableController : IEnumerable<Rotation>
         {
             // If categories are present, use those. Otherwise, learn everything we can
             foreach (var category in MonsterObj.BehaviorSet.LearnSpellCategories)
-            foreach (var castable in Game.World.WorldData.GetSpells(MonsterObj.Stats.BaseStr,
+            foreach (var castable in Game.World.WorldData.FindSpells(MonsterObj.Stats.BaseStr,
                          MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
                          MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
                 if (!Castables.ContainsKey(castable.Name))
                     Castables.Add(castable.Name, new BookSlot { Castable = castable });
 
             foreach (var category in MonsterObj.BehaviorSet.LearnSkillCategories)
-            foreach (var castable in Game.World.WorldData.GetSkills(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt,
+            foreach (var castable in Game.World.WorldData.FindSkills(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt,
                          MonsterObj.Stats.BaseWis,
                          MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
                 if (!Castables.ContainsKey(castable.Name))
@@ -71,7 +71,7 @@ public class CastableController : IEnumerable<Rotation>
             if (MonsterObj.BehaviorSet.LearnSkillCategories.Count == 0 &&
                 MonsterObj.BehaviorSet.LearnSpellCategories.Count == 0)
                 // Auto add according to stats
-                foreach (var castable in Game.World.WorldData.GetCastables(MonsterObj.Stats.BaseStr,
+                foreach (var castable in Game.World.WorldData.FindCastables(MonsterObj.Stats.BaseStr,
                              MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
                              MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex))
                     if (!Castables.ContainsKey(castable.Name))

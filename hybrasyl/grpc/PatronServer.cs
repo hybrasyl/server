@@ -103,7 +103,7 @@ internal class PatronServer : Patron.PatronBase
     {
         try
         {
-            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out var login))
+            if (Game.World.WorldState.TryGetAuthInfo(request.Username, out var login))
             {
                 if (login.VerifyPassword(request.Password))
                     return Task.FromResult(new BooleanMessageReply { Message = "", Success = true });
@@ -125,7 +125,7 @@ internal class PatronServer : Patron.PatronBase
     {
         try
         {
-            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out var login))
+            if (Game.World.WorldState.TryGetAuthInfo(request.Username, out var login))
             {
                 // Simple length check
                 if (request.NewPassword.Length > 8 || request.NewPassword.Length < 4)

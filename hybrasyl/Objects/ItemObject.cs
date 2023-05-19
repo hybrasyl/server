@@ -139,7 +139,7 @@ public class ItemObject : VisibleObject, IInteractable
     public Gender Gender => Template.Gender;
 
     public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
-    public List<string> Categories => Template.Categories;
+    public List<string> Categories => Template.CategoryList;
 
     public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
@@ -214,13 +214,13 @@ public class ItemObject : VisibleObject, IInteractable
 
     public virtual List<DialogSequence> DialogSequences
     {
-        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
+        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id).Sequences;
         set => throw new NotImplementedException();
     }
 
     public virtual Dictionary<string, DialogSequence> SequenceIndex
     {
-        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
+        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id).Index;
         set => throw new NotImplementedException();
     }
 
@@ -457,9 +457,10 @@ public class ItemObject : VisibleObject, IInteractable
                 if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
                 {
                     var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
-                    if (trigger.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    var overlap = trigger.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
+                    if (overlap.Any())
                     {
-                            trigger.SendSystemMessage($"You already have an active {applyStatus.Category}.");
+                            trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
                     }
                     else
                     {

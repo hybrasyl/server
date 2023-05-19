@@ -11,7 +11,7 @@ namespace Hybrasyl.Dialogs;
 ///     An AsyncDialogSession is a dialog sequence that is showed to a player based on asynchronous input
 ///     from another script, player, or event (such as a mentoring request).
 /// </summary>
-public class AsyncDialogSession : IInteractable
+public class AsyncDialogSession : IInteractable, IStateStorable
 {
     public IVisible Source;
 

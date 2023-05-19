@@ -10,7 +10,7 @@ using Script = Hybrasyl.Scripting.Script;
 namespace Hybrasyl.Casting;
 
 [MoonSharpUserData]
-public class CastableObject : IInteractable
+public class CastableObject : IInteractable, IStateStorable
 {
     public Guid Guid { get; set; }
     public Castable Template { get; set; }

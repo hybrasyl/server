@@ -140,7 +140,7 @@ public static class HybrasylUtility
     {
         User userObj;
         if (!Game.World.TryGetActiveUser(to, out userObj) &&
-            !Game.World.WorldData.TryGetUser(to, out userObj))
+            !Game.World.WorldState.TryGetUser(to, out userObj))
             return false;
 
         var ret = userObj.Mailbox.ReceiveMessage(new Message(to, from, subject, body));
@@ -164,7 +164,7 @@ public static class HybrasylUtility
     {
         User userObj;
         if (!Game.World.TryGetActiveUser(to, out userObj) &&
-            !Game.World.WorldData.TryGetUser(to, out userObj))
+            !Game.World.WorldState.TryGetUser(to, out userObj))
             return false;
         if (!Game.World.WorldData.TryGetValueByIndex(itemName, out Item _))
             return false;
@@ -186,12 +186,12 @@ public static class HybrasylUtility
     }
 
     public static bool RegisterQuest(string id, string title, string summary, string result, string reward, string prerequisite, int circle)
-    => Game.World.WorldData.RegisterQuest(new QuestMetadata()
+    => Game.World.WorldState.RegisterQuest(new QuestMetadata()
         {
             Id = id, Circle = circle, Result = result, Reward = reward, Prerequisite = prerequisite, Summary = summary, Title = title
         });
 
-    public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldData.RegisterQuest(data);
+    public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldState.RegisterQuest(data);
 
     public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level, bool aggro)
     {
@@ -207,7 +207,7 @@ public static class HybrasylUtility
             return;
         }
 
-        if (!Game.World.WorldData.TryGetValue<Map>(mapId, out var map))
+        if (!Game.World.WorldState.TryGetValue<MapObject>(mapId, out var map))
         {
             GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
             return;

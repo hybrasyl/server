@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;

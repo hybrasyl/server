@@ -217,7 +217,7 @@ internal class WorldmsgCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         user.Map.Message = args[0];
-        foreach (var connectedUser in Game.World.WorldData.Values<User>())
+        foreach (var connectedUser in Game.World.WorldState.Values<User>())
             connectedUser.SendWorldMessage(user.Name, args[0]);
         return Success("World message sent.");
     }

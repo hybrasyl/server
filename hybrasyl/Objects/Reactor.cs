@@ -43,7 +43,7 @@ public class Reactor : VisibleObject, IPursuitable
         DialogSequences = new List<DialogSequence>();
     }
 
-    public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null,
+    public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
         bool blocking = true)
     {
         X = x;

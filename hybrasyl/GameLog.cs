@@ -64,8 +64,12 @@ public static class GameLog
             _ => LogEventLevel.Information
         };
 
-    public static HybrasylLogger GetLogger(LogType type) =>
-        Loggers.TryGetValue(type, out var ret) ? ret : Loggers[LogType.General];
+    public static HybrasylLogger GetLogger(LogType type)
+    {
+        if (!Loggers.ContainsKey(LogType.General))
+            Loggers.Add(LogType.General,new HybrasylLogger { Logger = new LoggerConfiguration().CreateLogger()} );
+        return Loggers.TryGetValue(type, out var ret) ? ret : Loggers[LogType.General];
+    }
 
     public static void SetLogLevel(LogType type, LogLevel level)
     {

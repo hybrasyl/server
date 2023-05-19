@@ -1,144 +1,16 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using C3;
+using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
-using Creature = Hybrasyl.Objects.Creature;
-using Reactor = Hybrasyl.Objects.Reactor;
 
-namespace Hybrasyl;
+namespace Hybrasyl.Objects;
 
-public class MapPoint
-{
-    public MapPoint(int x, int y)
-    {
-        X = x;
-        Y = y;
-    }
-
-    public long Id
-    {
-        get
-        {
-            unchecked
-            {
-                return Name.GetHashCode() + X + Y + Parent.GetHashCode();
-            }
-        }
-    }
-
-    public string Parent { get; set; }
-    public int X { get; set; }
-    public int Y { get; set; }
-    public string Name { get; set; }
-    public string DestinationMap { get; set; }
-    public byte DestinationX { get; set; }
-    public byte DestinationY { get; set; }
-
-    public int XOffset => X % 255;
-    public int YOffset => Y % 255;
-    public int XQuadrant => (X - XOffset) / 255;
-    public int YQuadrant => (Y - YOffset) / 255;
-
-    public byte[] GetBytes()
-    {
-        var buffer = Encoding.ASCII.GetBytes(Name);
-        GameLog.DebugFormat("buffer is {0} and Name is {1}", BitConverter.ToString(buffer), Name);
-
-        // X quadrant, offset, Y quadrant, offset, length of the name, the name, plus a 64-bit(?!) ID
-        var bytes = new List<byte>();
-
-        GameLog.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
-            YOffset, Name.Length, Id);
-
-        bytes.Add((byte) XQuadrant);
-        bytes.Add((byte) XOffset);
-        bytes.Add((byte) YQuadrant);
-        bytes.Add((byte) YOffset);
-        bytes.Add((byte) Name.Length);
-        bytes.AddRange(buffer);
-        bytes.AddRange(BitConverter.GetBytes(Id));
-
-        return bytes.ToArray();
-    }
-}
-
-public class WorldMap
-{
-    public WorldMap(Xml.Objects.WorldMap newWorldMap)
-    {
-        Points = new List<MapPoint>();
-        Name = newWorldMap.Name;
-        ClientMap = newWorldMap.ClientMap;
-
-        foreach (var point in newWorldMap.Points.Point)
-        {
-            var mapPoint = new MapPoint(point.X, point.Y)
-            {
-                DestinationMap = point.Target.Value,
-                DestinationX = point.Target.X,
-                DestinationY = point.Target.Y,
-                Name = point.Name,
-                Parent = Name
-            };
-            // We don't implement world map point restrictions yet, so we're done here
-            Points.Add(mapPoint);
-        }
-    }
-
-    public string Name { get; set; }
-    public string ClientMap { get; set; }
-    public List<MapPoint> Points { get; set; }
-    public World World { get; set; }
-
-    public byte[] GetBytes()
-    {
-        // Returns the representation of the worldmap as an array of bytes, 
-        // suitable to passing to a map packet.
-
-        var buffer = Encoding.ASCII.GetBytes(ClientMap);
-        var bytes = new List<byte> { (byte) ClientMap.Length };
-
-        bytes.AddRange(buffer);
-        bytes.Add((byte) Points.Count);
-        bytes.Add(0x00);
-
-        foreach (var mappoint in Points) bytes.AddRange(mappoint.GetBytes());
-
-        GameLog.DebugFormat("I am sending the following map packet:");
-        GameLog.DebugFormat("{0}", BitConverter.ToString(bytes.ToArray()));
-
-        return bytes.ToArray();
-    }
-}
-
-public class Map
+public class MapObject : IStateStorable
 {
     private readonly object _lock = new();
 
@@ -147,7 +19,7 @@ public class Map
     /// </summary>
     /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
     /// <param name="theWorld">A world object where the map will be placed</param>
-    public Map(Xml.Objects.Map newMap, World theWorld)
+    public MapObject(Xml.Objects.Map newMap, World theWorld)
     {
         Init();
         World = theWorld;
@@ -296,19 +168,15 @@ public class Map
                 warp.WarpType = WarpType.WorldMap;
             }
 
-            if (warpElement.Restrictions?.Level != null)
+            if (warpElement.Restrictions != null)
             {
-                warp.MinimumLevel = warpElement.Restrictions.Level.Min;
-                warp.MaximumLevel = warpElement.Restrictions.Level.Max;
+                warp.MinimumLevel = warpElement.Restrictions.MinLev;
+                warp.MaximumLevel = warpElement.Restrictions.MaxLev;
+                warp.MinimumAbility = warpElement.Restrictions.MinAb;
+                warp.MinimumAbility = warpElement.Restrictions.MaxAb;
+                warp.MobUse = warpElement.Restrictions.MobUse;
             }
 
-            if (warpElement.Restrictions?.Ab != null)
-            {
-                warp.MinimumAbility = warpElement.Restrictions.Ab.Min;
-                warp.MaximumAbility = warpElement.Restrictions.Ab.Max;
-            }
-
-            warp.MobUse = warpElement.Restrictions?.NoMobUse ?? true;
             Warps[new Tuple<byte, byte>(warp.X, warp.Y)] = warp;
         }
 
@@ -329,7 +197,7 @@ public class Map
             };
             InsertNpc(merchant);
             // Keep the actual spawned object around in the index for later use
-            World.WorldData.Set(merchant.Name, merchant);
+            World.WorldState.Set(merchant.Name, merchant);
         }
 
         foreach (var reactorElement in newMap.Reactors)
@@ -428,49 +296,47 @@ public class Map
         Collisions = new HashSet<(byte x, byte y)>();
         var filename = Path.Combine(World.MapFileDirectory, $"lod{Id}.map");
 
-        if (File.Exists(filename))
+        if (!File.Exists(filename))
+            return false;
+
+        RawData = File.ReadAllBytes(filename);
+        Checksum = Crc16.Calculate(RawData);
+
+        var index = 0;
+        for (byte y = 0; y < Y; ++y)
+        for (byte x = 0; x < X; ++x)
         {
-            RawData = File.ReadAllBytes(filename);
-            Checksum = Crc16.Calculate(RawData);
+            var bg = RawData[index++] | (RawData[index++] << 8);
+            var lfg = RawData[index++] | (RawData[index++] << 8);
+            var rfg = RawData[index++] | (RawData[index++] << 8);
 
-            var index = 0;
-            for (byte y = 0; y < Y; ++y)
-            for (byte x = 0; x < X; ++x)
+            if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
+
+            if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
+
+            var lfgu = (ushort) lfg;
+            var rfgu = (ushort) rfg;
+
+            if (Game.DoorSprites.ContainsKey(lfgu))
             {
-                var bg = RawData[index++] | (RawData[index++] << 8);
-                var lfg = RawData[index++] | (RawData[index++] << 8);
-                var rfg = RawData[index++] | (RawData[index++] << 8);
+                // This is a left-right door
+                GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
+                    Name, x, y, Collisions.Contains((x, y)));
 
-                if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
-
-                if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
-
-                var lfgu = (ushort) lfg;
-                var rfgu = (ushort) rfg;
-
-                if (Game.DoorSprites.ContainsKey(lfgu))
-                {
-                    // This is a left-right door
-                    GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, Collisions.Contains((x,y)));
-
-                    InsertDoor((byte) x, (byte) y, Collisions.Contains((x,y)), true,
-                        Game.IsDoorCollision(lfgu));
-                }
-                else if (Game.DoorSprites.ContainsKey(rfgu))
-                {
-                    GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, Collisions.Contains((x,y)));
-                    // THis is an up-down door 
-                    InsertDoor((byte) x, (byte) y, Collisions.Contains((x,y)), false,
-                        Game.IsDoorCollision(rfgu));
-                }
+                InsertDoor((byte) x, (byte) y, Collisions.Contains((x, y)), true,
+                    Game.IsDoorCollision(lfgu));
             }
-
-            return true;
+            else if (Game.DoorSprites.ContainsKey(rfgu))
+            {
+                GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
+                    Name, x, y, Collisions.Contains((x, y)));
+                // THis is an up-down door 
+                InsertDoor((byte) x, (byte) y, Collisions.Contains((x, y)), false,
+                    Game.IsDoorCollision(rfgu));
+            }
         }
 
-        return false;
+        return true;
     }
 
 
@@ -774,95 +640,4 @@ public class Map
 
         return (retx, rety);
     }
-}
-
-public enum WarpType
-{
-    Map,
-    WorldMap
-}
-
-public class Warp
-{
-    public Warp(Map sourceMap)
-    {
-        SourceMap = sourceMap;
-        _initializeWarp();
-    }
-
-    public Warp(Map sourceMap, string destinationMap, byte sourceX, byte sourceY)
-    {
-        SourceMap = sourceMap;
-        DestinationMapName = destinationMap;
-        X = sourceX;
-        Y = sourceY;
-        _initializeWarp();
-    }
-
-    public Map SourceMap { get; set; }
-    public byte X { get; set; }
-    public byte Y { get; set; }
-    public string DestinationMapName { get; set; }
-    public WarpType WarpType { get; set; }
-    public byte DestinationX { get; set; }
-    public byte DestinationY { get; set; }
-    public byte MinimumLevel { get; set; }
-    public byte MaximumLevel { get; set; }
-    public byte MinimumAbility { get; set; }
-    public byte MaximumAbility { get; set; }
-    public bool MobUse { get; set; }
-
-    private void _initializeWarp()
-    {
-        MinimumLevel = 0;
-        MaximumLevel = 255;
-        MinimumAbility = 0;
-        MaximumAbility = 255;
-        MobUse = true;
-    }
-
-    public bool Use(User target)
-    {
-        GameLog.DebugFormat("warp: {0} from {1} ({2},{3}) to {4} ({5}, {6}", target.Name, SourceMap.Name, X, Y,
-            DestinationMapName, DestinationX, DestinationY);
-        switch (WarpType)
-        {
-            case WarpType.Map:
-                Map map;
-                if (SourceMap.World.WorldData.TryGetValueByIndex(DestinationMapName, out map))
-                {
-                    target.Teleport(map.Id, DestinationX, DestinationY);
-                    return true;
-                }
-
-                GameLog.ErrorFormat("User {0} tried to warp to nonexistent map {1} from {2}: {3},{4}", target.Name,
-                    DestinationMapName, SourceMap.Name, X, Y);
-                break;
-            case WarpType.WorldMap:
-                WorldMap wmap;
-                if (SourceMap.World.WorldData.TryGetValue(DestinationMapName, out wmap))
-                {
-                    SourceMap.Remove(target);
-                    target.SendWorldMap(wmap);
-                    SourceMap.World.WorldData.Get<Map>(Constants.LAG_MAP).Insert(target, 5, 5, false);
-                    return true;
-                }
-
-                GameLog.ErrorFormat("User {0} tried to warp to nonexistent worldmap {1} from {2}: {3},{4}",
-                    target.Name,
-                    DestinationMapName, SourceMap.Name, X, Y);
-                break;
-        }
-
-        return false;
-    }
-}
-
-public struct Point
-{
-    public static int Distance(int x1, int y1, int x2, int y2) => Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
-
-    public static int Distance(IVisible obj1, IVisible obj2) => Distance(obj1.Location.X, obj1.Location.Y, obj2.Location.X, obj2.Location.Y);
-
-    public static int Distance(IVisible obj, int x, int y) => Distance(obj.Location.X, obj.Location.Y, x, y);
 }

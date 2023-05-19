@@ -40,7 +40,6 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
     public bool Identifiable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Identifiable);
     public bool Undamageable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
     public bool Consumable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
-    public string Name => Item.Name;
 
     public ushort Sprite
     {

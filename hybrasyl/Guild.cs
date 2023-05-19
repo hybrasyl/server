@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Newtonsoft.Json;
@@ -21,7 +22,7 @@ public class GuildRank
 }
 
 [JsonObject(MemberSerialization.OptIn)]
-public class Guild
+public class Guild : IStateStorable
 {
     public bool IsSaving;
 
@@ -46,12 +47,12 @@ public class Guild
         var leaderGuid = Ranks.First(predicate: x => x.Level == 0).Guid;
         var founderGuid = Ranks.First(predicate: x => x.Level == 2).Guid;
 
-        var leaderName = Game.World.WorldData.GetNameByGuid(leader);
+        var leaderName = Game.World.WorldState.GetNameByGuid(leader);
         Members.Add(leader, new GuildMember { Name = leaderName, RankGuid = leaderGuid });
         GameLog.Info($"Guild {name}: Adding leader {leaderName}");
         foreach (var founder in founders)
         {
-            var founderName = Game.World.WorldData.GetNameByGuid(founder);
+            var founderName = Game.World.WorldState.GetNameByGuid(founder);
             Members.Add(founder, new GuildMember { Name = founderName, RankGuid = founderGuid });
             GameLog.Info($"Guild {name}: Adding founder {founderName}");
         }
@@ -63,8 +64,8 @@ public class Guild
 
     [JsonProperty] public List<GuildRank> Ranks { get; set; }
 
-    public Board Board => Game.World.WorldData.GetBoard(Name);
-    public GuildVault Vault => Game.World.WorldData.GetOrCreateByGuid<GuildVault>(Guid, Name);
+    public Board Board => Game.World.WorldState.GetBoard(Name);
+    public GuildVault Vault => Game.World.WorldState.GetOrCreateByGuid<GuildVault>(Guid, Name);
 
     [JsonProperty] public Dictionary<Guid, GuildMember> Members { get; set; } = new();
 

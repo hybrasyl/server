@@ -262,7 +262,7 @@ public class Merchants
         Fixture.TestUser.AddItem(item);
         var item2 = new ItemObject(junk, Fixture.TestUser.World.Guid);
         Fixture.TestUser.Vault.AddItem(item2.Name, (ushort) item2.Count);
-        Fixture.TestUser.Say("withdraw bent needle");
+        Fixture.TestUser.Say("withdraw Bent Needle");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
         Assert.Equal("Here's your Bent Needle back.", msg.Message);

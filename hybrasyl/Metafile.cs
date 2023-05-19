@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Xml.Objects;
 using iTextSharp.text;
 using MoonSharp.Interpreter;
@@ -101,7 +102,7 @@ public class MetafileNode
     public static implicit operator MetafileNode(string text) => new(text);
 }
 
-public class CompiledMetafile
+public class CompiledMetafile : IStateStorable
 {
     public CompiledMetafile(Metafile file)
     {

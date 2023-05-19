@@ -109,7 +109,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         AllocateStats();
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-        if (BehaviorSet?.Behavior == null) return;
+        if (BehaviorSet?.Behavior?.SetCookies == null) return;
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }

@@ -24,7 +24,7 @@ public class Monsters
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
         Assert.NotNull(monster.BehaviorSet);
         Game.World.Insert(monster);
-        var assails = Game.World.WorldData.FindCastables(condition: x => x.IsAssail);
+        var assails = Game.World.WorldData.Find<Castable>(condition: x => x.IsAssail);
 
         foreach (var skill in assails)
             Assert.True(monster.CastableController.ContainsCastable(skill.Name),
@@ -32,7 +32,7 @@ public class Monsters
 
         foreach (var spellCategory in monster.BehaviorSet.LearnSpellCategories)
         foreach (var spell in
-                 Game.World.WorldData.FindCastables(condition: x => x.CategoryList.Contains(spellCategory)))
+                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
             Assert.True(monster.CastableController.ContainsCastable(spell.Name),
                 $"Spells: Should know {spell.Name} but doesn't");
     }
@@ -68,7 +68,7 @@ public class Monsters
         Assert.Contains(rot,
             filter: x => x.Name == "Paralyze" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
         foreach (var castable in
-                 Game.World.WorldData.FindCastables(condition: x => x.CategoryList.Contains("ElementST")))
+                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains("ElementST")))
             Assert.Contains(rot, filter: x => x.Name == castable.Name && x.CurrentPriority == rot.TargetPriority);
 
         entry = monster.CastableController.GetNextCastable();

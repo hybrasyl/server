@@ -112,7 +112,7 @@ public class MerchantController
     {
         if (request.Speaker is not User user) return;
 
-        var items = Game.World.WorldData.FindItem(request.Match["target"].Value);
+        var items = Game.World.WorldData.FindItem(request.Match["target"].Value).ToList();
         // Is the thing a category or an actual item?
         if (items.Count != 0)
         {
@@ -124,7 +124,7 @@ public class MerchantController
                 foreach (var slot in user.Inventory.GetSlotsByName(request.Match["target"].Value))
                 {
                     coins += (uint) Math.Round(user.Inventory[slot].Value * user.Inventory[slot].Count *
-                                               Game.Config.Constants.MerchantBuybackPercentage);
+                                               Game.ActiveConfiguration.Constants.MerchantBuybackPercentage);
                     removed += user.Inventory[slot].Count;
                     user.RemoveItem(slot);
                 }
@@ -178,7 +178,7 @@ public class MerchantController
                 }
             }
         }
-        else if (Game.World.WorldData.ItemByCategory.ContainsKey(request.Match["target"].Value))
+        else if (Game.World.WorldData.GetStore<Item>().ContainsCategory(request.Match["target"].Value))
         {
             uint coins = 0;
             // Only support "buy all my <category>"

@@ -33,10 +33,10 @@ internal class ClearDialogCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (!Game.World.WorldData.ContainsKey<User>(args[0]))
+        if (!Game.World.WorldState.ContainsKey<User>(args[0]))
             return Fail($"User {args[0]} not logged in");
 
-        var target = Game.World.WorldData.Get<User>(args[0]);
+        var target = Game.World.WorldState.Get<User>(args[0]);
 
         if (target.AuthInfo.IsExempt)
             return Fail($"User {target.Name} is exempt from your meddling.");

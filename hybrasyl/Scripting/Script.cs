@@ -141,7 +141,7 @@ public class Script
             User user => UserData.Create(new HybrasylUser(user)),
             Monster monster => UserData.Create(new HybrasylMonster(monster)),
             World world => UserData.Create(new HybrasylWorld(world)),
-            Map map => UserData.Create(new HybrasylMap(map)),
+            MapObject map => UserData.Create(new HybrasylMap(map)),
             Reactor reactor => UserData.Create(new HybrasylReactor(reactor)),
             ItemObject item => UserData.Create(new HybrasylItemObject(item)),
             WorldObject wobj => UserData.Create(new HybrasylWorldObject(wobj)),

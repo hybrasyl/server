@@ -20,12 +20,13 @@
  */
 
 using System.Collections.Generic;
+using Hybrasyl.Interfaces;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
 [JsonObject(MemberSerialization.OptIn)]
-public class Board : MessageStore
+public class Board : MessageStore, IStateStorable
 {
     [JsonProperty] public bool Global;
 

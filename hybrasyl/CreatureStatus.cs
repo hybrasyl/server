@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
@@ -115,8 +116,8 @@ public interface ICreatureStatus
     double Elapsed { get; }
     double Remaining { get; }
     double ElapsedSinceTick { get; }
-    string UseCastRestrictions { get; }
-    string ReceiveCastRestrictions { get; }
+    List<string> UseCastRestrictions { get; }
+    List<string> ReceiveCastRestrictions { get; }
     SimpleStatusEffect OnStartEffect { get; }
     SimpleStatusEffect OnTickEffect { get; }
     SimpleStatusEffect OnRemoveEffect { get; }
@@ -206,8 +207,9 @@ public class CreatureStatus : ICreatureStatus
             }
         }
     }
+    // TODO: xmlfix
 
-    public string Category => XmlStatus.Category;
+    public string Category => XmlStatus.CategoryList.First();
     protected User TargetUser => Target as User;
     protected User SourceUser => Target as User;
 
@@ -220,8 +222,12 @@ public class CreatureStatus : ICreatureStatus
     public ushort Icon => XmlStatus.Icon;
     public double Tick { get; }
     public double Duration { get; }
-    public string UseCastRestrictions => XmlStatus.CastRestriction?.Use ?? string.Empty;
-    public string ReceiveCastRestrictions => XmlStatus.CastRestriction?.Receive ?? string.Empty;
+    // TODO: xmlfix
+    public List<string> UseCastRestrictions => XmlStatus.CastRestrictions.Where(x => !string.IsNullOrEmpty(x.Use)).Select(y => y.Use).ToList();
+
+    public List<string> ReceiveCastRestrictions =>
+        XmlStatus.CastRestrictions.Where(x => !string.IsNullOrEmpty(x.Receive)).Select(y => y.Receive).ToList();
+
     public double Intensity { get; set; } = 1;
 
     public StatusInfo Info => new()
@@ -291,7 +297,7 @@ public class CreatureStatus : ICreatureStatus
             {
                 var animation = effect.Animations.Target;
                 if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose &&
-                                                                        animation.Id == (Game.Config.Handlers?.Death
+                                                                        animation.Id == (Game.ActiveConfiguration.Handlers?.Death
                                                                             ?.Coma?.Effect ?? 24)))
                     Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
             }

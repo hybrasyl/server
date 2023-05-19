@@ -18,7 +18,7 @@ public class Stats
     {
         Fixture.ResetUserStats();
         Fixture.TestUser.Save();
-        Assert.True(Game.World.WorldData.TryGetUser(Fixture.TestUser.Name, out var deserializedUser));
+        Assert.True(Game.World.WorldState.TryGetUser(Fixture.TestUser.Name, out var deserializedUser));
         Assert.True(Fixture.TestUser.Stats.BonusHp == deserializedUser.Stats.BonusHp,
             $"BonusHp should be {Fixture.TestUser.Stats.BonusHp}, is {deserializedUser.Stats.BonusHp}");
         Assert.True(Fixture.TestUser.Stats.BaseHp == deserializedUser.Stats.BaseHp,

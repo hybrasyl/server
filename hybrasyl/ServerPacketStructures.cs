@@ -797,7 +797,7 @@ public class ServerPacketStructures
             OpCode = OpCodes.MapData;
         }
 
-        internal Map Map { get; set; }
+        internal MapObject Map { get; set; }
 
         internal List<ServerPacket> Packets()
         {

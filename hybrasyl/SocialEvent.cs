@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl;
@@ -12,7 +13,7 @@ public enum SocialEventType
     WorldEvent = 3
 }
 
-public class SocialEvent
+public class SocialEvent : IStateStorable
 {
     public DateTime EndTime;
     public ushort MapId;

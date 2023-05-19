@@ -48,7 +48,7 @@ public class VisibleObject : WorldObject, IVisible
     }
 
     // TODO: Clean these up later and simply use Location instead
-    public Map Map
+    public MapObject Map
     {
         get => Location.Map;
         set => Location.Map = value;
@@ -211,15 +211,15 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void Teleport(ushort mapid, byte x, byte y)
     {
-        if (!World.WorldData.ContainsKey<Map>(mapid)) return;
+        if (!World.WorldState.ContainsKey<MapObject>(mapid)) return;
         Map?.Remove(this);
-        GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
-        World.WorldData.Get<Map>(mapid).Insert(this, x, y);
+        GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldState.Get<MapObject>(mapid).Name);
+        World.WorldState.Get<MapObject>(mapid).Insert(this, x, y);
     }
 
     public virtual void Teleport(string name, byte x, byte y)
     {
-        if (string.IsNullOrEmpty(name) || !World.WorldData.TryGetValueByIndex(name, out Map targetMap)) return;
+        if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex(name, out MapObject targetMap)) return;
         Map?.Remove(this);
         GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
         targetMap.Insert(this, x, y);

@@ -44,7 +44,7 @@ public class HybrasylUser : HybrasylWorldObject
     internal User User => WorldObject as User;
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
-    public string Guid => User.Guid.ToString();
+    public new string Guid => User.Guid.ToString();
 
     /// <summary>
     ///     The item in the first inventory slot of the player.

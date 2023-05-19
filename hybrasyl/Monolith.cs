@@ -47,7 +47,7 @@ internal class Monolith
 
     public static string SpawnMapKey(ushort id) => $"hyb-{Instance}-{id}";
 
-    public void LoadSpawns(Map map)
+    public void LoadSpawns(MapObject map)
     {
         if (map.SpawnDirectives?.Spawns == null) return;
 
@@ -82,7 +82,7 @@ internal class Monolith
     public void Start()
     {
         // Resolve active spawns
-        foreach (var spawnmap in Game.World.WorldData.Values<Map>())
+        foreach (var spawnmap in Game.World.WorldState.Values<MapObject>())
         {
             if (spawnmap.SpawningDisabled) continue;
             LoadSpawns(spawnmap);
@@ -106,7 +106,7 @@ internal class Monolith
 
     public void Spawn(SpawnGroup spawnGroup)
     {
-        if (!Game.World.WorldData.TryGetValue(spawnGroup.MapId, out Map spawnmap))
+        if (!Game.World.WorldState.TryGetValue(spawnGroup.MapId, out MapObject spawnmap))
         {
             GameLog.SpawnWarning($"Map id {spawnGroup.MapId}: not found");
             return;
@@ -306,11 +306,11 @@ internal class Monolith
                                 // They need some kind of weapon
                                 if (Game.World.WorldData.TryGetValueByIndex("monsterblade", out Item template))
                                 {
-                                    var newTemplate = template.Clone();
-                                    template.Properties.Damage.Small.Min = minDmg;
-                                    template.Properties.Damage.Small.Max = maxDmg;
-                                    template.Properties.Damage.Large.Min = minDmg;
-                                    template.Properties.Damage.Large.Max = maxDmg;
+                                    var newTemplate = template.Clone<Item>();
+                                    template.Properties.Damage.SmallMin = minDmg;
+                                    template.Properties.Damage.SmallMax = maxDmg;
+                                    template.Properties.Damage.LargeMin = minDmg;
+                                    template.Properties.Damage.LargeMax = maxDmg;
                                     template.Properties.Physical.Durability = uint.MaxValue / 10;
                                     baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
@@ -364,7 +364,7 @@ internal class Monolith
         }
     }
 
-    private static void SpawnMonster(Monster monster, Map map)
+    private static void SpawnMonster(Monster monster, MapObject map)
     {
         if (!World.ControlMessageQueue.IsCompleted)
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
@@ -375,10 +375,10 @@ internal class MonolithControl
 {
     internal MonolithControl()
     {
-        _maps = Game.World.WorldData.Values<Map>().ToList();
+        _maps = Game.World.WorldState.Values<MapObject>().ToList();
     }
 
-    private IEnumerable<Map> _maps { get; set; }
+    private IEnumerable<MapObject> _maps { get; set; }
 
     public void Start()
     {
@@ -409,14 +409,14 @@ internal class MonolithControl
             // Refresh our list every 15 seconds in case of XML reloading
             if (x == 30)
             {
-                _maps = Game.World.WorldData.Values<Map>().ToList();
+                _maps = Game.World.WorldState.Values<MapObject>().ToList();
                 x = 0;
             }
         }
     }
 
 
-    private static void Evaluate(Monster monster, Map map)
+    private static void Evaluate(Monster monster, MapObject map)
     {
         if (!(monster.LastAction < DateTime.Now.AddMilliseconds(-monster.ActionDelay))) return;
 
