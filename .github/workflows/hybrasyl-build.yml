@@ -1,0 +1,49 @@
+name: Hybrasyl packaging and testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]  
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: deploy
+    strategy:
+      matrix:
+        dotnet-version: ['7.0.x']
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v3
+      - name: Set up .NET SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install jq tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install jq
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      - name: Check out ceridwen
+        uses: actions/checkout@v3
+        with:
+          repository: hybrasyl/ceridwen
+          path: ceridwen
+      - name: update test settings
+        run: cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml" '.WorldDataDirectory = $wdd' tests/xmltest-settings.json) > tests/xmltest-settings.json && cat tests/xmltest-settings.json
+      - name: run tests
+        run: cd tests && dotnet publish && dotnet test --no-restore --verbosity normal --collect:"XPlat Code Coverage"
+      - name: Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+          verbose: true
+      - name: Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: Ilshidur/action-discord@0.3.2
