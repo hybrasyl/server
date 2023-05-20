@@ -27,7 +27,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using StackExchange.Redis;
 using YamlDotNet.Serialization.ObjectGraphVisitors;
 
@@ -90,7 +90,7 @@ public class ItemObject : VisibleObject, IInteractable
     {
         get
         {
-            if ((Template?.Properties?.Equipment?.Slot ?? Xml.EquipmentSlot.None) != Xml.EquipmentSlot.None)
+            if ((Template?.Properties?.Equipment?.Slot ?? Xml.Objects.EquipmentSlot.None) != Xml.Objects.EquipmentSlot.None)
                 return ItemObjectType.Equipment;
             if (Template.Properties.Flags.HasFlag(ItemFlags.Consumable) || Template.Use != null)
                 return ItemObjectType.CanUse;
@@ -139,16 +139,16 @@ public class ItemObject : VisibleObject, IInteractable
     public Gender Gender => Template.Gender;
 
     public byte Color => Convert.ToByte(Template.Properties.Appearance.Color);
-    public List<string> Categories => Template.Categories;
+    public List<string> Categories => Template.CategoryList;
 
     public byte BodyStyle => Convert.ToByte(Template.Properties.Appearance.BodyStyle);
 
     public ElementType Element => Template.Element;
 
-    public ushort MinLDamage => Template.MinLDamage;
-    public ushort MaxLDamage => Template.MaxLDamage;
-    public ushort MinSDamage => Template.MinSDamage;
-    public ushort MaxSDamage => Template.MaxSDamage;
+    public float MinLDamage => Template.MinLDamage;
+    public float MaxLDamage => Template.MaxLDamage;
+    public float MinSDamage => Template.MinSDamage;
+    public float MaxSDamage => Template.MaxSDamage;
     public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
     public uint Value => Template.Properties.Physical.Value > uint.MaxValue
@@ -214,13 +214,13 @@ public class ItemObject : VisibleObject, IInteractable
 
     public virtual List<DialogSequence> DialogSequences
     {
-        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Sequences;
+        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id).Sequences;
         set => throw new NotImplementedException();
     }
 
     public virtual Dictionary<string, DialogSequence> SequenceIndex
     {
-        get => Game.World.WorldData.Get<HybrasylInteractable>(Template.Id).Index;
+        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id).Index;
         set => throw new NotImplementedException();
     }
 
@@ -320,8 +320,8 @@ public class ItemObject : VisibleObject, IInteractable
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
                 if (
-                    (restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
-                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
+                    (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
                     (userobj.Equipment[(byte) restriction.Slot] != null)
                 )
                 {
@@ -332,8 +332,8 @@ public class ItemObject : VisibleObject, IInteractable
             else
             {
                 if (
-                    (restriction.Slot == Xml.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
-                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
+                    (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
                     (userobj.Equipment[(byte) restriction.Slot] == null)
                 )
                 {
@@ -355,12 +355,12 @@ public class ItemObject : VisibleObject, IInteractable
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring &&
-                     EquipmentSlot == (byte) Xml.EquipmentSlot.LeftHand) ||
-                    EquipmentSlot == (byte) Xml.EquipmentSlot.RightHand ||
-                    (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
-                     EquipmentSlot == (byte) Xml.EquipmentSlot.LeftArm) ||
-                    EquipmentSlot == (byte) Xml.EquipmentSlot.RightArm || EquipmentSlot == (byte) restriction.Slot)
+                if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring &&
+                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftHand) ||
+                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightHand ||
+                    (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
+                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftArm) ||
+                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightArm || EquipmentSlot == (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -368,8 +368,8 @@ public class ItemObject : VisibleObject, IInteractable
             }
             else
             {
-                if ((restriction.Slot == Xml.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
-                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.EquipmentSlot.Gauntlet &&
+                if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
+                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
                                                         userobj.Equipment.LGauntlet != null) ||
                     userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte) restriction.Slot)
                 {
@@ -457,9 +457,10 @@ public class ItemObject : VisibleObject, IInteractable
                 if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
                 {
                     var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
-                    if (trigger.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    var overlap = trigger.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
+                    if (overlap.Any())
                     {
-                            trigger.SendSystemMessage($"You already have an active {applyStatus.Category}.");
+                            trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
                     }
                     else
                     {

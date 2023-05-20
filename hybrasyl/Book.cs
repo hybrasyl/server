@@ -23,9 +23,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using XmlBook = Hybrasyl.Xml.Objects.Book;
+using Castable = Hybrasyl.Xml.Objects.Castable;
 
 namespace Hybrasyl;
 
@@ -177,13 +178,13 @@ public class Book : IEnumerable<BookSlot>
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public bool IsFull(Xml.Book book)
+    public bool IsFull(XmlBook book)
     {
-        if (book == Xml.Book.PrimarySkill || book == Xml.Book.PrimarySpell)
+        if (book == XmlBook.PrimarySkill || book == XmlBook.PrimarySpell)
             return IsPrimaryFull;
-        if (book == Xml.Book.SecondarySkill || book == Xml.Book.SecondarySpell)
+        if (book == XmlBook.SecondarySkill || book == XmlBook.SecondarySpell)
             return IsSecondaryFull;
-        if (book == Xml.Book.UtilitySkill || book == Xml.Book.UtilitySpell)
+        if (book == XmlBook.UtilitySkill || book == XmlBook.UtilitySpell)
             return IsUtilityFull;
         throw new ArgumentException($"Unknown book value {book}");
     }
@@ -217,13 +218,13 @@ public class Book : IEnumerable<BookSlot>
 
     public byte FindEmptyUtilitySlot() => (byte) (FindEmptyIndex(72, 88) + 1);
 
-    public byte FindEmptySlot(Xml.Book book)
+    public byte FindEmptySlot(XmlBook book)
     {
-        if (book == Xml.Book.PrimarySkill || book == Xml.Book.PrimarySpell)
+        if (book == XmlBook.PrimarySkill || book == XmlBook.PrimarySpell)
             return FindEmptyPrimarySlot();
-        if (book == Xml.Book.SecondarySkill || book == Xml.Book.SecondarySpell)
+        if (book == XmlBook.SecondarySkill || book == XmlBook.SecondarySpell)
             return FindEmptySecondarySlot();
-        if (book == Xml.Book.UtilitySkill || book == Xml.Book.UtilitySpell)
+        if (book == XmlBook.UtilitySkill || book == XmlBook.UtilitySpell)
             return FindEmptyUtilitySlot();
         throw new ArgumentException($"Unknown book value {book}");
     }

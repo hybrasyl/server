@@ -25,7 +25,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using NCalc;
 using Creature = Hybrasyl.Objects.Creature;
 
@@ -37,7 +37,7 @@ public class FormulaEvaluation
     public Creature Source { get; set; } = null;
     public Castable Castable { get; set; } = null;
     public Creature Target { get; set; } = null;
-    public Map Map { get; set; } = null;
+    public MapObject Map { get; set; } = null;
     public Monster Spawn { get; set; } = null;
     public User User { get; set; } = null;
     public double? Damage { get; set; } = null;
@@ -59,7 +59,7 @@ internal static class FormulaParser
             .Where(predicate: prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
         FormulaTokens[typeof(Creature)] = typeof(Creature).GetProperties()
             .Where(predicate: prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
-        FormulaTokens[typeof(Map)] = typeof(Map).GetProperties()
+        FormulaTokens[typeof(MapObject)] = typeof(MapObject).GetProperties()
             .Where(predicate: prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
         FormulaTokens[typeof(Castable)] = typeof(Castable).GetProperties()
             .Where(predicate: prop => prop.IsDefined(typeof(FormulaVariable), false)).ToList();
@@ -89,7 +89,7 @@ internal static class FormulaParser
             if (eval.Castable != null)
                 e.Parameters[$"CASTABLE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Castable);
 
-        foreach (var prop in FormulaTokens[typeof(Map)])
+        foreach (var prop in FormulaTokens[typeof(MapObject)])
             if (eval.Map != null)
                 e.Parameters[$"MAP{prop.Name.ToUpper()}"] = prop.GetValue(eval.Map);
 

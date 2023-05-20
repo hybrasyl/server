@@ -215,14 +215,14 @@ public class Client
 
         if (server is Lobby)
         {
-            EncryptionKey = Game.Config.ApiEndpoints.EncryptionEndpoint != null
-                ? GlobalConnectionManifest.RequestEncryptionKey(Game.Config.ApiEndpoints.EncryptionEndpoint.Url,
+            EncryptionKey = Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint != null
+                ? GlobalConnectionManifest.RequestEncryptionKey(Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
                     ((IPEndPoint) socket.RemoteEndPoint).Address)
                 : Encoding.ASCII.GetBytes("UrkcnItnI");
             GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
 
-            var valid = Game.Config.ApiEndpoints.ValidationEndpoint != null
-                ? GlobalConnectionManifest.ValidateEncryptionKey(Game.Config.ApiEndpoints.ValidationEndpoint.Url,
+            var valid = Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint != null
+                ? GlobalConnectionManifest.ValidateEncryptionKey(Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint.Url,
                     new ServerToken
                         { Ip = ((IPEndPoint) socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey })
                 : true;

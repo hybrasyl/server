@@ -7,7 +7,6 @@ namespace Hybrasyl.Interfaces;
 
 public interface IPursuitable : IInteractable, IResponseCapable, IVisible
 {
-    public uint Id { get; }
     List<DialogSequence> Pursuits { get; set; }
 
     public new string Name
@@ -146,7 +145,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = Id,
+            ObjectId = (this as IInteractable).Id,
             Tile1 = (ushort) (0x4000 + Sprite),
             Color1 = 0,
             Tile2 = (ushort) (0x4000 + Sprite),

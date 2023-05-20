@@ -36,14 +36,14 @@ public class Reactor : VisibleObject, IPursuitable
     public string Description;
     public string ScriptName;
 
-    public Reactor(Xml.Reactor reactor)
+    public Reactor(Xml.Objects.Reactor reactor)
     {
         X = reactor.X;
         Y = reactor.Y;
         DialogSequences = new List<DialogSequence>();
     }
 
-    public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null,
+    public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
         bool blocking = true)
     {
         X = x;

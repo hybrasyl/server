@@ -1,9 +1,11 @@
 ﻿using System;
+using Hybrasyl.Interfaces;
 
 namespace Hybrasyl;
 
-public class GuidReference
+public class GuidReference : IStateStorable
 {
+    public string PrimaryKey => UserGuid.ToString();
     private readonly object _lock = new();
 
     public GuidReference() { }

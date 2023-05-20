@@ -28,14 +28,14 @@ namespace Hybrasyl.Scripting;
 [MoonSharpUserData]
 public class HybrasylMap
 {
-    public HybrasylMap(Map map)
+    public HybrasylMap(MapObject map)
     {
         Map = map;
     }
 
     public ushort Id => Map.Id;
 
-    internal Map Map { get; set; }
+    internal MapObject Map { get; set; }
 
     public string Name => Map.Name;
 

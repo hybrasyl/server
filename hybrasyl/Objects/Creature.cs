@@ -28,7 +28,7 @@ using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using Sentry;
 
@@ -480,7 +480,7 @@ public class Creature : VisibleObject
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castableXml.Script, out var script))
             {
-                Game.World.WorldData.TryGetValue(castableXml.Guid, out CastableObject castableObj);
+                Game.World.WorldState.TryGetValue(castableXml.Guid, out CastableObject castableObj);
                 var ret = script.ExecuteFunction("OnUse",
                     ScriptEnvironment.Create(("target", target), ("origin", castableObj), ("source", this),
                         ("castable", castableObj)));
@@ -573,15 +573,16 @@ public class Creature : VisibleObject
             // Handle statuses
 
             foreach (var status in castableXml.AddStatuses)
-                if (World.WorldData.TryGetValue<Status>(status.Value.ToLower(), out var applyStatus))
+                if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
-                    if (tar.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    var overlap = tar.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
+                    if (overlap.Any())
                     {
                         if (this is User user)
-                            user.SendSystemMessage($"Another {applyStatus.Category} already affects your target.");
+                            user.SendSystemMessage($"Another {overlap.First().Category} already affects your target.");
                     }
                     else
                     {

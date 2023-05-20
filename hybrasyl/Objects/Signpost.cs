@@ -37,7 +37,7 @@ public class Signpost : VisibleObject
         BoardKey = boardkey;
         Board = null;
         if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
-            Board = Game.World.WorldData.GetBoard(BoardKey);
+            Board = Game.World.WorldState.GetBoard(BoardKey);
     }
 
     public string Message { get; set; }

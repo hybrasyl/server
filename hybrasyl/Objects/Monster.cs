@@ -28,7 +28,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -65,7 +65,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public List<string> Immunities { get; set; }
 
-    public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
+    public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {
         _actionQueue = new ConcurrentQueue<MobAction>();
@@ -109,7 +109,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         AllocateStats();
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-        if (BehaviorSet?.Behavior == null) return;
+        if (BehaviorSet?.Behavior?.SetCookies == null) return;
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }

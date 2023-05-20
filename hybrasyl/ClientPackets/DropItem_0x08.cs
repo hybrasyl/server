@@ -77,3 +77,14 @@ public class DropItem : PacketBase
 
     public override byte Opcode => 0x08;
 }
+
+public class EquipItemClick : PacketBase
+{
+    public EquipItemClick(byte slot)
+    {
+        WriteByte(slot);
+    }
+
+    public override byte Opcode => 0x44;
+
+}

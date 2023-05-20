@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
@@ -40,7 +40,6 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
     public bool Identifiable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Identifiable);
     public bool Undamageable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
     public bool Consumable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
-    public string Name => Item.Name;
 
     public ushort Sprite
     {

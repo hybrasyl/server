@@ -34,13 +34,14 @@ using System.Threading.Tasks;
 using App.Metrics;
 using Grpc.Core;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using HybrasylGrpc;
 using Newtonsoft.Json.Linq;
 using Sentry;
 using Serilog;
 using Serilog.Core;
-using Serilog.Events;
+using System.CommandLine;
+using Hybrasyl.Xml.Manager;
 
 namespace Hybrasyl;
 
@@ -145,8 +146,6 @@ public static class Game
 
     public static AssemblyInfo Assemblyinfo { get; set; }
 
-    public static ServerConfig Config { get; private set; }
-
     public static DateTime StartDate { get; set; }
     public static string CommitLog { get; private set; }
 
@@ -155,8 +154,11 @@ public static class Game
 
     public static IMetricsRoot MetricsStore { get; private set; }
 
-    public static string StartupDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
+    public static ServerConfig ActiveConfiguration { get; set; }
+    public static string WorldDataDirectory { get; set; }
+    public static string DataDirectory { get; set; }
+    public static string LogDirectory { get; set; }
+    public static string ActiveConfigurationName { get; set; }
 
     public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T) Servers[g] : null;
 
@@ -228,92 +230,159 @@ public static class Game
         //host.Close();
     }
 
+    // <summary>Hybrasyl, a DOOMVAS-compatible MMO server</summary>
+    // <param name="worldDir">The world data directory to use. Defaults to ~/Hybrasyl on Linux or My Documents\Hybrasyl on Windows.</param>
+    // <param name="logDir">The directory to use to write logs. Defaults to ~/Hybrasyl/logs on Linux or My Documents\Hybrasyl\logs on Windows.</param>
     public static void Main(string[] args)
     {
-        Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
+        var dataOption = new Option<string>(name: "--datadir",
+            description: "The data directory to be used for the server. Defaults to ~\\Hybrasyl\\world");
 
+        var worldDataOption = new Option<string>(name: "--worlddatadir",
+            description: "The XML data directory to be used for the server. Defaults to DATADIR\\xml");
+
+        var logdirOption = new Option<string>(name: "--logdir",
+            description: "The directory for log output from the server. Defaults to DATADIR\\logs");
+
+        var configOption = new Option<string>(name: "--config",
+            description: "The named configuration to use in the world directory. Defaults to default");
+
+        var rootCommand = new RootCommand("Hybrasyl, a DOOMVAS-compatible MMO server");
+
+        rootCommand.AddOption(dataOption);
+        rootCommand.AddOption(worldDataOption);
+        rootCommand.AddOption(logdirOption);
+        rootCommand.AddOption(configOption);
+
+        rootCommand.SetHandler(StartServer,
+        dataOption, worldDataOption, logdirOption, configOption);
+
+        rootCommand.Invoke(args);
+    }
+
+    public static void StartServer(string dataDir=null, string worldDir=null, string logDir=null, string configName=null)
+    {
+        Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
+        Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
+        
+        // Gather our directories from env vars / command line switches
+
+        var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
+        var world = Environment.GetEnvironmentVariable("WORLD_DIR") ?? worldDir;
+        var log = Environment.GetEnvironmentVariable("LOG_DIR") ?? logDir;
+        var config = Environment.GetEnvironmentVariable("CONFIG") ?? ActiveConfigurationName;
+        
+        DataDirectory = string.IsNullOrWhiteSpace(data) ? 
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world") : data;
+        WorldDataDirectory = string.IsNullOrWhiteSpace(world) ? 
+            Path.Combine(DataDirectory, "xml") : world;
+        LogDirectory = string.IsNullOrWhiteSpace(log) ? 
+            Path.Combine(DataDirectory, "logs") : log;
+        ActiveConfigurationName = string.IsNullOrWhiteSpace(config) ? "default" : config;
+        
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+        Log.Information($"Data directory: {DataDirectory}");
+        Log.Information($"World directory: {WorldDataDirectory}");
+        Log.Information($"Log directory: {LogDirectory}");
 
-        var hybConfig = Path.Combine(StartupDirectory, "config.xml");
-
-        var dataDirectory = Path.Combine(StartupDirectory, "world");
-        Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
-
-        if (File.Exists(hybConfig))
+        if (!Directory.Exists(LogDirectory))
         {
-            if (ServerConfig.LoadFromFile(hybConfig, out var gameConfig, out var exception))
-            {
-                Log.Information("Configuration file {file} loaded", hybConfig);
-                Config = gameConfig;
-                Config.InitializeClientSettings();
-                Config.Constants ??= new ServerConstants();
-                dataDirectory = string.IsNullOrEmpty(Config.WorldDataDir)
-                    ? StartupDirectory
-                    : Config.WorldDataDir;
-                if (!string.IsNullOrEmpty(Config.WorldDataDir) && Directory.Exists(Config.WorldDataDir))
-                    dataDirectory = Config.WorldDataDir;
-                if (!Directory.Exists(dataDirectory))
-                {
-                    Log.Fatal(
-                        "The world data directory specified in config.xml (or a default) could not be found:");
-                    Log.Fatal($"{dataDirectory}\n. Please update your config to point to a valid world directory.");
-                    Thread.Sleep(10000);
-                    return;
-                }
-            }
-            else
-            {
-                Log.Fatal("Configuration file had errors!");
-                Log.Fatal("Exception follows: {exception}", exception);
-                Log.Fatal("Server will terminate automatically in ten seconds.");
-                Thread.Sleep(10000);
-                return;
-            }
+            Log.Fatal($"The specified log directory {LogDirectory} does not exist or cannot be accessed.");
+            Log.Fatal(
+                "Hybrasyl cannot start without a writable log directory, so it will automatically close in 10 seconds.");
+            Thread.Sleep(10000);
+            return;
         }
-        else
+        var manager = new XmlDataManager(WorldDataDirectory);
+
+        try
         {
-            Log.Warning("This seems to be the first time you've run the server (config file not found)");
-            Log.Warning("Please take a look at the server documentation at github.com/hybrasyl/server.");
-            Log.Warning("We also recommend you look at the example config.xml in the community database");
-            Log.Warning("which can be found at github.com/hybrasyl/ceridwen .");
-            Log.Warning($"We are currently looking in:\n{hybConfig} for a config file.");
-            Log.Fatal("Hybrasyl cannot start without a config file, so it will automatically close in 10 seconds.");
+            manager.LoadData();
+        }
+        catch (FileNotFoundException ex)
+        {
+            Log.Fatal($"An XML directory (world data) was not found at {manager.RootPath}.");
+            Log.Fatal("This may be the first time you've run the server. If so, please take a look");
+            Log.Fatal("at the server documentation at github.com/hybrasyl/server.");
+            Log.Fatal("We also recommend you look at the example config.xml in the community database");
+            Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
+            Log.Fatal("A data directory must exist for Hybrasyl to continue loading.");
+            Log.Fatal(
+                "Hybrasyl cannot start without a readable world data directory, so it will automatically close in 10 seconds.");
+            Thread.Sleep(10000);
+            return;
+
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal($"World data could not be loaded: {ex}");
+            Log.Fatal(
+                "Hybrasyl cannot start without a working world data directory, so it will automatically close in 10 seconds.");
+            return;
+        }
+
+        if (manager.Count<ServerConfig>() == 0)
+        {
+            Log.Fatal("This seems to be the first time you've run the server (server config file not found)");
+            Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
+            Log.Fatal("We also recommend you look at the example config.xml in the community database");
+            Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
+            Log.Fatal(
+                $"We are currently looking in:\n{manager.RootPath}\\serverconfigs for a config file.");
+            Log.Fatal(
+                "Hybrasyl cannot start without a server configuration file, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
             return;
         }
 
-        if (string.IsNullOrEmpty(dataDirectory))
+        if (!manager.TryGetValue(ActiveConfigurationName, out ServerConfig activeConfiguration))
         {
-            Log.Information("Using default data directory {Directory}", StartupDirectory);
-            try
-            {
-                // Ensure at least the world and logs directory exist 
-                Directory.CreateDirectory(StartupDirectory);
-                Directory.CreateDirectory(Path.Combine(StartupDirectory, "world"));
-                Directory.CreateDirectory(Path.Combine(StartupDirectory, "logs"));
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Can't create data directory: {StartupDirectory}", e);
-                Thread.Sleep(5000);
-                return;
-            }
+            Log.Fatal(
+                $"You specified a server configuration name of {ActiveConfigurationName}, but there are no configurations with that name.");
+            Log.Fatal(
+                $"Active configurations that were found in {manager.RootPath}\\serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(x => x.Name))}");
+            Log.Fatal(
+                "Hybrasyl cannot start without a server configuration, so it will automatically close in 10 seconds.");
+            Thread.Sleep(10000);
+            return;
         }
 
+        // Sanity check: ensure our localization exists
+        // TODO: alpha9
+        if (!manager.TryGetValue(activeConfiguration.Locale, out Localization locale))
+        {
+            Log.Fatal(
+                $"You specified a locale of en_us, but there are no locales with that name.");
+            Log.Fatal(
+                $"Make sure a localization configuration exists in {manager.RootPath}\\localizations and that it matches what is defined in the server configuration.");
+            Log.Fatal(
+                $"Active configurations that were found in {manager.RootPath}\\localizations: {string.Join(" ", manager.Values<Localization>().Select(x => x.Locale))}");
+            Log.Fatal(
+                "Hybrasyl cannot start without a properly set locale, so it will automatically close in 10 seconds.");
+            Thread.Sleep(10000);
+
+            return;
+        }
+
+        Log.Information($"Configuration file: {activeConfiguration.Filename} ({activeConfiguration.Name}) loaded");
+        activeConfiguration.InitializeClientSettings();
+        activeConfiguration.Constants ??= new ServerConstants();
+        // Set our active configuration to the one we just loaded
+        ActiveConfiguration = activeConfiguration;
+        
         // Configure logging 
-        GameLog.Initialize(dataDirectory, Config.Logging);
+        GameLog.Initialize(LogDirectory, activeConfiguration.Logging);
 
         // We don't want any of NCalc's garbage 
         Trace.Listeners.RemoveAt(0);
 
-        Log.Information("Hybrasyl log begin");
+        Log.Information("Hybrasyl: server start");
         Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
         
         Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash}) starting.");
         Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.",
             Assemblyinfo.Copyright);
-
 
         // Set up metrics collection
         // TODO: make configurable
@@ -328,12 +397,12 @@ public static class Game
                 options.ReportingEnabled = true;
             });
 
-        if (Config.ApiEndpoints?.MetricsEndpoint != null)
+        if (activeConfiguration.ApiEndpoints?.MetricsEndpoint != null)
             MetricsStore = builder.Report.ToHostedMetrics(
                 setupAction: io =>
                 {
-                    io.HostedMetrics.BaseUri = new Uri(Config.ApiEndpoints.MetricsEndpoint.Url);
-                    io.HostedMetrics.ApiKey = Config.ApiEndpoints.MetricsEndpoint.ApiKey;
+                    io.HostedMetrics.BaseUri = new Uri(activeConfiguration.ApiEndpoints.MetricsEndpoint.Url);
+                    io.HostedMetrics.ApiKey = activeConfiguration.ApiEndpoints.MetricsEndpoint.ApiKey;
                     io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
                     io.HttpPolicy.FailuresBeforeBackoff = 5;
                     io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
@@ -344,26 +413,26 @@ public static class Game
 
         try
         {
-            if (!string.IsNullOrEmpty(Config.ApiEndpoints.Sentry?.Url ?? null))
+            if (!string.IsNullOrEmpty(activeConfiguration.ApiEndpoints?.Sentry?.Url ?? null))
             {
                 Sentry = SentrySdk.Init(configureOptions: i =>
                     {
-                        i.Dsn = Config.ApiEndpoints.Sentry.Url;
+                        i.Dsn = activeConfiguration.ApiEndpoints.Sentry.Url;
                         i.Environment = env ?? "dev";
                     }
                 );
                 SentryEnabled = true;
-                GameLog.Info("Sentry: exception reporting enabled");
+                Log.Information("Sentry: exception reporting enabled");
             }
             else
             {
-                GameLog.Info("Sentry: exception reporting disabled");
+                Log.Information("Sentry: exception reporting disabled");
                 SentryEnabled = false;
             }
         }
         catch (Exception e)
         {
-            GameLog.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
+            Log.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
             SentryEnabled = false;
         }
 
@@ -371,16 +440,17 @@ public static class Game
 
         // For right now we don't support binding to different addresses; the support in the XML
         // is for a distant future where that may be desirable.
-        if (Config.Network.Login.ExternalAddress != null)
+        if (activeConfiguration.Network.Login.ExternalAddress != null)
             // We can have a hostname here to support ease of running in Docker; try to naively resolve it
-            RedirectTarget = Dns.GetHostAddresses(Config.Network.Lobby.ExternalAddress).FirstOrDefault();
+            RedirectTarget = Dns.GetHostAddresses(activeConfiguration.Network.Lobby.ExternalAddress).FirstOrDefault();
 
-        IpAddress = IPAddress.Parse(Config.Network.Lobby.BindAddress);
+        IpAddress = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);
 
-        Lobby = new Lobby(Config.Network.Lobby.Port, true);
-        Login = new Login(Config.Network.Login.Port, true);
-        World = new World(Config.Network.World.Port, Config.DataStore,
-            dataDirectory == string.Empty ? Path.Combine(StartupDirectory, "world") : dataDirectory, true);
+        Lobby = new Lobby(activeConfiguration.Network.Lobby.Port, true);
+        Login = new Login(activeConfiguration.Network.Login.Port, true);
+        // TODO: alpha9
+        World = new World(activeConfiguration.Network.World.Port, activeConfiguration.DataStore,
+            manager, activeConfiguration.Locale, true);
 
         Lobby.StopToken = CancellationTokenSource.Token;
         Login.StopToken = CancellationTokenSource.Token;
@@ -391,7 +461,7 @@ public static class Game
 
         if (!World.InitWorld())
         {
-            GameLog.Fatal(
+            Log.Fatal(
                 "Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
             Console.ReadKey();
             Environment.Exit(1);
@@ -426,7 +496,7 @@ public static class Game
         {
             using (var stipulationWriter = new StreamWriter(stipulationStream, Encoding.ASCII, 1024, true))
             {
-                var serverMsgFileName = Path.Combine(dataDirectory, "server.msg");
+                var serverMsgFileName = Path.Combine(DataDirectory, "server.msg");
 
                 if (File.Exists(serverMsgFileName))
                 {
@@ -434,11 +504,11 @@ public static class Game
                 }
                 else
                 {
-                    if (string.IsNullOrEmpty(Config.Motd))
+                    if (string.IsNullOrEmpty(activeConfiguration.Motd))
                         stipulationWriter.Write(
                             $"Welcome to Hybrasyl!\n\nThis is Hybrasyl (version {Assemblyinfo.Version}, commit {Assemblyinfo.GitHash}).\n\nFor more information please visit http://www.hybrasyl.com");
                     else
-                        stipulationWriter.Write(Config.Motd);
+                        stipulationWriter.Write(activeConfiguration.Motd);
                 }
 
                 stipulationWriter.Write("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -482,25 +552,27 @@ public static class Game
         // Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "debug");
 
         // Start GRPC server
-        if (Config.Network.Grpc != null)
+        if (activeConfiguration.Network.Grpc != null)
         {
-            var ssl_enabled = Config.Network.Grpc.ServerCertificateFile != null &&
-                              Config.Network.Grpc.ServerKeyFile != null;
+            var ssl_enabled = activeConfiguration.Network.Grpc.ServerCertificateFile != null &&
+                              activeConfiguration.Network.Grpc.ServerKeyFile != null;
 
             if (ssl_enabled)
             {
+                var certPath = Path.Join(DataDirectory, "ssl", activeConfiguration.Network.Grpc.ServerCertificateFile);
+                var keyPath = Path.Join(DataDirectory, "ssl", activeConfiguration.Network.Grpc.ServerKeyFile);
+
                 SslServerCredentials credentials;
                 // Load credentials
                 try
                 {
-                    var cert = File.ReadAllText(Path.Join(StartupDirectory, "ssl",
-                        Config.Network.Grpc.ServerCertificateFile));
-                    var key = File.ReadAllText(Path.Join(StartupDirectory, "ssl", Config.Network.Grpc.ServerKeyFile));
+                    var cert = File.ReadAllText(certPath);
+                    var key = File.ReadAllText(keyPath);
                     var keypair_list = new List<KeyCertificatePair> { new(cert, key) };
-                    if (Config.Network.Grpc.ChainCertificateFile != null)
+                    if (activeConfiguration.Network.Grpc.ChainCertificateFile != null)
                     {
-                        var chaincerts = File.ReadAllText(Path.Join(StartupDirectory, "ssl",
-                            Config.Network.Grpc.ChainCertificateFile));
+                        var chaincerts = File.ReadAllText(Path.Join(DataDirectory, "ssl",
+                            activeConfiguration.Network.Grpc.ChainCertificateFile));
                         credentials = new SslServerCredentials(keypair_list, chaincerts,
                             SslClientCertificateRequestType.RequestAndRequireAndVerify);
                     }
@@ -512,8 +584,8 @@ public static class Game
                 }
                 catch (Exception e)
                 {
-                    GameLog.Error("GRPC: server initialization: key/cert load failed: {e}", e);
-                    GameLog.Error("GRPC: server disabled");
+                    Log.Error("GRPC: server initialization: key/cert load failed: {e}", e);
+                    Log.Error("GRPC: server disabled");
                     credentials = null;
                 }
 
@@ -524,11 +596,11 @@ public static class Game
                         Services = { Patron.BindService(new PatronServer()) },
                         Ports =
                         {
-                            new ServerPort(Config.Network.Grpc.BindAddress,
-                                Config.Network.Grpc.Port, credentials)
+                            new ServerPort(activeConfiguration.Network.Grpc.BindAddress,
+                                activeConfiguration.Network.Grpc.Port, credentials)
                         }
                     };
-                    GameLog.Info("GRPC: SSL server initialized");
+                    Log.Information("GRPC: SSL server initialized");
                 }
             }
             else
@@ -539,11 +611,11 @@ public static class Game
                     Services = { Patron.BindService(new PatronServer()) },
                     Ports =
                     {
-                        new ServerPort(Config.Network.Grpc.BindAddress, Config.Network.Grpc.Port,
+                        new ServerPort(activeConfiguration.Network.Grpc.BindAddress, activeConfiguration.Network.Grpc.Port,
                             ServerCredentials.Insecure)
                     }
                 };
-                GameLog.Info("GRPC: server initialized (insecure, use for development only)");
+                Log.Information("GRPC: server initialized (insecure, use for development only)");
             }
         }
 

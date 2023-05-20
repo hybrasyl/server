@@ -20,7 +20,7 @@
  */
 
 using Hybrasyl.Enums;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;

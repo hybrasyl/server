@@ -3,7 +3,7 @@ using System.Drawing;
 
 namespace Hybrasyl.Interfaces;
 
-public interface IWorldObject
+public interface IWorldObject : IStateStorable
 {
     public Rectangle Rect { get; }
     public DateTime CreationTime { get; }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -258,7 +258,7 @@ public static class LootBox
         foreach (var lootitem in loot)
         {
             // Does the base item exist?
-            var xmlItemList = Game.World.WorldData.FindItem(lootitem.Value);
+            var xmlItemList = Game.World.WorldData.FindItem(lootitem.Value).ToList();
             // Don't handle the edge case of multiple genders .... yet
             if (xmlItemList.Count != 0)
             {

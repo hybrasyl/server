@@ -479,6 +479,13 @@ namespace Hybrasyl
             Asynchronous = 0xFE
         }
 
+        public enum WarpType
+        {
+            Map,
+            WorldMap
+        }
+
+
         public class EnumUtil
         {
             public static T ParseEnum<T>(string value, T defaultValue) where T : struct, IConvertible

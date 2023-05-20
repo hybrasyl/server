@@ -11,7 +11,7 @@ public partial class World : Server
     private void ControlMessage_SpawnMonster(HybrasylControlMessage message)
     {
         var monster = (Monster) message.Arguments[0];
-        var map = (Map) message.Arguments[1];
+        var map = (MapObject) message.Arguments[1];
         map.InsertCreature(monster);
 
         GameLog.SpawnInfo(
@@ -22,7 +22,7 @@ public partial class World : Server
     private void ControlMessage_MonolithControl(HybrasylControlMessage message)
     {
         var monster = (Monster) message.Arguments[0];
-        var map = (Map) message.Arguments[1];
+        var map = (MapObject) message.Arguments[1];
 
         if (monster == null || map == null) return;
         // Don't handle control messages for dead/removed mobs, or mobs that cannot move or attack

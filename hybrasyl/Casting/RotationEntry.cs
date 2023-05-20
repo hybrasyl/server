@@ -1,5 +1,5 @@
 ﻿using System;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Casting;
 

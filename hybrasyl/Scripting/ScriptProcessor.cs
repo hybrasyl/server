@@ -23,7 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;

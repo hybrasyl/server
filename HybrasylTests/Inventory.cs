@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl;
 using Hybrasyl.ClientPackets;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -253,8 +253,34 @@ public class Inventory
         Assert.True(Fixture.TestUser.Inventory[58].Name == "Test Item");
     }
 
+    [Fact]
+    public void RemoveEquipmentFailIfInventoryFull()
+    {
+        Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Stats.BaseStr = 255;
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
+        var ringObj = Game.World.CreateItem(ring);
+        Assert.NotNull(ringObj);
+        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
+        while (!Fixture.TestUser.Inventory.IsFull)
+        {
+            var anotherRingObj = Game.World.CreateItem(ring);
+            Fixture.TestUser.AddItem(anotherRingObj);
+        }
+        Assert.True(Fixture.TestUser.Inventory.IsFull);
+        var guid = Fixture.TestUser.Inventory[1].Guid;
+        var testPacket = new EquipItemClick((byte) EquipmentSlot.RightHand);
 
-    [Theory]
+        var handler = Game.World.WorldPacketHandlers[testPacket.Opcode];
+        Assert.NotNull(handler);
+        handler(Fixture.TestUser, (ClientPacket) testPacket);
+        Assert.Equal("You can't carry anything else.", Fixture.TestUser.LastSystemMessage);
+
+    }
+
+
+        [Theory]
     [MemberData(nameof(XmlItems))]
     public void MoveItemBetweenSlotsInInventory(params Item[] item)
     {
@@ -379,7 +405,7 @@ public class Inventory
 
         Fixture.TestUser.Save();
 
-        Assert.True(Game.World.WorldData.TryGetUser("TestUser", out var u1),
+        Assert.True(Game.World.WorldState.TryGetUser("TestUser", out var u1),
             "Test user should exist after save but can't be found");
 
         Assert.True(u1.Inventory[1] != null, "Inventory slot 1 should be non-null after deserialization");
@@ -405,7 +431,7 @@ public class Inventory
 
         Fixture.TestUser.Save();
 
-        Assert.True(Game.World.WorldData.TryGetUser("TestUser", out var u1),
+        Assert.True(Game.World.WorldState.TryGetUser("TestUser", out var u1),
             "Test user should exist after save but can't be found");
 
         Assert.True(u1.Equipment.Weapon.Name == "Equip Test Weapon",

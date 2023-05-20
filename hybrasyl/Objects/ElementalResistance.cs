@@ -22,7 +22,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -51,7 +52,7 @@ public class ElementalResistance
             Resistances[element] = mod;
     }
 
-    public void Apply(List<Xml.ElementalResistance> er1)
+    public void Apply(List<Xml.Objects.ElementalResistance> er1)
     {
         foreach (var resistance in er1)
         {
@@ -60,7 +61,7 @@ public class ElementalResistance
         }
     }
 
-    public void Remove(List<Xml.ElementalResistance> er1)
+    public void Remove(List<Xml.Objects.ElementalResistance> er1)
     {
         foreach (var resistance in er1)
         {
