@@ -27,8 +27,10 @@ public class HybrasylFixture : IDisposable
             .CreateLogger();
         var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("HybrasylTests");
         Game.LoadCollisions();
-        Game.DataDirectory = Path.Combine(submoduleDir[0], "HybrasylTests", "world");
-        var manager = new XmlDataManager(Path.Combine(Game.DataDirectory, "xml"));
+        Game.DataDirectory = Settings.HybrasylTests.JsonSettings.DataDirectory;
+        Game.WorldDataDirectory = Settings.HybrasylTests.JsonSettings.WorldDataDirectory;
+        Game.LogDirectory = Settings.HybrasylTests.JsonSettings.LogDirectory;
+        var manager = new XmlDataManager(Game.WorldDataDirectory);
         manager.LoadData();
 
         Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 },

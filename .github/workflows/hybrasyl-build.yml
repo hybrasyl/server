@@ -34,8 +34,12 @@ jobs:
         with:
           repository: hybrasyl/ceridwen
           path: ceridwen
-      - name: update test settings
-        run: cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml" '.WorldDataDirectory = $wdd' tests/xmltest-settings.json) > tests/xmltest-settings.json && cat tests/xmltest-settings.json
+      - name: set world data directory
+        run: cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml" '.WorldDataDirectory = $wdd' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
+      - name: set log directory
+        run: cat <<< $(jq --arg ld "$GITHUB_WORKSPACE/ceridwen/logs" '.LogDataDirectory = $ld' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
+      - name: set data directory
+        run: cat <<< $(jq --arg dd "$GITHUB_WORKSPACE/ceridwen" '.DataDirectory = $dd' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
       - name: run tests
         run: cd tests && dotnet publish && dotnet test --no-restore --verbosity normal --collect:"XPlat Code Coverage"
       - name: Codecov
