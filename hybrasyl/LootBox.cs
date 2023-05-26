@@ -144,7 +144,7 @@ public static class LootBox
         {
             // Is the set present?
             GameLog.SpawnInfo("Processing loot set {Name}", set.Name);
-            if (Game.World.WorldData.TryGetValueByIndex(set.Name, out LootSet lootset))
+            if (Game.World.WorldData.TryGetValue(set.Name, out LootSet lootset))
                 loot += CalculateLoot(lootset, set.Rolls, set.Chance);
             else
                 GameLog.Warning("Loot set {name} referenced in list, but could not be loaded", set.Name);

@@ -20,28 +20,12 @@
  * 
  */
 
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
 using App.Metrics;
 using App.Metrics.Gauge;
 using App.Metrics.Meter;
 using App.Metrics.Timer;
-using Humanizer;
 using Hybrasyl.Casting;
 using Hybrasyl.ChatCommands;
-using Hybrasyl.Controllers;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -52,12 +36,24 @@ using Hybrasyl.Plugins;
 using Hybrasyl.Scripting;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml.Interfaces;
-using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
 using Serilog.Events;
 using StackExchange.Redis;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using Reactor = Hybrasyl.Objects.Reactor;
@@ -1695,10 +1691,18 @@ public partial class World : Server
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not Creature creature) return;
+        var user = target as User;
         if (target.Condition.IsInvisible)
             target.Hide();
-        else 
+        else
+        {
+            // Remove any invisible statuses
+            foreach (var invisStatus in WorldData.Find<Status>(x =>
+                         x.Effects?.OnApply?.Conditions?.Set.HasFlag(CreatureCondition.Invisible) ?? false))
+                target.RemoveStatus(invisStatus.Icon);
             target.Show();
+
+        }
     }
 
     [HybrasylMessageHandler(ControlOpcode.CombatLog)]

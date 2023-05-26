@@ -56,4 +56,50 @@ public class Status
         Assert.True(monster.Condition.Asleep);
         Assert.False(monster.Condition.CastingAllowed);
     }
+
+    [Fact]
+    public void InvisibilityStatusBreakOnAssail()
+    {
+        Fixture.TestUser.Stats.BaseMp = 1000;
+        Fixture.TestUser.Stats.Mp = 1000;
+        Fixture.TestUser.RemoveAllStatuses();
+
+        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Invisible").FirstOrDefault();
+        var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
+
+        Assert.NotNull(invisible);
+        Assert.NotNull(assail);
+        // Apply invisibility
+        Assert.True(Fixture.TestUser.UseCastable(invisible, Fixture.TestUser));
+        // Should be invisible
+        Assert.True(Fixture.TestUser.Condition.IsInvisible);
+        // Using assail breaks invisibility
+        Assert.True(Fixture.TestUser.UseCastable(assail));
+        Assert.False(Fixture.TestUser.Condition.IsInvisible);
+        Assert.Empty(Fixture.TestUser.Statuses);
+    }
+
+    [Fact]
+    public void InvisibilityStatusBreakOnBreakStealth()
+    {
+        Fixture.TestUser.Stats.BaseMp = 1000;
+        Fixture.TestUser.Stats.Mp = 1000;
+        Fixture.TestUser.RemoveAllStatuses();
+
+        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Invisible").FirstOrDefault();
+        var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
+        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "beag athar").FirstOrDefault();
+
+        Assert.NotNull(invisible);
+        Assert.NotNull(assail);
+        // Apply invisibility
+        Assert.True(Fixture.TestUser.UseCastable(invisible, Fixture.TestUser));
+        // Should be invisible
+        Assert.True(Fixture.TestUser.Condition.IsInvisible);
+        // Using a spell with BreakStealth set, breaks stealth
+        Fixture.TestUser.UseCastable(castable);
+        Assert.False(Fixture.TestUser.Condition.IsInvisible);
+        Assert.Empty(Fixture.TestUser.Statuses);
+    }
+
 }

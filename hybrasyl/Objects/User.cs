@@ -2718,11 +2718,14 @@ public class User : Creature
                 if (Equipment.Shield != null) motionId = 1;
             }
 
+            if (Condition.IsInvisible)
+                Condition.IsInvisible = false;
+
             var firstAssail = SkillBook.FirstOrDefault(x => x.Castable is {IsAssail:true});
             var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte) 1;
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);
-            PlaySound(soundId);
+            PlaySound(Equipment?.Weapon?.AssailSound ?? soundId);
         }
     }
 

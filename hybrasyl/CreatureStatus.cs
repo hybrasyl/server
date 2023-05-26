@@ -131,6 +131,7 @@ public interface ICreatureStatus
 public class StatusInfo
 {
     public string Name { get; set; }
+    public ushort Icon { get; set; }
     public string Category { get; set; }
     public SimpleStatusEffect OnStartEffect { get; set; }
     public SimpleStatusEffect OnTickEffect { get; set; }
@@ -208,8 +209,7 @@ public class CreatureStatus : ICreatureStatus
         }
     }
     // TODO: xmlfix
-
-    public string Category => XmlStatus.CategoryList.First();
+    public string Category => XmlStatus.CategoryList.FirstOrDefault() ?? string.Empty;
     protected User TargetUser => Target as User;
     protected User SourceUser => Target as User;
 
@@ -233,6 +233,7 @@ public class CreatureStatus : ICreatureStatus
     public StatusInfo Info => new()
     {
         Name = Name,
+        Icon = Icon,
         OnStartEffect = OnStartEffect,
         OnRemoveEffect = OnRemoveEffect,
         OnTickEffect = OnTickEffect,

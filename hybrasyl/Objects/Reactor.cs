@@ -55,7 +55,7 @@ public class Reactor : VisibleObject, IPursuitable
         CreatedAt = DateTime.Now;
         if (expiration <= 0) return;
         Expiration = CreatedAt.AddSeconds(expiration);
-        Task.Run(function: async () => await OnExpiration());
+        Task.Run(function: OnExpiration);
     }
 
     public DateTime CreatedAt { get; set; }

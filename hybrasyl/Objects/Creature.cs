@@ -60,7 +60,7 @@ public class Creature : VisibleObject
 
     [JsonProperty] public List<StatusInfo> Statuses { get; set; }
 
-    public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Values.Select(selector: e => e.Info).ToList();
+    public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Count > 0 ? _currentStatuses.Values.Select(selector: e => e.Info).ToList() : new List<StatusInfo>();
 
     public uint Gold => Stats.Gold;
 
@@ -516,6 +516,8 @@ public class Creature : VisibleObject
                 reactorObj.CreatedBy = Guid;
                 reactorObj.Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
                     new FormulaEvaluation { Castable = castableXml, Source = this }));
+                // Don't insert a reactor with no uses into the world
+                if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
                 tar.Map.InsertReactor(reactorObj);
                 reactorObj.OnSpawn();
@@ -578,17 +580,23 @@ public class Creature : VisibleObject
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
-                    var overlap = tar.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
-                    if (overlap.Any())
+                    if (tar.CurrentStatusInfo.Count > 0)
                     {
-                        if (this is User user)
-                            user.SendSystemMessage($"Another {overlap.First().Category} already affects your target.");
+                        var overlap = tar.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
+                        if (overlap.Any())
+                        {
+                            if (this is User user)
+                            {
+                                user.SendSystemMessage(
+                                    $"Another {overlap.First().Category} already affects your target.");
+                            }
+
+                            continue;
+                        }
                     }
-                    else
-                    {
-                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
-                            status.Intensity));
-                    }
+
+                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
+                        status.Intensity));
                 }
                 else
                 {
