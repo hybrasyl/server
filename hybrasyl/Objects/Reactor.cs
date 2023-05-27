@@ -120,7 +120,7 @@ public class Reactor : VisibleObject, IPursuitable
         Sprite = 0;
         Show();
         await Task.Delay(1000);
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.RemoveReactor, Map.Id, X, Y, Guid));
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.RemoveReactor, Guid));
     }
 
     public void OnSpawn()

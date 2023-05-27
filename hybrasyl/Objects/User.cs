@@ -1186,7 +1186,7 @@ public class User : Creature
         if (bookSlot.Castable.TryGetMotion(Class, out var motion))
         {
             Motion(motion.Id, motion.Speed);
-            if (bookSlot.Castable?.Effects?.Sound != null)
+            if (!bookSlot.Castable.IsAssail && bookSlot.Castable.Effects?.Sound?.Id != null)
                 PlaySound(bookSlot.Castable.Effects.Sound.Id);
         }
 
@@ -2540,13 +2540,11 @@ public class User : Creature
 
     public override void OnDamage(DamageEvent damageEvent)
     {
-        if (GetSessionCookie("combatlog") == "on")
             SendCombatLogMessage(damageEvent);
     }
 
     public override void OnHeal(HealEvent healEvent)
     {
-        if (GetSessionCookie("combatlog") == "on")
             SendCombatLogMessage(healEvent);
     }
 
@@ -5023,6 +5021,8 @@ public class User : Creature
 
     public void SendCombatLogMessage(ICombatEvent e)
     {
+        if (GetSessionCookie("combatlog") != "on") return;
+
         foreach (var line in e.ToString().Split("\n"))
             Client?.SendMessage(line, (byte) MessageType.Group);
     }

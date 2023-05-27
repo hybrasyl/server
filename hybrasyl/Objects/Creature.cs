@@ -465,13 +465,15 @@ public class Creature : VisibleObject
             }
         }
 
-        if (Equipment?.Weapon?.AssailSound != null)
-            PlaySound(Equipment.Weapon.AssailSound);
-        else if (this is Monster m && m.AssailSound != 0)
-            PlaySound(m.AssailSound);
-        else if (castableXml.Effects?.Sound != null)
-            PlaySound(castableXml.Effects.Sound.Id);
-        
+        if (castableXml.IsAssail)
+        {
+            if (Equipment?.Weapon?.AssailSound != null)
+                PlaySound(Equipment.Weapon.AssailSound);
+            else if (this is Monster m && m.AssailSound != 0)
+                PlaySound(m.AssailSound);
+            else if (castableXml.Effects?.Sound != null)
+                PlaySound(castableXml.Effects.Sound.Id);
+        }
 
         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
 
