@@ -212,8 +212,8 @@ public class Creature : VisibleObject
         }
 
         GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
-        ret.AddRange(Map.EntityTree.GetObjects(rect).Where(predicate: obj => obj is Creature)
-            .Select(selector: e => e as Creature));
+        ret.AddRange(Map.EntityTree.GetObjects(rect)
+            .OfType<Creature>().OrderBy(x => x.Distance(this)));
         return ret;
     }
 
@@ -474,6 +474,8 @@ public class Creature : VisibleObject
             else if (castableXml.Effects?.Sound != null)
                 PlaySound(castableXml.Effects.Sound.Id);
         }
+        else if (castableXml.Effects?.Sound != null)
+            PlaySound(castableXml.Effects.Sound.Id);
 
         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
 
