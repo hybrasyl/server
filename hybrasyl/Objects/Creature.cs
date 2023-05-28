@@ -484,7 +484,7 @@ public class Creature : VisibleObject
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castableXml.Script, out var script))
             {
-                Game.World.WorldState.TryGetValue(castableXml.Guid, out CastableObject castableObj);
+                Game.World.WorldState.TryGetValueByIndex(castableXml.Guid, out CastableObject castableObj);
                 var ret = script.ExecuteFunction("OnUse",
                     ScriptEnvironment.Create(("target", target), ("origin", castableObj), ("source", this),
                         ("castable", castableObj)));

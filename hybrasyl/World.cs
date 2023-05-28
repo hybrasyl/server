@@ -54,6 +54,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Serilog.Core;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using Reactor = Hybrasyl.Objects.Reactor;
@@ -234,10 +235,7 @@ public partial class World : Server
     public bool ToggleDebug()
     {
         DebugEnabled = !DebugEnabled;
-        if (DebugEnabled)
-            Game.LevelSwitch.MinimumLevel = LogEventLevel.Verbose;
-        else
-            Game.LevelSwitch.MinimumLevel = LogEventLevel.Information;
+        GameLog.GetLogger(LogType.General).Level = new LoggingLevelSwitch(LogEventLevel.Debug);
         return DebugEnabled;
     }
 
@@ -268,6 +266,7 @@ public partial class World : Server
             return false;
         }
 
+        WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
         GenerateMetafiles();
         SetPacketHandlers();
         SetControlMessageHandlers();
@@ -377,6 +376,46 @@ public partial class World : Server
             var mapObj = new MapObject(map, this);
             WorldState.SetWithIndex(mapObj.Id, mapObj, mapObj.Name);
         }
+
+        uint castableId = 0;
+        // Generate castable objects from castables (used specifically to handle spell dialogs)
+        foreach (var castable in WorldData.Values<Castable>())
+        {
+            if (string.IsNullOrEmpty(castable.Script) ||
+                !Game.World.ScriptProcessor.TryGetScript(castable.Script, out var script)) continue;
+            var env = new ScriptEnvironment();
+            var associate = new HybrasylInteractable();
+            env.Add("associate", associate);
+            env.Add("origin", associate);
+            var result = script.ExecuteFunction("OnLoad", env);
+            if (result.Result == ScriptResult.Success)
+            {
+                var castableObject = new CastableObject
+                {
+                    Guid = castable.Guid,
+                    Id = castableId,
+                    Template = castable,
+                    ScriptedDialogs = associate,
+                    Sprite = associate.Sprite,
+                    Script = script
+                };
+                // Store the CastableObject for later usage by dialog system, along with guid index
+                WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
+                castableId++;
+            }
+            else if (result.Result != ScriptResult.FunctionMissing)
+            {
+                GameLog.DataLogError($"OnLoad for {castable.Name}: errors encountered, check scripting log");
+            }
+        }
+
+        // Create a static "monster weapon" that is used in various places
+        // TODO: maybe just use xml for this
+        var monsterWeapon = new Item { Name = "monsterblade" };
+        monsterWeapon.Properties = new ItemProperties();
+        monsterWeapon.Properties.Damage = new ItemDamage();
+        monsterWeapon.Properties.Physical = new Physical();
+        WorldData.Add(monsterWeapon);
 
         // Ensure global boards exist and are up to date with anything specified in the config
         if (Game.ActiveConfiguration?.Boards != null)

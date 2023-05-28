@@ -57,7 +57,6 @@ public class Targeting
         Assert.Equal(Fixture.TestUser.Y, firstTarget.Y);
         Assert.Equal(Fixture.TestUser.X - 5, lastTarget.X);
         Assert.Equal(Fixture.TestUser.Y, lastTarget.Y);
-
     }
 
 }
