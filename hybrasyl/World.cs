@@ -229,14 +229,6 @@ public partial class World : Server
 
         WorldState = new WorldStateStore();
         CommandHandler = new ChatCommandHandler();
-        DebugEnabled = false;
-    }
-
-    public bool ToggleDebug()
-    {
-        DebugEnabled = !DebugEnabled;
-        GameLog.GetLogger(LogType.General).Level = new LoggingLevelSwitch(LogEventLevel.Debug);
-        return DebugEnabled;
     }
 
     /// <summary>

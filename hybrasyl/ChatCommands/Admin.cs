@@ -710,16 +710,57 @@ internal class DebugCommand : ChatCommand
 {
     public new static string Command = "debug";
     public new static string ArgumentText = "None";
-    public new static string HelpText = "Toggle whether or not debugging is enabled on the server.";
+    public new static string HelpText = "Toggle whether or not debug logging is enabled on the server. WARNING: It's a lot of logs.";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        var enabled = Game.World.ToggleDebug();
-        if (enabled)
-            return Success("Debugging enabled");
-        return Success("Debugging disabled");
+        return Success(GameLog.ToggleDebug() ? "Debugging enabled" : "Debugging disabled");
     }
+}
+
+internal class LogLevelCommand : ChatCommand
+{
+    public new static string Command = "loglevel";
+    public new static string ArgumentText = "<string type> <string loglevel>";
+    public new static string HelpText = "Set the log level for a specific logging type. Use /loginfo to get a list of types and levels.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (Enum.TryParse<LogType>(args[0], out var logType) && Enum.TryParse<LogLevel>(args[1], out var logLevel))
+        {
+            if (!GameLog.HasLogger(logType)) return Fail("There is not a separate logger for {logType}.");
+            GameLog.SetLevel(logType, logLevel);
+            return Success($"{logType} set to {logLevel}");
+        }
+
+        return Fail("Log type or log level was invalid. Use /loginfo to get a valid list.");
+    }
+}
+
+internal class LogInfoCommand : ChatCommand
+{
+    public new static string Command = "loginfo";
+    public new static string ArgumentText = "None";
+    public new static string HelpText = "List all mobs on the current map.";
+    public new static bool Privileged = true;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var txt = "Current Logging Configuration\n-----------------------------\n";
+        foreach (var (type, logger) in GameLog.Loggers)
+        {
+            txt = $"{txt}\n{type}: {logger.Level.MinimumLevel} ->\n {logger.Path.Replace("\\","/")}\n";
+        }
+
+        txt = $"{txt}\nAvailable Log Types:\n\n";
+        txt = Enum.GetValues<LogType>().Aggregate(txt, (current, strEnum) => $"{current} {strEnum}");
+        txt = $"{txt}\nAvailable Log Levels:\n\n";
+        txt = Enum.GetValues<LogLevel>().Aggregate(txt, (current, strEnum) => $"{current} {strEnum}");
+        return Success(txt, (byte) MessageType.SlateScrollbar);
+    }
+
 }
 
 internal class ListMobCommand : ChatCommand

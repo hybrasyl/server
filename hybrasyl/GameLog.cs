@@ -34,6 +34,8 @@ public class HybrasylLogger
 {
     public ILogger Logger { get; set; }
     public LoggingLevelSwitch Level { get; set; }
+    public LogEventLevel DefaultLevel { get; set; }
+    public string Path { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -41,16 +43,24 @@ public class HybrasylLogger
 /// </summary>
 public static class GameLog
 {
-    public static string DataDirectory { get; set; }
     public static Dictionary<LogType, HybrasylLogger> Loggers { get; set; } = new();
+
+    public static bool DebugEnabled { get; set; }
 
     public static void SetLevel(LogType logType, LogEventLevel level)
     {
         if (Loggers.TryGetValue(logType, out var logger))
         {
+            logger.Level.MinimumLevel = LogEventLevel.Warning;
+            logger.Logger.Warning($"Level set to {level}");
             logger.Level.MinimumLevel = level;
+
         }
     }
+
+    public static void SetLevel(LogType logType, LogLevel level) => SetLevel(logType, ConvertLevel(level));
+
+    public static bool HasLogger(LogType logType) => Loggers.ContainsKey(logType);
 
     public static LogEventLevel ConvertLevel(LogLevel level) =>
         level switch
@@ -71,10 +81,22 @@ public static class GameLog
         return Loggers.TryGetValue(type, out var ret) ? ret : Loggers[LogType.General];
     }
 
-    public static void SetLogLevel(LogType type, LogLevel level)
+    public static void SetGlobalLevel(LogLevel level)
     {
-        if (Loggers.TryGetValue(type, out var logger))
+        foreach (var logger in Loggers.Values)
+        {
+            logger.Level.MinimumLevel = LogEventLevel.Warning;
+            logger.Logger.Warning($"Level set to {level}");
             logger.Level.MinimumLevel = ConvertLevel(level);
+        }
+    }
+
+    public static bool ToggleDebug()
+    {
+        DebugEnabled = !DebugEnabled;
+        foreach (var logger in Loggers.Keys)
+            SetLevel(logger, DebugEnabled ? LogEventLevel.Debug : Loggers[logger].DefaultLevel);
+        return DebugEnabled;
     }
 
     public static void Initialize(string dataDirectory, List<LogConfig> configs)
@@ -82,6 +104,7 @@ public static class GameLog
         foreach (var config in configs)
         {
             var levelSwitch = new LoggingLevelSwitch();
+            levelSwitch.MinimumLevel = ConvertLevel(config.Level);
             var path = string.IsNullOrEmpty(config.Destination) ? $"{config.Type}.log" : config.Destination;
 
             var loggerConfig = new LoggerConfiguration().MinimumLevel.ControlledBy(levelSwitch).Enrich.WithThreadId()
@@ -90,23 +113,31 @@ public static class GameLog
                     rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true);
             if (config.Type == LogType.General)
                 loggerConfig = loggerConfig.WriteTo.Console();
-            Loggers.Add(config.Type, new  HybrasylLogger { Logger = loggerConfig.CreateLogger(), Level = levelSwitch });
+            Loggers.Add(config.Type, new  HybrasylLogger
+            {
+                Logger = loggerConfig.CreateLogger(), Level = levelSwitch, DefaultLevel = ConvertLevel(config.Level),
+                Path = $"{Path.Combine(dataDirectory, path)}"
+            });
             Serilog.Log.Information($"Logger: added {config.Type} -> {path}");
         }
         // Ensure there is always a general logger and that it is "attached" to Serilog
         if (!Loggers.ContainsKey(LogType.General))
         {
-            var generalSwitch = new LoggingLevelSwitch();
+            var generalSwitch = new LoggingLevelSwitch { MinimumLevel = LogEventLevel.Information };
 
             var generalLog = new LoggerConfiguration().MinimumLevel.ControlledBy(generalSwitch).Enrich.WithThreadId()
                 .Enrich
                 .WithExceptionData().WriteTo
-                .Map("LogType", "General",
-                    configure: (name, wt) => wt.File($"{Path.Combine(dataDirectory, "logs")}/{name}-.log",
+                .Map("LogType", "general",
+                    configure: (name, wt) => wt.File(Path.Combine(dataDirectory, $"{name}.log"),
                         rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true))
                 .WriteTo.Console()
                 .CreateLogger();
-            Loggers.Add(LogType.General, new HybrasylLogger { Logger = generalLog, Level = generalSwitch });
+            Loggers.Add(LogType.General, new HybrasylLogger
+            {
+                Logger = generalLog, Level = generalSwitch, DefaultLevel = LogEventLevel.Information,
+                Path = Path.Combine(dataDirectory, "general.log")
+            });
             GameLog.Info($"Logger: added General log");
         }
 
