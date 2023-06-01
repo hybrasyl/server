@@ -572,6 +572,8 @@ public class Client
                             else if (packet.Opcode == 0x06)
                                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.TriggerRefresh,
                                     ConnectionId));
+                            else
+                                GameLog.Warning($"{this.RemoteAddress}: throttled for {packet.Opcode}");
                         }
                     }
                     catch (Exception e)

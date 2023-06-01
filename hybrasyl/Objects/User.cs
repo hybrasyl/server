@@ -1017,6 +1017,8 @@ public class User : Creature
         x15.WriteByte((byte) (Map.Checksum % 256));
         x15.WriteByte((byte) (Map.Checksum / 256));
         x15.WriteString8(Map.Name);
+        // HS-1317: a slight delay is needed here to accomodate the client
+        x15.TransmitDelay = 250;
         Enqueue(x15);
 
         if (Map.Music != 0xFF) SendMusic(Map.Music);
@@ -1030,6 +1032,8 @@ public class User : Creature
         x04.WriteUInt16(Y);
         x04.WriteUInt16(11);
         x04.WriteUInt16(11);
+        // HS-1317: a slight delay is needed here to accomodate the client
+        x04.TransmitDelay = 250;
         Enqueue(x04);
 
         var doors = GetDoorsCoordsInView(GetViewport());
