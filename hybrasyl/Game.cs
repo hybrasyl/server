@@ -324,12 +324,21 @@ public static class Game
 
         if (manager.Count<ServerConfig>() == 0)
         {
-            Log.Fatal("This seems to be the first time you've run the server (server config file not found)");
+            var loadResult = manager.GetLoadResult<ServerConfig>();
+
+            Log.Fatal("A server configuration file was not found or could not be loaded.");
             Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
             Log.Fatal("We also recommend you look at the example config.xml in the community database");
             Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
             Log.Fatal(
-                $"We are currently looking in:\n{manager.RootPath}\\serverconfigs for a config file.");
+                $"We are currently looking in:\n{manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs for a config file.");
+            if (loadResult.ErrorCount > 0)
+                Log.Fatal("Errors were encountered processing server configuration:");
+            foreach (var error in loadResult.Errors)
+            {
+                Log.Fatal($"{error.Key}: {error.Value}");
+            }
+
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration file, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -341,7 +350,7 @@ public static class Game
             Log.Fatal(
                 $"You specified a server configuration name of {ActiveConfigurationName}, but there are no configurations with that name.");
             Log.Fatal(
-                $"Active configurations that were found in {manager.RootPath}\\serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(x => x.Name))}");
+                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(x => x.Name))}");
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -357,7 +366,7 @@ public static class Game
             Log.Fatal(
                 $"Make sure a localization configuration exists in {manager.RootPath}\\localizations and that it matches what is defined in the server configuration.");
             Log.Fatal(
-                $"Active configurations that were found in {manager.RootPath}\\localizations: {string.Join(" ", manager.Values<Localization>().Select(x => x.Locale))}");
+                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}localizations: {string.Join(" ", manager.Values<Localization>().Select(x => x.Locale))}");
             Log.Fatal(
                 "Hybrasyl cannot start without a properly set locale, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
