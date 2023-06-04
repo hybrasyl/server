@@ -31,7 +31,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using App.Metrics;
 using Grpc.Core;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml.Objects;
@@ -41,7 +40,12 @@ using Sentry;
 using Serilog;
 using Serilog.Core;
 using System.CommandLine;
+using System.Diagnostics.Metrics;
 using Hybrasyl.Xml.Manager;
+using Honeycomb.OpenTelemetry;
+using Hybrasyl.Metrics;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace Hybrasyl;
 
@@ -151,8 +155,6 @@ public static class Game
 
     public static IDisposable Sentry { get; private set; }
     public static bool SentryEnabled { get; private set; }
-
-    public static IMetricsRoot MetricsStore { get; private set; }
 
     public static ServerConfig ActiveConfiguration { get; set; }
     public static string WorldDataDirectory { get; set; }
@@ -324,12 +326,20 @@ public static class Game
 
         if (manager.Count<ServerConfig>() == 0)
         {
-            Log.Fatal("This seems to be the first time you've run the server (server config file not found)");
+            var loadResult = manager.GetLoadResult<ServerConfig>();
+
+            Log.Fatal("A server configuration file was not found or could not be loaded.");
             Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
             Log.Fatal("We also recommend you look at the example config.xml in the community database");
             Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
             Log.Fatal(
                 $"We are currently looking in:\n{manager.RootPath}\\serverconfigs for a config file.");
+            if (loadResult.ErrorCount > 0)
+                Log.Fatal("Errors were encountered processing server configuration:");
+            foreach (var error in loadResult.Errors)
+            {
+                Log.Fatal($"{error.Key}: {error.Value}");
+            }
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration file, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -385,31 +395,34 @@ public static class Game
             Assemblyinfo.Copyright);
 
         // Set up metrics collection
+
         // TODO: make configurable
         var env = Environment.GetEnvironmentVariable("HYB_ENV");
 
-        var builder = new MetricsBuilder().Configuration.Configure(
-            setupAction: options =>
-            {
-                options.DefaultContextLabel = "Hybrasyl";
-                options.GlobalTags.Add("Environment", env ?? "dev");
-                options.Enabled = true;
-                options.ReportingEnabled = true;
-            });
+        // TODO: honeycomb
 
-        if (activeConfiguration.ApiEndpoints?.MetricsEndpoint != null)
-            MetricsStore = builder.Report.ToHostedMetrics(
-                setupAction: io =>
-                {
-                    io.HostedMetrics.BaseUri = new Uri(activeConfiguration.ApiEndpoints.MetricsEndpoint.Url);
-                    io.HostedMetrics.ApiKey = activeConfiguration.ApiEndpoints.MetricsEndpoint.ApiKey;
-                    io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
-                    io.HttpPolicy.FailuresBeforeBackoff = 5;
-                    io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
-                    io.FlushInterval = TimeSpan.FromSeconds(20);
-                }).Build();
-        else
-            MetricsStore = builder.Build();
+        //var builder = new MetricsBuilder().Configuration.Configure(
+        //    setupAction: options =>
+        //    {
+        //        options.DefaultContextLabel = "Hybrasyl";
+        //        options.GlobalTags.Add("Environment", env ?? "dev");
+        //        options.Enabled = true;
+        //        options.ReportingEnabled = true;
+        //    });
+
+        //if (activeConfiguration.ApiEndpoints?.MetricsEndpoint != null)
+        //    MetricsStore = builder.Report.ToHostedMetrics(
+        //        setupAction: io =>
+        //        {
+        //            io.HostedMetrics.BaseUri = new Uri(activeConfiguration.ApiEndpoints.MetricsEndpoint.Url);
+        //            io.HostedMetrics.ApiKey = activeConfiguration.ApiEndpoints.MetricsEndpoint.ApiKey;
+        //            io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
+        //            io.HttpPolicy.FailuresBeforeBackoff = 5;
+        //            io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
+        //            io.FlushInterval = TimeSpan.FromSeconds(20);
+        //        }).Build();
+        //else
+        //    MetricsStore = builder.Build();
 
         try
         {
@@ -451,6 +464,8 @@ public static class Game
         // TODO: alpha9
         World = new World(activeConfiguration.Network.World.Port, activeConfiguration.DataStore,
             manager, activeConfiguration.Locale, true);
+
+        World.InitializeMetricsCollector("DWxxcFowqtTLx31QFtpIQA");
 
         Lobby.StopToken = CancellationTokenSource.Token;
         Login.StopToken = CancellationTokenSource.Token;

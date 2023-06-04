@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using App.Metrics.Timer;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;

@@ -20,6 +20,7 @@
  */
 
 using System.Timers;
+using OpenTelemetry.Metrics;
 
 namespace Hybrasyl.Jobs;
 
@@ -29,16 +30,8 @@ public static class MetricsJob
 
     public static void Execute(object obj, ElapsedEventArgs args)
     {
-        if (Game.MetricsStore.Options.ReportingEnabled)
-        {
-            // Store queue depth before we run our report
-            Game.MetricsStore.Measure.Gauge.SetValue(Game.World.QueueDepth,
-                World.MessageQueue.Count);
-            Game.MetricsStore.Measure.Gauge.SetValue(Game.World.ControlQueueDepth,
-                World.MessageQueue.Count);
-
-            // this shouldn't be how this happens, but it doesn't work otherwise
-            foreach (var a in Game.MetricsStore.ReportRunner.RunAllAsync()) a.Wait();
-        }
+        // TODO: honeycomb
+        //ForceFlush();
+        GameLog.Info("Metrics flushed");
     }
 }
