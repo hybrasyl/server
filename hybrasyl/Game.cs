@@ -299,6 +299,7 @@ public static class Game
         try
         {
             manager.LoadData();
+            manager.LogResult(Log.Logger);
         }
         catch (FileNotFoundException ex)
         {
