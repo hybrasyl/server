@@ -26,6 +26,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using Hybrasyl.Dialogs;
@@ -51,6 +52,8 @@ public class User : Creature
     private object _serializeLock = new();
 
     private Client Client;
+
+    public string RemoteAddress => Client.RemoteAddress;
 
     [JsonProperty] public uint LevelPoints;
 
@@ -965,9 +968,7 @@ public class User : Creature
     private (string GuildName, string GuildRank) GetGuildInfo()
     {
         var guild = World.WorldState.Get<Guild>(GuildGuid);
-        if (guild == null) return ("", "");
-
-        return guild.GetUserDetails(GuildGuid);
+        return guild?.GetUserDetails(GuildGuid) ?? ("", "");
     }
 
     private void SetValue(PropertyInfo info, object instance, object value)
@@ -1006,7 +1007,7 @@ public class User : Creature
         }
     }
 
-    public override void SendMapInfo()
+    public override void SendMapInfo(int transmitDelay = 0)
     {
         var x15 = new ServerPacket(0x15);
         x15.WriteUInt16(Map.Id);
@@ -1017,23 +1018,21 @@ public class User : Creature
         x15.WriteByte((byte) (Map.Checksum % 256));
         x15.WriteByte((byte) (Map.Checksum / 256));
         x15.WriteString8(Map.Name);
-        // HS-1317: a slight delay is needed here to accomodate the client
-        x15.TransmitDelay = 250;
+        x15.TransmitDelay = transmitDelay;
         Enqueue(x15);
 
         if (Map.Music != 0xFF) SendMusic(Map.Music);
         if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
     }
 
-    public override void SendLocation()
+    public override void SendLocation(int transmitDelay = 0)
     {
         var x04 = new ServerPacket(0x04);
         x04.WriteUInt16(X);
         x04.WriteUInt16(Y);
         x04.WriteUInt16(11);
         x04.WriteUInt16(11);
-        // HS-1317: a slight delay is needed here to accomodate the client
-        x04.TransmitDelay = 250;
+        x04.TransmitDelay = transmitDelay;
         Enqueue(x04);
 
         var doors = GetDoorsCoordsInView(GetViewport());
@@ -1079,7 +1078,7 @@ public class User : Creature
     public bool CanTalkTo(User target, out string msg)
     {
         msg = string.Empty;
-        // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
+        // First, make sure a) we can send a message and b) the target is not ignoring whispers.
         if (IsMuted)
             msg = "A strange voice says, \"Not for you.\"";
 

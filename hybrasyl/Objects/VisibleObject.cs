@@ -225,9 +225,9 @@ public class VisibleObject : WorldObject, IVisible
         targetMap.Insert(this, x, y);
     }
 
-    public virtual void SendMapInfo() { }
+    public virtual void SendMapInfo(int transmitDelay=0) { }
 
-    public virtual void SendLocation() { }
+    public virtual void SendLocation(int transmitDelay=0) { }
 
     public virtual void Say(string message, string from = "")
     {

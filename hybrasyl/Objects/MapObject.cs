@@ -358,8 +358,9 @@ public class MapObject : IStateStorable
             if (obj is User user)
                 if (updateClient)
                 {
-                    obj.SendMapInfo();
-                    obj.SendLocation();
+                    // HS-1317: slight delay here to handle client weirdness
+                    obj.SendMapInfo(250);
+                    obj.SendLocation(275);
                 }
 
             var affectedObjects = EntityTree.GetObjects(obj.GetViewport());
