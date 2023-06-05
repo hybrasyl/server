@@ -194,7 +194,7 @@ internal class ResistancesCommand : ChatCommand
         var str = "Resistances\n-----------\n";
         foreach (var element in Enum.GetValues<ElementType>())
         {
-            str += $"{element} {user.Stats.Resistances.GetResistance(element)}\n";
+            str += $"{element} {user.Stats.ElementalModifiers.GetResistance(element)}\n";
         }
 
         user.SendMessage(str, MessageType.SlateScrollbar);

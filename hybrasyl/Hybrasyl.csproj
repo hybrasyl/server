@@ -13,6 +13,7 @@
     <VersionPrefix>0.9.3</VersionPrefix>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
+    <NoWarn>NU1701</NoWarn>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -59,7 +60,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
-    <PackageReference Include="Hybrasyl.Xml" Version="0.9.3.4" />
+    <PackageReference Include="Hybrasyl.Xml" Version="0.9.3.6" />
     <PackageReference Include="MoonSharp" Version="2.0.0" />
     <PackageReference Include="MSBuildGitHash" Version="2.0.2">
       <PrivateAssets>all</PrivateAssets>
@@ -85,46 +86,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="MetricsRegistry.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>MetricsRegistry.tt</DependentUpon>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Log4Net.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="MetricsIncludes.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>MetricsIncludes.cs</LastGenOutput>
-    </None>
-    <None Update="MetricsRegistry.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>MetricsRegistry.cs</LastGenOutput>
-    </None>
-    <None Update="WorldDataStoreExtensions.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>WorldDataStoreExtensions.txt</LastGenOutput>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="MetricsRegistry.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>MetricsRegistry.tt</DependentUpon>
-    </Compile>
-    <Compile Update="TextTemplate1.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TextTemplate1.tt</DependentUpon>
-    </Compile>
   </ItemGroup>
 
   <PropertyGroup>

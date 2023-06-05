@@ -353,8 +353,8 @@ internal static class NumberCruncher
             BonusInboundDamageToMp = _evalFormula(effect.BonusInboundDamageToMp, item, source)
         };
 
-        if (effect.Resistances is { Count: > 0 })
-            modifiers.Resistances.Apply(effect.Resistances);
+        if (effect.ElementalModifiers is { Count: > 0 })
+            modifiers.ElementalModifiers.Apply(effect.ElementalModifiers);
 
         if (effect.BaseOffensiveElement != ElementType.None)
             modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;
@@ -413,7 +413,7 @@ internal static class NumberCruncher
             BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity),
         };
 
-        modifiers.Resistances.Apply(effect.Resistances);
+        modifiers.ElementalModifiers.Apply(effect.ElementalModifiers);
 
         if (effect.BaseOffensiveElement != ElementType.None)
             modifiers.OffensiveElementOverride = effect.BaseOffensiveElement;

@@ -29,15 +29,17 @@ using Newtonsoft.Json;
 namespace Hybrasyl.Objects;
 
 [JsonObject(MemberSerialization.OptIn)]
-public class ElementalResistance
+public class ElementalModifiers
 {
     [JsonProperty] private Dictionary<ElementType, double> Resistances = new();
+    [JsonProperty] private Dictionary<ElementType, double> Augments = new();
 
-    public ElementalResistance()
+    public ElementalModifiers()
     {
         foreach (ElementType type in Enum.GetValues(typeof(ElementType)))
         {
             Resistances[type] = 0.0;
+            Augments[type] = 0.0;
         }
     }
 
@@ -52,39 +54,77 @@ public class ElementalResistance
             Resistances[element] = mod;
     }
 
-    public void Apply(List<Xml.Objects.ElementalResistance> er1)
+    public double GetAugment(ElementType element) =>
+        Augments.TryGetValue(element, out var value) ? value : 0.0;
+
+    public void ModifyAugment(ElementType element, double mod)
     {
-        foreach (var resistance in er1)
+        if (Augments.TryGetValue(element, out var resistance))
+            Augments[element] += mod;
+        else
+            Augments[element] = mod;
+    }
+
+    public void Apply(List<ElementalModifier> elementalModifiers)
+    {
+        foreach (var modifier in elementalModifiers)
         {
-            Resistances[resistance.Type] += resistance.Modifier;
-            GameLog.Info($"{resistance.Type}: {resistance.Modifier}");
+            switch (modifier.Type)
+            {
+                case ElementalModifierType.Resistance:
+                    Resistances[modifier.Element] += modifier.Modifier;
+                    break;
+                case ElementalModifierType.Augment:
+                    Augments[modifier.Element] += modifier.Modifier;
+                    break;
+            }
         }
     }
 
-    public void Remove(List<Xml.Objects.ElementalResistance> er1)
+    public void Remove(List<ElementalModifier> elementalModifiers)
     {
-        foreach (var resistance in er1)
+        foreach (var modifier in elementalModifiers)
         {
-            Resistances[resistance.Type] -= resistance.Modifier;
+            switch (modifier.Type)
+            {
+                case ElementalModifierType.Resistance:
+                    Resistances[modifier.Element] -= modifier.Modifier;
+                    break;
+                case ElementalModifierType.Augment:
+                    Augments[modifier.Element] -= modifier.Modifier;
+                    break;
+            }
         }
     }
 
-    public void Apply(ElementalResistance er1)
+    public static ElementalModifiers operator +(ElementalModifiers em1, ElementalModifiers em2)
     {
-        foreach (ElementType type in Enum.GetValues(typeof(ElementType)))
+        var ret = new ElementalModifiers();
+        foreach (var element in Enum.GetValues<ElementType>())
         {
-            Resistances[type] += er1.Resistances[type];
-            GameLog.Info($"{type}: {Resistances[type]}");
+            ret.Augments[element] = em1.GetAugment(element) + em2.GetAugment(element);
+            ret.Resistances[element] = em1.GetResistance(element) + em2.GetResistance(element);
         }
+        return ret;
     }
 
-    public void Remove(ElementalResistance er1)
+    public static ElementalModifiers operator -(ElementalModifiers em1, ElementalModifiers em2)
     {
-        foreach (ElementType type in Enum.GetValues(typeof(ElementType)))
+        var ret = new ElementalModifiers();
+        foreach (var element in Enum.GetValues<ElementType>())
         {
-            Resistances[type] -= er1.Resistances[type];
+            ret.Augments[element] = em1.GetAugment(element) - em2.GetAugment(element);
+            ret.Resistances[element] = em1.GetResistance(element) - em2.GetResistance(element);
         }
+        return ret;
     }
 
-    public bool Empty =>  Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(type => Resistances[type] == 0);
+    public bool Empty =>  NoAugments && NoResistances;
+
+    public bool NoAugments =>
+        Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(type => Augments[type] == 0);
+
+    public bool NoResistances =>
+        Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(type => Resistances[type] == 0);
+
 }

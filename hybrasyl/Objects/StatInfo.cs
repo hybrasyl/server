@@ -20,6 +20,8 @@
  */
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
@@ -70,9 +72,8 @@ public class StatInfo
         }
     }
 
-    // A horrifying workaround for https://github.com/ncalc/ncalc/issues/58
     [FormulaVariable] 
-    public int FormulaLevel => (int) Level;
+    public int FormulaLevel => Level;
 
     [FormulaVariable]
     [JsonProperty]
@@ -109,6 +110,7 @@ public class StatInfo
                 _faith = value;
         }
     }
+    
     [FormulaVariable]
     [JsonProperty]
     public uint Gold
@@ -1404,20 +1406,6 @@ public class StatInfo
     [FormulaVariable] public double InboundDamageToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
 
-    public ElementalResistance Resistances
-    {
-        get
-        {
-            lock (_lock)
-                return _resistances;
-        }
-        set
-        {
-            lock (_lock)
-                _resistances = value;
-        }
-    }
-
     public ElementType BaseOffensiveElement
     {
         get
@@ -1588,6 +1576,20 @@ public class StatInfo
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 
+    public ElementalModifiers ElementalModifiers
+    {
+        get
+        {
+            lock (_lock)
+                return _elementalModifiers;
+        }
+        set
+        {
+            lock (_lock)
+                _elementalModifiers = value;
+        }
+    }
+
 
     #region private properties
 
@@ -1663,7 +1665,8 @@ public class StatInfo
     private ElementType _baseDefensiveElement { get; set; } = ElementType.None;
     private ElementType _offensiveElementOverride { get; set; } = ElementType.None;
     private ElementType _defensiveElementOverride { get; set; } = ElementType.None;
-    private ElementalResistance _resistances { get; set; } = new ElementalResistance();
+
+    private ElementalModifiers _elementalModifiers { get; set; } = new();
 
     #endregion
 
@@ -1752,7 +1755,7 @@ public class StatInfo
         BaseInboundDamageToMp += si1.BaseInboundDamageToMp;
         BaseExtraFaith += si1.BaseExtraFaith;
         Faith += si1.Faith;
-        Resistances.Apply(si1.Resistances);
+        ElementalModifiers += si1.ElementalModifiers;
 
         if (!experience) return;
         Level += si1.Level;
@@ -1833,8 +1836,8 @@ public class StatInfo
         BaseInboundDamageToMp -= si1.BaseInboundDamageToMp;
         BaseExtraFaith -= si1.BaseExtraFaith;
         Faith -= si1.Faith;
+        ElementalModifiers -= si1.ElementalModifiers;
 
-        Resistances.Remove(si1.Resistances);
         if (!experience) return;
         Level -= si1.Level;
         Experience -= si1.Experience;
@@ -1864,9 +1867,11 @@ public class StatInfo
 
     public bool NoExperienceChanges => Level == 0 && (Experience == 0) & (Ability == 0) && AbilityExp == 0;
 
-    public bool NoResistanceChanges => Resistances.Empty;
+    public bool NoResistanceChanges => _elementalModifiers.NoResistances;
+    public bool NoAugmentChanges => _elementalModifiers.NoAugments;
+    public bool NoElementalModifiers => NoResistanceChanges && NoAugmentChanges;
 
-    public bool Empty => NoExperienceChanges && NoBonusChanges && NoBaseChanges && NoResistanceChanges;
+    public bool Empty => NoExperienceChanges && NoBonusChanges && NoBaseChanges && NoElementalModifiers;
 
     #endregion
 }

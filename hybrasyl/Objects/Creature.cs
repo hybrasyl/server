@@ -1009,7 +1009,7 @@ public class Creature : VisibleObject
 
 
         // Apply elemental resistances, if they exist
-        var resisted = Stats.Resistances.GetResistance(element);
+        var resisted = Stats.ElementalModifiers.GetResistance(element);
 
         if (resisted != 0.0)
         {
