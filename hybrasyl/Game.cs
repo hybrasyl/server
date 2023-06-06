@@ -270,7 +270,7 @@ public static class Game
         var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
         var world = Environment.GetEnvironmentVariable("WORLD_DIR") ?? worldDir;
         var log = Environment.GetEnvironmentVariable("LOG_DIR") ?? logDir;
-        var config = Environment.GetEnvironmentVariable("CONFIG") ?? ActiveConfigurationName;
+        var config = Environment.GetEnvironmentVariable("CONFIG") ?? configName;
         
         DataDirectory = string.IsNullOrWhiteSpace(data) ? 
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world") : data;
