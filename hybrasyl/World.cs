@@ -357,7 +357,8 @@ public partial class World : Server
         if (WorldData.Count<Map>() < 1 || WorldData.Count<Nation>() < 1 || WorldData.Count<ElementTable>() < 1 ||
             WorldData.Count<ServerConfig>() < 1)
         {
-            GameLog.Error("Not enough XML data to start the server!");
+            GameLog.Error("Not enough XML data to start the server! I need one each of:");
+            GameLog.Error($"Maps: {WorldData.Count<Map>()} Nations: {WorldData.Count<Nation>()} ElementTables: {WorldData.Count<ElementTable>()} ServerConfigs: {WorldData.Count<ServerConfig>()}");
             return false;
         }
 

@@ -202,6 +202,26 @@ internal class ResistancesCommand : ChatCommand
     }
 }
 
+internal class AugmentsCommand : ChatCommand
+{
+    public new static string Command = "augments";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Display current elemental augments.";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var str = "Augments\n-----------\n";
+        foreach (var element in Enum.GetValues<ElementType>())
+        {
+            str += $"{element} {user.Stats.ElementalModifiers.GetAugment(element)}\n";
+        }
+
+        user.SendMessage(str, MessageType.SlateScrollbar);
+        return Success();
+    }
+}
+
 internal class DamageInvCommand : ChatCommand
 {
     public new static string Command = "damageinv";

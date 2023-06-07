@@ -346,6 +346,31 @@ public static class Game
             return;
         }
 
+        if (manager.Count<Localization>() == 0)
+        {
+            var loadResult = manager.GetLoadResult<Localization>();
+
+            Log.Fatal("A localization file could not found or could not be loaded.");
+            Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
+            Log.Fatal("We also recommend you look at the example config.xml in the community database");
+            Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
+            Log.Fatal(
+                $"We are currently looking in:\n{manager.RootPath}{Path.DirectorySeparatorChar}localizations for a config file.");
+            if (loadResult.ErrorCount > 0)
+                Log.Fatal("Errors were encountered processing localizations:");
+
+            foreach (var error in loadResult.Errors)
+            {
+                Log.Fatal($"{error.Key}: {error.Value}");
+            }
+
+            Log.Fatal(
+                "Hybrasyl cannot start without localizations, so it will automatically close in 10 seconds.");
+            Thread.Sleep(10000);
+            return;
+
+        }
+
         if (!manager.TryGetValue(ActiveConfigurationName, out ServerConfig activeConfiguration))
         {
             Log.Fatal(
@@ -365,7 +390,7 @@ public static class Game
             Log.Fatal(
                 $"You specified a locale of en_us, but there are no locales with that name.");
             Log.Fatal(
-                $"Make sure a localization configuration exists in {manager.RootPath}\\localizations and that it matches what is defined in the server configuration.");
+                $"Make sure a localization configuration exists in {manager.RootPath}{Path.DirectorySeparatorChar}localizations and that it matches what is defined in the server configuration.");
             Log.Fatal(
                 $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}localizations: {string.Join(" ", manager.Values<Localization>().Select(x => x.Locale))}");
             Log.Fatal(
