@@ -76,6 +76,9 @@ public record DamageEvent : StatChangeEvent
     // The amount of additional resistance or penalty from equipment/statuses/etc
     public uint ElementalResisted { get; set; } = 0;
 
+    // The amount of additional amplification (augment) or penalty from the attacker's equipment/statuses/etc
+    public uint ElementalAugmented { get; set; } = 0;
+
     // The amount of damage resisted or amplified by MR 
     public uint MagicResisted { get; set; } = 0;
 
@@ -97,7 +100,7 @@ public record DamageEvent : StatChangeEvent
     public override string ToString()
     {
         var str =
-            $"Damage: {SourceName}: {SourceCastableName} on {TargetName} ({Element}, {Type})\n  [{(Applied ? "Applied" : "Immune")}] {Amount} dmg, ER {ElementalResisted}, MR {MagicResisted}, AC {ArmorReduction}";
+            $"Damage: {SourceName}: {SourceCastableName} on {TargetName} ({Element}, {Type})\n  [{(Applied ? "Applied" : "Immune")}] {Amount} dmg, ER {ElementalResisted}, EA {ElementalAugmented} MR {MagicResisted}, AC {ArmorReduction}";
         if (Crit || MagicCrit)
             str = $"CRIT {str}";
         return $"[combat] {str}";

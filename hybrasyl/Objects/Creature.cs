@@ -1013,8 +1013,16 @@ public class Creature : VisibleObject
 
         if (resisted != 0.0)
         {
-            damage += damage * resisted;
+            damage -= damage * resisted;
             damageEvent.ElementalResisted = Convert.ToUInt32(damage * resisted);
+        }
+
+        // Apply augmentation, if exists
+        var augment = attacker?.Stats?.ElementalModifiers?.GetAugment(element) ?? 0.0;
+        if (augment != 0.0)
+        {
+            damage += damage * augment;
+            damageEvent.ElementalAugmented = Convert.ToUInt32(damage * augment);
         }
 
         // Now, normalize damage for uint (max hp)
