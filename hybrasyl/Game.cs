@@ -594,8 +594,8 @@ public static class Game
 
             if (ssl_enabled)
             {
-                var certPath = Path.Join(DataDirectory, "ssl", activeConfiguration.Network.Grpc.ServerCertificateFile);
-                var keyPath = Path.Join(DataDirectory, "ssl", activeConfiguration.Network.Grpc.ServerKeyFile);
+                var certPath = Path.Join(DataDirectory, activeConfiguration.Network.Grpc.ServerCertificateFile);
+                var keyPath = Path.Join(DataDirectory, activeConfiguration.Network.Grpc.ServerKeyFile);
 
                 SslServerCredentials credentials;
                 // Load credentials
@@ -606,7 +606,7 @@ public static class Game
                     var keypair_list = new List<KeyCertificatePair> { new(cert, key) };
                     if (activeConfiguration.Network.Grpc.ChainCertificateFile != null)
                     {
-                        var chaincerts = File.ReadAllText(Path.Join(DataDirectory, "ssl",
+                        var chaincerts = File.ReadAllText(Path.Join(DataDirectory,
                             activeConfiguration.Network.Grpc.ChainCertificateFile));
                         credentials = new SslServerCredentials(keypair_list, chaincerts,
                             SslClientCertificateRequestType.RequestAndRequireAndVerify);

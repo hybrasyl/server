@@ -269,7 +269,7 @@ public static class LootBox
                 {
                     // Determine overlap between available variants and specified variants
                     var lootedVariant = lootitem.Variants.PickRandom();
-                    if (xmlItem.Variants.TryGetValue(lootedVariant, out var variantItems))
+                    if (xmlItem.Variants?.TryGetValue(lootedVariant, out var variantItems) ?? false)
                         itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                     else
                         GameLog.SpawnError("Loot: variant group {name} specified for {xmlItem.Name} but that item does not have the specified variant", lootedVariant);
