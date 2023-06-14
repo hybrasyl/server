@@ -19,6 +19,8 @@
  * 
  */
 
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Hybrasyl.Messaging;
 
 namespace Hybrasyl.Objects;
@@ -35,7 +37,7 @@ public class Signpost : VisibleObject
         BoardKey = boardkey;
         Board = null;
         if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
-            Board = Game.World.WorldData.GetBoard(BoardKey);
+            Board = Game.World.WorldState.GetBoard(BoardKey);
     }
 
     public string Message { get; set; }
@@ -59,7 +61,14 @@ public class Signpost : VisibleObject
     public override void AoiEntry(VisibleObject obj)
     {
         if (AoiEntryEffect != 0 && obj is User u)
-            u.SendEffect(X,Y,AoiEntryEffect,AoiEntryEffectSpeed);
+            Task.Run(() => SendAoiEntryEffect(u));
         base.AoiEntry(obj);
+    }
+
+    public async void SendAoiEntryEffect(User u)
+    {
+        // TODO: improve, v hacky
+        await Task.Delay(6000);
+        u.SendEffect(X,Y,AoiEntryEffect,AoiEntryEffectSpeed);
     }
 }

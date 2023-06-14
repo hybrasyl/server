@@ -19,7 +19,7 @@
  * 
  */
 
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -27,10 +27,10 @@ namespace Hybrasyl.Objects;
 [JsonObject(MemberSerialization.OptIn)]
 public class LocationInfo
 {
-    private Map _map { get; set; }
-    private Map _deathmap { get; set; }
+    private MapObject _map { get; set; }
+    private MapObject _deathmap { get; set; }
 
-    public Map Map
+    public MapObject Map
     {
         get => _map;
         set
@@ -41,7 +41,7 @@ public class LocationInfo
         }
     }
 
-    public Map DeathMap
+    public MapObject DeathMap
     {
         get => _deathmap;
         set
@@ -64,7 +64,7 @@ public class LocationInfo
         }
         set
         {
-            if (Game.World.WorldData.TryGetValue(value, out Map map))
+            if (Game.World.WorldState.TryGetValue(value, out MapObject map))
                 Map = map;
             _mapId = value;
         }
@@ -82,7 +82,7 @@ public class LocationInfo
         }
         set
         {
-            if (Game.World.WorldData.TryGetValue(value, out Map map))
+            if (Game.World.WorldState.TryGetValue(value, out MapObject map))
                 DeathMap = map;
             _deathmapId = value;
         }

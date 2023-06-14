@@ -19,7 +19,7 @@ public class FeedbackReporter : MessagePlugin, IProcessingMessageHandler
         if (config.TryGetValue("WebhookUrl", out var url) && config.TryGetValue("OutputDir", out var dir))
         {
             WebhookUrl = url;
-            OutputDir = Path.Join(Game.StartupDirectory, dir);
+            OutputDir = Path.Join(Game.DataDirectory, dir);
             client = new DiscordWebhookClient(url);
             Disabled = false;
             return true;

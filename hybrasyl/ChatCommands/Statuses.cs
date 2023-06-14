@@ -20,26 +20,31 @@
  */
 
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.ChatCommands;
 
 internal class StatusCommand : ChatCommand
 {
     public new static string Command = "status";
-    public new static string ArgumentText = "<string statusName>";
-    public new static string HelpText = "Apply a given status to yourself.";
+    public new static string ArgumentText = "<string statusName> [<int duration>]";
+    public new static string HelpText = "Apply a given status to yourself with an optional duration.";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetValue(args[0], out Status status))
+        if (Game.World.WorldData.TryGetValue(args[0], out Status xmlStatus))
         {
-            user.ApplyStatus(new CreatureStatus(status, user));
-            return Success();
+            var duration = xmlStatus.Duration;
+            if (args.Length > 1 && int.TryParse(args[1], out var duroverride))
+                duration = duroverride;
+            var status = new CreatureStatus(xmlStatus, user, null, null, duration);
+            user.ApplyStatus(status);
+            return Success($"Status {xmlStatus.Name} applied for {duration} seconds");
         }
 
-        return Fail("No such status was found. Missing XML file perhaps?");
+        return Fail("Status not found (missing XML file)");
+
     }
 }
 

@@ -20,6 +20,27 @@
  * 
  */
 
+using App.Metrics;
+using App.Metrics.Gauge;
+using App.Metrics.Meter;
+using App.Metrics.Timer;
+using Hybrasyl.Casting;
+using Hybrasyl.ChatCommands;
+using Hybrasyl.Dialogs;
+using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Internals;
+using Hybrasyl.Messaging;
+using Hybrasyl.Objects;
+using Hybrasyl.Plugins;
+using Hybrasyl.Scripting;
+using Hybrasyl.Utility;
+using Hybrasyl.Xml.Interfaces;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
+using Newtonsoft.Json;
+using Serilog.Events;
+using StackExchange.Redis;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -33,22 +54,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using Humanizer;
-using Hybrasyl.Casting;
-using Hybrasyl.ChatCommands;
-using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Objects;
-using Hybrasyl.Plugins;
-using Hybrasyl.Scripting;
-using Hybrasyl.Utility;
-using Hybrasyl.Xml;
-using MoonSharp.Interpreter;
-using Newtonsoft.Json;
-using Serilog.Events;
-using StackExchange.Redis;
+using Serilog.Core;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using Reactor = Hybrasyl.Objects.Reactor;
@@ -101,24 +107,22 @@ public partial class World : Server
     private readonly object _lock = new();
     private readonly object asyncLock = new();
 
-    private readonly Dictionary<Xml.MessageType, List<IMessageHandler>> MessagePlugins = new();
+    private readonly Dictionary<Xml.Objects.MessageType, List<IMessageHandler>> MessagePlugins = new();
 
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
+    
     public World(int port, bool isDefault = false) : base(port, isDefault)
     {
         InitializeWorld();
     }
 
-    public World(int port, DataStore store, string dataDir, bool adminEnabled = false, bool isDefault = false)
+    public World(int port, DataStore store, IWorldDataManager dataManager, string locale, bool adminEnabled = false, bool isDefault = false)
         : base(port, isDefault)
     {
         InitializeWorld();
-        if (dataDir != null && Directory.Exists(dataDir))
-            DataDirectory = dataDir;
-        else
-            throw new ArgumentException($"Specified data directory {dataDir} doesn't exist or couldn't be accessed!");
+        WorldData = dataManager;
 
         var datastoreConfig = new ConfigurationOptions
         {
@@ -135,14 +139,17 @@ public partial class World : Server
 
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));
+        Locale = locale;
     }
 
-    public static DateTime StartDate => Game.Config.Time != null ? Game.Config.Time.ServerStart.Value : Game.StartDate;
+    public static DateTime StartDate => Game.ActiveConfiguration.Time != null ? Game.ActiveConfiguration.Time.ServerStart.Value : Game.StartDate;
     public Dictionary<uint, WorldObject> Objects { get; set; }
 
     public Dictionary<string, string> Portraits { get; set; }
-    public LocalizedStringGroup Strings { get; set; }
-    public WorldDataStore WorldData { set; get; }
+    public string Locale { get; set; }
+    public Localization Localizations => WorldData.Get<Localization>(Locale);
+    public WorldStateStore WorldState { set; get; }
+    public IWorldDataManager WorldData { get; set; }
 
     public Nation DefaultNation
     {
@@ -166,7 +173,30 @@ public partial class World : Server
 
     public bool DebugEnabled { get; set; }
 
-    public IEnumerable<User> ActiveUsers => WorldData.Values<User>();
+    public IEnumerable<User> ActiveUsers => WorldState.Values<User>();
+
+    #region Metrics
+    public Dictionary<byte, TimerOptions> PacketHandlerMetrics { get; set; } = new();
+    public Dictionary<ControlOpcode, TimerOptions> ControlMessageMetrics { get; set; } = new();
+
+    public MeterOptions ExceptionMeter => new MeterOptions
+    {
+        Name = "Exception Rate",
+        MeasurementUnit = Unit.Errors
+    };
+
+    public GaugeOptions QueueDepth => new GaugeOptions
+    {
+        Name = "Queue Depth (Opcodes)",
+        MeasurementUnit = Unit.Requests
+    };
+
+    public GaugeOptions ControlQueueDepth => new GaugeOptions
+    {
+        Name = "Queue Depth (Control Messages)",
+        MeasurementUnit = Unit.Requests
+    };
+    #endregion
 
     /// <summary>
     ///     Register world throttles. This should eventually use XML configuration; for now it simply
@@ -197,19 +227,8 @@ public partial class World : Server
         MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
         ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
 
-        WorldData = new WorldDataStore();
+        WorldState = new WorldStateStore();
         CommandHandler = new ChatCommandHandler();
-        DebugEnabled = false;
-    }
-
-    public bool ToggleDebug()
-    {
-        DebugEnabled = !DebugEnabled;
-        if (DebugEnabled)
-            Game.LevelSwitch.MinimumLevel = LogEventLevel.Verbose;
-        else
-            Game.LevelSwitch.MinimumLevel = LogEventLevel.Information;
-        return DebugEnabled;
     }
 
     /// <summary>
@@ -239,6 +258,7 @@ public partial class World : Server
             return false;
         }
 
+        WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
         GenerateMetafiles();
         SetPacketHandlers();
         SetControlMessageHandlers();
@@ -286,8 +306,8 @@ public partial class World : Server
     public void LoadPlugins()
     {
         // TODO: make more dynamic as we add plugin types
-        if (Game.Config.Plugins?.Message != null)
-            foreach (var plugin in Game.Config.Plugins.Message)
+        if (Game.ActiveConfiguration.Plugins?.Message != null)
+            foreach (var plugin in Game.ActiveConfiguration.Plugins.Message)
             {
                 var config = new SimpleConfiguration(plugin.Configuration);
                 if (!MessagePlugins.ContainsKey(plugin.Type))
@@ -320,474 +340,82 @@ public partial class World : Server
             }
     }
 
-    public string GetLocalString(string key) => Strings.GetString(key);
+    public string GetLocalString(string key) => Localizations?.GetString(key) ?? $"Locale {Locale} not found or localization {key} missing";
 
     public string GetLocalString(string key, params (string Token, string Value)[] replacements)
     {
         var str = GetLocalString(key);
-        foreach (var repl in replacements) str = str.Replace(repl.Token, repl.Value);
-
-        return str;
+        return replacements.Aggregate(str, (current, repl) => current.Replace(repl.Token, repl.Value));
     }
 
-    public string GetLocalResponse(string key) => Strings.GetResponse(key);
-
-    public string GetXmlFile(string type, string name)
-    {
-        var ret = "";
-        var path = "";
-        try
-        {
-            switch (type)
-            {
-                case "castable":
-                    path = CastableDirectory;
-                    break;
-                case "npc":
-                    path = NpcsDirectory;
-                    break;
-                case "item":
-                    path = ItemDirectory;
-                    break;
-                case "nation":
-                    path = NationDirectory;
-                    break;
-                case "lootset":
-                    path = LootSetDirectory;
-                    break;
-                case "spawngroup":
-                    path = SpawnGroupDirectory;
-                    break;
-                case "element":
-                    path = ElementDirectory;
-                    break;
-                case "itemvariant":
-                    path = ItemVariantDirectory;
-                    break;
-                case "status":
-                    path = StatusDirectory;
-                    break;
-                case "map":
-                    path = MapDirectory;
-                    break;
-                case "worldmap":
-                    path = WorldMapDirectory;
-                    break;
-                case "localization":
-                    path = LocalizationDirectory;
-                    break;
-                default:
-                    path = "";
-                    break;
-            }
-
-            if (Directory.Exists(path))
-                return Directory.GetFiles(path, $"{name}.xml", SearchOption.AllDirectories)
-                    .Where(predicate: e => !e.Replace(path, "").StartsWith("\\_")).ToArray()[0] ?? "";
-        }
-        catch (Exception e)
-        {
-            GameLog.Error("Data directory {dir} not found or not accessible: {e}", path, e);
-        }
-
-        return ret;
-    }
-
-    public static string[] GetXmlFiles(string Path)
-    {
-        var ret = new List<string>();
-        try
-        {
-            if (Directory.Exists(Path))
-            {
-                var wef = new List<string>();
-
-                foreach (var asdf in Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories))
-                {
-                    if (Path.Contains(".ignore"))
-                        continue;
-                    wef.Add(asdf.Replace(Path, ""));
-                }
-
-                return Directory.GetFiles(Path, "*.xml", SearchOption.AllDirectories)
-                    .Where(predicate: e => !e.Replace(Path, "").StartsWith("\\_")).ToArray();
-            }
-        }
-        catch (Exception e)
-        {
-            GameLog.Error("Data directory {dir} not found or not accessible: {e}", Path, e);
-        }
-
-        return ret.ToArray();
-    }
-
-    public void XmlLoadLog<T>(int errors)
-    {
-        var typename = typeof(T).Name;
-        if (errors > 0)
-        {
-            GameLog.Info($"{typename.Pluralize()}: {WorldData.Values<T>().Count()} files loaded");
-            GameLog.Error($"{typename.Pluralize()}: {errors} error(s) occurred - check XmlData log");
-        }
-        else
-        {
-            GameLog.Info($"{typename.Pluralize()}: {WorldData.Values<T>().Count()} files loaded (0 errors)");
-        }
-    }
+    public string GetLocalResponse(string key) => Localizations.GetResponse(key);
 
     public bool LoadData()
     {
-        // You'll notice some inconsistencies here in that we use both wrapper classes and
-        // native XML classes for Hybrasyl objects. This is unfortunate and should be
-        // refactored later, but it is way too much work to do now (e.g. maps, etc).
+        // We need at least one map, one nation, one ElementTable, and one ServerConfig
 
-        //Load strings
-        foreach (var xml in GetXmlFiles(LocalizationDirectory))
-            try
+        if (WorldData.Count<Map>() < 1 || WorldData.Count<Nation>() < 1 || WorldData.Count<ElementTable>() < 1 ||
+            WorldData.Count<ServerConfig>() < 1)
+        {
+            GameLog.Error("Not enough XML data to start the server! I need one each of:");
+            GameLog.Error($"Maps: {WorldData.Count<Map>()} Nations: {WorldData.Count<Nation>()} ElementTables: {WorldData.Count<ElementTable>()} ServerConfigs: {WorldData.Count<ServerConfig>()}");
+            return false;
+        }
+
+        // Generate map objects from maps (TODO: remove)
+
+        foreach (var map in WorldData.Values<Map>())
+        {
+            var mapObj = new MapObject(map, this);
+            WorldState.SetWithIndex(mapObj.Id, mapObj, mapObj.Name);
+        }
+
+        uint castableId = 0;
+        // Generate castable objects from castables (used specifically to handle spell dialogs)
+        foreach (var castable in WorldData.Values<Castable>())
+        {
+            if (string.IsNullOrEmpty(castable.Script) ||
+                !Game.World.ScriptProcessor.TryGetScript(castable.Script, out var script)) continue;
+            var env = new ScriptEnvironment();
+            var associate = new HybrasylInteractable();
+            env.Add("associate", associate);
+            env.Add("origin", associate);
+            var result = script.ExecuteFunction("OnLoad", env);
+            if (result.Result == ScriptResult.Success)
             {
-                Strings = LocalizedStringGroup.LoadFromFile(xml);
-                GameLog.Info("Localization strings loaded");
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError($"Error parsing {xml}: {e}");
-                GameLog.Error("Localization file could not be loaded");
-            }
-
-        Strings.Reindex();
-
-        // Load item variants
-        var err = 0;
-        foreach (var xml in GetXmlFiles(ItemVariantDirectory))
-            try
-            {
-                var newGroup = VariantGroup.LoadFromFile(xml);
-                GameLog.DataLogInfo("Item variants: loaded {0}", newGroup.Name);
-                WorldData.Set(newGroup.Name, newGroup);
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
-            }
-
-        XmlLoadLog<VariantGroup>(err);
-
-        // Load items
-        err = 0;
-        foreach (var xml in GetXmlFiles(ItemDirectory))
-            try
-            {
-                var newItem = Item.LoadFromFile(xml);
-                var variants = new Dictionary<string, List<Item>>();
-                WorldData.RegisterItem(newItem);
-                GameLog.DataLogDebug($"Items: loaded {newItem.Name}, id {newItem.Id}");
-                if (newItem.Properties.Variants != null)
-                    foreach (var targetGroup in newItem.Properties.Variants.Group)
-                    {
-                        variants[targetGroup] = new List<Item>();
-                        foreach (var variant in WorldData.Get<VariantGroup>(targetGroup).Variant)
-                        {
-                            var variantItem = ResolveVariant(newItem, variant, targetGroup);
-                            GameLog.DataLogDebug(
-                                $"ItemObject {variantItem.Name}: variantgroup {targetGroup}, subvariant {variant.Name}");
-                            if (WorldData.ContainsKey<Item>(variantItem.Id))
-                            {
-                                GameLog.DataLogError(
-                                    $"Item already exists with Key {variantItem.Id} : {WorldData.Get<Item>(variantItem.Id).Name}. Cannot add {variantItem.Name}");
-                                err++;
-                            }
-
-                            WorldData.SetWithIndex(variantItem.Id, variantItem, variantItem.Name);
-                            WorldData.RegisterItem(variantItem);
-                            variants[targetGroup].Add(variantItem);
-                        }
-                    }
-
-                newItem.Variants = variants;
-                WorldData.SetWithIndex(newItem.Id, newItem, newItem.Name);
-                // Evaluate dialogs, if any
-                if (newItem.Use?.Script is null ||
-                    !Game.World.ScriptProcessor.TryGetScript(newItem.Use.Script, out var script)) continue;
-                var env = new ScriptEnvironment();
-                var associate = new HybrasylInteractable();
-                env.Add("associate", associate);
-                env.Add("origin", associate);
-                var result = script.ExecuteFunction("OnLoad", env);
-                if (result.Result == ScriptResult.Success)
+                var castableObject = new CastableObject
                 {
-                    Game.World.WorldData.Set(newItem.Id, associate);
-                }
-                else if (result.Result != ScriptResult.FunctionMissing)
-                {
-                    GameLog.DataLogError($"OnLoad for {newItem.Name}: errors encountered, check scripting log");
-                    err++;
-                }
+                    Guid = castable.Guid,
+                    Id = castableId,
+                    Template = castable,
+                    ScriptedDialogs = associate,
+                    Sprite = associate.Sprite,
+                    Script = script
+                };
+                // Store the CastableObject for later usage by dialog system, along with guid index
+                WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
+                castableId++;
             }
-            catch (Exception e)
+            else if (result.Result != ScriptResult.FunctionMissing)
             {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
+                GameLog.DataLogError($"OnLoad for {castable.Name}: errors encountered, check scripting log");
             }
-
-        XmlLoadLog<Item>(err);
+        }
 
         // Create a static "monster weapon" that is used in various places
         // TODO: maybe just use xml for this
         var monsterWeapon = new Item { Name = "monsterblade" };
         monsterWeapon.Properties = new ItemProperties();
         monsterWeapon.Properties.Damage = new ItemDamage();
-        monsterWeapon.Properties.Damage.Small = new ItemDamageSmall();
-        monsterWeapon.Properties.Damage.Large = new ItemDamageLarge();
         monsterWeapon.Properties.Physical = new Physical();
-        WorldData.SetWithIndex(monsterWeapon.Id, monsterWeapon, monsterWeapon.Name);
-
-        err = 0;
-        //Load NPCs
-        foreach (var xml in GetXmlFiles(NpcsDirectory))
-            try
-            {
-                var npc = Npc.LoadFromFile(xml);
-                GameLog.DataLogDebug($"NPCs: loaded {npc.Name}");
-                WorldData.Set(npc.Name, npc);
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError($"Error parsing {xml}: {e}");
-                err++;
-            }
-
-        XmlLoadLog<Npc>(err);
-
-        // Load maps
-        err = 0;
-        foreach (var xml in GetXmlFiles(MapDirectory))
-            try
-            {
-                var newMap = Xml.Map.LoadFromFile(xml);
-                var map = new Map(newMap, this);
-                if (!WorldData.SetWithIndex(map.Id, map, map.Name))
-                    GameLog.DataLogInfo($"SetWithIndex fail for {map.Name}..?");
-                GameLog.DataLogInfo($"Maps: Loaded {Path.GetFileName(xml)} ({map.Name})");
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
-            }
-
-        XmlLoadLog<Map>(err);
-
-        err = 0;
-        // Load nations
-        foreach (var xml in GetXmlFiles(NationDirectory))
-            try
-            {
-                var newNation = Nation.LoadFromFile(xml);
-                GameLog.DataLogInfo("Nations: Loaded {0}", newNation.Name);
-                WorldData.Set(newNation.Name, newNation);
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
-            }
-
-
-        // Ensure at least one nation and one map exist. Otherwise, things get a little weird
-        if (WorldData.Count<Nation>() == 0)
-        {
-            GameLog.Fatal("National data: at least one well-formed nation file must exist!");
-            return false;
-        }
-
-        if (WorldData.Count<Map>() == 0)
-        {
-            GameLog.Fatal("Map data: at least one well-formed map file must exist!");
-            return false;
-        }
-
-        XmlLoadLog<Nation>(err);
-
-        // Load Behaviorsets
-        // TODO: genericize and refactor all of these, potentially using this new behaviorset pattern
-
-        var behaviorSets = CreatureBehaviorSet.LoadAll(XmlDirectory);
-
-        // TODO: change to foreach on XML assembly classes implementing IHybrasylLoadable
-        // eg: WorldData.ImportAll(Xml.CreatureBehaviorSet.LoadAll(XmlDirectory));
-
-        foreach (var set in behaviorSets.Results)
-        {
-            WorldData.Set(set.Name, set);
-            GameLog.DataLogInfo($"BehaviorSet: {set.Name} loaded");
-        }
-
-        foreach (var error in behaviorSets.Errors)
-            GameLog.DataLogError($"BehaviorSet: error occurred loading {error.Key}: {error.Value}");
-
-        XmlLoadLog<CreatureBehaviorSet>(behaviorSets.Errors.Count);
-
-        var creatures = Xml.Creature.LoadAll(XmlDirectory);
-
-        foreach (var creature in creatures.Results)
-        {
-            if (creature.Name != null)
-                WorldData.Set(creature.Name, creature);
-            foreach (var subcreature in creature.Types) WorldData.Set(subcreature.Name, subcreature);
-            GameLog.DataLogInfo($"Creature: {creature.Name} loaded, with {creature.Types.Count} subtypes");
-        }
-
-        foreach (var error in creatures.Errors)
-            GameLog.DataLogError($"Creature: error occurred loading {error.Key}: {error.Value}");
-
-        XmlLoadLog<Creature>(creatures.Errors.Count);
-
-        var spawnGroups = SpawnGroup.LoadAll(XmlDirectory);
-
-        foreach (var group in spawnGroups.Results)
-        {
-            WorldData.Set(group.Name, group);
-            GameLog.DataLogInfo($"Spawngroup: {group.Name} loaded");
-        }
-
-        foreach (var error in spawnGroups.Errors)
-            GameLog.DataLogError($"Spawngroups: error occurred loading {error.Key}: {error.Value}");
-
-        XmlLoadLog<SpawnGroup>(spawnGroups.Errors.Count);
-
-        //Load LootSets
-        err = 0;
-        foreach (var xml in GetXmlFiles(LootSetDirectory))
-            try
-            {
-                var lootSet = LootSet.LoadFromFile(xml);
-                GameLog.DataLogInfo($"LootSets: loaded {lootSet.Name}");
-                WorldData.SetWithIndex(lootSet.Id, lootSet, lootSet.Name);
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError($"Error parsing {xml}: {e}");
-                err++;
-            }
-
-        XmlLoadLog<LootSet>(err);
-
-        // Load worldmaps
-        err = 0;
-        foreach (var xml in GetXmlFiles(WorldMapDirectory))
-            try
-            {
-                var newWorldMap = Xml.WorldMap.LoadFromFile(xml);
-                var worldmap = new WorldMap(newWorldMap);
-                WorldData.Set(worldmap.Name, worldmap);
-                foreach (var point in worldmap.Points)
-                {
-                    GameLog.DataLogDebug("Point: {id}, to {dest}", point.Id, point.Name);
-                    WorldData.Set(point.Id, point);
-                }
-
-                GameLog.DataLogInfo("World Maps: Loaded {name}", worldmap.Name);
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
-            }
-
-        XmlLoadLog<WorldMap>(err);
-
-        err = 0;
-        foreach (var xml in GetXmlFiles(StatusDirectory))
-            try
-            {
-                var name = string.Empty;
-                var newStatus = Status.LoadFromFile(xml);
-                WorldData.Set(newStatus.Name, newStatus);
-                GameLog.DataLogInfo($"Statuses: loaded {newStatus.Name}, id {newStatus.Id}");
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
-            }
-
-        XmlLoadLog<Status>(err);
-
-        uint castableId = 0;
-        err = 0;
-        foreach (var xml in GetXmlFiles(CastableDirectory))
-            try
-            {
-                // integer IDs have to be used here due to a client limitation, either that or we end up tracking a hell of a lot more
-                // state on the server to make castable dialogs work
-                var name = string.Empty;
-                var newCastable = Castable.LoadFromFile(xml);
-                newCastable.Guid = Guid.NewGuid();
-                WorldData.SetWithIndex(newCastable.Id, newCastable, newCastable.Name);
-                WorldData.RegisterCastable(newCastable);
-                GameLog.DataLogInfo("Castables: loaded {0}, id {1}", newCastable.Name, newCastable.Id);
-                // Evaluate dialogs, if any
-                if (string.IsNullOrEmpty(newCastable.Script) ||
-                    !Game.World.ScriptProcessor.TryGetScript(newCastable.Script, out var script)) continue;
-                var env = new ScriptEnvironment();
-                var associate = new HybrasylInteractable();
-                env.Add("associate", associate);
-                env.Add("origin", associate);
-                var result = script.ExecuteFunction("OnLoad", env);
-                if (result.Result == ScriptResult.Success)
-                {
-                    var castable = new CastableObject
-                    {
-                        Guid = newCastable.Guid,
-                        Id = castableId,
-                        Template = newCastable,
-                        ScriptedDialogs = associate,
-                        Sprite = associate.Sprite,
-                        Script = script
-                    };
-                    // Store the CastableObject for later usage by dialog system, along with guid index
-                    Game.World.WorldData.SetWithIndex(castable.Id, castable, castable.Guid);
-                    castableId++;
-                }
-                else if (result.Result != ScriptResult.FunctionMissing)
-                {
-                    GameLog.DataLogError($"OnLoad for {newCastable.Name}: errors encountered, check scripting log");
-                    err++;
-                }
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-                err++;
-            }
-
-        XmlLoadLog<Castable>(err);
-
-        //load element tables
-        foreach (var xml in GetXmlFiles(ElementDirectory))
-            try
-            {
-                //currently only support one table
-                var table = ElementTable.LoadFromFile(xml);
-                WorldData.Set("ElementTable", table);
-                GameLog.Info("Element table loaded");
-                foreach (var source in table.Source)
-                foreach (var target in source.Target)
-                    GameLog.DataLogInfo(
-                        $"ElementTable: loaded element {source.Element}, target {target.Element}, multiplier {target.Multiplier}");
-            }
-            catch (Exception e)
-            {
-                GameLog.DataLogError("Error parsing {0}: {1}", xml, e);
-            }
+        WorldData.Add(monsterWeapon);
 
         // Ensure global boards exist and are up to date with anything specified in the config
-        if (Game.Config?.Boards != null)
+        if (Game.ActiveConfiguration?.Boards != null)
         {
-            foreach (var globalboard in Game.Config.Boards)
+            foreach (var globalboard in Game.ActiveConfiguration.Boards)
             {
-                var board = WorldData.GetBoard(globalboard.Name);
+                var board = WorldState.GetBoard(globalboard.Name);
                 board.DisplayName = globalboard.DisplayName;
                 board.Global = true;
                 foreach (var reader in globalboard.AccessList.Read)
@@ -797,7 +425,7 @@ public partial class World : Server
                 foreach (var moderator in globalboard.AccessList.Moderate)
                     board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
                 GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
-                WorldData.SetWithIndex(board.Name, board, board.Id);
+                WorldState.SetWithIndex(board.Name, board, board.Id);
                 board.Save();
             }
         }
@@ -805,13 +433,13 @@ public partial class World : Server
         {
             // If no boards are configured we set up a global default, moderated by the users specified
             // in <Privileged>
-            var board = WorldData.GetBoard("Hybrasyl");
+            var board = WorldState.GetBoard("Hybrasyl");
             board.DisplayName = "Hybrasyl Global Board";
-            if (Game.Config?.Access != null)
+            if (Game.ActiveConfiguration?.Access != null)
             {
-                foreach (var moderator in Game.Config.Access.PrivilegedUsers)
+                foreach (var moderator in Game.ActiveConfiguration.Access.PrivilegedUsers)
                     board.SetAccessLevel(moderator, BoardAccessLevel.Moderate);
-                WorldData.SetWithIndex(board.Name, board, board.Id);
+                WorldState.SetWithIndex(board.Name, board, board.Id);
                 board.Save();
             }
             else
@@ -821,82 +449,6 @@ public partial class World : Server
         }
 
         return true;
-    }
-
-    public Item ResolveVariant(Item item, Variant variant, string variantGroup)
-    {
-        // Ensure all our modifiable / referenced properties at least exist
-        // TODO: this is pretty hacky
-        item.Properties.Physical ??= new Physical();
-        item.Properties.StatModifiers ??= new StatModifiers();
-        item.Properties.Restrictions ??= new ItemRestrictions();
-        item.Properties.Restrictions.Level ??= new RestrictionsLevel();
-        item.Properties.Damage ??= new ItemDamage();
-        item.Properties.Damage.Small ??= new ItemDamageSmall();
-        item.Properties.Damage.Large ??= new ItemDamageLarge();
-
-        var variantItem = item.Clone();
-
-        variantItem.Name = $"{variant.Modifier} {item.Name}";
-        variantItem.ParentItem = item;
-        variantItem.IsVariant = true;
-
-        GameLog.Debug($"Processing variant: {variantItem.Name}");
-
-        if (variant.Properties.Flags != 0)
-            variantItem.Properties.Flags = variant.Properties.Flags;
-
-        var newValue = item.Properties.Physical.Value * variant.Properties.Physical.Value;
-        var newDura = item.Properties.Physical.Durability * variant.Properties.Physical.Durability;
-        var newWeight = item.Properties.Physical.Weight * variant.Properties.Physical.Weight;
-
-        variantItem.Properties.Physical.Value = newValue > ushort.MaxValue ? ushort.MaxValue : newValue;
-        variantItem.Properties.Physical.Durability = newDura > ushort.MaxValue ? ushort.MaxValue : newDura;
-        variantItem.Properties.Physical.Weight = newWeight > ushort.MaxValue ? ushort.MaxValue : newWeight;
-
-        // ensure boot hiding is carried to variants
-        variantItem.Properties.Appearance.HideBoots = item.Properties.Appearance.HideBoots;
-        if (variant.Properties.Restrictions?.Level != null)
-            variantItem.Properties.Restrictions.Level.Min = (byte) Math.Min(99,
-                variantItem.Properties.Restrictions.Level.Min + variant.Properties.Restrictions.Level.Min);
-
-        if (variant.Properties.Appearance != null)
-            variantItem.Properties.Appearance.Color = variant.Properties.Appearance.Color;
-
-        if (variant.Properties.StatModifiers != null)
-            variantItem.Properties.StatModifiers += variant.Properties.StatModifiers;
-
-        if (variant.Properties.Damage?.Large != null)
-        {
-            variantItem.Properties.Damage.Large.Min =
-                (ushort) (item.Properties.Damage.Large.Min * variant.Properties.Damage.Large.Min);
-            variantItem.Properties.Damage.Large.Max =
-                (ushort) (item.Properties.Damage.Large.Max * variant.Properties.Damage.Large.Max);
-        }
-
-        if (variant.Properties.Damage?.Small != null)
-        {
-            variantItem.Properties.Damage.Small.Min =
-                (ushort) (item.Properties.Damage.Small.Min * variant.Properties.Damage.Small.Min);
-            variantItem.Properties.Damage.Small.Min =
-                (ushort) (item.Properties.Damage.Small.Min * variant.Properties.Damage.Small.Min);
-        }
-
-        if (variant.Properties.StatModifiers?.BaseDefensiveElement != null)
-            variantItem.Properties.StatModifiers.BaseDefensiveElement =
-                variant.Properties.StatModifiers.BaseDefensiveElement;
-        else
-            variantItem.Properties.StatModifiers.BaseDefensiveElement =
-                item.Properties.StatModifiers?.BaseDefensiveElement ?? ElementType.None;
-
-        if (variant.Properties.StatModifiers?.BaseOffensiveElement != null)
-            variantItem.Properties.StatModifiers.BaseOffensiveElement =
-                variant.Properties.StatModifiers.BaseOffensiveElement;
-        else
-            variantItem.Properties.StatModifiers.BaseDefensiveElement =
-                item.Properties.StatModifiers?.BaseOffensiveElement ?? ElementType.None;
-
-        return variantItem;
     }
 
     private void GenerateMetafiles()
@@ -935,7 +487,7 @@ public partial class World : Server
                 iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int) xclass, weight, tab, desc));
             }
 
-            WorldData.Set(iteminfo.Name, iteminfo.Compile());
+            WorldState.Set(iteminfo.Name, iteminfo.Compile());
             itmIndex += itmPerFile;
         }
 
@@ -1139,7 +691,7 @@ public partial class World : Server
             }
 
             sclass.Nodes.Add(new MetafileNode("Spell_End", ""));
-            WorldData.Set(sclass.Name, sclass.Compile());
+            WorldState.Set(sclass.Name, sclass.Compile());
         }
 
         #endregion SClass
@@ -1154,7 +706,7 @@ public partial class World : Server
                 GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
             }
 
-        WorldData.Set(npcillust.Name, npcillust.Compile());
+        WorldState.Set(npcillust.Name, npcillust.Compile());
 
         #endregion NPCIllust
 
@@ -1167,7 +719,7 @@ public partial class World : Server
             nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
         }
 
-        WorldData.Set(nationdesc.Name, nationdesc.Compile());
+        WorldState.Set(nationdesc.Name, nationdesc.Compile());
 
         #endregion NationDesc
 
@@ -1185,7 +737,7 @@ public partial class World : Server
 
         // By now this has been populated since OnSpawn for all NPCS has run
 
-        foreach (var quest in Game.World.WorldData.QuestMetadata)
+        foreach (var quest in Game.World.WorldState.QuestMetadata)
         {
             if (quest.Circle < 1 || quest.Circle > 6) continue;
             var file = files[quest.Circle-1];
@@ -1204,7 +756,7 @@ public partial class World : Server
 
         foreach (var f in files)
         {
-            WorldData.Set(f.Name, f.Compile());
+            WorldState.Set(f.Name, f.Compile());
         }
 
         #endregion
@@ -1242,7 +794,7 @@ public partial class World : Server
             GameLog.Error($"Scripts: {numErrors} scripts had errors - check scripting log");
     }
 
-    public IMessageHandler ResolveMessagingPlugin(Xml.MessageType type, Message message)
+    public IMessageHandler ResolveMessagingPlugin(Xml.Objects.MessageType type, Message message)
     {
         // Do we have a plugin that would handle this message?
         if (MessagePlugins.TryGetValue(type, out var pluginList))
@@ -1255,43 +807,46 @@ public partial class World : Server
     public void DeleteUser(string username)
     {
         if (TryGetActiveUser(username, out var user))
-            WorldData.RemoveIndex<User>(user.ConnectionId);
-        WorldData.Remove<User>(username);
+            WorldState.RemoveIndex<User>(user.ConnectionId);
+        WorldState.Remove<User>(username);
     }
 
     public void EnqueueProc(Proc p, Castable castable, Guid source, Guid target) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ProcessProc, p, castable, source, target));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ProcessProc, p, castable, source, target));
 
-    public void EnqueueGuidStatUpdate(Guid g, StatInfo si) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ModifyStats, g, si));
+    public void EnqueueGuidStatUpdate(Guid g, StatInfo si, ICombatEvent e) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ModifyStats, g, si, e));
+
+    public void EnqueueGuidCombatLogMessage(Guid g, ICombatEvent e) =>
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CombatLog, g, e));
 
     public void EnqueueUserUpdate(Guid g) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.UpdateUser, g));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.UpdateUser, g));
 
     public void EnqueueShowTo(Guid g) =>
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DisplayCreature, g));
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.DisplayCreature, g));
 
     public void AddUser(User userobj, long connectionId)
     {
-        WorldData.SetWithIndex(userobj.Name, userobj, connectionId);
-        WorldData.GetGuidReference(userobj);
+        WorldState.SetWithIndex(userobj.Name, userobj, connectionId);
+        WorldState.GetGuidReference(userobj);
     }
 
-    public bool TryGetActiveUser(string name, out User user) => WorldData.TryGetValue(name, out user);
+    public bool TryGetActiveUser(string name, out User user) => WorldState.TryGetValue(name, out user);
 
     public bool TryGetActiveUserById(long connectionId, out User user) =>
-        WorldData.TryGetValueByIndex(connectionId, out user);
+        WorldState.TryGetValueByIndex(connectionId, out user);
 
     public bool UserConnected(string name)
     {
-        if (WorldData.TryGetValue(name, out User user))
+        if (WorldState.TryGetValue(name, out User user))
             return user.Connected;
         return false;
     }
 
     public void CloseAsyncDialog(AsyncDialogSession session)
     {
-        Game.World.WorldData.Remove<AsyncDialogSession>(session.Id);
+        Game.World.WorldState.Remove<AsyncDialogSession>(session.Id);
         session.Target.ActiveDialogSession = null;
         session.Target.DialogState.EndDialog();
         if (session.Source is not User user) return;
@@ -1308,8 +863,8 @@ public partial class World : Server
         }
 
         session.Id = asyncSessionId;
-        Game.World.WorldData.Set(asyncSessionId, session);
-        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.DialogRequest, asyncSessionId));
+        Game.World.WorldState.Set(asyncSessionId, session);
+        ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.DialogRequest, asyncSessionId));
         return true;
     }
 
@@ -1347,7 +902,7 @@ public partial class World : Server
             ++worldObjectId;
         }
 
-        WorldData.SetWorldObject(obj.Guid, obj);
+        WorldState.SetWorldObject(obj.Guid, obj);
         obj.OnInsert();
     }
 
@@ -1362,14 +917,14 @@ public partial class World : Server
 
         GameLog.Info($"Object {obj.Name}: {obj.Id} removed");
         obj.ServerGuid = Guid.Empty;
-        WorldData.RemoveWorldObject<WorldObject>(obj.Guid);
+        WorldState.RemoveWorldObject<WorldObject>(obj.Guid);
         obj.Id = 0;
         obj.Id = 0;
     }
 
     public ItemObject CreateItem(string id, int quantity = 1)
     {
-        var xmlitem = WorldData.FindItem(id);
+        var xmlitem = WorldData.FindItem(id).ToList();
         if (xmlitem.Count == 0) return null;
         var item = new ItemObject(xmlitem.First().Id, Guid);
         if (quantity > item.MaximumStack)
@@ -1411,8 +966,8 @@ public partial class World : Server
             if (message != null)
             {
                 var clientMessage = (HybrasylClientMessage) message;
-                var handler = PacketHandlers[clientMessage.Packet.Opcode];
-                var timerOptions = HybrasylMetricsRegistry.OpcodeTimerIndex[clientMessage.Packet.Opcode];
+                var handler = WorldPacketHandlers[clientMessage.Packet.Opcode];
+                var timerOptions = PacketHandlerMetrics[clientMessage.Packet.Opcode];
 
                 try
                 {
@@ -1479,7 +1034,7 @@ public partial class World : Server
                         // Handle board usage
                         if (user.Condition.Flags.HasFlag(PlayerFlags.InBoard) && clientMessage.Packet.Opcode != 0x3b &&
                             clientMessage.Packet.Opcode != 0x45 && clientMessage.Packet.Opcode != 0x75)
-                            user.Condition.Flags = user.Condition.Flags & ~PlayerFlags.InBoard;
+                            user.Condition.Flags &= ~PlayerFlags.InBoard;
 
                         if (user.Condition.Casting && clientMessage.Packet.Opcode != 0x4E &&
                             clientMessage.Packet.Opcode != 0x4D && clientMessage.Packet.Opcode != 0x0C &&
@@ -1487,25 +1042,19 @@ public partial class World : Server
                             user.CancelCasting();
 
                         // Last but not least, invoke the handler
+                        var watch = Stopwatch.StartNew();
+                        WorldPacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
+                        watch.Stop();
                         if (timerOptions != null)
-                        {
-                            var watch = new Stopwatch();
-                            watch.Start();
-                            PacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
-                            watch.Stop();
                             Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
-                        }
-                        else
-                        {
-                            handler.Invoke(user, clientMessage.Packet);
-                        }
                     }
                     else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                     {
                         var watch = Stopwatch.StartNew();
-                        PacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
+                        WorldPacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                         watch.Stop();
-                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+                        if (timerOptions != null)
+                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     else
                     {
@@ -1518,7 +1067,7 @@ public partial class World : Server
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter,
+                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter, 
                         $"0x{clientMessage.Packet.Opcode}");
                     GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!",
                         clientMessage.Packet.Opcode);
@@ -1526,7 +1075,6 @@ public partial class World : Server
             }
         }
     }
-
 
     public void ControlQueueConsumer()
     {
@@ -1550,18 +1098,17 @@ public partial class World : Server
             if (message is HybrasylControlMessage hcm)
                 try
                 {
-                    var watch = Stopwatch.StartNew();
-                    var timerOptions = HybrasylMetricsRegistry.ControlMessageTimerIndex[hcm.Opcode];
+                    var watch = Stopwatch.StartNew(); 
                     ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                     watch.Stop();
-                    if (timerOptions != null)
+                    if (ControlMessageMetrics.TryGetValue(hcm.Opcode, out var timerOptions))
                         Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+
                 }
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(HybrasylMetricsRegistry.ExceptionMeter,
-                        $"cm_{hcm.Opcode}");
+                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter, $"cm_{hcm.Opcode}");
                     GameLog.Error("Exception encountered in control message handler: {exception}", e);
                 }
         }
@@ -1636,116 +1183,49 @@ public partial class World : Server
     }
 
     #region Path helpers
-
-    public readonly string DataDirectory;
-    public string XmlDirectory => Path.Combine(DataDirectory, "xml");
-
-    public string MapFileDirectory => Path.Combine(DataDirectory, "mapfiles");
-
-    public string ScriptDirectory => Path.Combine(DataDirectory, "scripts");
-
-    public string CastableDirectory => Path.Combine(XmlDirectory, "castables");
-    public string StatusDirectory => Path.Combine(XmlDirectory, "statuses");
-
-    public string ItemDirectory => Path.Combine(XmlDirectory, "items");
-
-    public string NationDirectory => Path.Combine(XmlDirectory, "nations");
-
-    public string MapDirectory => Path.Combine(XmlDirectory, "maps");
-
-    public string WorldMapDirectory => Path.Combine(XmlDirectory, "worldmaps");
-
-    public string BehaviorSetDirectory => Path.Combine(XmlDirectory, "behaviorsets");
-
-    public string CreatureDirectory => Path.Combine(XmlDirectory, "creatures");
-
-    public string SpawnGroupDirectory => Path.Combine(XmlDirectory, "spawngroups");
-
-    public string LootSetDirectory => Path.Combine(XmlDirectory, "lootsets");
-
-    public string ItemVariantDirectory => Path.Combine(XmlDirectory, "itemvariants");
-
-    public string NpcsDirectory => Path.Combine(XmlDirectory, "npcs");
-
-    public string LocalizationDirectory => Path.Combine(XmlDirectory, "localization");
-    public string ElementDirectory => Path.Combine(XmlDirectory, "elements");
-
+    public string XmlDirectory => Path.Combine(Game.DataDirectory, "xml");
+    public string MapFileDirectory => Path.Combine(Game.DataDirectory, "mapfiles");
+    public string ScriptDirectory => Path.Combine(Game.DataDirectory, "scripts");
     #endregion
 
     #region Set Handlers
 
     public void SetControlMessageHandlers()
     {
-        // ST: secondary threads
-        // PT: primary thread
-        ControlMessageHandlers[ControlOpcodes.CleanupUser] = ControlMessage_CleanupUser; // PT
-        ControlMessageHandlers[ControlOpcodes.SaveUser] = ControlMessage_SaveUser; // ST + user lock
-        ControlMessageHandlers[ControlOpcodes.ShutdownServer] = ControlMessage_ShutdownServer; // ST/PT
-        ControlMessageHandlers[ControlOpcodes.RegenUser] = ControlMessage_RegenerateUser; // ST + creature lock
-        ControlMessageHandlers[ControlOpcodes.LogoffUser] = ControlMessage_LogoffUser; // PT
-        ControlMessageHandlers[ControlOpcodes.MailNotifyUser] = ControlMessage_MailNotifyUser; // ST + creature lock
-        ControlMessageHandlers[ControlOpcodes.StatusTick] = ControlMessage_StatusTick; // ST + creature lock
-        ControlMessageHandlers[ControlOpcodes.MonolithSpawn] = ControlMessage_SpawnMonster; // ST + map lock?
-        ControlMessageHandlers[ControlOpcodes.MonolithControl] = ControlMessage_MonolithControl; // ST + map lock?
-        ControlMessageHandlers[ControlOpcodes.TriggerRefresh] = ControlMessage_TriggerRefresh; // ST
-        ControlMessageHandlers[ControlOpcodes.HandleDeath] = ControlMessage_HandleDeath; // ST + user/map locks
-        ControlMessageHandlers[ControlOpcodes.DialogRequest] = ControlMessage_DialogRequest;
-        ControlMessageHandlers[ControlOpcodes.GlobalMessage] = ControlMessage_GlobalMessage;
-        ControlMessageHandlers[ControlOpcodes.RemoveReactor] = ControlMessage_RemoveReactor;
-        ControlMessageHandlers[ControlOpcodes.ModifyStats] = ControlMessage_ModifyStats;
-        ControlMessageHandlers[ControlOpcodes.ProcessProc] = ControlMessage_ProcessProc;
-        ControlMessageHandlers[ControlOpcodes.UpdateUser] = ControlMessage_UpdateUser;
-        ControlMessageHandlers[ControlOpcodes.DisplayCreature] = ControlMessage_DisplayCreature;
-
+        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Where(f => f.GetCustomAttribute<HybrasylMessageHandler>() != null);
+        foreach (var method in methods)
+        {
+            var attr = method.GetCustomAttributes<HybrasylMessageHandler>().FirstOrDefault();
+            if (attr == null) continue;
+            ControlMessageHandlers[attr.Opcode] = (ControlMessageHandler) Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
+            // Add metrics timers
+            ControlMessageMetrics[attr.Opcode] = new TimerOptions
+            {
+                Name = method.Name, MeasurementUnit = Unit.Requests, DurationUnit =  TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Milliseconds
+            };
+        }
+        GameLog.Info("Control message handlers registered");
     }
 
     public void SetPacketHandlers()
     {
-        // ST: secondary threads
-        // PT: primary thread
-        PacketHandlers[0x05] = PacketHandler_0x05_RequestMap; // ST
-        PacketHandlers[0x06] = PacketHandler_0x06_Walk;  // ST + map lock
-        PacketHandlers[0x07] = PacketHandler_0x07_PickupItem; // ST + map lock
-        PacketHandlers[0x08] = PacketHandler_0x08_DropItem; // ST + map lock
-        PacketHandlers[0x0B] = PacketHandler_0x0B_ClientExit; // primary thread 
-        PacketHandlers[0x0C] = PacketHandler_0X0C_PutGround;
-        PacketHandlers[0x0E] = PacketHandler_0x0E_Talk; // ST
-        PacketHandlers[0x0F] = PacketHandler_0x0F_UseSpell; // PT
-        PacketHandlers[0x10] = PacketHandler_0x10_ClientJoin; // PT
-        PacketHandlers[0x11] = PacketHandler_0x11_Turn; // ST + user lock
-        PacketHandlers[0x13] = PacketHandler_0x13_Attack; // PT
-        PacketHandlers[0x18] = PacketHandler_0x18_ShowPlayerList; // ST
-        PacketHandlers[0x19] = PacketHandler_0x19_Whisper; // ST
-        PacketHandlers[0x1B] = PacketHandler_0x1B_Settings; // either
-        PacketHandlers[0x1C] = PacketHandler_0x1C_UseItem; // PT
-        PacketHandlers[0x1D] = PacketHandler_0x1D_Emote; // ST
-        PacketHandlers[0x24] = PacketHandler_0x24_DropGold; // ST + map lock
-        PacketHandlers[0x29] = PacketHandler_0x29_DropItemOnCreature; // ST + map/user lock
-        PacketHandlers[0x2A] = PacketHandler_0x2A_DropGoldOnCreature; // ST + map/user lock
-        PacketHandlers[0x2D] = PacketHandler_0x2D_PlayerInfo; // ST
-        PacketHandlers[0x2E] = PacketHandler_0x2E_GroupRequest; // PT
-        PacketHandlers[0x2F] = PacketHandler_0x2F_GroupToggle; // PT
-        PacketHandlers[0x30] = PacketHandler_0x30_MoveUIElement; // ST + user lock
-        PacketHandlers[0x38] = PacketHandler_0x38_Refresh; // ST
-        PacketHandlers[0x39] = PacketHandler_0x39_NPCMainMenu; // PT
-        PacketHandlers[0x3A] = PacketHandler_0x3A_DialogUse; // PT
-        PacketHandlers[0x3B] = PacketHandler_0x3B_AccessMessages; // ST
-        PacketHandlers[0x3E] = PacketHandler_0x3E_UseSkill; // PT
-        PacketHandlers[0x3F] = PacketHandler_0x3F_MapPointClick; // ST
-        PacketHandlers[0x43] = PacketHandler_0x43_PointClick; // ST?
-        PacketHandlers[0x44] = PacketHandler_0x44_EquippedItemClick; // PT
-        PacketHandlers[0x45] = PacketHandler_0x45_ByteHeartbeat; // ST
-        PacketHandlers[0x47] = PacketHandler_0x47_StatPoint; // ST + user lock
-        PacketHandlers[0x4a] = PacketHandler_0x4A_Trade; // PT
-        PacketHandlers[0x4D] = PacketHandler_0x4D_BeginCasting; // PT
-        PacketHandlers[0x4E] = PacketHandler_0x4E_CastLine; // PT
-        PacketHandlers[0x4F] = PacketHandler_0x4F_ProfileTextPortrait; // ST
-        PacketHandlers[0x55] = PacketHandler_0x55_Manufacture;
-        PacketHandlers[0x75] = PacketHandler_0x75_TickHeartbeat; // ST + user lock
-        PacketHandlers[0x79] = PacketHandler_0x79_Status; // ST
-        PacketHandlers[0x7B] = PacketHandler_0x7B_RequestMetafile; // ST
-    }
+        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Where(f => f.GetCustomAttribute<PacketHandler>() != null);
 
+        foreach (var method in methods)
+        {
+            var attr = method.GetCustomAttributes<PacketHandler>().FirstOrDefault();
+            if (attr == null) continue;
+            WorldPacketHandlers[attr.Opcode] =
+                (WorldPacketHandler) Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
+            PacketHandlerMetrics[attr.Opcode] = new TimerOptions
+            {
+                Name = method.Name, MeasurementUnit = Unit.Requests, DurationUnit =  TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Milliseconds
+            };
+        }
+        GameLog.Info("Packet handlers registered");
+    }
 
     public void SetMerchantMenuHandlers()
     {
@@ -1932,6 +1412,7 @@ public partial class World : Server
 
     #region Control Message Handlers
 
+    [HybrasylMessageHandler(ControlOpcode.CleanupUser)]
     private void ControlMessage_CleanupUser(HybrasylControlMessage message)
     {
         // clean up after a broken connection
@@ -1991,6 +1472,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.RegenUser)]
     private void ControlMessage_RegenerateUser(HybrasylControlMessage message)
     {
         // regenerate a user
@@ -2032,6 +1514,7 @@ public partial class World : Server
         user.UpdateAttributes(StatUpdateFlags.Current);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.SaveUser)]
     private void ControlMessage_SaveUser(HybrasylControlMessage message)
     {
         // save a user
@@ -2049,6 +1532,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.ShutdownServer)]
     private void ControlMessage_ShutdownServer(HybrasylControlMessage message)
     {
         // Initiate an orderly shutdown
@@ -2082,6 +1566,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.LogoffUser)]
     private void ControlMessage_LogoffUser(HybrasylControlMessage message)
     {
         // Log off the specified user
@@ -2091,6 +1576,7 @@ public partial class World : Server
         if (TryGetActiveUser(userName, out user)) user.Logoff(true);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.MailNotifyUser)]
     private void ControlMessage_MailNotifyUser(HybrasylControlMessage message)
     {
         // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
@@ -2108,6 +1594,7 @@ public partial class World : Server
         }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.StatusTick)]
     private void ControlMessage_StatusTick(HybrasylControlMessage message)
     {
         var objectId = (uint) message.Arguments[0];
@@ -2120,7 +1607,7 @@ public partial class World : Server
         }
     }
 
-
+    [HybrasylMessageHandler(ControlOpcode.TriggerRefresh)]
     private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
     {
         var connectionId = (long) message.Arguments[0];
@@ -2128,13 +1615,15 @@ public partial class World : Server
             user.Refresh();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.DialogRequest)]
     private void ControlMessage_DialogRequest(HybrasylControlMessage message)
     {
         var asyncDialogId = (uint) message.Arguments[0];
-        if (WorldData.TryGetValue(asyncDialogId, out AsyncDialogSession ads))
+        if (WorldState.TryGetValue(asyncDialogId, out AsyncDialogSession ads))
             ads.ShowTo();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.HandleDeath)]
     private void ControlMessage_HandleDeath(HybrasylControlMessage message)
     {
         var creature = (Creature) message.Arguments[0];
@@ -2142,6 +1631,7 @@ public partial class World : Server
         if (creature is Monster ms && !ms.DeathProcessed) ms.OnDeath();
     }
 
+    [HybrasylMessageHandler(ControlOpcode.GlobalMessage)]
     private void ControlMessage_GlobalMessage(HybrasylControlMessage message)
     {
         var msg = (string) message.Arguments[0];
@@ -2154,23 +1644,26 @@ public partial class World : Server
             catch (Exception) { }
     }
 
+    [HybrasylMessageHandler(ControlOpcode.RemoveReactor)]
     private void ControlMessage_RemoveReactor(HybrasylControlMessage message)
     {
-        if (message.Arguments[0] is not Guid g || !WorldData.TryGetWorldObject(g, out Reactor obj) ||
-            !WorldData.TryGetValue(obj.Map.Id, out Map m)) return;
+        if (message.Arguments[0] is not Guid g || !WorldState.TryGetWorldObject(g, out Reactor obj) ||
+            !WorldState.TryGetValue(obj.Map.Id, out MapObject m)) return;
         m.Remove(obj);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.ModifyStats)]
     private void ControlMessage_ModifyStats(HybrasylControlMessage message)
     {
         var guid = (Guid) message.Arguments[0];
         var statinfo = (StatInfo) message.Arguments[1];
-        if (!WorldData.TryGetWorldObject(guid, out Creature obj)) return;
+        if (!WorldState.TryGetWorldObject(guid, out Creature obj)) return;
         obj.Stats.Apply(statinfo);
         if (obj is User u)
             u.UpdateAttributes(StatUpdateFlags.Full);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.ProcessProc)]
     private void ControlMessage_ProcessProc(HybrasylControlMessage message)
     {
         var proc = (Proc) message.Arguments[0];
@@ -2178,8 +1671,8 @@ public partial class World : Server
         var sourceGuid = (Guid) message.Arguments[2];
         var targetGuid = (Guid) message.Arguments[3];
 
-        var source = WorldData.GetWorldObject<Creature>(sourceGuid);
-        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+        var source = WorldState.GetWorldObject<Creature>(sourceGuid);
+        var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (source == null)
         {
@@ -2211,10 +1704,11 @@ public partial class World : Server
 
     }
 
+    [HybrasylMessageHandler(ControlOpcode.UpdateUser)]
     private void ControlMessage_UpdateUser(HybrasylControlMessage message)
     {
         var targetGuid = (Guid) message.Arguments[0];
-        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+        var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not User user) return;
 
@@ -2222,22 +1716,42 @@ public partial class World : Server
         user.UpdateAttributes(StatUpdateFlags.Secondary);
     }
 
+    [HybrasylMessageHandler(ControlOpcode.DisplayCreature)]
     private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
     {
         var targetGuid = (Guid) message.Arguments[0];
-        var target = WorldData.GetWorldObject<Creature>(targetGuid);
+        var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not Creature creature) return;
+        var user = target as User;
         if (target.Condition.IsInvisible)
             target.Hide();
-        else 
+        else
+        {
+            // Remove any invisible statuses
+            foreach (var invisStatus in WorldData.Find<Status>(x =>
+                         x.Effects?.OnApply?.Conditions?.Set.HasFlag(CreatureCondition.Invisible) ?? false))
+                target.RemoveStatus(invisStatus.Icon);
             target.Show();
+
+        }
+    }
+
+    [HybrasylMessageHandler(ControlOpcode.CombatLog)]
+    private void ControlMessage_CombatLog(HybrasylControlMessage message)
+    {
+        var targetGuid = (Guid) message.Arguments[0];
+        var logEvent = (ICombatEvent) message.Arguments[1];
+        var target = WorldState.GetWorldObject<Creature>(targetGuid);
+        if (target is not User user) return;
+        user.SendCombatLogMessage(logEvent);
     }
 
     #endregion Control Message Handlers
 
     #region Packet Handlers
 
+    [PacketHandler(0x05)]
     private void PacketHandler_0x05_RequestMap(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2258,6 +1772,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x06)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
@@ -2269,6 +1784,7 @@ public partial class World : Server
         user.Walk((Direction) direction);
     }
 
+    [PacketHandler(0x07)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
@@ -2403,6 +1919,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x08)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
@@ -2493,16 +2010,17 @@ public partial class World : Server
         user.Map.AddItem(x, y, toDrop);
     }
 
+    [PacketHandler(0x0E)]
     private void PacketHandler_0x0E_Talk(object obj, ClientPacket packet)
     {
         var user = (User) obj;
         var isShout = packet.ReadByte();
         var message = packet.ReadString8();
-        var cmdPrefix = Game.Config.Handlers?.Chat?.CommandPrefix ?? "/";
+        var cmdPrefix = Game.ActiveConfiguration.Handlers?.Chat?.CommandPrefix ?? "/";
 
         string argString;
         string cmd;
-        if (message.StartsWith(cmdPrefix) && (Game.Config.Handlers?.Chat?.CommandsEnabled ?? true))
+        if (message.StartsWith(cmdPrefix) && (Game.ActiveConfiguration.Handlers?.Chat?.CommandsEnabled ?? true))
         {
             // Strip prefix first
             var prefixRemoved = message.Remove(0, message.IndexOf(cmdPrefix) + cmdPrefix.Length);
@@ -2532,6 +2050,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x0F)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
@@ -2544,6 +2063,7 @@ public partial class World : Server
         user.Condition.Casting = false;
     }
 
+    [PacketHandler(0x0B)]
     private void PacketHandler_0x0B_ClientExit(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2580,6 +2100,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x0C)]
     private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -2591,6 +2112,7 @@ public partial class World : Server
             user.AoiEntry(missingVisibleObj);
     }
 
+    [PacketHandler(0x10)]
     private void PacketHandler_0x10_ClientJoin(object obj, ClientPacket packet)
     {
         var connectionId = (long) obj;
@@ -2607,7 +2129,7 @@ public partial class World : Server
 
         ((IDictionary) ExpectedConnections).Remove(id);
 
-        if (!WorldData.TryGetUser(name, out var loginUser))
+        if (!WorldState.TryGetUser(name, out var loginUser))
         {
             // Disconnect connection immediately, nothing good can come of this
             GameLog.Fatal("cid {id}: DESERIALIZATION FAILURE due to bug or corrupt user data, disconnecting",
@@ -2652,7 +2174,7 @@ public partial class World : Server
 
         foreach (var x in new List<byte> { 1, 2, 3, 4, 5, 6, 7, 8 })
             if (!loginUser.ClientSettings.ContainsKey(x))
-                loginUser.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
+                loginUser.ClientSettings[x] = Game.ActiveConfiguration.SettingsNumberIndex[x].Default;
 
         Insert(loginUser);
         GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);
@@ -2666,13 +2188,13 @@ public partial class World : Server
         }
         else if (loginUser.AuthInfo.FirstLogin)
         {
-            var handler = Game.Config.Handlers?.NewPlayer;
-            var targetmap = WorldData.First<Map>();
+            var handler = Game.ActiveConfiguration.Handlers?.NewPlayer;
+            var targetmap = WorldState.First<MapObject>();
             if (handler != null)
             {
                 var startmap = handler.GetStartMap();
                 loginUser.AuthInfo.FirstLogin = false;
-                if (WorldData.TryGetValueByIndex(startmap.Value, out Map map))
+                if (WorldState.TryGetValueByIndex(startmap.Value, out MapObject map))
                 {
                     loginUser.Teleport(map.Id, startmap.X, startmap.Y);
                 }
@@ -2699,7 +2221,7 @@ public partial class World : Server
                 loginUser.Teleport(spawnpoint.MapName, spawnpoint.X, spawnpoint.Y);
             else loginUser.Teleport(500, 50, 50);
         }
-        else if (WorldData.ContainsKey<Map>(loginUser.Location.MapId))
+        else if (WorldState.ContainsKey<MapObject>(loginUser.Location.MapId))
         {
             loginUser.Teleport(loginUser.Location.MapId, loginUser.Location.X, loginUser.Location.Y);
         }
@@ -2720,6 +2242,7 @@ public partial class World : Server
         loginUser.RequestPortrait();
     }
 
+    [PacketHandler(0x11)]
     [Prohibited(CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
     {
@@ -2730,6 +2253,7 @@ public partial class World : Server
         user.Turn((Direction) direction);
     }
 
+    [PacketHandler(0x13)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
@@ -2738,6 +2262,7 @@ public partial class World : Server
         user.AssailAttack(user.Direction);
     }
 
+    [PacketHandler(0x18)]
     private void PacketHandler_0x18_ShowPlayerList(object obj, ClientPacket packet)
     {
         var me = (User) obj;
@@ -2769,6 +2294,7 @@ public partial class World : Server
         me.Enqueue(listPacket);
     }
 
+    [PacketHandler(0x19)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x19_Whisper(object obj, ClientPacket packet)
     {
@@ -2792,17 +2318,17 @@ public partial class World : Server
                 EvalCommand.Evaluate(message, user);
                 break;
             case "@" when user.AuthInfo.IsPrivileged:
-                if (Game.Config.Access == null)
+                if (Game.ActiveConfiguration.Access == null)
                 {
                     user.SendSystemMessage("No privileged users defined in server config.");
                     return;
                 }
 
-                if (Game.Config.Access.AllPrivileged)
+                if (Game.ActiveConfiguration.Access.AllPrivileged)
                     foreach (var u in ActiveUsers)
                         u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
                 else
-                    foreach (var name in Game.Config.Access.PrivilegedUsers)
+                    foreach (var name in Game.ActiveConfiguration.Access.PrivilegedUsers)
                         if (TryGetActiveUser(name, out var u))
                             u.SendMessage($"{{=w[{user.Name}] {message}", MessageTypes.GUILD);
 
@@ -2894,7 +2420,7 @@ public partial class World : Server
         }
     }
 
-
+    [PacketHandler(0x1B)]
     private void PacketHandler_0x1B_Settings(object obj, ClientPacket packet)
     {
         // TODO: future expansion
@@ -2908,11 +2434,11 @@ public partial class World : Server
             // Send all settings
             foreach (var x in settings)
                 if (!user.ClientSettings.ContainsKey(x))
-                    user.ClientSettings[x] = Game.Config.SettingsNumberIndex[x].Default;
+                    user.ClientSettings[x] = Game.ActiveConfiguration.SettingsNumberIndex[x].Default;
 
             // for the record this is a very strange usage of a message packet
             var settingsString = string.Join("\t",
-                Game.Config.SettingsNumberIndex.Select(selector: kvp => string.Format("{0}  :{1}", kvp.Value.Value,
+                Game.ActiveConfiguration.SettingsNumberIndex.Select(selector: kvp => string.Format("{0}  :{1}", kvp.Value.Value,
                     user.ClientSettings[kvp.Key] ? "ON" : "OFF")));
             var x0a = new ServerPacketStructures.SettingsMessage
             {
@@ -2931,7 +2457,7 @@ public partial class World : Server
             else
                 user.ToggleClientSetting(settingNumber);
             var displayString =
-                $"{Game.Config.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] ? "ON" : "OFF")}";
+                $"{Game.ActiveConfiguration.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] ? "ON" : "OFF")}";
             var x0a = new ServerPacketStructures.SettingsMessage
                 { DisplayString = displayString, Number = settingNumber };
             var settingspacket = x0a.Packet();
@@ -2940,6 +2466,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x1C)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
@@ -3117,7 +2644,7 @@ public partial class World : Server
         }
     }
 
-
+    [PacketHandler(0x1D)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
@@ -3131,6 +2658,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x24)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
@@ -3199,6 +2727,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x2D)]
     private void PacketHandler_0x2D_PlayerInfo(object obj, ClientPacket packet)
     {
         //this handler also handles group management pane
@@ -3207,25 +2736,27 @@ public partial class World : Server
         user.SendProfile();
     }
 
-    /**
-     * Handle user-initiated grouping requests. There are a number of mechanisms in the client
-     * that send this packet, but generally amount to one of three serverside actions:
-     * 1) Request that the user join my group (stage 0x02).
-     * 2) Leave the group I'm currently in (stage 0x02).
-     * 3) Confirm that I'd like to accept a group request (stage 0x03).
-     * The general flow here consists of the following steps:
-     * Check to see if we should add the partner to the group, or potentially remove them
-     * 1) if user and partner are already in the same group.
-     * 2) Check to see if the partner is open for grouping. If not, fail.
-     * 3) Sending a group request to the group you're already in == ungroup request in USDA.
-     * 4) If the user's already grouped, they can't join this group.
-     * 5) Send them a dialog and have them explicitly accept.
-     * 6) If accepted, join group (see stage 0x03).
-     */
+    [PacketHandler(0x2E)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2E_GroupRequest(object obj, ClientPacket packet)
     {
+        /*
+         * Handle user-initiated grouping requests. There are a number of mechanisms in the client
+         * that send this packet, but generally amount to one of three serverside actions:
+         * 1) Request that the user join my group (stage 0x02).
+         * 2) Leave the group I'm currently in (stage 0x02).
+         * 3) Confirm that I'd like to accept a group request (stage 0x03).
+         * The general flow here consists of the following steps:
+         * Check to see if we should add the partner to the group, or potentially remove them
+         * 1) if user and partner are already in the same group.
+         * 2) Check to see if the partner is open for grouping. If not, fail.
+         * 3) Sending a group request to the group you're already in == ungroup request in USDA.
+         * 4) If the user's already grouped, they can't join this group.
+         * 5) Send them a dialog and have them explicitly accept.
+         * 6) If accepted, join group (see stage 0x03).
+         */
+
         var user = (User) obj;
 
         // stage:
@@ -3334,6 +2865,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x2F)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2F_GroupToggle(object obj, ClientPacket packet)
@@ -3357,6 +2889,7 @@ public partial class World : Server
         // are extra bytes coming through but not sure what purpose they serve.
     }
 
+    [PacketHandler(0x2A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
@@ -3411,6 +2944,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x29)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
@@ -3465,6 +2999,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x30)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x30_MoveUIElement(object obj, ClientPacket packet)
     {
@@ -3515,6 +3050,7 @@ public partial class World : Server
         // Is the slot invalid? Does at least one of the slots contain an item?
     }
 
+    [PacketHandler(0x3b)]
     private void PacketHandler_0x3B_AccessMessages(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -3596,6 +3132,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x3E)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
@@ -3607,6 +3144,7 @@ public partial class World : Server
         user.UseSkill(slot);
     }
 
+    [PacketHandler(0x3F)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
@@ -3617,7 +3155,7 @@ public partial class World : Server
         if (user.IsAtWorldMap)
         {
             MapPoint targetmap;
-            if (WorldData.TryGetValue(target, out targetmap))
+            if (WorldState.TryGetValue(target, out targetmap))
                 user.Teleport(targetmap.DestinationMap, targetmap.DestinationX, targetmap.DestinationY);
             else
                 GameLog.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",
@@ -3630,6 +3168,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x38)]
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x38_Refresh(object obj, ClientPacket packet)
     {
@@ -3638,6 +3177,7 @@ public partial class World : Server
         user.Refresh();
     }
 
+    [PacketHandler(0x39)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
     {
@@ -3727,6 +3267,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x3A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
     {
@@ -3752,13 +3293,13 @@ public partial class World : Server
 
         // Determine what is clicking / being clicked / etc
         if (objectType == DialogObjectType.CastableObject &&
-            Game.World.WorldData.TryGetValue(objectID, out CastableObject castableObj))
+            Game.World.WorldState.TryGetValue(objectID, out CastableObject castableObj))
         {
             clickTarget = castableObj;
             invocation = new DialogInvocation(castableObj, user, user);
         }
         // Is this an async dialog session (either one in progress, or one starting)
-        else if (objectType == DialogObjectType.Asynchronous && Game.World.WorldData.TryGetValue(objectID, out session))
+        else if (objectType == DialogObjectType.Asynchronous && Game.World.WorldState.TryGetValue(objectID, out session))
         {
             clickTarget = session;
             GameLog.Error($"Clicktarget set yo, clicktarget is {clickTarget}");
@@ -3975,6 +3516,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x43)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
     {
@@ -4058,6 +3600,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x44)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
@@ -4096,6 +3639,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x45)]
     private void PacketHandler_0x45_ByteHeartbeat(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4114,6 +3658,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x47)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
@@ -4152,6 +3697,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x4A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
@@ -4239,6 +3785,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x4D)]
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
     {
@@ -4246,6 +3793,7 @@ public partial class World : Server
         user.Condition.Casting = true;
     }
 
+    [PacketHandler(0x4E)]
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
     {
@@ -4259,6 +3807,7 @@ public partial class World : Server
         user.SendCastLine(enqueue);
     }
 
+    [PacketHandler(0x4F)]
     private void PacketHandler_0x4F_ProfileTextPortrait(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4271,6 +3820,7 @@ public partial class World : Server
         user.ProfileText = profileText;
     }
 
+    [PacketHandler(0x55)]
     private void PacketHandler_0x55_Manufacture(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4280,6 +3830,7 @@ public partial class World : Server
         user.ManufactureState.ProcessManufacturePacket(packet);
     }
 
+    [PacketHandler(0x75)]
     private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4297,6 +3848,7 @@ public partial class World : Server
         }
     }
 
+    [PacketHandler(0x79)]
     private void PacketHandler_0x79_Status(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4304,6 +3856,7 @@ public partial class World : Server
         if (status <= 7) user.GroupStatus = (UserStatus) status;
     }
 
+    [PacketHandler(0x7B)]
     private void PacketHandler_0x7B_RequestMetafile(object obj, ClientPacket packet)
     {
         var user = (User) obj;
@@ -4313,8 +3866,8 @@ public partial class World : Server
         {
             var x6F = new ServerPacket(0x6F);
             x6F.WriteBoolean(all);
-            x6F.WriteUInt16((ushort) WorldData.Count<CompiledMetafile>());
-            foreach (var metafile in WorldData.Values<CompiledMetafile>())
+            x6F.WriteUInt16((ushort) WorldState.Count<CompiledMetafile>());
+            foreach (var metafile in WorldState.Values<CompiledMetafile>())
             {
                 x6F.WriteString8(metafile.Name);
                 GameLog.Info($"Responding 6F: adding {metafile.Name}, checksum {metafile.Checksum}");
@@ -4326,8 +3879,8 @@ public partial class World : Server
         else
         {
             var name = packet.ReadString8();
-            if (!WorldData.ContainsKey<CompiledMetafile>(name)) return;
-            var file = WorldData.Get<CompiledMetafile>(name);
+            if (!WorldState.ContainsKey<CompiledMetafile>(name)) return;
+            var file = WorldState.Get<CompiledMetafile>(name);
             GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
             var x6F = new ServerPacket(0x6F);
             x6F.WriteBoolean(all);

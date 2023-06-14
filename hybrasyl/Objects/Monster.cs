@@ -28,7 +28,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -65,7 +65,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public List<string> Immunities { get; set; }
 
-    public Monster(Xml.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
+    public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {
         _actionQueue = new ConcurrentQueue<MobAction>();
@@ -109,7 +109,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         AllocateStats();
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-        if (BehaviorSet?.Behavior == null) return;
+        if (BehaviorSet?.Behavior?.SetCookies == null) return;
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }
@@ -364,15 +364,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
-        if (Script == null) return;
-        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
-            ("origin", new HybrasylWorldObject(this)));
-
-        if (e.Speaker is User user)
-            env.Add("source", new HybrasylUser(user));
-        else
-            env.Add("source", new HybrasylWorldObject(e.Speaker));
-        Script.ExecuteFunction("OnHear", env);
+        base.OnHear(e);
     }
 
 
@@ -380,12 +372,12 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         lock (_lock)
         {
-            if (damageEvent.Attacker != null && !damageEvent.Flags.HasFlag(DamageFlags.NoThreat))
+            if (damageEvent.Source != null && !damageEvent.Flags.HasFlag(DamageFlags.NoThreat))
             {
-                if (!ThreatInfo.ContainsThreat(damageEvent.Attacker))
-                    ThreatInfo.AddNewThreat(damageEvent.Attacker, damageEvent.Damage);
+                if (!ThreatInfo.ContainsThreat(damageEvent.Source))
+                    ThreatInfo.AddNewThreat(damageEvent.Source, damageEvent.Amount);
                 else
-                    ThreatInfo.IncreaseThreat(damageEvent.Attacker, damageEvent.Damage);
+                    ThreatInfo.IncreaseThreat(damageEvent.Source, damageEvent.Amount);
             }
 
             Condition.Asleep = false;
@@ -393,23 +385,24 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             // FIXME: in the glorious future, run asynchronously with locking
             InitScript();
+            if (damageEvent.Source is User user)
+                user.SendCombatLogMessage(damageEvent);
 
             if (Script == null) return;
-
-            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Attacker);
-            env.Add("damage", damageEvent.Damage);
-
+            
+            var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Source);
+            env.Add("damage", damageEvent);
             Script.ExecuteFunction("OnDamage", env);
         }
     }
 
-    public override void OnHeal(Creature healer, uint heal)
+    public override void OnHeal(HealEvent healEvent)
     {
         // FIXME: in the glorious future, run asynchronously with locking
         InitScript();
         if (Script == null) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healer, this, healer);
-        env.Add("heal", heal);
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healEvent.Source, this, healEvent.Source);
+        env.Add("heal", healEvent);
         Script.ExecuteFunction("OnHeal", env);
     }
 

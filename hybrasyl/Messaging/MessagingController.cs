@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Enums;
 using Hybrasyl.Plugins;
 
 namespace Hybrasyl.Messaging;
@@ -46,7 +47,7 @@ internal static class MessagingController
 
         boards.Add((ushort.MaxValue - 1, $"{userRef.UserName}'s Sent Messages"));
 
-        foreach (var board in Game.World.WorldData.Values<Board>().Where(predicate: mb => mb.Global &&
+        foreach (var board in Game.World.WorldState.Values<Board>().Where(predicate: mb => mb.Global &&
                      mb.CheckAccessLevel(userRef.UserName,
                          BoardAccessLevel.Read)))
             boards.Add(((ushort) board.Id, board.DisplayName));
@@ -66,18 +67,18 @@ internal static class MessagingController
         var responseType = BoardResponseType.GetBoardIndex;
         if (boardId == 0)
         {
-            store = Game.World.WorldData.GetOrCreate<Mailbox>(userRef);
+            store = Game.World.WorldState.GetOrCreate<Mailbox>(userRef);
             displayname = $"{store.DisplayName}'s Mail";
             responseType = BoardResponseType.GetMailboxIndex;
         }
         else if (boardId == ushort.MaxValue - 1)
         {
-            store = Game.World.WorldData.GetOrCreate<SentMail>(userRef);
+            store = Game.World.WorldState.GetOrCreate<SentMail>(userRef);
             displayname = $"{userRef.UserName}'s Sent Messages";
         }
         else
         {
-            if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
+            if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
             {
                 store = board;
                 displayname = board.DisplayName;
@@ -111,15 +112,15 @@ internal static class MessagingController
         MessageStore store;
         if (boardId == 0)
         {
-            store = Game.World.WorldData.GetOrCreate<Mailbox>(userRef);
+            store = Game.World.WorldState.GetOrCreate<Mailbox>(userRef);
         }
         else if (boardId == ushort.MaxValue - 1)
         {
-            store = Game.World.WorldData.GetOrCreate<SentMail>(userRef);
+            store = Game.World.WorldState.GetOrCreate<SentMail>(userRef);
         }
         else
         {
-            if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
+            if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
             {
                 if (!board.CheckAccessLevel(userRef.UserName, BoardAccessLevel.Read))
                     return new ServerPacketStructures.MessagingResponse
@@ -229,9 +230,9 @@ internal static class MessagingController
         {
             MessageStore store;
             if (boardId == 0)
-                store = Game.World.WorldData.GetOrCreate<Mailbox>(userRef);
+                store = Game.World.WorldState.GetOrCreate<Mailbox>(userRef);
             else
-                store = Game.World.WorldData.GetOrCreate<SentMail>(userRef);
+                store = Game.World.WorldState.GetOrCreate<SentMail>(userRef);
 
             if (store.DeleteMessage(messageId))
             {
@@ -243,9 +244,9 @@ internal static class MessagingController
                 response = "The message could not be found.";
             }
         }
-        else if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
+        else if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
         {
-            if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out var ainfo))
+            if (Game.World.WorldState.TryGetAuthInfo(userRef.UserName, out var ainfo))
             {
                 var delmsg = board.GetMessage(messageId);
 
@@ -296,7 +297,7 @@ internal static class MessagingController
         var response = string.Empty;
         var success = true;
 
-        var senderSentMail = Game.World.WorldData.GetOrCreate<SentMail>(senderRef);
+        var senderSentMail = Game.World.WorldState.GetOrCreate<SentMail>(senderRef);
 
         // Don't allow blank title or subject
         if (string.IsNullOrWhiteSpace(subject))
@@ -328,11 +329,8 @@ internal static class MessagingController
         try
         {
             IMessageHandler handler;
-            Xml.MessageType type;
-            if (boardId == 0)
-                type = Xml.MessageType.Mail;
-            else
-                type = Xml.MessageType.BoardMessage;
+            Xml.Objects.MessageType type;
+            type = boardId == 0 ? Xml.Objects.MessageType.Mail : Xml.Objects.MessageType.BoardMessage;
 
             var message = new Plugins.Message(type, senderRef.UserName, recipient, subject, body);
 
@@ -340,7 +338,7 @@ internal static class MessagingController
 
             if (handler is IProcessingMessageHandler pmh && success)
             {
-                var msg = new Plugins.Message(Xml.MessageType.Mail, senderRef.UserName, recipient, subject, body);
+                var msg = new Plugins.Message(Xml.Objects.MessageType.Mail, senderRef.UserName, recipient, subject, body);
                 var resp = pmh.Process(msg);
                 if (!pmh.Passthrough)
                 {
@@ -377,7 +375,7 @@ internal static class MessagingController
         // both here
         if (boardId == 0 && success)
         {
-            var receiverRef = Game.World.WorldData.GetGuidReference(recipient);
+            var receiverRef = Game.World.WorldState.GetGuidReference(recipient);
             if (receiverRef == null)
             {
                 success = false;
@@ -385,7 +383,7 @@ internal static class MessagingController
             }
             else
             {
-                var mailbox = Game.World.WorldData.GetOrCreate<Mailbox>(receiverRef);
+                var mailbox = Game.World.WorldState.GetOrCreate<Mailbox>(receiverRef);
                 var msg = new Message(recipient, senderRef.UserName, subject, body);
                 try
                 {
@@ -400,7 +398,7 @@ internal static class MessagingController
                     {
                         response = $"Your letter to {recipient} was sent.";
                         GameLog.InfoFormat("mail: {0} sent message to {1}", senderRef.UserName, recipient);
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MailNotifyUser,
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MailNotifyUser,
                             recipient));
                         senderSentMail.LastMailRecipient = recipient;
                         senderSentMail.LastMailMessageSent = DateTime.Now;
@@ -424,9 +422,9 @@ internal static class MessagingController
         }
         else if (success)
         {
-            if (Game.World.WorldData.TryGetValueByIndex(boardId, out Board board))
+            if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
             {
-                if (Game.World.WorldData.TryGetAuthInfo(senderRef.UserName, out var ainfo))
+                if (Game.World.WorldState.TryGetAuthInfo(senderRef.UserName, out var ainfo))
                 {
                     if (ainfo.IsPrivileged || board.CheckAccessLevel(ainfo.Username, BoardAccessLevel.Write))
                     {
@@ -476,9 +474,9 @@ internal static class MessagingController
         Board board;
         var messageId = postId - 1;
 
-        if (Game.World.WorldData.TryGetAuthInfo(userRef.UserName, out var ainfo) && ainfo.IsPrivileged)
+        if (Game.World.WorldState.TryGetAuthInfo(userRef.UserName, out var ainfo) && ainfo.IsPrivileged)
         {
-            if (Game.World.WorldData.TryGetValueByIndex(boardId, out board))
+            if (Game.World.WorldState.TryGetValueByIndex(boardId, out board))
             {
                 if (board.ToggleHighlight((short) messageId))
                 {

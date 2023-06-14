@@ -24,9 +24,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Threading;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -353,7 +354,7 @@ public class Exchange
 
 [JsonObject(MemberSerialization.OptIn)]
 [RedisType]
-public class Vault
+public class Vault : IStateStorable
 {
     public bool IsSaving;
 
@@ -477,7 +478,7 @@ public class Vault
         IsSaving = true;
         var cache = World.DatastoreConnection.GetDatabase();
         cache.Set(StorageKey, this);
-        Game.World.WorldData.Set(OwnerGuid, this);
+        Game.World.WorldState.Set(OwnerGuid, this);
         IsSaving = false;
     }
 }
@@ -541,7 +542,7 @@ public class Moneygram
 
 [JsonObject(MemberSerialization.OptIn)]
 [RedisType]
-public class ParcelStore
+public class ParcelStore : IStateStorable
 {
     private readonly object _lock = new();
 
@@ -570,7 +571,7 @@ public class ParcelStore
             IsSaving = true;
             var cache = World.DatastoreConnection.GetDatabase();
             cache.Set(StorageKey, this);
-            Game.World.WorldData.Set(OwnerGuid, this);
+            Game.World.WorldState.Set(OwnerGuid, this);
             IsSaving = false;
         }
     }

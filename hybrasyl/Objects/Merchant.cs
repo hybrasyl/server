@@ -27,7 +27,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -177,11 +177,11 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
     }
 
     // Currently, NPCs can not be healed or damaged in any way whatsoever
-    public override void Heal(double heal, Creature source = null) { }
+    public override void Heal(double heal, Creature source = null, Castable castable = null) { }
 
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        bool onDeath = true) { }
+        Castable castable = null, bool onDeath = true) { }
 
     public void OnSpawn()
     {

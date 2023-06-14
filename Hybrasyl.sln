@@ -5,8 +5,6 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hybrasyl", "hybrasyl\Hybrasyl.csproj", "{62750A08-502D-41E2-A08F-177D45161D07}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XML", "XML\XML.csproj", "{0B5276B1-BE53-4CB2-9C68-5EBBB5624631}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HybrasylTests", "HybrasylTests\HybrasylTests.csproj", "{45C74D2B-55A0-4D16-B147-E362BBAB78E1}"
 EndProject
 Global
@@ -19,10 +17,6 @@ Global
 		{62750A08-502D-41E2-A08F-177D45161D07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{62750A08-502D-41E2-A08F-177D45161D07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{62750A08-502D-41E2-A08F-177D45161D07}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0B5276B1-BE53-4CB2-9C68-5EBBB5624631}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0B5276B1-BE53-4CB2-9C68-5EBBB5624631}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0B5276B1-BE53-4CB2-9C68-5EBBB5624631}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0B5276B1-BE53-4CB2-9C68-5EBBB5624631}.Release|Any CPU.Build.0 = Release|Any CPU
 		{45C74D2B-55A0-4D16-B147-E362BBAB78E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{45C74D2B-55A0-4D16-B147-E362BBAB78E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45C74D2B-55A0-4D16-B147-E362BBAB78E1}.Release|Any CPU.ActiveCfg = Release|Any CPU

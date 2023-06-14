@@ -25,7 +25,7 @@ using System.Collections.Specialized;
 using Hybrasyl.ChatCommands;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Creature = Hybrasyl.Objects.Creature;
 
@@ -450,9 +450,9 @@ public class HybrasylWorld
 
     public void SpawnMonster(ushort mapId, byte x, byte y, string name, string behaviorSet, int level, string displayName=null)
     {
-        if (!Game.World.WorldData.TryGetValue(name, out Xml.Creature creature)) return;
+        if (!Game.World.WorldData.TryGetValue(name, out Xml.Objects.Creature creature)) return;
         if (!Game.World.WorldData.TryGetValue(behaviorSet, out CreatureBehaviorSet cbs)) return;
-        if (!Game.World.WorldData.TryGetValue(mapId, out Map map)) return;
+        if (!Game.World.WorldState.TryGetValue(mapId, out MapObject map)) return;
 
         var spawn = new Monster(creature, SpawnFlags.Active, (byte) level,null, cbs);
 

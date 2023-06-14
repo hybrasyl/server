@@ -26,7 +26,7 @@ using Hybrasyl.Casting;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Creature = Hybrasyl.Objects.Creature;
 
@@ -334,8 +334,8 @@ public class HybrasylWorldObject : IScriptable
             return false;
         }
 
-        if (!Game.World.WorldData.TryGetWorldObject(origin, out originObj) &&
-            !Game.World.WorldData.TryGetValueByIndex(origin, out originCastable))
+        if (!Game.World.WorldState.TryGetWorldObject(origin, out originObj) &&
+            !Game.World.WorldState.TryGetValueByIndex(origin, out originCastable))
         {
             GameLog.ScriptingWarning($"RequestDialog: {originGuid} not found");
             return false;
@@ -350,7 +350,7 @@ public class HybrasylWorldObject : IScriptable
             return false;
         }
 
-        if (!Game.World.WorldData.TryGetWorldObject(source, out WorldObject worldObj))
+        if (!Game.World.WorldState.TryGetWorldObject(source, out WorldObject worldObj))
         {
             GameLog.ScriptingError($"RequestDialog: source guid {sourceGuid} could not be found");
             return false;

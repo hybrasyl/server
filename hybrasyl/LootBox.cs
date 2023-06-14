@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -144,10 +144,10 @@ public static class LootBox
         {
             // Is the set present?
             GameLog.SpawnInfo("Processing loot set {Name}", set.Name);
-            if (Game.World.WorldData.TryGetValueByIndex(set.Name, out LootSet lootset))
+            if (Game.World.WorldData.TryGetValue(set.Name, out LootSet lootset))
                 loot += CalculateLoot(lootset, set.Rolls, set.Chance);
             else
-                GameLog.Warning("Loot set {name} referenced in list, but could not be loaded", set.Name);
+                GameLog.Warning($"Loot set {set.Name} referenced in loot list, but could not be loaded");
         }
 
         // Now, calculate loot for any tables attached to the spawn
@@ -258,7 +258,7 @@ public static class LootBox
         foreach (var lootitem in loot)
         {
             // Does the base item exist?
-            var xmlItemList = Game.World.WorldData.FindItem(lootitem.Value);
+            var xmlItemList = Game.World.WorldData.FindItem(lootitem.Value).ToList();
             // Don't handle the edge case of multiple genders .... yet
             if (xmlItemList.Count != 0)
             {
@@ -269,10 +269,10 @@ public static class LootBox
                 {
                     // Determine overlap between available variants and specified variants
                     var lootedVariant = lootitem.Variants.PickRandom();
-                    if (xmlItem.Variants.TryGetValue(lootedVariant, out var variantItems))
+                    if (xmlItem.Variants?.TryGetValue(lootedVariant, out var variantItems) ?? false)
                         itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                     else
-                        GameLog.SpawnError("Spawn loot calculation: variant group {name} not found", lootedVariant);
+                        GameLog.SpawnError($"Loot: variant group {lootedVariant} specified for {xmlItem.Name} but that item does not have the specified variant");
                 }
                 else
                 {

@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Hybrasyl;
+using Hybrasyl.Enums;
 
 namespace HybrasylGrpc;
 
@@ -41,7 +42,7 @@ internal class PatronServer : Patron.PatronBase
         {
             if (!World.ControlMessageQueue.IsAddingCompleted)
             {
-                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer,
+                World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ShutdownServer,
                     context.Peer, request.Delay));
                 resp.Message = "Shutdown request successfully submitted";
                 resp.Success = true;
@@ -102,7 +103,7 @@ internal class PatronServer : Patron.PatronBase
     {
         try
         {
-            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out var login))
+            if (Game.World.WorldState.TryGetAuthInfo(request.Username, out var login))
             {
                 if (login.VerifyPassword(request.Password))
                     return Task.FromResult(new BooleanMessageReply { Message = "", Success = true });
@@ -124,7 +125,7 @@ internal class PatronServer : Patron.PatronBase
     {
         try
         {
-            if (Game.World.WorldData.TryGetAuthInfo(request.Username, out var login))
+            if (Game.World.WorldState.TryGetAuthInfo(request.Username, out var login))
             {
                 // Simple length check
                 if (request.NewPassword.Length > 8 || request.NewPassword.Length < 4)

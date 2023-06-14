@@ -23,6 +23,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Interfaces;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
@@ -30,7 +31,7 @@ namespace Hybrasyl.Messaging;
 public class MessageStoreLocked : Exception { }
 
 [JsonObject(MemberSerialization.OptIn)]
-public class MessageStore : IEnumerable<Message>
+public class MessageStore : IEnumerable<Message>, IStateStorable
 {
     private readonly object Lock;
     [JsonProperty] public short CurrentId;

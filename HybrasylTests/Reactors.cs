@@ -1,9 +1,9 @@
 ﻿using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
-using Creature = Hybrasyl.Xml.Creature;
+using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace HybrasylTests;
 
@@ -22,6 +22,7 @@ public class Reactor
     {
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
+        Fixture.TestUser.Stats.Level = 41; // Test trap formula for uses is 2 uses > 40, 1 use otherwise
         Fixture.TestUser.Teleport(Fixture.Map.Id, 20, 20);
 
         var trapTest = Game.World.WorldData.GetByIndex<Castable>("Test Trap");
@@ -40,11 +41,8 @@ public class Reactor
         Assert.Equal(Fixture.TestUser.X, reactor.X);
         Assert.Equal(Fixture.TestUser.Y, reactor.Y);
         Assert.Equal(Fixture.TestUser.Guid, reactor.CreatedBy);
+        Assert.Equal(2, reactor.Uses);
     }
-
-    [Fact]
-    public void MapReactorCreation() { }
-
 
     [Fact]
     public void CastableReactorUsage()
@@ -52,6 +50,8 @@ public class Reactor
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
         Fixture.TestUser.Teleport(Fixture.Map.Id, 15, 15);
+        // Test trap formula for uses is 2 uses > 40, 1 use otherwise
+        Fixture.TestUser.Stats.Level = 39;
 
         var trapTest = Game.World.WorldData.GetByIndex<Castable>("Test Trap");
 
@@ -92,13 +92,18 @@ public class Reactor
 
         // Bait should be undamaged
         Assert.Equal((uint) 500, bait.Stats.Hp);
-
-        // Walk onto reactor
-        Assert.True(bait.Walk(Direction.East), "Walk failed");
-
         var reactors = Fixture.Map.Reactors[(15, 15)];
         Assert.Single(reactors.Values);
         var reactor = reactors.Values.First();
+
+        // Reactor should have one use remaining
+        Assert.Equal(1, reactor.Uses);
+
+        // Bait walks onto reactor, triggering it
+        Assert.True(bait.Walk(Direction.East), "Walk failed");
+
+        // Reactor is used, should be 0 uses remaining
+        Assert.Equal(0, reactor.Uses);
         Assert.Equal(bait.X, reactor.X);
         Assert.Equal(bait.Y, reactor.Y);
 
@@ -109,6 +114,5 @@ public class Reactor
         Assert.Equal((uint) 475, bait.Stats.Hp);
     }
 
-    [Fact]
-    public void MapReactorUsage() { }
+
 }

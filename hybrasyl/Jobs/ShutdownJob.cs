@@ -20,6 +20,7 @@
  */
 
 using System.Timers;
+using Hybrasyl.Enums;
 
 namespace Hybrasyl.Jobs;
 
@@ -34,7 +35,7 @@ public static class ShutdownJob
         if (Game.ShutdownTimeRemaining == 0)
         {
             // Shutdown has arrived
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.ShutdownServer, "job", 0));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ShutdownServer, "job", 0));
             return;
         }
 

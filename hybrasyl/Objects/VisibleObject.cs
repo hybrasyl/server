@@ -27,7 +27,8 @@ using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
-using Hybrasyl.Xml;
+using Hybrasyl.Scripting;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -47,7 +48,7 @@ public class VisibleObject : WorldObject, IVisible
     }
 
     // TODO: Clean these up later and simply use Location instead
-    public Map Map
+    public MapObject Map
     {
         get => Location.Map;
         set => Location.Map = value;
@@ -154,8 +155,17 @@ public class VisibleObject : WorldObject, IVisible
     public virtual void OnClick(User invoker) { }
     public virtual void OnDeath() { }
     public virtual void OnDamage(DamageEvent damageEvent) { }
-    public virtual void OnHeal(Creature healer, uint damage) { }
-    public virtual void OnHear(SpokenEvent e) { }
+    public virtual void OnHeal(HealEvent healEvent) { }
+
+    public virtual void OnHear(SpokenEvent e)
+    {
+        if (Script == null) return;
+        var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
+            ("origin", this));
+
+        env.Add("event", e);
+        Script.ExecuteFunction("OnHear", env);
+    }
 
     public Rectangle GetBoundingBox() => new(X, Y, 1, 1);
 
@@ -201,23 +211,23 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void Teleport(ushort mapid, byte x, byte y)
     {
-        if (!World.WorldData.ContainsKey<Map>(mapid)) return;
+        if (!World.WorldState.ContainsKey<MapObject>(mapid)) return;
         Map?.Remove(this);
-        GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldData.Get<Map>(mapid).Name);
-        World.WorldData.Get<Map>(mapid).Insert(this, x, y);
+        GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldState.Get<MapObject>(mapid).Name);
+        World.WorldState.Get<MapObject>(mapid).Insert(this, x, y);
     }
 
     public virtual void Teleport(string name, byte x, byte y)
     {
-        if (string.IsNullOrEmpty(name) || !World.WorldData.TryGetValueByIndex(name, out Map targetMap)) return;
+        if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex(name, out MapObject targetMap)) return;
         Map?.Remove(this);
         GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
         targetMap.Insert(this, x, y);
     }
 
-    public virtual void SendMapInfo() { }
+    public virtual void SendMapInfo(int transmitDelay=0) { }
 
-    public virtual void SendLocation() { }
+    public virtual void SendLocation(int transmitDelay=0) { }
 
     public virtual void Say(string message, string from = "")
     {

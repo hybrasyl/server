@@ -1,5 +1,5 @@
 ﻿using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
@@ -95,7 +95,7 @@ public class HybrasylMonster : HybrasylWorldObject
             s += "ThreatInfo:\n";
             foreach (var user in Monster.ThreatInfo.ThreatTableByCreature)
                 s +=
-                    $"Name: {Game.World.WorldData.GetWorldObject<VisibleObject>(user.Key)?.Name ?? "unknown"} | Threat: {user.Value}\n";
+                    $"Name: {Game.World.WorldState.GetWorldObject<VisibleObject>(user.Key)?.Name ?? "unknown"} | Threat: {user.Value}\n";
         }
 
         return s;

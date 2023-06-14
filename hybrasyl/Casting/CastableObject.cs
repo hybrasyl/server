@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Script = Hybrasyl.Scripting.Script;
 
 namespace Hybrasyl.Casting;
 
 [MoonSharpUserData]
-public class CastableObject : IInteractable
+public class CastableObject : IInteractable, IStateStorable
 {
     public Guid Guid { get; set; }
     public Castable Template { get; set; }

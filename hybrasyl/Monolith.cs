@@ -27,8 +27,9 @@ using System.Linq;
 using System.Threading;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
-using Creature = Hybrasyl.Xml.Creature;
+using Hybrasyl.Xml.Objects;
+using Creature = Hybrasyl.Xml.Objects.Creature;
+
 
 namespace Hybrasyl;
 
@@ -47,7 +48,7 @@ internal class Monolith
 
     public static string SpawnMapKey(ushort id) => $"hyb-{Instance}-{id}";
 
-    public void LoadSpawns(Map map)
+    public void LoadSpawns(MapObject map)
     {
         if (map.SpawnDirectives?.Spawns == null) return;
 
@@ -76,39 +77,54 @@ internal class Monolith
             map.SpawnDirectives.Name = SpawnMapKey(map.Id);
         map.SpawnDirectives.Spawns = spawnlist;
         map.SpawnDirectives.MapId = map.Id;
+        map.SpawnDirectives.Status = new SpawnStatus();
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
     }
 
     public void Start()
     {
         // Resolve active spawns
-        foreach (var spawnmap in Game.World.WorldData.Values<Map>())
+        foreach (var spawnmap in Game.World.WorldState.Values<MapObject>())
         {
             if (spawnmap.SpawningDisabled) continue;
             LoadSpawns(spawnmap);
         }
 
         while (true)
-            try
+        {
+            if (World.ControlMessageQueue.IsCompleted)
+                break;
+            foreach (var (key, spawngroup) in Spawns)
             {
-                if (World.ControlMessageQueue.IsCompleted)
-                    break;
-                foreach (var key in Spawns.Keys)
-                    if (Spawns.TryGetValue(key, out var group))
-                        Spawn(group);
-                Thread.Sleep(5000);
+                spawngroup.Status ??= new SpawnStatus();
+                try
+                {
+                    Spawn(spawngroup);
+                    spawngroup.Status.LastSpawnTime = DateTime.Now;
+                }
+                catch (Exception ex)
+                {
+                    GameLog.SpawnFatal($"Unhandled exception {ex} in spawn thread");
+                    spawngroup.Status.ErrorCount++;
+                    spawngroup.Status.LastErrorTime = DateTime.Now;
+                    spawngroup.Status.LastException = ex;
+                    if (spawngroup.Status.ErrorCount > 5)
+                    {
+                        GameLog.SpawnError($"Spawngroup {spawngroup.Name} disabled due to errors");
+                        spawngroup.Disabled = true;
+                    }
+                }
             }
-            catch (Exception ex)
-            {
-                GameLog.SpawnFatal($"Unhandled exception {ex} in spawn thread");
-            }
+            Thread.Sleep(1000);
+        }
     }
 
     public void Spawn(SpawnGroup spawnGroup)
     {
-        if (!Game.World.WorldData.TryGetValue(spawnGroup.MapId, out Map spawnmap))
+        if (!Game.World.WorldState.TryGetValue(spawnGroup.MapId, out MapObject spawnmap))
         {
-            GameLog.SpawnWarning($"Map id {spawnGroup.MapId}: not found");
+            GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}: Map {spawnGroup.MapId} not found, disabling group");
+            spawnGroup.Status.Disabled = true;
             return;
         }
 
@@ -117,13 +133,15 @@ internal class Monolith
 
         foreach (var spawn in spawnGroup.Spawns)
         {
+
+            spawn.Status ??= new SpawnStatus();
             if (spawnmap.SpawnDebug)
                 GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: {spawn.Name} processing");
             var monsters = spawnmap.Monsters;
 
             // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
             // previously had errors and was disabled - continue on
-            if (spawnmap.SpawningDisabled || spawn.Disabled)
+            if (spawnmap.SpawningDisabled || spawn.Status.Disabled)
             {
                 GameLog.SpawnWarning(
                     $"Spawngroup {spawnGroup.Name}, map {spawnmap.Name}: spawn disabled or map spawning disabled");
@@ -134,6 +152,7 @@ internal class Monolith
             {
                 GameLog.SpawnWarning(
                     $"Spawngroup {spawnGroup.Name}, map {spawnmap.Name}: no spec defined for spawning");
+                spawn.Status.Disabled = true;
                 continue;
             }
 
@@ -174,12 +193,12 @@ internal class Monolith
                 else
                     baseLevel = (int) FormulaParser.Eval(spawn.Base.Level, formeval);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                spawn.Disabled = true;
-                spawn.ErrorMessage = $"Spawn disabled due to formula evaluation exception: {e}";
-                GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to exception: {ex}", spawn.Name,
-                    spawnmap.Name, e);
+                spawn.Status.Disabled = true;
+                spawn.Status.LastException = ex;
+                GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to formula evaluation exception: {ex}", spawn.Name,
+                    spawnmap.Name, ex);
                 continue;
             }
 
@@ -193,13 +212,12 @@ internal class Monolith
                 continue;
             }
 
-            var since = (DateTime.Now - spawn.LastSpawn).TotalSeconds;
 
-            if (since < interval)
+            if (spawn.Status.LastSpawnSeconds < interval)
             {
                 if (spawnmap.SpawnDebug)
                     GameLog.SpawnInfo(
-                        $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - last spawn was {since} ago, interval {interval}");
+                        $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - last spawn was {spawn.Status.LastSpawnSeconds} ago, interval {interval}");
                 continue;
             }
 
@@ -306,11 +324,11 @@ internal class Monolith
                                 // They need some kind of weapon
                                 if (Game.World.WorldData.TryGetValueByIndex("monsterblade", out Item template))
                                 {
-                                    var newTemplate = template.Clone();
-                                    template.Properties.Damage.Small.Min = minDmg;
-                                    template.Properties.Damage.Small.Max = maxDmg;
-                                    template.Properties.Damage.Large.Min = minDmg;
-                                    template.Properties.Damage.Large.Max = maxDmg;
+                                    var newTemplate = template.Clone<Item>();
+                                    template.Properties.Damage.SmallMin = minDmg;
+                                    template.Properties.Damage.SmallMax = maxDmg;
+                                    template.Properties.Damage.LargeMin = minDmg;
+                                    template.Properties.Damage.LargeMax = maxDmg;
                                     template.Properties.Physical.Durability = uint.MaxValue / 10;
                                     baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
@@ -318,12 +336,12 @@ internal class Monolith
                                     baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
                                 }
                         }
-                        catch (Exception e)
+                        catch (Exception ex)
                         {
-                            spawn.Disabled = true;
-                            spawn.ErrorMessage = $"Spawn disabled due to formula evaluation exception: {e}";
+                            spawn.Status.Disabled = true;
+                            spawn.Status.LastException = ex;
                             GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to exception: {ex}", spawn.Name,
-                                spawnmap.Name, e);
+                                spawnmap.Name, ex);
                             continue;
                         }
                     }
@@ -338,12 +356,12 @@ internal class Monolith
                             Ac = (sbyte) FormulaParser.Eval(spawn.Defense.Ac, formeval);
                             Mr = (sbyte) FormulaParser.Eval(spawn.Defense.Mr, formeval);
                         }
-                        catch (Exception e)
+                        catch (Exception ex)
                         {
-                            spawn.Disabled = true;
-                            spawn.ErrorMessage = $"Spawn disabled due to formula evaluation exception: {e}";
+                            spawn.Status.Disabled = true;
+                            spawn.Status.LastException = ex;
                             GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to exception: {ex}", spawn.Name,
-                                spawnmap.Name, e);
+                                spawnmap.Name, ex);
                             continue;
                         }
 
@@ -357,17 +375,17 @@ internal class Monolith
                 }
                 else
                 {
-                    GameLog.SpawnWarning("Map {map}: Spawn {spawn} not found", spawnmap.Name, spawn.Name);
+                    GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}: map {spawnmap.Name} Spawn {spawn.Name} not found");
                 }
 
-            spawn.LastSpawn = DateTime.Now;
+            spawn.Status.LastSpawnTime = DateTime.Now;
         }
     }
 
-    private static void SpawnMonster(Monster monster, Map map)
+    private static void SpawnMonster(Monster monster, MapObject map)
     {
         if (!World.ControlMessageQueue.IsCompleted)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithSpawn, monster, map));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
     }
 }
 
@@ -375,10 +393,10 @@ internal class MonolithControl
 {
     internal MonolithControl()
     {
-        _maps = Game.World.WorldData.Values<Map>().ToList();
+        _maps = Game.World.WorldState.Values<MapObject>().ToList();
     }
 
-    private IEnumerable<Map> _maps { get; set; }
+    private IEnumerable<MapObject> _maps { get; set; }
 
     public void Start()
     {
@@ -409,14 +427,14 @@ internal class MonolithControl
             // Refresh our list every 15 seconds in case of XML reloading
             if (x == 30)
             {
-                _maps = Game.World.WorldData.Values<Map>().ToList();
+                _maps = Game.World.WorldState.Values<MapObject>().ToList();
                 x = 0;
             }
         }
     }
 
 
-    private static void Evaluate(Monster monster, Map map)
+    private static void Evaluate(Monster monster, MapObject map)
     {
         if (!(monster.LastAction < DateTime.Now.AddMilliseconds(-monster.ActionDelay))) return;
 
@@ -427,6 +445,6 @@ internal class MonolithControl
             // Mobs on empty maps don't move, it's a waste of time
             return;
         if (!World.ControlMessageQueue.IsCompleted)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.MonolithControl, monster, map));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithControl, monster, map));
     }
 }

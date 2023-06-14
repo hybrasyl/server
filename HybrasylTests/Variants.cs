@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using Hybrasyl;
 using Hybrasyl.Enums;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace HybrasylTests;
@@ -21,7 +21,7 @@ public class Variant
     {
         Assert.True(Game.World.WorldData.TryGetValueByIndex<Item>("Variant Test Boots 2", out var variant));
         Assert.True(Game.World.WorldData.TryGetValueByIndex<Item>("Test Boots 2", out var baseItem));
-        Assert.True(Game.World.WorldData.TryGetValue<VariantGroup>("testgroup", out var variantGroup));
+        Assert.True(Game.World.WorldData.TryGetValue<VariantGroup>("TestGroup", out var variantGroup));
 
         var variantModifier = variantGroup.Variant.First().Properties.StatModifiers;
 
@@ -150,7 +150,7 @@ public class Variant
         Assert.True(Game.World.WorldData.TryGetValueByIndex<Item>("Variant Test Boots 2", out var variant));
         var itemObj = Game.World.CreateItem(variant);
         Assert.True(Fixture.TestUser.AddEquipment(itemObj, (byte) ItemSlots.Foot), "Equipping variant failed");
-        Assert.True(Game.World.WorldData.TryGetValue<VariantGroup>("testgroup", out var variantGroup));
+        Assert.True(Game.World.WorldData.TryGetValue<VariantGroup>("TestGroup", out var variantGroup));
 
         Assert.True(Fixture.TestUser.Stats.MaximumHp ==
                     Fixture.TestUser.Stats.BaseHp + long.Parse(variant.Properties.StatModifiers.BonusHp));

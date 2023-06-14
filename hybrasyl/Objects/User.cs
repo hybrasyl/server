@@ -26,6 +26,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using Hybrasyl.Dialogs;
@@ -33,7 +34,7 @@ using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Utility;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -51,6 +52,8 @@ public class User : Creature
     private object _serializeLock = new();
 
     private Client Client;
+
+    public string RemoteAddress => Client.RemoteAddress;
 
     [JsonProperty] public uint LevelPoints;
 
@@ -77,7 +80,7 @@ public class User : Creature
 
     public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
 
-    public GuidReference GuidReference => Game.World.WorldData.GetGuidReference(this);
+    public GuidReference GuidReference => Game.World.WorldState.GetGuidReference(this);
 
     [JsonProperty] public Guid AccountGuid { get; set; } = Guid.Empty;
     public bool Connected => Client?.Connected ?? false;
@@ -112,10 +115,10 @@ public class User : Creature
         }
     }
 
-    public Mailbox Mailbox => Game.World.WorldData.GetOrCreateByGuid<Mailbox>(Guid, Name);
-    public SentMail SentMailbox => Game.World.WorldData.GetOrCreateByGuid<SentMail>(Guid, Name);
-    public Vault Vault => Game.World.WorldData.GetOrCreateByGuid<Vault>(AccountGuid == Guid.Empty ? Guid : AccountGuid);
-    public ParcelStore ParcelStore => Game.World.WorldData.GetOrCreateByGuid<ParcelStore>(Guid, Name);
+    public Mailbox Mailbox => Game.World.WorldState.GetOrCreateByGuid<Mailbox>(Guid, Name);
+    public SentMail SentMailbox => Game.World.WorldState.GetOrCreateByGuid<SentMail>(Guid, Name);
+    public Vault Vault => Game.World.WorldState.GetOrCreateByGuid<Vault>(AccountGuid == Guid.Empty ? Guid : AccountGuid);
+    public ParcelStore ParcelStore => Game.World.WorldState.GetOrCreateByGuid<ParcelStore>(Guid, Name);
 
     public MailFlags MailStatus
     {
@@ -241,7 +244,7 @@ public class User : Creature
     {
         if (Map.AllowSpeaking)
         {
-            if (World.WorldData.TryGetSocialEvent(this, out var e) &&
+            if (World.WorldState.TryGetSocialEvent(this, out var e) &&
                 (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
             {
                 base.Say(message, from);
@@ -262,7 +265,7 @@ public class User : Creature
     {
         if (Map.AllowSpeaking)
         {
-            if (World.WorldData.TryGetSocialEvent(this, out var e) &&
+            if (World.WorldState.TryGetSocialEvent(this, out var e) &&
                 (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
             {
                 base.Shout(message, from);
@@ -298,11 +301,11 @@ public class User : Creature
             Legend.AddMark(LegendIcon.Community, LegendColor.White, "Chaos Age Aisling", "CHR");
     }
 
-    public bool GetClientSetting(string key) => ClientSettings[Game.Config.GetSettingNumber(key)];
+    public bool GetClientSetting(string key) => ClientSettings[Game.ActiveConfiguration.GetSettingNumber(key)];
 
     public bool ToggleClientSetting(string key)
     {
-        var num = Game.Config.GetSettingNumber(key);
+        var num = Game.ActiveConfiguration.GetSettingNumber(key);
         ClientSettings[num] = !ClientSettings[num];
         return ClientSettings[num];
     }
@@ -326,7 +329,7 @@ public class User : Creature
             // Forcibly destroy client and remove user from world
             PreviousConnectionId = Client.ConnectionId;
             Client = null;
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.CleanupUser, CleanupType.ByName,
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser, CleanupType.ByName,
                 Name));
         }
     }
@@ -446,7 +449,7 @@ public class User : Creature
     {
         // we cannot die twice
         if (!Condition.Alive) return;
-        var handler = Game.Config.Handlers?.Death;
+        var handler = Game.ActiveConfiguration.Handlers?.Death;
         if (!(handler?.Active ?? true))
         {
             SendSystemMessage("Death disabled by server configuration");
@@ -580,12 +583,12 @@ public class User : Creature
 
         SendSystemMessage("Your items are ripped from your body.");
 
-        if (Game.Config.Handlers?.Death?.Map != null)
-            Teleport(Game.Config.Handlers.Death.Map.Value,
-                Game.Config.Handlers.Death.Map.X,
-                Game.Config.Handlers.Death.Map.Y);
+        if (Game.ActiveConfiguration.Handlers?.Death?.Map != null)
+            Teleport(Game.ActiveConfiguration.Handlers.Death.Map.Value,
+                Game.ActiveConfiguration.Handlers.Death.Map.X,
+                Game.ActiveConfiguration.Handlers.Death.Map.Y);
 
-        if (Game.Config.Handlers?.Death?.GroupNotify ?? true)
+        if (Game.ActiveConfiguration.Handlers?.Death?.GroupNotify ?? true)
             Group?.SendMessage($"{Name} has died!");
     }
 
@@ -597,7 +600,7 @@ public class User : Creature
     {
         if (!Condition.Comatose) return;
         Condition.Comatose = false;
-        var handler = Game.Config.Handlers?.Death;
+        var handler = Game.ActiveConfiguration.Handlers?.Death;
         if (handler?.Coma != null && Game.World.WorldData.TryGetValue(handler.Coma.Value, out Status status))
             RemoveStatus(status.Icon);
     }
@@ -608,7 +611,7 @@ public class User : Creature
     /// <param name="recall">If true, resurrect at exact point of death.</param>
     public void Resurrect(bool recall = false)
     {
-        var handler = Game.Config.Handlers?.Death;
+        var handler = Game.ActiveConfiguration.Handlers?.Death;
         Condition.Alive = true;
 
         // Teleport user to national spawn point, or if recalled, to death location
@@ -964,10 +967,8 @@ public class User : Creature
 
     private (string GuildName, string GuildRank) GetGuildInfo()
     {
-        var guild = World.WorldData.Get<Guild>(GuildGuid);
-        if (guild == null) return ("", "");
-
-        return guild.GetUserDetails(GuildGuid);
+        var guild = World.WorldState.Get<Guild>(GuildGuid);
+        return guild?.GetUserDetails(GuildGuid) ?? ("", "");
     }
 
     private void SetValue(PropertyInfo info, object instance, object value)
@@ -1006,7 +1007,7 @@ public class User : Creature
         }
     }
 
-    public override void SendMapInfo()
+    public override void SendMapInfo(int transmitDelay = 0)
     {
         var x15 = new ServerPacket(0x15);
         x15.WriteUInt16(Map.Id);
@@ -1017,19 +1018,21 @@ public class User : Creature
         x15.WriteByte((byte) (Map.Checksum % 256));
         x15.WriteByte((byte) (Map.Checksum / 256));
         x15.WriteString8(Map.Name);
+        x15.TransmitDelay = transmitDelay;
         Enqueue(x15);
 
         if (Map.Music != 0xFF) SendMusic(Map.Music);
         if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
     }
 
-    public override void SendLocation()
+    public override void SendLocation(int transmitDelay = 0)
     {
         var x04 = new ServerPacket(0x04);
         x04.WriteUInt16(X);
         x04.WriteUInt16(Y);
         x04.WriteUInt16(11);
         x04.WriteUInt16(11);
+        x04.TransmitDelay = transmitDelay;
         Enqueue(x04);
 
         var doors = GetDoorsCoordsInView(GetViewport());
@@ -1075,7 +1078,7 @@ public class User : Creature
     public bool CanTalkTo(User target, out string msg)
     {
         msg = string.Empty;
-        // First, maake sure a) we can send a message and b) the target is not ignoring whispers.
+        // First, make sure a) we can send a message and b) the target is not ignoring whispers.
         if (IsMuted)
             msg = "A strange voice says, \"Not for you.\"";
 
@@ -1186,7 +1189,7 @@ public class User : Creature
         if (bookSlot.Castable.TryGetMotion(Class, out var motion))
         {
             Motion(motion.Id, motion.Speed);
-            if (bookSlot.Castable?.Effects?.Sound != null)
+            if (!bookSlot.Castable.IsAssail && bookSlot.Castable.Effects?.Sound?.Id != null)
                 PlaySound(bookSlot.Castable.Effects.Sound.Id);
         }
 
@@ -2538,16 +2541,26 @@ public class User : Creature
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
+    public override void OnDamage(DamageEvent damageEvent)
+    {
+            SendCombatLogMessage(damageEvent);
+    }
+
+    public override void OnHeal(HealEvent healEvent)
+    {
+            SendCombatLogMessage(healEvent);
+    }
+
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        bool onDeath = true)
+        Castable castable = null, bool onDeath = true)
     {
         if (Condition.Comatose || !Condition.Alive) return;
-        base.Damage(damage, element, damageType, damageFlags, attacker, false); // We handle ondeath for users here
+        base.Damage(damage, element, damageType, damageFlags, attacker, castable, false); // We handle ondeath for users here
         if (Stats.Hp == 0 && Group != null)
         {
             Stats.Hp = 1;
-            var handler = Game.Config.Handlers?.Death?.Coma;
+            var handler = Game.ActiveConfiguration.Handlers?.Death?.Coma;
             if (handler?.Value != null && World.WorldData.TryGetValue(handler.Value, out Status status))
             {
                 Condition.Comatose = true;
@@ -2573,9 +2586,9 @@ public class User : Creature
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
-    public override void Heal(double heal, Creature source = null)
+    public override void Heal(double heal, Creature source = null, Castable castable = null)
     {
-        base.Heal(heal, source);
+        base.Heal(heal, source, castable);
         if (this is User) UpdateAttributes(StatUpdateFlags.Current);
     }
 
@@ -2706,11 +2719,14 @@ public class User : Creature
                 if (Equipment.Shield != null) motionId = 1;
             }
 
+            if (Condition.IsInvisible)
+                Condition.IsInvisible = false;
+
             var firstAssail = SkillBook.FirstOrDefault(x => x.Castable is {IsAssail:true});
             var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte) 1;
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);
-            PlaySound(soundId);
+            PlaySound(Equipment?.Weapon?.AssailSound ?? soundId);
         }
     }
 
@@ -3172,9 +3188,9 @@ public class User : Creature
             if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
 
-        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySkill) ||
-            (SkillBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySkill) ||
-            (SkillBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySkill))
+        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Objects.Book.PrimarySkill) ||
+            (SkillBook.IsSecondaryFull && castable.Book == Xml.Objects.Book.SecondarySkill) ||
+            (SkillBook.IsUtilityFull && castable.Book == Xml.Objects.Book.UtilitySkill))
             prompt = merchant.GetLocalString("learn_skill_book_full");
 
         if (prompt == string.Empty)
@@ -3428,9 +3444,9 @@ public class User : Creature
             if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
 
-        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Book.PrimarySpell) ||
-            (SpellBook.IsSecondaryFull && castable.Book == Xml.Book.SecondarySpell) ||
-            (SpellBook.IsUtilityFull && castable.Book == Xml.Book.UtilitySpell))
+        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Objects.Book.PrimarySpell) ||
+            (SpellBook.IsSecondaryFull && castable.Book == Xml.Objects.Book.SecondarySpell) ||
+            (SpellBook.IsUtilityFull && castable.Book == Xml.Objects.Book.UtilitySpell))
             prompt = merchant.GetLocalString("learn_spell_book_full");
 
         if (prompt == string.Empty)
@@ -3705,7 +3721,7 @@ public class User : Creature
         PendingSellableSlot = slot;
         PendingSellableQuantity = quantity;
         var item = Inventory[slot];
-        var offer = (uint) (Math.Round(item.Value * Game.Config.Constants.MerchantBuybackPercentage, 0) *
+        var offer = (uint) (Math.Round(item.Value * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage, 0) *
                             quantity);
         PendingMerchantOffer = offer;
         var options = new MerchantOptions
@@ -3934,7 +3950,7 @@ public class User : Creature
         };
         //verify user has required items.
         var parcelFee = (uint) Math.Ceiling(itemObj.Value * .10 * quantity);
-        if (!Game.World.WorldData.TryGetAuthInfo(recipient, out var info))
+        if (!Game.World.WorldState.TryGetAuthInfo(recipient, out var info))
             prompt = merchant.GetLocalString("parcel_recipient_nonexistent");
         if (prompt == string.Empty)
             if (!(Gold > parcelFee))
@@ -3946,9 +3962,9 @@ public class User : Creature
             SendInventory();
             prompt = merchant.GetLocalString("send_parcel_success");
 
-            var guidRef = World.WorldData.GetGuidReference(recipient);
-            var parcelStore = World.WorldData.GetOrCreate<ParcelStore>(guidRef);
-            var recipientMailbox = World.WorldData.GetOrCreate<Mailbox>(guidRef);
+            var guidRef = World.WorldState.GetGuidReference(recipient);
+            var parcelStore = World.WorldState.GetOrCreate<ParcelStore>(guidRef);
+            var recipientMailbox = World.WorldState.GetOrCreate<Mailbox>(guidRef);
             var mboxString = merchant.GetLocalString("send_parcel_mailbox_message",
                 ("$SENDER", Name), ("$ITEM", $"{itemObj.Name} (qty {quantity})"));
 
@@ -5006,6 +5022,15 @@ public class User : Creature
         Client?.SendMessage(msg, 3);
     }
 
+    public void SendCombatLogMessage(ICombatEvent e)
+    {
+        if (GetSessionCookie("combatlog") != "on") return;
+
+        foreach (var line in e.ToString().Split("\n"))
+            Client?.SendMessage(line, (byte) MessageType.Group);
+    }
+
+
     public void CancelCasting()
     {
         if (!Condition.Casting) return;
@@ -5041,7 +5066,7 @@ public class User : Creature
     #region User
 
     // Some structs helping us to define various metadata 
-    public AuthInfo AuthInfo => Game.World.WorldData.GetOrCreateByGuid<AuthInfo>(Guid, Name);
+    public AuthInfo AuthInfo => Game.World.WorldState.GetOrCreateByGuid<AuthInfo>(Guid, Name);
 
     [JsonProperty] public SkillBook SkillBook { get; private set; }
 
@@ -5075,12 +5100,11 @@ public class User : Creature
 
     [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
 
-    public List<string> UseCastRestrictions => _currentStatuses.Select(selector: e => e.Value.UseCastRestrictions)
-        .Where(predicate: e => e != string.Empty).ToList();
+    public List<string> UseCastRestrictions =>
+        _currentStatuses.SelectMany(selector: e => e.Value.UseCastRestrictions).ToList();
 
     public List<string> ReceiveCastRestrictions => _currentStatuses
-        .Select(selector: e => e.Value.ReceiveCastRestrictions)
-        .Where(predicate: e => e != string.Empty).ToList();
+        .SelectMany(selector: e => e.Value.ReceiveCastRestrictions).ToList();
 
     private Nation _nation;
 

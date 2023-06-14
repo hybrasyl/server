@@ -1,6 +1,6 @@
 ﻿using Hybrasyl;
 using Hybrasyl.Enums;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace HybrasylTests;
@@ -81,7 +81,7 @@ public class Items
     {
         Fixture.ResetUserStats();
 
-        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Permanent Bonuses";
 
         ring.Properties.StatModifiers = new StatModifiers

@@ -26,7 +26,7 @@ using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Reactor = Hybrasyl.Objects.Reactor;
 
@@ -44,17 +44,17 @@ public class HybrasylUser : HybrasylWorldObject
     internal User User => WorldObject as User;
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
-    public string Guid => User.Guid.ToString();
+    public new string Guid => User.Guid.ToString();
 
     /// <summary>
     ///     The item in the first inventory slot of the player.
     /// </summary>
-    public HybrasylWorldObject FirstInventorySlot
+    public HybrasylItemObject FirstInventorySlot
     {
         get
         {
             var f = User.Inventory[1];
-            return f is null ? null : new HybrasylWorldObject(f);
+            return f is null ? null : new HybrasylItemObject(f);
         }
     }
 

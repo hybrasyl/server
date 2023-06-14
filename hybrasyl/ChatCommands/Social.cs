@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
@@ -14,7 +15,7 @@ internal class AnnounceMass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name} will be giving a mass at the temple of {char.ToUpper(args[0][0])}{args[0][1..]}"));
         return Success();
     }
@@ -29,7 +30,7 @@ internal class AnnounceClass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name} will be giving a {char.ToUpper(args[0][0])}{args[0][1..]} class at Loures College."));
         return Success();
     }
@@ -44,12 +45,12 @@ internal class BeginMass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name}'s {char.ToUpper(args[0][0])}{args[0][1..]} mass is starting."));
-        if (Game.World.WorldData.TryGetSocialEvent(user, out var _))
+        if (Game.World.WorldState.TryGetSocialEvent(user, out var _))
             return Fail("An event is already occurring here.");
         var e = new SocialEvent(user, SocialEventType.Mass, args[0]);
-        Game.World.WorldData.SetWithIndex(user.Name, e, user.Map.Id);
+        Game.World.WorldState.SetWithIndex(user.Name, e, user.Map.Id);
         user.SendSystemMessage("Bring the light of creativity into this world.");
         return Success();
     }
@@ -64,13 +65,13 @@ internal class BeginClass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.GlobalMessage,
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
             $"{user.Name}'s {char.ToUpper(args[0][0])}{args[0][1..]} class is starting."));
         user.SendSystemMessage("Use your spark.");
-        if (Game.World.WorldData.TryGetSocialEvent(user, out var _))
+        if (Game.World.WorldState.TryGetSocialEvent(user, out var _))
             return Fail("An event is already occurring here.");
         var e = new SocialEvent(user, SocialEventType.Class, args[0]);
-        Game.World.WorldData.SetWithIndex(user.Name, e, user.Map.Id);
+        Game.World.WorldState.SetWithIndex(user.Name, e, user.Map.Id);
         user.Map.MapMute();
         return Success();
     }
@@ -85,7 +86,7 @@ internal class Voice : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetSocialEvent(user, out var e))
+        if (Game.World.WorldState.TryGetSocialEvent(user, out var e))
         {
             if (e.MapId != user.Map.Id)
                 return Fail("You are not at the event...?");
@@ -109,7 +110,7 @@ internal class UnVoice : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetSocialEvent(user, out var e))
+        if (Game.World.WorldState.TryGetSocialEvent(user, out var e))
         {
             if (e.MapId != user.Map.Id)
                 return Fail("You are not at the event...?");
@@ -134,7 +135,7 @@ internal class EndMass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetSocialEvent(user, out var e))
+        if (Game.World.WorldState.TryGetSocialEvent(user, out var e))
         {
             if (e.Type != SocialEventType.Mass)
                 return Fail("You are not giving a mass here.");
@@ -162,8 +163,8 @@ internal class EndMass : ChatCommand
             }
 
             e.End();
-            Game.World.WorldData.Remove<SocialEvent>(user);
-            Game.World.WorldData.RemoveIndex<SocialEvent>(user.Map.Id);
+            Game.World.WorldState.Remove<SocialEvent>(user);
+            Game.World.WorldState.RemoveIndex<SocialEvent>(user.Map.Id);
             user.Map.MapUnmute();
             return Success("Your mass has concluded.");
         }
@@ -181,7 +182,7 @@ internal class EndClass : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldData.TryGetSocialEvent(user, out var e))
+        if (Game.World.WorldState.TryGetSocialEvent(user, out var e))
         {
             if (e.Type != SocialEventType.Class)
                 return Fail("You are not giving a class here.");
@@ -209,8 +210,8 @@ internal class EndClass : ChatCommand
             }
 
             e.End();
-            Game.World.WorldData.Remove<SocialEvent>(user);
-            Game.World.WorldData.RemoveIndex<SocialEvent>(user.Map.Id);
+            Game.World.WorldState.Remove<SocialEvent>(user);
+            Game.World.WorldState.RemoveIndex<SocialEvent>(user.Map.Id);
             user.Map.MapUnmute();
             return Success("Your class has concluded.");
         }

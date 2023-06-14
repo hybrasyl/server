@@ -42,7 +42,7 @@ internal class MaplistCommand : ChatCommand
         try
         {
             var term = new Regex($"{searchstring}");
-            var queryMaps = from amap in Game.World.WorldData.Values<Map>()
+            var queryMaps = from amap in Game.World.WorldState.Values<MapObject>()
                 where term.IsMatch(amap.Name)
                 select amap;
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using Hybrasyl.Interfaces;
 using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
@@ -14,7 +15,7 @@ public enum UserState : byte
 
 [JsonObject(MemberSerialization.OptIn)]
 [RedisType]
-public class AuthInfo
+public class AuthInfo : IStateStorable
 {
     public AuthInfo(Guid guid)
     {
@@ -57,9 +58,9 @@ public class AuthInfo
     public bool IsSaving { get; set; }
     public bool IsGamemaster { get; set; }
 
-    public string Username => Game.World.WorldData.GetNameByGuid(UserGuid);
+    public string Username => Game.World.WorldState.GetNameByGuid(UserGuid);
 
-    public bool IsPrivileged => IsExempt || IsGamemaster || (Game.Config.Access?.IsPrivileged(Username) ?? false);
+    public bool IsPrivileged => IsExempt || IsGamemaster || (Game.ActiveConfiguration.Access?.IsPrivileged(Username) ?? false);
 
     public bool IsExempt =>
         // This is hax, obvs, and so can you
@@ -71,7 +72,7 @@ public class AuthInfo
         IsSaving = true;
         var cache = World.DatastoreConnection.GetDatabase();
         cache.Set(StorageKey, this);
-        Game.World.WorldData.SetWithIndex(UserGuid, this, Username);
+        Game.World.WorldState.SetWithIndex(UserGuid, this, Username);
         IsSaving = false;
     }
 

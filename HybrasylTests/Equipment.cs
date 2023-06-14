@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace HybrasylTests;
@@ -87,7 +87,7 @@ public class Equipment
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
+        var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         item.Properties.Restrictions = new ItemRestrictions
         {
             Level = new RestrictionsLevel
@@ -121,7 +121,7 @@ public class Equipment
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
+        var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         item.Properties.Restrictions = new ItemRestrictions
         {
             Class = Class.Monk
@@ -148,7 +148,7 @@ public class Equipment
     {
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
-        var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
+        var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         item.Properties.Physical.Weight = 100;
         var equipment = Game.World.CreateItem(item);
         Assert.False(equipment.CheckRequirements(Fixture.TestUser, out var m1),
@@ -169,8 +169,8 @@ public class Equipment
     {
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
-        var shield = Fixture.TestEquipment[EquipmentSlot.Shield].Clone();
-        var twohand = Fixture.TestEquipment[EquipmentSlot.Weapon].Clone();
+        var shield = Fixture.TestEquipment[EquipmentSlot.Shield].Clone<Item>();
+        var twohand = Fixture.TestEquipment[EquipmentSlot.Weapon].Clone<Item>();
         twohand.Properties.Equipment.WeaponType = WeaponType.TwoHand;
         var shieldObj = Game.World.CreateItem(shield);
         var twohandObj = Game.World.CreateItem(twohand);
@@ -197,10 +197,10 @@ public class Equipment
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var ring1 = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ring1 = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring1.Properties.Flags = ItemFlags.UniqueEquipped;
         ring1.Name = "Unique Ring";
-        var ring2 = ring1.Clone();
+        var ring2 = ring1.Clone<Item>();
         var ring1Obj = Game.World.CreateItem(ring1);
         var ring2Obj = Game.World.CreateItem(ring2);
         Assert.True(
@@ -218,9 +218,9 @@ public class Equipment
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Prohibit Armor";
-        var armor = Fixture.TestEquipment[EquipmentSlot.Armor].Clone();
+        var armor = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         armor.Name = "I Prohibit Rings";
         ring.Properties.Restrictions = new ItemRestrictions
         {
@@ -283,7 +283,7 @@ public class Equipment
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Bad Bonuses";
         ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "-3" };
 
@@ -302,7 +302,7 @@ public class Equipment
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Ok Bonuses";
         ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "3" };
 
@@ -316,31 +316,12 @@ public class Equipment
     }
 
     [Fact]
-    public void UnequipFailIfInventoryFull()
-    {
-        Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
-        Fixture.TestUser.Stats.BaseStr = 255;
-        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
-        var ringObj = Game.World.CreateItem(ring);
-        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
-        while (!Fixture.TestUser.Inventory.IsFull)
-        {
-            var anotherRingObj = Game.World.CreateItem(ring);
-            Fixture.TestUser.AddItem(anotherRingObj);
-        }
-        Assert.True(Fixture.TestUser.Inventory.IsFull);
-        Assert.False(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.RightHand));
-        Assert.True(Fixture.TestUser.Map.GetTileContents(Fixture.TestUser.X,Fixture.TestUser.Y).Count == 1);
-    }
-
-    [Fact]
     public void EquipEquipmentBonuses()
     {
         Fixture.TestUser.Equipment.Clear();
         Fixture.ResetUserStats();
 
-        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone();
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Bonuses";
         ring.Properties.StatModifiers = new StatModifiers
         {

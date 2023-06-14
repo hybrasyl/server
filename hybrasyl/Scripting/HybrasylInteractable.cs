@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Hybrasyl.Dialogs;
+using Hybrasyl.Interfaces;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Scripting;
@@ -9,7 +10,7 @@ namespace Hybrasyl.Scripting;
 ///     be evaluated later (used specifically for items)
 /// </summary>
 [MoonSharpUserData]
-public class HybrasylInteractable
+public class HybrasylInteractable : IStateStorable
 {
     internal Dictionary<string, DialogSequence> Index = new();
     internal List<DialogSequence> Sequences = new();

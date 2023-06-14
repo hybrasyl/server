@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
@@ -14,7 +14,7 @@ public class ThreatEntry : IComparable
     }
 
     public Guid Target { get; set; }
-    public Creature TargetObject => Game.World.WorldData.GetWorldObject<Creature>(Target);
+    public Creature TargetObject => Game.World.WorldState.GetWorldObject<Creature>(Target);
     public uint Threat { get; set; }
     public bool IsHealer => TotalHeals > 0;
     public bool IsCaster => TotalCasts > 0;
@@ -51,11 +51,11 @@ public class ThreatInfo
     }
 
     public Guid Owner { get; set; }
-    public Creature OwnerObject => Game.World.WorldData.GetWorldObject<Creature>(Owner);
+    public Creature OwnerObject => Game.World.WorldState.GetWorldObject<Creature>(Owner);
 
     public Creature HighestThreat => ThreatTableByThreat.Count == 0
         ? null
-        : Game.World.WorldData.GetWorldObject<Creature>(ThreatTableByThreat.First().Value);
+        : Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value);
 
     public ThreatEntry HighestThreatEntry => ThreatTableByThreat.First().Key;
 
@@ -82,10 +82,10 @@ public class ThreatInfo
         switch (priority)
         {
             case CreatureTargetPriority.HighThreat:
-                ret.Add(Game.World.WorldData.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
+                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
                 break;
             case CreatureTargetPriority.LowThreat:
-                ret.Add(Game.World.WorldData.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
+                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
                 break;
             case CreatureTargetPriority.Attacker:
                 entry = ThreatTableByThreat.Keys.OrderByDescending(keySelector: x => x.SecondsSinceLastMelee)
@@ -122,7 +122,7 @@ public class ThreatInfo
                     .Select(selector: x => x as Creature).PickRandom());
                 break;
             case CreatureTargetPriority.RandomAttacker:
-                ret.Add(Game.World.WorldData.GetWorldObject<Creature>(ThreatTableByCreature.PickRandom().Key));
+                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByCreature.PickRandom().Key));
                 break;
             case CreatureTargetPriority.Self:
                 ret.Add(OwnerObject);

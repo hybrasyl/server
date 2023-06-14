@@ -36,14 +36,14 @@ public class Reactor : VisibleObject, IPursuitable
     public string Description;
     public string ScriptName;
 
-    public Reactor(Xml.Reactor reactor)
+    public Reactor(Xml.Objects.Reactor reactor)
     {
         X = reactor.X;
         Y = reactor.Y;
         DialogSequences = new List<DialogSequence>();
     }
 
-    public Reactor(byte x, byte y, Map map, string scriptName, int expiration = 0, string description = null,
+    public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
         bool blocking = true)
     {
         X = x;
@@ -55,7 +55,7 @@ public class Reactor : VisibleObject, IPursuitable
         CreatedAt = DateTime.Now;
         if (expiration <= 0) return;
         Expiration = CreatedAt.AddSeconds(expiration);
-        Task.Run(function: async () => await OnExpiration());
+        Task.Run(function: OnExpiration);
     }
 
     public DateTime CreatedAt { get; set; }
@@ -120,7 +120,7 @@ public class Reactor : VisibleObject, IPursuitable
         Sprite = 0;
         Show();
         await Task.Delay(1000);
-        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.RemoveReactor, Map.Id, X, Y, Guid));
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.RemoveReactor, Guid));
     }
 
     public void OnSpawn()

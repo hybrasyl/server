@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using Hybrasyl;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Manager;
+using Hybrasyl.Xml.Objects;
 using Serilog;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using Map = Hybrasyl.Map;
 
 namespace HybrasylTests;
 
@@ -26,17 +27,22 @@ public class HybrasylFixture : IDisposable
             .CreateLogger();
         var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("HybrasylTests");
         Game.LoadCollisions();
+        Game.DataDirectory = Settings.HybrasylTests.JsonSettings.DataDirectory;
+        Game.WorldDataDirectory = Settings.HybrasylTests.JsonSettings.WorldDataDirectory;
+        Game.LogDirectory = Settings.HybrasylTests.JsonSettings.LogDirectory;
+        var manager = new XmlDataManager(Game.WorldDataDirectory);
+        manager.LoadData();
 
         Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 },
-            Path.Combine(submoduleDir[0], "HybrasylTests", "world"), true);
+            manager, "en_us",true);
 
         Game.World.CompileScripts();
         Game.World.SetPacketHandlers();
         if (!Game.World.LoadData())
             throw new InvalidDataException("LoadData encountered errors");
 
-        Map = Game.World.WorldData.Get<Map>("40000");
-        MapNoCasting = Game.World.WorldData.Get<Map>("40000");
+        Map = Game.World.WorldState.Get<MapObject>("40000");
+        MapNoCasting = Game.World.WorldState.Get<MapObject>("40000");
 
         var xmlNation = new Nation
         {
@@ -46,14 +52,14 @@ public class HybrasylFixture : IDisposable
             Name = "Test",
             SpawnPoints = new List<SpawnPoint> { new() { MapName = "Test Map", X = 5, Y = 5 } }
         };
-        Game.World.WorldData.Set(xmlNation.Name, xmlNation);
+        Game.World.WorldData.Add(xmlNation, xmlNation.Name);
 
         TestItem = new Item
         {
             Name = "Test Item"
         };
         TestItem.Properties.Stackable.Max = 1;
-        TestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment
+        TestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
             { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         TestItem.Properties.Categories = new List<Category>
@@ -61,14 +67,14 @@ public class HybrasylFixture : IDisposable
             new() { Value = "junk" },
             new() { Value = "xmlitem" }
         };
-        Game.World.WorldData.Set(TestItem.Id, TestItem);
+        Game.World.WorldData.Add(TestItem, TestItem.Id);
 
         StackableTestItem = new Item
         {
             Name = "Stackable Test Item"
         };
         StackableTestItem.Properties.Stackable.Max = 20;
-        StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Equipment
+        StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
             { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         StackableTestItem.Properties.Categories = new List<Category>
@@ -78,16 +84,16 @@ public class HybrasylFixture : IDisposable
             new() { Value = "xmlitem" }
         };
 
-        Game.World.WorldData.Set(StackableTestItem.Id, StackableTestItem);
+        Game.World.WorldData.Add(StackableTestItem, StackableTestItem.Id);
 
         foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
         {
             var item = new Item { Name = $"Equip Test {slot}" };
             item.Properties.Stackable.Max = 1;
-            item.Properties.Equipment = new Hybrasyl.Xml.Equipment
+            item.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
                 { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
             item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
-            Game.World.WorldData.Set(item.Id, item);
+            Game.World.WorldData.Add(item, item.Id);
             TestEquipment.Add(slot, item);
         }
 
@@ -142,8 +148,8 @@ public class HybrasylFixture : IDisposable
         Map.Insert(TestUser, TestUser.X, TestUser.Y, false);
     }
 
-    public Map Map { get; }
-    public Map MapNoCasting { get; }
+    public MapObject Map { get; }
+    public MapObject MapNoCasting { get; }
     public Item TestItem { get; }
     public Item StackableTestItem { get; }
     public Dictionary<EquipmentSlot, Item> TestEquipment { get; } = new();

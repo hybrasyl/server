@@ -28,7 +28,7 @@ using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using Sentry;
 
@@ -60,7 +60,7 @@ public class Creature : VisibleObject
 
     [JsonProperty] public List<StatusInfo> Statuses { get; set; }
 
-    public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Values.Select(selector: e => e.Info).ToList();
+    public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Count > 0 ? _currentStatuses.Values.Select(selector: e => e.Info).ToList() : new List<StatusInfo>();
 
     public uint Gold => Stats.Gold;
 
@@ -212,8 +212,8 @@ public class Creature : VisibleObject
         }
 
         GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
-        ret.AddRange(Map.EntityTree.GetObjects(rect).Where(predicate: obj => obj is Creature)
-            .Select(selector: e => e as Creature));
+        ret.AddRange(Map.EntityTree.GetObjects(rect)
+            .OfType<Creature>().OrderBy(x => x.Distance(this)));
         return ret;
     }
 
@@ -232,10 +232,13 @@ public class Creature : VisibleObject
 
     public void ProcessProcs(ProcEventType type, Castable castable, Creature target)
     {
-        foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
+        if (castable.Effects?.Procs != null)
         {
-            // Proc fires
-            Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
+            foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
+            {
+                // Proc fires
+                Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
+            }
         }
 
         if (!castable.IsAssail || Equipment?.Weapon?.Procs == null) 
@@ -462,13 +465,17 @@ public class Creature : VisibleObject
             }
         }
 
-        if (Equipment?.Weapon?.AssailSound != null)
-            PlaySound(Equipment.Weapon.AssailSound);
-        else if (this is Monster m && m.AssailSound != 0)
-            PlaySound(m.AssailSound);
+        if (castableXml.IsAssail)
+        {
+            if (Equipment?.Weapon?.AssailSound != null)
+                PlaySound(Equipment.Weapon.AssailSound);
+            else if (this is Monster m && m.AssailSound != 0)
+                PlaySound(m.AssailSound);
+            else if (castableXml.Effects?.Sound != null)
+                PlaySound(castableXml.Effects.Sound.Id);
+        }
         else if (castableXml.Effects?.Sound != null)
             PlaySound(castableXml.Effects.Sound.Id);
-        
 
         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
 
@@ -477,7 +484,7 @@ public class Creature : VisibleObject
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castableXml.Script, out var script))
             {
-                Game.World.WorldData.TryGetValue(castableXml.Guid, out CastableObject castableObj);
+                Game.World.WorldState.TryGetValueByIndex(castableXml.Guid, out CastableObject castableObj);
                 var ret = script.ExecuteFunction("OnUse",
                     ScriptEnvironment.Create(("target", target), ("origin", castableObj), ("source", this),
                         ("castable", castableObj)));
@@ -513,6 +520,8 @@ public class Creature : VisibleObject
                 reactorObj.CreatedBy = Guid;
                 reactorObj.Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
                     new FormulaEvaluation { Castable = castableXml, Source = this }));
+                // Don't insert a reactor with no uses into the world
+                if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
                 tar.Map.InsertReactor(reactorObj);
                 reactorObj.OnSpawn();
@@ -538,7 +547,7 @@ public class Creature : VisibleObject
                 GameLog.UserActivityInfo(
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
-                tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, false);
+                tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, castableXml, false);
                 ProcessProcs(ProcEventType.OnHit, castableXml, tar);
 
                 if (tar is User u && !castableXml.IsAssail)
@@ -556,7 +565,7 @@ public class Creature : VisibleObject
             else if (castableXml.Effects?.Heal != null && !castableXml.Effects.Heal.IsEmpty)
             {
                 var healOutput = NumberCruncher.CalculateHeal(castableXml, tar, this);
-                tar.Heal(healOutput, this);
+                tar.Heal(healOutput, this, castableXml);
                 ProcessProcs(ProcEventType.OnHit, castableXml, tar);
                 if (this is User)
                 {
@@ -570,21 +579,28 @@ public class Creature : VisibleObject
             // Handle statuses
 
             foreach (var status in castableXml.AddStatuses)
-                if (World.WorldData.TryGetValue<Status>(status.Value.ToLower(), out var applyStatus))
+                if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
-                    if (tar.CurrentStatusInfo.Any(predicate: x => x.Category == applyStatus.Category))
+                    if (tar.CurrentStatusInfo.Count > 0)
                     {
-                        if (this is User user)
-                            user.SendSystemMessage($"Another {applyStatus.Category} already affects your target.");
+                        var overlap = tar.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
+                        if (overlap.Any())
+                        {
+                            if (this is User user)
+                            {
+                                user.SendSystemMessage(
+                                    $"Another {overlap.First().Category} already affects your target.");
+                            }
+
+                            continue;
+                        }
                     }
-                    else
-                    {
-                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
-                            status.Intensity));
-                    }
+
+                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
+                        status.Intensity));
                 }
                 else
                 {
@@ -608,7 +624,7 @@ public class Creature : VisibleObject
 
         // Now flood away
         foreach (var dead in deadMobs)
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.HandleDeath, dead));
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.HandleDeath, dead));
         Condition.Casting = false;
         return true;
     }
@@ -822,9 +838,9 @@ public class Creature : VisibleObject
         }
     }
 
-    public virtual void Heal(double heal, Creature source = null)
+    public virtual void Heal(double heal, Creature source = null, Castable castable = null)
     {
-        OnHeal(source, (uint) heal);
+        OnHeal(new HealEvent { Amount = Convert.ToUInt32(heal), Source = source, SourceCastable = castable, Target = this});
 
         if (AbsoluteImmortal || PhysicalImmortal) return;
         if (Stats.Hp == Stats.MaximumHp) return;
@@ -845,9 +861,14 @@ public class Creature : VisibleObject
 
     public virtual void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
-        Creature attacker = null, bool onDeath = true)
+        Creature attacker = null, Castable castable = null, bool onDeath = true)
     {
         if (this is Monster ms && !Condition.Alive) return;
+        var damageEvent = new DamageEvent();
+        damageEvent.Source = attacker;
+        damageEvent.SourceCastable = castable;
+        damageEvent.Target = this;
+        damageEvent.Element = element;
 
         // Handle dodging first
         if (damageType == DamageType.Physical && Stats.Dodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
@@ -856,6 +877,7 @@ public class Creature : VisibleObject
             if (Random.Shared.Next(100) <= Stats.Dodge - dodgeReduction)
             {
                 Effect(115, 100);
+
                 return;
             }
         }
@@ -885,17 +907,20 @@ public class Creature : VisibleObject
             double armor = Stats.Ac * -1 + 100;
             var reduction = damage * (armor / (armor + 50));
             damage -= reduction;
+            damageEvent.ArmorReduction = Convert.ToUInt32(reduction);
         }
 
         // handle elements
         if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoElement))
         {
             var elementTable = Game.World.WorldData.Get<ElementTable>("ElementTable");
-            if (elementTable != null)
+            var multiplierList = elementTable?.Source.First(predicate: x => x.Element == element).Target;
+            if (multiplierList != null)
             {
-                var multiplier = elementTable.Source.First(predicate: x => x.Element == element).Target;
-                var ass = multiplier.FirstOrDefault(predicate: x => x.Element == Stats.BaseDefensiveElement).Multiplier;
-                damage *= ass;
+                var multiplier = multiplierList
+                    .FirstOrDefault(predicate: x => x.Element == Stats.BaseDefensiveElement)?.Multiplier ?? 1.0;
+                damageEvent.ElementalInteraction = Convert.ToUInt32(damage * multiplier);
+                damage *= multiplier;
             }
         }
 
@@ -904,23 +929,38 @@ public class Creature : VisibleObject
         {
             _mLastHitter = attacker.Id;
             if (attacker.Stats.Dmg > 0)
+            {
                 damage += damage * attacker.Stats.Dmg;
+                damageEvent.BonusDmg = Convert.ToUInt32(damage * attacker.Stats.Dmg);
+            }
             else
+            {
                 damage -= damage * attacker.Stats.Dmg;
+                damageEvent.BonusDmg = Convert.ToUInt32(damage * attacker.Stats.Dmg * -1);
+            }
+
+
             if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
                 if (Stats.Mr > 0)
+                {
                     damage -= damage * Stats.Mr;
+                    damageEvent.MagicResisted = Convert.ToUInt32(damage * Stats.Mr);
+                }
                 else
+                {
                     damage += damage * Stats.Mr * -1;
+                    damageEvent.MagicResisted = Convert.ToUInt32(damage * Stats.Mr * -1);
+                }
             }
 
             if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical &&
                 !damageFlags.HasFlag(DamageFlags.NoCrit))
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
-                    damage += damage * 0.5;
-                    Effect(24, 100);
+                   damage += damage * 0.5;
+                   damageEvent.Crit = true;
+                   Effect(24, 100);
                 }
 
             if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical &&
@@ -928,6 +968,7 @@ public class Creature : VisibleObject
                 if (Random.Shared.Next(100) <= attacker.Stats.Crit)
                 {
                     damage += damage * 2;
+                    damageEvent.MagicCrit = true;
                     Effect(24, 100);
                 }
 
@@ -936,9 +977,15 @@ public class Creature : VisibleObject
                 if (Random.Shared.Next(100) <= Stats.Dodge * -1)
                 {
                     Effect(68, 100);
+                    var selfDamage = damage * -1 * 0.25;
                     (attacker as User)?.SendSystemMessage("You fumble, and strike yourself hard!");
                     attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
-                        new StatInfo { DeltaHp = (long) (damage * -1 * 0.25) });
+                        new StatInfo { DeltaHp = (long) selfDamage },
+                        new StatChangeEvent
+                        {
+                            Amount = Convert.ToUInt32(selfDamage),
+                            EventType = CombatLogEventType.CriticalFailure, Source = attacker, Target = this
+                        });
                     return;
                 }
 
@@ -947,13 +994,39 @@ public class Creature : VisibleObject
                 if (Random.Shared.Next(100) <= Stats.MagicDodge * -1)
                 {
                     Effect(68, 100);
+                    var selfDamage = damage * -1 * 0.25;
                     (attacker as User)?.SendSystemMessage("You stammer, and flames envelop you!");
                     attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
-                        new StatInfo { DeltaHp = (long) (damage * -1 * 0.25) });
+                        new StatInfo { DeltaHp = (long) selfDamage },
+                        new StatChangeEvent
+                        {
+                            Amount = Convert.ToUInt32(selfDamage),
+                            EventType = CombatLogEventType.CriticalMagicFailure, Source = attacker, Target = this
+                        });
                     return;
                 }
         }
 
+
+        // Apply elemental resistances, if they exist
+        var resisted = Stats.ElementalModifiers?.GetResistance(element) ?? 0.0;
+
+        if (resisted != 0.0)
+        {
+            damage -= damage * resisted;
+            damageEvent.ElementalResisted = Convert.ToUInt32(damage * resisted);
+        }
+
+        // Apply augmentation, if exists
+        var augment = attacker?.Stats?.ElementalModifiers?.GetAugment(element) ?? 0.0;
+
+        if (augment != 0.0)
+        {
+            damage += damage * augment;
+            damageEvent.ElementalAugmented = Convert.ToUInt32(damage * augment);
+        }
+
+        // Now, normalize damage for uint (max hp)
         var normalized = (uint) damage;
 
         if (normalized > Stats.Hp && damageFlags.HasFlag(DamageFlags.Nonlethal))
@@ -961,17 +1034,17 @@ public class Creature : VisibleObject
         else if (normalized > Stats.Hp)
             normalized = Stats.Hp;
 
-        OnDamage(new DamageEvent { Attacker = attacker, Damage = normalized, Flags = damageFlags, Type = damageType });
-
-        if (AbsoluteImmortal || Condition.IsInvulnerable) return;
-
         switch (damageType)
         {
             case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
             case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
-            case DamageType.Direct when AbsoluteImmortal:
+            case DamageType.Direct when AbsoluteImmortal || Condition.IsInvulnerable:
+                damageEvent.Applied = false;
                 return;
         }
+
+        damageEvent.Amount = normalized;
+        OnDamage(damageEvent);
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects
         // without mitigation.
@@ -979,28 +1052,48 @@ public class Creature : VisibleObject
         {
             var reflected = Stats.ReflectMagical / 100 * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1) });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1) },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(reflected * -1), EventType = CombatLogEventType.ReflectMagical,
+                        Source = attacker, Target = this
+                    });
         }
 
         if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
         {
             var reflected = Stats.ReflectPhysical / 100 * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(reflected * -1), EventType = CombatLogEventType.ReflectPhysical,
+                        Source = attacker, Target = this
+                    });
         }
 
         if (attacker != null && attacker.Stats.LifeSteal > 0)
         {
             var stolen = normalized * (Stats.LifeSteal / 100);
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(stolen),
+                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this
+                    });
         }
 
         if (attacker != null && attacker.Stats.ManaSteal > 0)
         {
             var stolen = normalized * (Stats.ManaSteal / 100);
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(stolen),
+                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this
+                    });
         }
 
         // Lastly, handle damage to MP redirection
@@ -1009,7 +1102,12 @@ public class Creature : VisibleObject
         {
             var redirected = Stats.InboundDamageToMp / 100 * normalized;
             if (redirected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) redirected });
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) redirected },
+                    new StatChangeEvent
+                    {
+                        Amount = Convert.ToUInt32(redirected),
+                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this, SourceCastable = castable
+                    });
         }
 
         Stats.Hp = (int) Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
@@ -1061,7 +1159,6 @@ public class Creature : VisibleObject
 
     public string GetSessionCookie(string cookieName) =>
         SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
-
 
     public bool HasCookie(string cookieName) => Cookies.ContainsKey(cookieName);
 

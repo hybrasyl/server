@@ -23,7 +23,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Hybrasyl.Xml;
+using Humanizer;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
@@ -92,7 +93,7 @@ public class HybrasylTime
                 nameof(age));
         var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour +
                        minute * TicksPerMinute;
-        TerranDateTime = Game.Config.Time.Ages.First(predicate: a => a.Name == age).StartDate.AddTicks(hybticks / 8);
+        TerranDateTime = Game.ActiveConfiguration.Time.Ages.First(predicate: a => a.Name == age).StartDate.AddTicks(hybticks / 8);
     }
 
     /// <summary>
@@ -111,7 +112,7 @@ public class HybrasylTime
     }
 
     public string AgeName => Age.Name;
-    public HybrasylAge Age => Game.Config.Time.GetAgeFromTerranDatetime(TerranDateTime);
+    public HybrasylAge Age => Game.ActiveConfiguration.Time.GetAgeFromTerranDatetime(TerranDateTime);
 
     public long HybrasylTicks => TerranTicks * 8;
     public long TerranTicks => (TerranDateTime - Age.StartDate).Ticks;
@@ -150,14 +151,14 @@ public class HybrasylTime
         }
     }
 
-    public static string DefaultAgeName => Game.Config != null
-        ? Game.Config.Time?.ServerStart?.DefaultAge != string.Empty
-            ? Game.Config.Time?.ServerStart?.DefaultAge
+    public static string DefaultAgeName => Game.ActiveConfiguration != null
+        ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultAge != string.Empty
+            ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultAge
             : "Hybrasyl"
         : "Hybrasyl";
 
-    public static int DefaultYear => Game.Config != null
-        ? Game.Config.Time?.ServerStart?.DefaultYear != 1 ? Game.Config.Time.ServerStart.DefaultYear : 1
+    public static int DefaultYear => Game.ActiveConfiguration != null
+        ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultYear != 1 ? Game.ActiveConfiguration.Time.ServerStart.DefaultYear : 1
         : 1;
 
     /// <summary>
@@ -165,7 +166,7 @@ public class HybrasylTime
     ///     if we can't find that, the current running server's start time
     /// </summary>
     public static HybrasylAge DefaultAge => new()
-        { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time?.ServerStart?.Value ?? Game.StartDate };
+        { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time?.ServerStart?.Value ?? Game.StartDate };
 
     public static string CurrentAgeName => CurrentAge.Name;
 
@@ -176,9 +177,9 @@ public class HybrasylTime
         get
         {
             var now = DateTime.Now;
-            if (Game.Config.Time.Ages.Count == 0)
+            if (Game.ActiveConfiguration.Time.Ages.Count == 0)
                 return DefaultAge;
-            var currentAge = Game.Config.Time.Ages?.Where(predicate: age => age.DateInAge(now));
+            var currentAge = Game.ActiveConfiguration.Time.Ages?.Where(predicate: age => age.DateInAge(now));
             return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
         }
     }
@@ -190,15 +191,15 @@ public class HybrasylTime
 
     public static HybrasylAge GetAgeFromTerranDate(DateTime datetime)
     {
-        if (Game.Config.Time.Ages.Count == 0)
+        if (Game.ActiveConfiguration.Time.Ages.Count == 0)
             return DefaultAge;
-        var currentAge = Game.Config.Time.Ages?.Where(predicate: age => age.DateInAge(datetime));
+        var currentAge = Game.ActiveConfiguration.Time.Ages?.Where(predicate: age => age.DateInAge(datetime));
         return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
     }
 
     public static bool ValidAge(string age)
     {
-        return Game.Config.Time?.Ages?.Where(predicate: a => a.Name == age).Count() > 0 || DefaultAgeName == age;
+        return Game.ActiveConfiguration.Time?.Ages?.Where(predicate: a => a.Name == age).Count() > 0 || DefaultAgeName == age;
     }
 
     public override string ToString()
@@ -216,17 +217,16 @@ public class HybrasylTime
         }
 
         return
-            $"{AgeName} {Year}, {Moon.DisplayWithOrdinal()} moon, {Sun.DisplayWithOrdinal()} sun, {hour}:{Minute.ToString("d2")} {ampm}";
+            $"{AgeName} {Year}, {Moon.Ordinalize()} moon, {Sun.Ordinalize()} sun, {hour}:{Minute.ToString("d2")} {ampm}";
     }
-
 
     public static List<HybrasylAge> Ages()
     {
-        if (Game.Config.Time.Ages.Count == 0)
+        if (Game.ActiveConfiguration.Time.Ages.Count == 0)
             // Construct and return our default
             return new List<HybrasylAge>
-                { new()  { Name = "Hybrasyl", StartYear = 1, StartDate = Game.Config.Time.ServerStart.Value } };
-        return Game.Config.Time.Ages;
+                { new()  { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time.ServerStart.Value } };
+        return Game.ActiveConfiguration.Time.Ages;
     }
 
     public static int FirstYearInAge(string age)
@@ -234,7 +234,7 @@ public class HybrasylTime
         if (!ValidAge(age))
             throw new ArgumentException("Age is unknown to server; check time/age configuration in config.xml", age);
 
-        var theAge = Game.Config.Time?.Ages?.Where(predicate: a => a.Name == age);
+        var theAge = Game.ActiveConfiguration.Time?.Ages?.Where(predicate: a => a.Name == age);
         if (theAge.Count() == 0)
             return DefaultYear;
         return theAge.First().StartYear != 1 ? 1 : theAge.First().StartYear;
@@ -257,7 +257,7 @@ public class HybrasylTime
 
     public static DateTime ConvertToTerran(HybrasylTime hybrasyltime)
     {
-        var thisAge = Game.Config.Time?.Ages?.Where(predicate: age => age.Name == hybrasyltime.AgeName);
+        var thisAge = Game.ActiveConfiguration.Time?.Ages?.Where(predicate: age => age.Name == hybrasyltime.AgeName);
         return thisAge.Count() > 0
             ? new DateTime(thisAge.First().StartDate.Ticks + hybrasyltime.TerranTicks)
             : new DateTime(World.StartDate.Ticks + hybrasyltime.TerranTicks);

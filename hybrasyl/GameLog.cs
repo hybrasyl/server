@@ -20,41 +20,156 @@
  */
 
 using System;
-using Hybrasyl.Enums;
-using Serilog.Core.Enrichers;
+using System.Collections.Generic;
+using Hybrasyl.Xml.Objects;
+using Serilog;
+using Serilog.Core;
 using Serilog.Events;
-
+using System.IO;
+using Hybrasyl.Enums;
 namespace Hybrasyl;
+
+
+public class HybrasylLogger
+{
+    public ILogger Logger { get; set; }
+    public LoggingLevelSwitch Level { get; set; }
+    public LogEventLevel DefaultLevel { get; set; }
+    public string Path { get; set; } = string.Empty;
+}
 
 /// <summary>
 ///     A wrapper class that provides an abstracted interface to Serilog
 /// </summary>
 public static class GameLog
 {
+    public static Dictionary<LogType, HybrasylLogger> Loggers { get; set; } = new();
+
+    public static bool DebugEnabled { get; set; }
+
+    public static void SetLevel(LogType logType, LogEventLevel level)
+    {
+        if (Loggers.TryGetValue(logType, out var logger))
+        {
+            logger.Level.MinimumLevel = LogEventLevel.Warning;
+            logger.Logger.Warning($"Level set to {level}");
+            logger.Level.MinimumLevel = level;
+
+        }
+    }
+
+    public static void SetLevel(LogType logType, LogLevel level) => SetLevel(logType, ConvertLevel(level));
+
+    public static bool HasLogger(LogType logType) => Loggers.ContainsKey(logType);
+
+    public static LogEventLevel ConvertLevel(LogLevel level) =>
+        level switch
+        {
+            LogLevel.Debug => LogEventLevel.Debug,
+            LogLevel.Error => LogEventLevel.Error,
+            LogLevel.Fatal => LogEventLevel.Fatal,
+            LogLevel.Info => LogEventLevel.Information,
+            LogLevel.Warn => LogEventLevel.Warning,
+            LogLevel.All => LogEventLevel.Verbose,
+            _ => LogEventLevel.Information
+        };
+
+    public static HybrasylLogger GetLogger(LogType type)
+    {
+        if (!Loggers.ContainsKey(LogType.General))
+            Loggers.Add(LogType.General,new HybrasylLogger { Logger = new LoggerConfiguration().CreateLogger()} );
+        return Loggers.TryGetValue(type, out var ret) ? ret : Loggers[LogType.General];
+    }
+
+    public static void SetGlobalLevel(LogLevel level)
+    {
+        foreach (var logger in Loggers.Values)
+        {
+            logger.Level.MinimumLevel = LogEventLevel.Warning;
+            logger.Logger.Warning($"Level set to {level}");
+            logger.Level.MinimumLevel = ConvertLevel(level);
+        }
+    }
+
+    public static bool ToggleDebug()
+    {
+        DebugEnabled = !DebugEnabled;
+        foreach (var logger in Loggers.Keys)
+            SetLevel(logger, DebugEnabled ? LogEventLevel.Debug : Loggers[logger].DefaultLevel);
+        return DebugEnabled;
+    }
+
+    public static void Initialize(string dataDirectory, List<LogConfig> configs)
+    {
+        foreach (var config in configs)
+        {
+            var levelSwitch = new LoggingLevelSwitch();
+            levelSwitch.MinimumLevel = ConvertLevel(config.Level);
+            var path = string.IsNullOrEmpty(config.Destination) ? $"{config.Type}.log" : config.Destination;
+
+            var loggerConfig = new LoggerConfiguration().MinimumLevel.ControlledBy(levelSwitch).Enrich.WithThreadId()
+                .Enrich
+                .WithExceptionData().WriteTo.File($"{Path.Combine(dataDirectory, path)}",
+                    rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true);
+            if (config.Type == LogType.General)
+                loggerConfig = loggerConfig.WriteTo.Console();
+            Loggers.Add(config.Type, new  HybrasylLogger
+            {
+                Logger = loggerConfig.CreateLogger(), Level = levelSwitch, DefaultLevel = ConvertLevel(config.Level),
+                Path = $"{Path.Combine(dataDirectory, path)}"
+            });
+            Serilog.Log.Information($"Logger: added {config.Type} -> {path}");
+        }
+        // Ensure there is always a general logger and that it is "attached" to Serilog
+        if (!Loggers.ContainsKey(LogType.General))
+        {
+            var generalSwitch = new LoggingLevelSwitch { MinimumLevel = LogEventLevel.Information };
+
+            var generalLog = new LoggerConfiguration().MinimumLevel.ControlledBy(generalSwitch).Enrich.WithThreadId()
+                .Enrich
+                .WithExceptionData().WriteTo
+                .Map("LogType", "general",
+                    configure: (name, wt) => wt.File(Path.Combine(dataDirectory, $"{name}.log"),
+                        rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true))
+                .WriteTo.Console()
+                .CreateLogger();
+            Loggers.Add(LogType.General, new HybrasylLogger
+            {
+                Logger = generalLog, Level = generalSwitch, DefaultLevel = LogEventLevel.Information,
+                Path = Path.Combine(dataDirectory, "general.log")
+            });
+            GameLog.Info($"Logger: added General log");
+        }
+
+        Serilog.Log.Logger = Loggers[LogType.General].Logger;
+    }
+
     public static void Log(LogEventLevel level = LogEventLevel.Information, LogType logType = LogType.General,
         string messageTemplate = "", params object[] propertyValues)
     {
-        var logWithType = Serilog.Log.ForContext(new PropertyEnricher("LogType", logType.ToString()));
+
+        var logger = GetLogger(logType).Logger;
 
         switch (level)
         {
             case LogEventLevel.Debug:
-                logWithType.Debug(messageTemplate, propertyValues);
+                logger.Debug(messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Error:
-                logWithType.Error(messageTemplate, propertyValues);
+                logger.Error(messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Fatal:
-                logWithType.Fatal(messageTemplate, propertyValues);
+                logger.Fatal(messageTemplate, propertyValues);
                 break;
-            case LogEventLevel.Information:
-                logWithType.Information(messageTemplate, propertyValues);
+            case LogEventLevel.Information: 
+            default:
+                logger.Information(messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Verbose:
-                logWithType.Verbose(messageTemplate, propertyValues);
+                logger.Verbose(messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Warning:
-                logWithType.Warning(messageTemplate, propertyValues);
+                logger.Warning(messageTemplate, propertyValues);
                 break;
         }
     }
@@ -62,36 +177,30 @@ public static class GameLog
     public static void LogWithException(Exception ex, LogEventLevel level = LogEventLevel.Error,
         LogType logType = LogType.General, string messageTemplate = "", params object[] propertyValues)
     {
-        var logWithType = Serilog.Log.ForContext(new PropertyEnricher("LogType", logType.ToString()));
+        var logger = GetLogger(logType).Logger;
 
         switch (level)
         {
             case LogEventLevel.Debug:
-                logWithType.Debug(ex, messageTemplate, propertyValues);
+                logger.Debug(ex, messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Error:
-                logWithType.Error(ex, messageTemplate, propertyValues);
+                logger.Error(ex, messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Fatal:
-                logWithType.Fatal(ex, messageTemplate, propertyValues);
+                logger.Fatal(ex, messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Information:
-                logWithType.Information(ex, messageTemplate, propertyValues);
+            default:
+                logger.Information(ex, messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Verbose:
-                logWithType.Verbose(ex, messageTemplate, propertyValues);
+                logger.Verbose(ex, messageTemplate, propertyValues);
                 break;
             case LogEventLevel.Warning:
-                logWithType.Warning(ex, messageTemplate, propertyValues);
+                logger.Warning(ex, messageTemplate, propertyValues);
                 break;
         }
-    }
-
-    public static bool IsGeneralEvent(LogEvent le)
-    {
-        if (le.Properties.TryGetValue("LogType", out var value))
-            return value.ToString().Trim('"') == LogType.General.ToString();
-        return true;
     }
 
     // Provide easy to use shims here which are drop in replacements for log4net usage
@@ -376,16 +485,16 @@ public static class GameLog
     // XML data load notices (errors / etc)
     public static void DataLogInfo(string messageTemplate, params object[] propertyValues)
     {
-        Log(LogEventLevel.Information, LogType.XmlData, messageTemplate, propertyValues);
+        Log(LogEventLevel.Information, LogType.WorldData, messageTemplate, propertyValues);
     }
 
     public static void DataLogError(string messageTemplate, params object[] propertyValues)
     {
-        Log(LogEventLevel.Error, LogType.XmlData, messageTemplate, propertyValues);
+        Log(LogEventLevel.Error, LogType.WorldData, messageTemplate, propertyValues);
     }
 
     public static void DataLogDebug(string messageTemplate, params object[] propertyValues)
     {
-        Log(LogEventLevel.Debug, LogType.XmlData, messageTemplate, propertyValues);
+        Log(LogEventLevel.Debug, LogType.WorldData, messageTemplate, propertyValues);
     }
 }

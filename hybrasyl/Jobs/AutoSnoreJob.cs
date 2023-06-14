@@ -43,7 +43,7 @@ public static class AutoSnoreJob
                 if (client.IsIdle())
                 {
                     User user;
-                    if (Game.World.WorldData.TryGetValueByIndex(connectionId, out user))
+                    if (Game.World.WorldState.TryGetValueByIndex(connectionId, out user))
                         user.Motion(16, 120); // send snore effect
                     else
                         GameLog.WarningFormat(

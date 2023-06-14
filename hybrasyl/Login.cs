@@ -24,8 +24,9 @@ using System.Collections;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using Hybrasyl.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -64,7 +65,7 @@ public class Login : Server
         // isn't valid.
         byte passwordErr = 0x0;
 
-        if (World.PlayerExists(name) || (Game.Config.Access?.IsReservedName(name) ?? false))
+        if (World.PlayerExists(name) || (Game.ActiveConfiguration.Access?.IsReservedName(name) ?? false))
         {
             client.LoginMessage("That name is unavailable.", 3);
         }
@@ -95,7 +96,7 @@ public class Login : Server
         var password = packet.ReadString8();
         GameLog.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
-        if (Game.World.WorldData.TryGetAuthInfo(name, out var login))
+        if (Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {
             if (string.IsNullOrEmpty(login.PasswordHash))
             {
@@ -122,14 +123,14 @@ public class Login : Server
                         GameLog.InfoFormat("cid {0}: {1} logging on again, disconnecting previous connection",
                             client.ConnectionId, name);
                         client.LoginMessage("That character is already online. Please try again.", 3);
-                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcodes.LogoffUser, name));
+                        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.LogoffUser, name));
                         login.Save();
                         return;
                     }
                 }
 
                 // Make sure user can be deserialized without errors
-                if (!Game.World.WorldData.TryGetUser(name, out _))
+                if (!Game.World.WorldState.TryGetUser(name, out _))
                 {
                     // Something bad has happened
                     client.LoginMessage("An unknown error occurred. Please contact Hybrasyl support.", 3);
@@ -195,9 +196,9 @@ public class Login : Server
 
         // Try to get our map
         // TODO: replace with XML config for start map, x, y
-        Map map;
-        if (!Game.World.WorldData.TryGetValue(136, out map))
-            map = Game.World.WorldData.GetDictionary<Map>().First().Value;
+        MapObject map;
+        if (!Game.World.WorldState.TryGetValue(136, out map))
+            map = Game.World.WorldState.GetDictionary<MapObject>().First().Value;
         if (!World.PlayerExists(client.NewCharacterName))
         {
             var newPlayer = new User();
@@ -250,7 +251,7 @@ public class Login : Server
         var id = packet.ReadUInt32();
 
         var redirect = ExpectedConnections[id];
-        if (Game.World.WorldData.TryGetAuthInfo(name, out var login))
+        if (Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {
             login.CurrentState = UserState.Login;
             login.Save();
@@ -284,7 +285,7 @@ public class Login : Server
         // that they matched if 0x26 request is sent from the client.
         var newPass = packet.ReadString8();
 
-        if (!Game.World.WorldData.TryGetAuthInfo(name, out var login))
+        if (!Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {
             client.LoginMessage(GetPasswordError(0x0E), 0x0E);
             GameLog.InfoFormat("cid {0}: Password change attempt on nonexistent player {1}", client.ConnectionId, name);
