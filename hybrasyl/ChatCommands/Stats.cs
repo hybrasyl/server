@@ -509,7 +509,7 @@ internal class CombatLogCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        user.SetSessionCookie("combatlog", user.GetSessionCookie("combatlog") == "on" ? "off" : "on");
-        return Success($"Combat log is {user.GetSessionCookie("combatlog")}");
+        user.SetSessionCookie("combatlog", user.GetCookie("combatlog") == "on" ? "off" : "on");
+        return Success($"Combat log is {user.GetCookie("combatlog")}");
     }
 }

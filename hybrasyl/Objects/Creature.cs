@@ -1009,7 +1009,7 @@ public class Creature : VisibleObject
 
 
         // Apply elemental resistances, if they exist
-        var resisted = Stats.ElementalModifiers.GetResistance(element);
+        var resisted = Stats.ElementalModifiers?.GetResistance(element) ?? 0.0;
 
         if (resisted != 0.0)
         {
@@ -1019,6 +1019,7 @@ public class Creature : VisibleObject
 
         // Apply augmentation, if exists
         var augment = attacker?.Stats?.ElementalModifiers?.GetAugment(element) ?? 0.0;
+
         if (augment != 0.0)
         {
             damage += damage * augment;

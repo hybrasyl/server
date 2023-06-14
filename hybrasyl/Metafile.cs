@@ -25,7 +25,6 @@ using System.Linq;
 using System.Text;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Xml.Objects;
-using iTextSharp.text;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl;

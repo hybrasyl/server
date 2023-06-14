@@ -2,7 +2,6 @@
 using Hybrasyl;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
-using Nustache.Core;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 

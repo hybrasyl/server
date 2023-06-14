@@ -298,7 +298,17 @@ public static class Game
 
         try
         {
+            Log.Information("Loading xml...");
             manager.LoadData();
+//            Task.Run(manager.LoadDataAsync).Wait();
+            // TODO: improve in library
+            while (true)
+            {
+                if (manager.Ready)
+                    break;
+                Thread.Sleep(250);
+            }
+            Log.Information("Loading xml completed");
             manager.LogResult(Log.Logger);
         }
         catch (FileNotFoundException ex)

@@ -147,7 +147,7 @@ public static class LootBox
             if (Game.World.WorldData.TryGetValue(set.Name, out LootSet lootset))
                 loot += CalculateLoot(lootset, set.Rolls, set.Chance);
             else
-                GameLog.Warning("Loot set {name} referenced in list, but could not be loaded", set.Name);
+                GameLog.Warning($"Loot set {set.Name} referenced in loot list, but could not be loaded");
         }
 
         // Now, calculate loot for any tables attached to the spawn
@@ -272,7 +272,7 @@ public static class LootBox
                     if (xmlItem.Variants?.TryGetValue(lootedVariant, out var variantItems) ?? false)
                         itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                     else
-                        GameLog.SpawnError("Loot: variant group {name} specified for {xmlItem.Name} but that item does not have the specified variant", lootedVariant);
+                        GameLog.SpawnError($"Loot: variant group {lootedVariant} specified for {xmlItem.Name} but that item does not have the specified variant");
                 }
                 else
                 {
