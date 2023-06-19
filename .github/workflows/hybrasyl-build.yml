@@ -47,7 +47,14 @@ jobs:
         with:
           fail_ci_if_error: true
           verbose: true
+      - name: Publish Win64
+	run: dotnet publish -c Release -r win10-x64
+      - name: Publish Linux
+	run: dotnet publish -c Release -r ubuntu-18.04-x64
+      - name: Publish MacOS
+	run: dotnet publish -c Release -r osx-x64
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@0.3.2
+
