@@ -19,10 +19,10 @@
  * 
  */
 
-using System;
-using System.Timers;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using System;
+using System.Timers;
 
 namespace Hybrasyl.Jobs;
 

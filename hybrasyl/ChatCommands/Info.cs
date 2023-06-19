@@ -19,10 +19,10 @@
  * 
  */
 
+using Hybrasyl.Objects;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -43,8 +43,8 @@ internal class MaplistCommand : ChatCommand
         {
             var term = new Regex($"{searchstring}");
             var queryMaps = from amap in Game.World.WorldState.Values<MapObject>()
-                where term.IsMatch(amap.Name)
-                select amap;
+                            where term.IsMatch(amap.Name)
+                            select amap;
 
             var result = queryMaps.Aggregate("", func: (current, map) => current + $"{map.Id} - {map.Name}\n");
             if (result.Length > 65400)
@@ -106,12 +106,12 @@ internal class HelpCommand : ChatCommand
             foreach (var x in typeof(ChatCommand).Assembly.GetTypes()
                          .Where(predicate: type => type.IsSubclassOf(typeof(ChatCommand))))
             {
-                var command = (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                var command = (string)x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var argtext = (string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
-                var priv = (bool) x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var priv = (bool)x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                 var helptext =
-                    (string) x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    (string)x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                 if (priv && !user.AuthInfo.IsPrivileged) continue;
                 helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
             }
@@ -120,13 +120,13 @@ internal class HelpCommand : ChatCommand
         {
             if (World.CommandHandler.TryGetHandler(args[0], out var handler))
             {
-                var command = (string) handler.GetField("Command", BindingFlags.Public | BindingFlags.Static)
+                var command = (string)handler.GetField("Command", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
-                var argtext = (string) handler.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                var argtext = (string)handler.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
-                var priv = (bool) handler.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
+                var priv = (bool)handler.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
-                var helptext = (string) handler.GetField("HelpText", BindingFlags.Public | BindingFlags.Static)
+                var helptext = (string)handler.GetField("HelpText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
                 if (priv && !user.AuthInfo.IsPrivileged) return Fail("Access denied");
                 helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";

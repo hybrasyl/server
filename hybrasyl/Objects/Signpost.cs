@@ -19,9 +19,8 @@
  * 
  */
 
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Hybrasyl.Messaging;
+using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
 
@@ -52,9 +51,9 @@ public class Signpost : VisibleObject
         GameLog.DebugFormat("Signpost was clicked");
         if (!IsMessageboard)
             invoker.SendMessage(Message,
-                Message.Length < 1024 ? (byte) MessageTypes.SLATE : (byte) MessageTypes.SLATE_WITH_SCROLLBAR);
+                Message.Length < 1024 ? (byte)MessageTypes.SLATE : (byte)MessageTypes.SLATE_WITH_SCROLLBAR);
         else
-            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board.Id, 0, true)
+            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort)Board.Id, 0, true)
                 .Packet());
     }
 
@@ -69,6 +68,6 @@ public class Signpost : VisibleObject
     {
         // TODO: improve, v hacky
         await Task.Delay(6000);
-        u.SendEffect(X,Y,AoiEntryEffect,AoiEntryEffectSpeed);
+        u.SendEffect(X, Y, AoiEntryEffect, AoiEntryEffectSpeed);
     }
 }

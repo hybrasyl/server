@@ -19,12 +19,12 @@
  * 
  */
 
-using System;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.Scripting;
@@ -173,7 +173,7 @@ public static class HybrasylUtility
 
         userObj.Mailbox.ReceiveMessage(new Message(to, from,
             Game.World.GetLocalString("send_parcel_mailbox_subject", ("$NAME", from)), mboxString));
-        userObj.ParcelStore.AddItem(from, itemName, (uint) quantity);
+        userObj.ParcelStore.AddItem(from, itemName, (uint)quantity);
         userObj.ParcelStore.Save();
         if (userObj.AuthInfo.IsLoggedIn)
         {
@@ -181,15 +181,21 @@ public static class HybrasylUtility
             userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         }
 
-        userObj.ParcelStore.AddItem(from, itemName, (uint) quantity);
+        userObj.ParcelStore.AddItem(from, itemName, (uint)quantity);
         return true;
     }
 
     public static bool RegisterQuest(string id, string title, string summary, string result, string reward, string prerequisite, int circle)
     => Game.World.WorldState.RegisterQuest(new QuestMetadata()
-        {
-            Id = id, Circle = circle, Result = result, Reward = reward, Prerequisite = prerequisite, Summary = summary, Title = title
-        });
+    {
+        Id = id,
+        Circle = circle,
+        Result = result,
+        Reward = reward,
+        Prerequisite = prerequisite,
+        Summary = summary,
+        Title = title
+    });
 
     public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldState.RegisterQuest(data);
 
@@ -213,11 +219,11 @@ public static class HybrasylUtility
             return;
         }
 
-        var monster = new Monster(creature, SpawnFlags.Active, (byte) level, null, cbs);
+        var monster = new Monster(creature, SpawnFlags.Active, (byte)level, null, cbs);
         monster.X = x;
         monster.Y = y;
         monster.Hostility = aggro ? new CreatureHostilitySettings { Players = new CreatureHostility() } : new CreatureHostilitySettings();
-        
+
         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
     }
 }

@@ -19,11 +19,11 @@
  * 
  */
 
-using System;
-using System.Linq;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Linq;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -241,7 +241,7 @@ internal class DamageInvCommand : ChatCommand
 
         user.SendInventory();
 
-        return Success(dura, (byte) MessageType.SlateScrollbar);
+        return Success(dura, (byte)MessageType.SlateScrollbar);
     }
 }
 
@@ -309,7 +309,7 @@ internal class ClassCommand : ChatCommand
         var cls = args[0].ToLower();
         if (Constants.CLASSES.TryGetValue(args[0].ToLower(), out var classValue))
         {
-            user.Class = (Class) classValue;
+            user.Class = (Class)classValue;
             return Success($"Class changed to {args[0]}.");
         }
 
@@ -328,7 +328,7 @@ internal class LevelCommand : ChatCommand
     {
         if (byte.TryParse(args[0], out var newLevel))
         {
-            user.Stats.Level = newLevel > Constants.MAX_LEVEL ? (byte) Constants.MAX_LEVEL : newLevel;
+            user.Stats.Level = newLevel > Constants.MAX_LEVEL ? (byte)Constants.MAX_LEVEL : newLevel;
             user.UpdateAttributes(StatUpdateFlags.Full);
             return Success($"Level changed to {newLevel}");
         }
@@ -390,14 +390,14 @@ internal class ClevelCommand : ChatCommand
             if (user.SpellBook.Contains(castable.Id))
             {
                 slot = user.SpellBook.Single(predicate: x => x.Castable.Name == castable.Name);
-                var uses = castable.Mastery.Uses * ((double) i / 100);
+                var uses = castable.Mastery.Uses * ((double)i / 100);
                 slot.UseCount = Convert.ToUInt32(uses);
                 user.SendSpellUpdate(slot, user.SpellBook.SlotOf(castable.Id));
             }
             else if (user.SkillBook.Contains(castable.Id))
             {
                 slot = user.SkillBook.Single(predicate: x => x.Castable.Name == castable.Name);
-                var uses = castable.Mastery.Uses * ((double) i / 100);
+                var uses = castable.Mastery.Uses * ((double)i / 100);
                 slot.UseCount = Convert.ToUInt32(uses);
                 user.SendSkillUpdate(slot, user.SkillBook.SlotOf(castable.Id));
             }

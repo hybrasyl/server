@@ -1,12 +1,12 @@
-﻿using System;
+﻿using C3;
+using Hybrasyl.Enums;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Xml.Objects;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using C3;
-using Hybrasyl.Enums;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -48,7 +48,7 @@ public class MapObject : IStateStorable
 
     [FormulaVariable] public int Tiles => X * Y;
 
-    [FormulaVariable] public byte BaseLevel => byte.TryParse(SpawnDirectives.BaseLevel, out var b) ? b : (byte) 1;
+    [FormulaVariable] public byte BaseLevel => byte.TryParse(SpawnDirectives.BaseLevel, out var b) ? b : (byte)1;
 
     public string Name { get; set; }
     public byte Flags { get; set; }
@@ -59,7 +59,7 @@ public class MapObject : IStateStorable
 
     private HashSet<(byte x, byte y)> Collisions { get; set; } = new();
 
-    public bool IsWall(int x, int y) => IsWall((byte) x, (byte) y);
+    public bool IsWall(int x, int y) => IsWall((byte)x, (byte)y);
     public bool IsWall(byte x, byte y) => Collisions.Contains((x, y));
 
     public void ToggleCollisions(byte x, byte y)
@@ -69,7 +69,7 @@ public class MapObject : IStateStorable
         else
             Collisions.Add((x, y));
     }
-    
+
     public bool AllowCasting { get; set; }
     public bool AllowSpeaking { get; set; }
 
@@ -304,37 +304,37 @@ public class MapObject : IStateStorable
 
         var index = 0;
         for (byte y = 0; y < Y; ++y)
-        for (byte x = 0; x < X; ++x)
-        {
-            var bg = RawData[index++] | (RawData[index++] << 8);
-            var lfg = RawData[index++] | (RawData[index++] << 8);
-            var rfg = RawData[index++] | (RawData[index++] << 8);
-
-            if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
-
-            if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
-
-            var lfgu = (ushort) lfg;
-            var rfgu = (ushort) rfg;
-
-            if (Game.DoorSprites.ContainsKey(lfgu))
+            for (byte x = 0; x < X; ++x)
             {
-                // This is a left-right door
-                GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
-                    Name, x, y, Collisions.Contains((x, y)));
+                var bg = RawData[index++] | (RawData[index++] << 8);
+                var lfg = RawData[index++] | (RawData[index++] << 8);
+                var rfg = RawData[index++] | (RawData[index++] << 8);
 
-                InsertDoor((byte) x, (byte) y, Collisions.Contains((x, y)), true,
-                    Game.IsDoorCollision(lfgu));
+                if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
+
+                if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
+
+                var lfgu = (ushort)lfg;
+                var rfgu = (ushort)rfg;
+
+                if (Game.DoorSprites.ContainsKey(lfgu))
+                {
+                    // This is a left-right door
+                    GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
+                        Name, x, y, Collisions.Contains((x, y)));
+
+                    InsertDoor((byte)x, (byte)y, Collisions.Contains((x, y)), true,
+                        Game.IsDoorCollision(lfgu));
+                }
+                else if (Game.DoorSprites.ContainsKey(rfgu))
+                {
+                    GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
+                        Name, x, y, Collisions.Contains((x, y)));
+                    // THis is an up-down door 
+                    InsertDoor((byte)x, (byte)y, Collisions.Contains((x, y)), false,
+                        Game.IsDoorCollision(rfgu));
+                }
             }
-            else if (Game.DoorSprites.ContainsKey(rfgu))
-            {
-                GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
-                    Name, x, y, Collisions.Contains((x, y)));
-                // THis is an up-down door 
-                InsertDoor((byte) x, (byte) y, Collisions.Contains((x, y)), false,
-                    Game.IsDoorCollision(rfgu));
-            }
-        }
 
         return true;
     }
@@ -396,11 +396,11 @@ public class MapObject : IStateStorable
             GameLog.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
                 Name, x, y, !Doors[coords].Closed);
 
-            ToggleCollisions(x,y);
+            ToggleCollisions(x, y);
         }
 
         GameLog.DebugFormat("Toggling door at {0},{1}", x, y);
-        GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall(x,y));
+        GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall(x, y));
 
         var updateViewport = GetViewport(x, y);
 
@@ -438,19 +438,19 @@ public class MapObject : IStateStorable
         {
             // Look for a door at x-1, x+1, and open if they're present
             Door nextdoor;
-            var door1Coords = ((byte) (x - 1), y);
-            var door2Coords = ((byte) (x + 1), y);
-            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor((byte) (x - 1), y);
-            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor((byte) (x + 1), y);
+            var door1Coords = ((byte)(x - 1), y);
+            var door2Coords = ((byte)(x + 1), y);
+            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor((byte)(x - 1), y);
+            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor((byte)(x + 1), y);
         }
         else
         {
             // Look for a door at y-1, y+1 and open if they're present
             Door nextdoor;
-            var door1Coords = (x, (byte) (y - 1));
-            var door2Coords = (x, (byte) (y + 1));
-            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor(x, (byte) (y - 1));
-            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor(x, (byte) (y + 1));
+            var door1Coords = (x, (byte)(y - 1));
+            var door2Coords = (x, (byte)(y + 1));
+            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor(x, (byte)(y - 1));
+            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor(x, (byte)(y + 1));
         }
     }
 
@@ -494,9 +494,9 @@ public class MapObject : IStateStorable
             // frame to complete, or a slight delay to allow a kill animation to finish animating.
             // Yes, this is a thing we do.
             if (target is User && obj is User)
-                ((User) target).AoiDeparture(obj, 250);
+                ((User)target).AoiDeparture(obj, 250);
             else if (target is User && obj is Creature)
-                ((User) target).AoiDeparture(obj, 100);
+                ((User)target).AoiDeparture(obj, 100);
             else
                 target.AoiDeparture(obj);
 
@@ -518,8 +518,8 @@ public class MapObject : IStateStorable
         }
 
         // Add the gold to the world at the given location.
-        gold.X = (byte) x;
-        gold.Y = (byte) y;
+        gold.X = (byte)x;
+        gold.Y = (byte)y;
         gold.Map = this;
         lock (_lock)
         {
@@ -544,8 +544,8 @@ public class MapObject : IStateStorable
         }
 
         // Add the ItemObject to the world at the given location.
-        itemObject.X = (byte) x;
-        itemObject.Y = (byte) y;
+        itemObject.X = (byte)x;
+        itemObject.Y = (byte)y;
         itemObject.Map = this;
         lock (_lock)
         {
@@ -624,15 +624,15 @@ public class MapObject : IStateStorable
         do
         {
             for (var x = -1 * radius; x <= radius; x++)
-            for (var y = -1 * radius; y <= radius; y++)
-                if (IsWall(xStart + x, yStart + y) ||
-                    GetTileContents(xStart + x, yStart + y).Where(predicate: x => x is Creature).Count() > 0) { }
-                else
-                {
-                    retx = (byte) (xStart + x);
-                    rety = (byte) (yStart + y);
-                    break;
-                }
+                for (var y = -1 * radius; y <= radius; y++)
+                    if (IsWall(xStart + x, yStart + y) ||
+                        GetTileContents(xStart + x, yStart + y).Where(predicate: x => x is Creature).Count() > 0) { }
+                    else
+                    {
+                        retx = (byte)(xStart + x);
+                        rety = (byte)(yStart + y);
+                        break;
+                    }
 
             radius++;
             // Don't go on forever here

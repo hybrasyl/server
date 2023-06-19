@@ -1,18 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Xml;
-using Hybrasyl;
-using Hybrasyl.Objects;
+﻿using Hybrasyl.Objects;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using Serilog;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 public class HybrasylFixture : IDisposable
 {
@@ -25,7 +23,7 @@ public class HybrasylFixture : IDisposable
         Log.Logger = new LoggerConfiguration()
             .WriteTo.TestOutput(sink)
             .CreateLogger();
-        var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("HybrasylTests");
+        var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("Hybrasyl.Tests");
         Game.LoadCollisions();
         Game.DataDirectory = Settings.HybrasylTests.JsonSettings.DataDirectory;
         Game.WorldDataDirectory = Settings.HybrasylTests.JsonSettings.WorldDataDirectory;
@@ -34,10 +32,12 @@ public class HybrasylFixture : IDisposable
         manager.LoadData();
 
         Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 },
-            manager, "en_us",true);
+            manager, "en_us", true);
 
         Game.World.CompileScripts();
         Game.World.SetPacketHandlers();
+        Game.World.SetControlMessageHandlers();
+        Game.World.StartControlConsumers();
         if (!Game.World.LoadData())
             throw new InvalidDataException("LoadData encountered errors");
 
@@ -60,7 +60,7 @@ public class HybrasylFixture : IDisposable
         };
         TestItem.Properties.Stackable.Max = 1;
         TestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
-            { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         TestItem.Properties.Categories = new List<Category>
         {
@@ -75,7 +75,7 @@ public class HybrasylFixture : IDisposable
         };
         StackableTestItem.Properties.Stackable.Max = 20;
         StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
-            { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         StackableTestItem.Properties.Categories = new List<Category>
         {
@@ -84,16 +84,16 @@ public class HybrasylFixture : IDisposable
             new() { Value = "xmlitem" }
         };
 
-        Game.World.WorldData.Add(StackableTestItem, StackableTestItem.Id);
+        Game.World.WorldData.Add(StackableTestItem);
 
         foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
         {
             var item = new Item { Name = $"Equip Test {slot}" };
             item.Properties.Stackable.Max = 1;
             item.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
-                { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
+            { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
             item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
-            Game.World.WorldData.Add(item, item.Id);
+            Game.World.WorldData.Add(item);
             TestEquipment.Add(slot, item);
         }
 

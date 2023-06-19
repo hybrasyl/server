@@ -19,12 +19,12 @@
  * 
  */
 
+using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -44,8 +44,8 @@ public class ChatCommandHandler
             {
                 // ArgumentText example
                 // <string foo> <int bar> | <int baz> [<string quux> <int bazbar>] 
-                var command = (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
-                var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                var command = (string)x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var argtext = (string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
                 var options = argtext.Split('|');
                 var allowedArgcounts = new List<int>();
@@ -103,7 +103,7 @@ public class ChatCommandHandler
             var strings = QuotesRegex.Matches(args).Select(selector: m => m.Value).ToArray();
 
             var handler = _associates[command];
-            var priv = (bool) handler.Type.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
+            var priv = (bool)handler.Type.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
                 .GetValue(null);
 
             if (priv && !user.AuthInfo.IsPrivileged)
@@ -120,7 +120,7 @@ public class ChatCommandHandler
 
             if (!handler.argCount.Contains(splitArgs.Length))
             {
-                var argText = (string) handler.Type.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                var argText = (string)handler.Type.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
                 if (argText.Length <= 50)
                     user.SendSystemMessage($"Usage: {command} {argText}");
@@ -142,8 +142,8 @@ public class ChatCommandHandler
 
             var wtf = handler.Type.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
 
-            var result = (ChatCommandResult) wtf.Invoke(null, new object[] { user, splitArgs });
-            user.SendMessage($"[Cmd] /{command} {string.Join(" ",args)}", MessageType.Guild);
+            var result = (ChatCommandResult)wtf.Invoke(null, new object[] { user, splitArgs });
+            user.SendMessage($"[Cmd] /{command} {string.Join(" ", args)}", MessageType.Guild);
             user.SendMessage(result.Message, result.MessageType);
         }
         else

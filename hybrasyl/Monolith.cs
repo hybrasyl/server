@@ -19,15 +19,15 @@
  * 
  */
 
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Hybrasyl.Enums;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 
@@ -180,18 +180,18 @@ internal class Monolith
             try
             {
                 if (!string.IsNullOrEmpty(spawn.Spec.MaxCount))
-                    maxcount = (int) FormulaParser.Eval(spawn.Spec.MaxCount, formeval);
+                    maxcount = (int)FormulaParser.Eval(spawn.Spec.MaxCount, formeval);
                 if (!string.IsNullOrEmpty(spawn.Spec.Interval))
-                    interval = (int) FormulaParser.Eval(spawn.Spec.Interval, formeval);
+                    interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
                 if (!string.IsNullOrEmpty(spawn.Spec.MaxPerInterval))
-                    maxPerInterval = (int) FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
+                    maxPerInterval = (int)FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
 
                 // If the spawn itself has a level defined, evaluate and use it; otherwise,
                 // the spawn group (imported, or in the map itself) should define a base level
                 if (string.IsNullOrEmpty(spawn.Base?.Level))
-                    baseLevel = (int) FormulaParser.Eval(spawnGroup.BaseLevel, formeval);
+                    baseLevel = (int)FormulaParser.Eval(spawnGroup.BaseLevel, formeval);
                 else
-                    baseLevel = (int) FormulaParser.Eval(spawn.Base.Level, formeval);
+                    baseLevel = (int)FormulaParser.Eval(spawn.Base.Level, formeval);
             }
             catch (Exception ex)
             {
@@ -230,7 +230,7 @@ internal class Monolith
                     newSpawnLoot += LootBox.CalculateLoot(creature.Loot);
                     newSpawnLoot += LootBox.CalculateLoot(spawnGroup.Loot);
 
-                    var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel,
+                    var baseMob = new Monster(creature, spawn.Flags, (byte)baseLevel,
                         newSpawnLoot);
 
                     if (baseMob.LootableXP == 0)
@@ -282,7 +282,7 @@ internal class Monolith
                         }
                     }
 
-                    var mob = (Monster) baseMob.Clone();
+                    var mob = (Monster)baseMob.Clone();
                     var xcoord = 0;
                     var ycoord = 0;
 
@@ -301,8 +301,8 @@ internal class Monolith
                             ycoord = Random.Shared.Next(0, spawnmap.Y);
                         } while (spawnmap.IsWall(xcoord, ycoord));
 
-                    baseMob.X = (byte) xcoord;
-                    baseMob.Y = (byte) ycoord;
+                    baseMob.X = (byte)xcoord;
+                    baseMob.Y = (byte)ycoord;
 
                     if (spawn.Hostility != null)
                         baseMob.Hostility = spawn.Hostility;
@@ -317,8 +317,8 @@ internal class Monolith
 
                         try
                         {
-                            minDmg = (ushort) FormulaParser.Eval(spawn.Damage.MinDmg, formeval);
-                            maxDmg = (ushort) FormulaParser.Eval(spawn.Damage.MaxDmg, formeval);
+                            minDmg = (ushort)FormulaParser.Eval(spawn.Damage.MinDmg, formeval);
+                            maxDmg = (ushort)FormulaParser.Eval(spawn.Damage.MaxDmg, formeval);
 
                             if (minDmg > 0)
                                 // They need some kind of weapon
@@ -333,7 +333,7 @@ internal class Monolith
                                     baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
                                     var item = new ItemObject(newTemplate);
-                                    baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
+                                    baseMob.Equipment.Insert((byte)ItemSlots.Weapon, item);
                                 }
                         }
                         catch (Exception ex)
@@ -353,8 +353,8 @@ internal class Monolith
 
                         try
                         {
-                            Ac = (sbyte) FormulaParser.Eval(spawn.Defense.Ac, formeval);
-                            Mr = (sbyte) FormulaParser.Eval(spawn.Defense.Mr, formeval);
+                            Ac = (sbyte)FormulaParser.Eval(spawn.Defense.Ac, formeval);
+                            Mr = (sbyte)FormulaParser.Eval(spawn.Defense.Mr, formeval);
                         }
                         catch (Exception ex)
                         {

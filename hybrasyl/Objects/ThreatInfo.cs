@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
 
@@ -201,11 +201,11 @@ public class ThreatInfo
         {
             if (HighestThreat == threat)
                 return;
-            entry.Threat = (uint) (HighestThreatEntry.Threat * 1.10);
+            entry.Threat = (uint)(HighestThreatEntry.Threat * 1.10);
         }
         else
         {
-            AddNewThreat(threat, (uint) (HighestThreatEntry.Threat * 1.10));
+            AddNewThreat(threat, (uint)(HighestThreatEntry.Threat * 1.10));
         }
     }
 

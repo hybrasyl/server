@@ -19,13 +19,13 @@
  * 
  */
 
+using Hybrasyl.Interfaces;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
 
@@ -33,7 +33,7 @@ namespace Hybrasyl;
 [MoonSharpUserData]
 public class QuestMetadata
 {
-    public string Title; 
+    public string Title;
     public string Id;
     public int Circle = 0;
     public SortedSet<Class> AllowedClasses;
@@ -51,7 +51,7 @@ public class QuestMetadata
 
     public void AddClass(Class c) => AllowedClasses.Add(c);
 
-    public string Classes => AllowedClasses.Aggregate(string.Empty, (current, c) => current + (byte) c);
+    public string Classes => AllowedClasses.Aggregate(string.Empty, (current, c) => current + (byte)c);
 
 }
 
@@ -113,20 +113,20 @@ public class CompiledMetafile : IStateStorable
             using (var metaFileWriter =
                    new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
             {
-                metaFileWriter.Write((byte) (file.Nodes.Count / 256));
-                metaFileWriter.Write((byte) (file.Nodes.Count % 256));
+                metaFileWriter.Write((byte)(file.Nodes.Count / 256));
+                metaFileWriter.Write((byte)(file.Nodes.Count % 256));
                 foreach (var node in file.Nodes)
                 {
                     var nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
-                    metaFileWriter.Write((byte) nodeBuffer.Length);
+                    metaFileWriter.Write((byte)nodeBuffer.Length);
                     metaFileWriter.Write(nodeBuffer);
-                    metaFileWriter.Write((byte) (node.Properties.Count / 256));
-                    metaFileWriter.Write((byte) (node.Properties.Count % 256));
+                    metaFileWriter.Write((byte)(node.Properties.Count / 256));
+                    metaFileWriter.Write((byte)(node.Properties.Count % 256));
                     foreach (var property in node.Properties)
                     {
                         var propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
-                        metaFileWriter.Write((byte) (propertyBuffer.Length / 256));
-                        metaFileWriter.Write((byte) (propertyBuffer.Length % 256));
+                        metaFileWriter.Write((byte)(propertyBuffer.Length / 256));
+                        metaFileWriter.Write((byte)(propertyBuffer.Length % 256));
                         metaFileWriter.Write(propertyBuffer);
                     }
                 }

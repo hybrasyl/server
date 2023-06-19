@@ -19,17 +19,15 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Globalization;
-using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
 
 namespace Hybrasyl.Objects;
 
@@ -225,9 +223,9 @@ public class VisibleObject : WorldObject, IVisible
         targetMap.Insert(this, x, y);
     }
 
-    public virtual void SendMapInfo(int transmitDelay=0) { }
+    public virtual void SendMapInfo(int transmitDelay = 0) { }
 
-    public virtual void SendLocation(int transmitDelay=0) { }
+    public virtual void SendLocation(int transmitDelay = 0) { }
 
     public virtual void Say(string message, string from = "")
     {
@@ -256,7 +254,7 @@ public class VisibleObject : WorldObject, IVisible
 
         foreach (var user in viewportUsers)
         {
-            var nPacket = (ServerPacket) soundPacket.Packet().Clone();
+            var nPacket = (ServerPacket)soundPacket.Packet().Clone();
             user.Enqueue(nPacket);
         }
     }

@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using Hybrasyl.Interfaces;
+﻿using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Scripting;
 
@@ -143,7 +143,7 @@ public class ScriptEnvironment
 
     public static ScriptEnvironment CreateWithTargetAndSource(dynamic target, dynamic source) =>
         Create(("target", target), ("source", source));
-      
+
     public static ScriptEnvironment CreateWithOriginAndTarget(dynamic origin, dynamic target) =>
         Create(("origin", origin), ("target", target));
 

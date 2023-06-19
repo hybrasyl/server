@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Hybrasyl.Xml.Objects;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Casting;
 
@@ -21,7 +21,7 @@ public class Rotation : IList<RotationEntry>
 
     public DateTime LastUse { get; set; } = DateTime.MinValue;
     public int Interval { get; set; }
-    public long SecondsSinceLastUse => (long) (DateTime.Now - LastUse).TotalSeconds;
+    public long SecondsSinceLastUse => (long)(DateTime.Now - LastUse).TotalSeconds;
     public long Priority => SecondsSinceLastUse - Interval;
     public RotationType Type => CastingSet.Type;
     public CreatureCastingSet CastingSet { get; set; }

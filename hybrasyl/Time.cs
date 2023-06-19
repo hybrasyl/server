@@ -19,13 +19,13 @@
  * 
  */
 
+using Humanizer;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Humanizer;
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
 
@@ -126,13 +126,13 @@ public class HybrasylTime
 
     // Yes, overflows are possible here; instead of complaining, ask yourself why you 
     // need an in-game year that is > maxint
-    public int Year => Convert.ToInt32(Math.Floor((double) (HybrasylTicks / TicksPerYear)) + Age.StartYear);
+    public int Year => Convert.ToInt32(Math.Floor((double)(HybrasylTicks / TicksPerYear)) + Age.StartYear);
 
     // There is no moon 0
-    public int Moon => Convert.ToInt32(Math.Floor((double) (MoonTicks / TicksPerMoon)) + 1);
+    public int Moon => Convert.ToInt32(Math.Floor((double)(MoonTicks / TicksPerMoon)) + 1);
 
     // There is no sun 0
-    public int Sun => Convert.ToInt32(Math.Floor((double) (SunTicks / TicksPerSun)) + 1);
+    public int Sun => Convert.ToInt32(Math.Floor((double)(SunTicks / TicksPerSun)) + 1);
     public int Hour => Convert.ToInt32(HourTicks / TicksPerHour);
     public int Minute => Convert.ToInt32(MinuteTicks / TicksPerMinute);
 
@@ -166,7 +166,7 @@ public class HybrasylTime
     ///     if we can't find that, the current running server's start time
     /// </summary>
     public static HybrasylAge DefaultAge => new()
-        { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time?.ServerStart?.Value ?? Game.StartDate };
+    { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time?.ServerStart?.Value ?? Game.StartDate };
 
     public static string CurrentAgeName => CurrentAge.Name;
 

@@ -1,5 +1,5 @@
-﻿using System;
-using Hybrasyl.Xml.Objects;
+﻿using Hybrasyl.Xml.Objects;
+using System;
 
 namespace Hybrasyl.Casting;
 
@@ -15,7 +15,7 @@ public class RotationEntry
     public string Name => Slot.Castable.Name;
     public CreatureCastable Directive { get; }
     public DateTime LastUse { get; set; } = DateTime.MinValue;
-    public long SecondsSinceLastUse => (long) (DateTime.Now - LastUse).TotalSeconds;
+    public long SecondsSinceLastUse => (long)(DateTime.Now - LastUse).TotalSeconds;
     public bool UseOnce => Directive.UseOnce;
     public bool Expired => SecondsSinceLastUse >= Directive.Interval;
     public bool ThresholdTriggered { get; set; } = false;

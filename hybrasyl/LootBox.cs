@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -80,7 +80,7 @@ public static class LootBox
     /// <param name="a">Lower bound</param>
     /// <param name="b">Upper bound</param>
     /// <returns></returns>
-    public static uint RollBetween(uint a, uint b) => (uint) Random.Shared.Next((int) a, (int) b + 1);
+    public static uint RollBetween(uint a, uint b) => (uint)Random.Shared.Next((int)a, (int)b + 1);
 
     public static Loot CalculateLoot(LootSet set, int rolls, float chance)
     {

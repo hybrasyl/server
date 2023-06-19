@@ -1,10 +1,11 @@
-﻿using Hybrasyl;
+﻿using System;
+using System.Linq;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Monsters
@@ -24,17 +25,36 @@ public class Monsters
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
         Assert.NotNull(monster.BehaviorSet);
         Game.World.Insert(monster);
-        var assails = Game.World.WorldData.Find<Castable>(condition: x => x.IsAssail);
 
-        foreach (var skill in assails)
-            Assert.True(monster.CastableController.ContainsCastable(skill.Name),
-                $"Skills: Should know {skill.Name} but doesn't");
+        foreach (var skillCategory in monster.BehaviorSet.LearnSkillCategories)
+        {
+            foreach (var skill in
+                     Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(skillCategory)))
+            {
+                var reqs = skill.Requirements.Where(x => x.Physical != null);
+                foreach (var req in reqs)
+                {
+                    if (monster.MeetsRequirement(req))
+                        Assert.True(monster.CastableController.ContainsCastable(skill.Name),
+                            $"Skills: Should know {skill.Name} but doesn't");
+                }
+            }
+        }
 
         foreach (var spellCategory in monster.BehaviorSet.LearnSpellCategories)
-        foreach (var spell in
-                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
-            Assert.True(monster.CastableController.ContainsCastable(spell.Name),
-                $"Spells: Should know {spell.Name} but doesn't");
+        {
+            foreach (var spell in
+                     Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
+            {
+                var reqs = spell.Requirements.Where(x => x.Physical != null);
+                foreach (var req in reqs)
+                {
+                    if (monster.MeetsRequirement(req))
+                        Assert.True(monster.CastableController.ContainsCastable(spell.Name),
+                            $"Skills: Should know {spell.Name} but doesn't");
+                }
+            }
+        }
     }
 
     [Fact]
@@ -66,7 +86,7 @@ public class Monsters
         Assert.Contains(rot,
             filter: x => x.Name == "puinsein" && x.CurrentPriority == CreatureTargetPriority.AttackingCaster);
         Assert.Contains(rot,
-            filter: x => x.Name == "Paralyze" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
+            filter: x => x.Name == "Wraith Touch" && x.CurrentPriority == CreatureTargetPriority.HighThreat);
         foreach (var castable in
                  Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains("ElementST")))
             Assert.Contains(rot, filter: x => x.Name == castable.Name && x.CurrentPriority == rot.TargetPriority);
@@ -140,6 +160,7 @@ public class Monsters
         // Should spawn, and not have a null behaviorset
         Assert.NotNull(monster.BehaviorSet);
         Game.World.Insert(monster);
+        monster.ActiveSince = DateTime.Now.Subtract(TimeSpan.FromMinutes(5));
         var rot = monster.CastableController.GetAssailRotation();
         var entry2 = monster.CastableController.GetNextAssail();
         Assert.NotNull(entry2);
@@ -149,11 +170,12 @@ public class Monsters
         var maxHp = monster.Stats.MaximumHp;
         monster.Damage(monster.Stats.MaximumHp - 50);
         Assert.True(monster.Stats.Hp == 50, $"hp should be 50 but is {monster.Stats.Hp}");
+        Assert.True(monster.ActiveSeconds > 300);
         entry2 = monster.CastableController.GetNextCastable();
         // This should be a threshold cast, but can be any of three spells at random
         Assert.NotNull(entry2);
-        Assert.True(entry2.Name == "mor athar gar" || entry2.Name == "mor athar meall" ||
-                    entry2.Name == "mor athar lamh");
+        Assert.True(entry2.Name == "athar gar" || entry2.Name == "athar meall" ||
+                    entry2.Name == "athar lamh");
         Assert.True(entry2.CurrentPriority == CreatureTargetPriority.AttackingHealer);
     }
 }

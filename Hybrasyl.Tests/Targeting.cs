@@ -1,11 +1,10 @@
-﻿using System.Linq;
-using Hybrasyl;
-using Hybrasyl.Objects;
+﻿using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Targeting
@@ -38,7 +37,7 @@ public class Targeting
                     Hp = 500
                 },
                 Name = "Bee Bait",
-                X = (byte) (Fixture.TestUser.X - i),
+                X = (byte)(Fixture.TestUser.X - i),
                 Y = Fixture.TestUser.Y
             };
             Fixture.Map.InsertCreature(bait);

@@ -19,18 +19,16 @@
  * 
  */
 
+using Hybrasyl.Interfaces;
+using Hybrasyl.Messaging;
+using Hybrasyl.Objects;
+using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
-using StackExchange.Redis;
 
 namespace Hybrasyl;
 
@@ -112,18 +110,18 @@ public class WorldStateStore
     /// <returns></returns>
     public T Get<T>(dynamic key) where T : IStateStorable
     {
-        if (_dataStore.ContainsKey(typeof(T))) return (T) _dataStore[typeof(T)][Sanitize(key)];
+        if (_dataStore.ContainsKey(typeof(T))) return (T)_dataStore[typeof(T)][Sanitize(key)];
         return default;
     }
 
     public T GetWorldObject<T>(Guid guid) where T : WorldObject, IStateStorable =>
-        _indexByGuid.ContainsKey(guid) ? (T) _indexByGuid[guid] : null;
+        _indexByGuid.ContainsKey(guid) ? (T)_indexByGuid[guid] : null;
 
     public bool TryGetWorldObject<T>(Guid guid, out T obj) where T : WorldObject, IStateStorable
     {
         obj = null;
         if (!_indexByGuid.ContainsKey(guid)) return false;
-        obj = (T) _indexByGuid[guid];
+        obj = (T)_indexByGuid[guid];
         return true;
     }
 
@@ -135,7 +133,7 @@ public class WorldStateStore
     /// </summary>
     /// <typeparam name="T">The type of the object desired</typeparam>
     /// <returns></returns>
-    public T First<T>() where T : IStateStorable => (T) _dataStore[typeof(T)].First().Value;
+    public T First<T>() where T : IStateStorable => (T)_dataStore[typeof(T)].First().Value;
 
     /// <summary>
     ///     Given a type and a key, return the typed object matching the key in the subindex,
@@ -146,7 +144,7 @@ public class WorldStateStore
     /// <returns>Found object</returns>
     public T GetByIndex<T>(dynamic key) where T : IStateStorable
     {
-        if (_index.ContainsKey(typeof(T))) return (T) _index[typeof(T)][Sanitize(key)];
+        if (_index.ContainsKey(typeof(T))) return (T)_index[typeof(T)][Sanitize(key)];
         return default;
     }
 
@@ -162,7 +160,7 @@ public class WorldStateStore
         tresult = default;
         var sub = GetSubStore<T>();
         if (!sub.ContainsKey(Sanitize(key))) return false;
-        tresult = (T) sub[Sanitize(key)];
+        tresult = (T)sub[Sanitize(key)];
         return true;
     }
 
@@ -180,7 +178,7 @@ public class WorldStateStore
         if (!sub.ContainsKey(Sanitize(key)))
             //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
             return false;
-        tresult = (T) sub[Sanitize(key)];
+        tresult = (T)sub[Sanitize(key)];
         return true;
     }
 
@@ -238,7 +236,7 @@ public class WorldStateStore
     /// </summary>
     /// <typeparam name="T">The type to return</typeparam>
     /// <returns>IDictionary of objects of the specified type.</returns>
-    public IDictionary<string, T> GetDictionary<T>() where T : IStateStorable => (IDictionary<string, T>) _dataStore[typeof(T)];
+    public IDictionary<string, T> GetDictionary<T>() where T : IStateStorable => (IDictionary<string, T>)_dataStore[typeof(T)];
 
     /// <summary>
     ///     Remove an object from the datastore.
@@ -321,7 +319,7 @@ public class WorldStateStore
         // Fall back to creating it if needed
         if (obj == null)
         {
-            obj = (T) Activator.CreateInstance(typeof(T), guid);
+            obj = (T)Activator.CreateInstance(typeof(T), guid);
             Redis.Set(storageKey, obj);
         }
 
@@ -403,7 +401,7 @@ public class WorldStateStore
         return false;
     }
 
-    public bool RegisterQuest(QuestMetadata data) =>_questDataStore.TryAdd(data.Id, data);
+    public bool RegisterQuest(QuestMetadata data) => _questDataStore.TryAdd(data.Id, data);
 
     public List<QuestMetadata> QuestMetadata => _questDataStore.Values.ToList();
 

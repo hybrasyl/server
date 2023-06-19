@@ -388,7 +388,7 @@ namespace Hybrasyl
             {
                 var attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
                 if (attributes.Length > 0)
-                    return resolveFunc((TAttr) attributes[0]);
+                    return resolveFunc((TAttr)attributes[0]);
                 return defaultResult;
             }
         }

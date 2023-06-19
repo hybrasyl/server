@@ -20,14 +20,14 @@
  */
 
 
-using System.Linq;
-using System.Reflection;
 using Hybrasyl.Casting;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System.Linq;
+using System.Reflection;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Scripting;
@@ -82,7 +82,7 @@ public class HybrasylWorldObject : IScriptable
     public void SetNpcDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.DialogSprite = (ushort) (0x4000 + displaySprite);
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
     }
@@ -94,7 +94,7 @@ public class HybrasylWorldObject : IScriptable
     public void SetItemDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.DialogSprite = (ushort) (0x4000 + displaySprite);
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
     }

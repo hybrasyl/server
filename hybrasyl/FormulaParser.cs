@@ -19,14 +19,13 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using NCalc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;

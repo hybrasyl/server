@@ -44,6 +44,6 @@ public class HybrasylMap
     public void DropItem(HybrasylWorldObject obj, int x, int y)
     {
         if (obj.Obj is ItemObject)
-            Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
+            Map.Insert(obj.Obj as ItemObject, (byte)x, (byte)y);
     }
 }

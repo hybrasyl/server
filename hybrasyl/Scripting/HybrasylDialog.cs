@@ -19,9 +19,9 @@
  * 
  */
 
-using System;
 using Hybrasyl.Dialogs;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Scripting;
 
@@ -44,7 +44,7 @@ public class HybrasylDialog
     /// <param name="displaySprite">int representing the sprite in the datfiles</param>
     public void SetNpcDisplaySprite(int displaySprite)
     {
-        Dialog.Sprite = (ushort) (0x4000 + displaySprite);
+        Dialog.Sprite = (ushort)(0x4000 + displaySprite);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public class HybrasylDialog
     /// <param name="displaySprite">int representing the item sprite in the datfiles</param>
     public void SetItemDisplaySprite(int displaySprite)
     {
-        Dialog.Sprite = (ushort) (0x8000 + displaySprite);
+        Dialog.Sprite = (ushort)(0x8000 + displaySprite);
     }
 
     /// <summary>

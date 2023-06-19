@@ -45,7 +45,7 @@ public class Lobby : Server
         x00.WriteByte(0x00);
         x00.WriteUInt32(Game.ServerTableCrc);
         x00.WriteByte(client.EncryptionSeed);
-        x00.WriteByte((byte) client.EncryptionKey.Length);
+        x00.WriteByte((byte)client.EncryptionKey.Length);
         x00.Write(client.EncryptionKey);
         client.Enqueue(x00);
     }
@@ -57,7 +57,7 @@ public class Lobby : Server
         if (mismatch == 1)
         {
             var x56 = new ServerPacket(0x56);
-            x56.WriteUInt16((ushort) Game.ServerTable.Length);
+            x56.WriteUInt16((ushort)Game.ServerTable.Length);
             x56.Write(Game.ServerTable);
             GameLog.InfoFormat("ServerTable: Sent: {0}", BitConverter.ToString(x56.ToArray()));
             client.Enqueue(x56);

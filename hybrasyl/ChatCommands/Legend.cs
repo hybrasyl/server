@@ -19,9 +19,9 @@
  * 
  */
 
-using System;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using System;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -114,7 +114,7 @@ internal class LegendColorCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         for (var i = 0; i < 256; i++)
-            user.Legend.AddMark(LegendIcon.Community, (LegendColor) i, $"This is color {i}.", $"COLOR{i}");
+            user.Legend.AddMark(LegendIcon.Community, (LegendColor)i, $"This is color {i}.", $"COLOR{i}");
         return Success("View the colors.");
     }
 }

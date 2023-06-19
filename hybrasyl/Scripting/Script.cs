@@ -19,16 +19,16 @@
  * 
  */
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Serilog;
+using System;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Path = System.IO.Path;
 using Reactor = Hybrasyl.Objects.Reactor;
 
@@ -130,7 +130,7 @@ public class Script
     {
         if (obj == null)
             return DynValue.NewNil();
-        
+
 
         return obj switch
         {

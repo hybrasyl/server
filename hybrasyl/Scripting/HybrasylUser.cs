@@ -19,15 +19,15 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Scripting;
@@ -222,7 +222,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>A HybrasylMonster object.</returns>
     public HybrasylMonster GetFacingMonster()
     {
-        var facing = (Monster) User.GetFacingObjects().Where(predicate: X => X is Monster).FirstOrDefault();
+        var facing = (Monster)User.GetFacingObjects().Where(predicate: X => X is Monster).FirstOrDefault();
         return facing != null ? new HybrasylMonster(facing) : null;
     }
 
@@ -233,7 +233,7 @@ public class HybrasylUser : HybrasylWorldObject
     public void ChangeDirection(string direction)
     {
         Enum.TryParse(typeof(Direction), direction, out var result);
-        User.Direction = (Direction) result;
+        User.Direction = (Direction)result;
     }
 
     /// <summary>
@@ -273,7 +273,7 @@ public class HybrasylUser : HybrasylWorldObject
     public dynamic GetLegendMark(string prefix)
     {
         LegendMark mark;
-        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object) null;
+        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
     }
 
     /// <summary>
@@ -713,7 +713,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="speed">speed of the diplayed motion</param>
     public void DisplayMotion(int motionId, short speed = 20)
     {
-        User.Motion((byte) motionId, speed);
+        User.Motion((byte)motionId, speed);
     }
 
     /// <summary>
@@ -731,7 +731,7 @@ public class HybrasylUser : HybrasylWorldObject
             return;
         }
 
-        User.Teleport(location, (byte) x, (byte) y);
+        User.Teleport(location, (byte)x, (byte)y);
     }
 
     /// <summary>
@@ -908,7 +908,7 @@ public class HybrasylUser : HybrasylWorldObject
 
         if (User.Inventory.ContainsName(name))
         {
-            if (User.RemoveItem(name, (ushort) count,true, force))
+            if (User.RemoveItem(name, (ushort)count, true, force))
                 return true;
             GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}, might be bound", User.Name, name);
         }
@@ -927,18 +927,18 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>true</returns>
     public void GiveExperience(int exp)
     {
-        User.GiveExperience((uint) exp);
+        User.GiveExperience((uint)exp);
     }
 
     public void GiveScaledExperience(float scaleFactor, int levelMaximum, int expMinimum, int expMaximum)
     {
         if (User.Stats.Level > levelMaximum)
         {
-            User.GiveExperience((uint) expMaximum);
+            User.GiveExperience((uint)expMaximum);
             return;
         }
 
-        User.GiveExperience((uint) (scaleFactor * User.ExpToLevel > expMinimum
+        User.GiveExperience((uint)(scaleFactor * User.ExpToLevel > expMinimum
             ? scaleFactor * User.ExpToLevel
             : expMinimum));
     }
@@ -953,9 +953,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// </returns>
     public bool TakeExperience(int exp)
     {
-        if ((uint) exp > User.Stats.Experience)
+        if ((uint)exp > User.Stats.Experience)
             return false;
-        User.Stats.Experience -= (uint) exp;
+        User.Stats.Experience -= (uint)exp;
         SystemMessage($"Your world spins as your insight leaves you ((-{exp} experience!))");
         User.UpdateAttributes(StatUpdateFlags.Experience);
         return true;
@@ -1085,7 +1085,7 @@ public class HybrasylUser : HybrasylWorldObject
 
     public void SendMessage(string message, int type)
     {
-        User.SendMessage(message, (byte) type);
+        User.SendMessage(message, (byte)type);
     }
 
     /// Close any active dialogs for the current player.
@@ -1183,7 +1183,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="hairStyle">The target hairstyle</param>
     public void SetHairstyle(int hairStyle)
     {
-        User.SetHairstyle((ushort) hairStyle);
+        User.SetHairstyle((ushort)hairStyle);
     }
 
     /// <summary>
@@ -1192,7 +1192,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="itemColor">The color to apply</param>
     public void SetHairColor(string itemColor)
     {
-        var color = (ItemColor) Enum.Parse(typeof(ItemColor), itemColor);
+        var color = (ItemColor)Enum.Parse(typeof(ItemColor), itemColor);
         User.SetHairColor(color);
     }
 }

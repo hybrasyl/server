@@ -17,11 +17,9 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Newtonsoft.Json;
-using Serilog;
-using System;
 using System.IO;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 public class Settings
 {
@@ -52,6 +50,6 @@ public class Settings
 public class JsonSettings
 {
     public string WorldDataDirectory { get; init; }
-    public string LogDirectory { get; init;  }
+    public string LogDirectory { get; init; }
     public string DataDirectory { get; init; }
 }

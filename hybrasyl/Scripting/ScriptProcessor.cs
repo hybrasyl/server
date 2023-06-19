@@ -19,12 +19,12 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Scripting;
 
@@ -63,8 +63,8 @@ public class ScriptProcessor
     {
         script = null;
         if (TryGetScriptInstances(scriptName, out var s))
-            // Note that a request for RiOnA.lua == Riona == riona as long as
-            // riona exists
+        // Note that a request for RiOnA.lua == Riona == riona as long as
+        // riona exists
         {
             script = s[0].Clone();
             return true;

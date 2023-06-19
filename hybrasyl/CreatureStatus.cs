@@ -19,13 +19,13 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;
@@ -41,9 +41,9 @@ public class Prohibited : Attribute
         foreach (var parameter in prohibited)
         {
             if (parameter.GetType() == typeof(PlayerFlags))
-                Flags.Add((PlayerFlags) parameter);
+                Flags.Add((PlayerFlags)parameter);
             if (parameter.GetType() == typeof(CreatureCondition))
-                Conditions.Add((CreatureCondition) parameter);
+                Conditions.Add((CreatureCondition)parameter);
         }
     }
 
@@ -75,9 +75,9 @@ public class Required : Attribute
         foreach (var parameter in prohibited)
         {
             if (parameter.GetType() == typeof(PlayerFlags))
-                Flags.Add((PlayerFlags) parameter);
+                Flags.Add((PlayerFlags)parameter);
             if (parameter.GetType() == typeof(CreatureCondition))
-                Conditions.Add((CreatureCondition) parameter);
+                Conditions.Add((CreatureCondition)parameter);
         }
     }
 

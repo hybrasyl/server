@@ -1,6 +1,6 @@
-﻿using System;
-using Hybrasyl.Xml.Objects;
+﻿using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Scripting;
 

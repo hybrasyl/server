@@ -1,7 +1,6 @@
-﻿using Hybrasyl;
-using Xunit;
+﻿using Xunit;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Stats

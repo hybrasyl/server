@@ -1,7 +1,7 @@
-﻿using System;
-using System.Data;
-using Hybrasyl.Interfaces;
+﻿using Hybrasyl.Interfaces;
 using Newtonsoft.Json;
+using System;
+using System.Data;
 
 namespace Hybrasyl.Objects;
 

@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Hybrasyl.Scripting;
+﻿using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
+using System.Collections.Generic;
+using System.Linq;
 using Script = Hybrasyl.Scripting.Script;
 
 namespace Hybrasyl.Dialogs;

@@ -19,9 +19,9 @@
  * 
  */
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
@@ -57,10 +57,10 @@ public class Message : ICloneable
     public MessageInfo Info => new()
     {
         Body = Body,
-        Day = (byte) Created.Day,
-        Month = (byte) Created.Month,
+        Day = (byte)Created.Day,
+        Month = (byte)Created.Month,
         Highlight = Highlighted,
-        Id = (short) Id,
+        Id = (short)Id,
         Sender = Sender,
         Subject = Subject
     };

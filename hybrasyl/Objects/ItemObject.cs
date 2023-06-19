@@ -19,15 +19,15 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -118,7 +118,7 @@ public class ItemObject : VisibleObject, IInteractable
         get
         {
             if (MaximumDurability != 0)
-                return Durability == 0 ? Value : (uint) (Durability / MaximumDurability * Value);
+                return Durability == 0 ? Value : (uint)(Durability / MaximumDurability * Value);
             return 0;
         }
     }
@@ -282,7 +282,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a shield while holding a two-handed weapon
 
-        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon != null &&
+        if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null &&
             userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHand)
         {
             message = World.GetLocalString("item_equip_shield_2h");
@@ -291,7 +291,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a two-handed weapon while holding a shield
 
-        if (EquipmentSlot == (byte) ItemSlots.Weapon &&
+        if (EquipmentSlot == (byte)ItemSlots.Weapon &&
             (WeaponType == WeaponType.TwoHand || WeaponType == WeaponType.Staff) &&
             userobj.Equipment.Shield != null)
         {
@@ -320,7 +320,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
-                    (userobj.Equipment[(byte) restriction.Slot] != null)
+                    (userobj.Equipment[(byte)restriction.Slot] != null)
                 )
                 {
                     message = restrictionMessage;
@@ -332,7 +332,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
-                    (userobj.Equipment[(byte) restriction.Slot] == null)
+                    (userobj.Equipment[(byte)restriction.Slot] == null)
                 )
                 {
                     message = restrictionMessage;
@@ -354,11 +354,11 @@ public class ItemObject : VisibleObject, IInteractable
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
                 if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring &&
-                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftHand) ||
-                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightHand ||
+                     EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.LeftHand) ||
+                    EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.RightHand ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
-                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftArm) ||
-                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightArm || EquipmentSlot == (byte) restriction.Slot)
+                     EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.LeftArm) ||
+                    EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.RightArm || EquipmentSlot == (byte)restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -369,7 +369,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
                     userobj.Equipment.RRing != null || (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
                                                         userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte) restriction.Slot)
+                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte)restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -458,7 +458,7 @@ public class ItemObject : VisibleObject, IInteractable
                     var overlap = trigger.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
                     if (overlap.Any())
                     {
-                            trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
+                        trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
                     }
                     else
                     {

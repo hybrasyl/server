@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -26,7 +27,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
@@ -140,7 +140,7 @@ public class Server
         Socket clientSocket;
         try
         {
-            clientSocket = (Socket) ar.AsyncState;
+            clientSocket = (Socket)ar.AsyncState;
             handler = clientSocket.EndAccept(ar);
         }
         catch (ObjectDisposedException e)
@@ -189,7 +189,7 @@ public class Server
 
     public void ReadCallback(IAsyncResult ar)
     {
-        var state = (ClientState) ar.AsyncState;
+        var state = (ClientState)ar.AsyncState;
         Client client;
         var errorCode = SocketError.SocketError;
         var bytesRead = 0;

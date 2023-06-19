@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using Hybrasyl.Enums;
+﻿using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
+using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Dialogs;
 

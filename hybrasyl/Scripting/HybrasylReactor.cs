@@ -1,6 +1,6 @@
-﻿using System;
-using Hybrasyl.Objects;
+﻿using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Scripting;
 
@@ -20,5 +20,5 @@ public class HybrasylReactor : HybrasylWorldObject
     }
 
     public bool Expired => Reactor.Expired;
-    public long Expiration => ((DateTimeOffset) Reactor.Expiration).ToUnixTimeSeconds();
+    public long Expiration => ((DateTimeOffset)Reactor.Expiration).ToUnixTimeSeconds();
 }

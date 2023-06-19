@@ -19,12 +19,10 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
+using System;
 
 namespace Hybrasyl.Objects;
 
@@ -50,7 +48,7 @@ public class StatInfo
     // The actual lockable private properties
     private object _lock = new();
 
-    public decimal HpPercentage => (decimal) Hp / MaximumHp * 100m;
+    public decimal HpPercentage => (decimal)Hp / MaximumHp * 100m;
 
     [FormulaVariable]
     [JsonProperty]
@@ -72,7 +70,7 @@ public class StatInfo
         }
     }
 
-    [FormulaVariable] 
+    [FormulaVariable]
     public int FormulaLevel => Level;
 
     [FormulaVariable]
@@ -110,7 +108,7 @@ public class StatInfo
                 _faith = value;
         }
     }
-    
+
     [FormulaVariable]
     [JsonProperty]
     public uint Gold
@@ -1493,30 +1491,30 @@ public class StatInfo
 
     [FormulaVariable]
     public uint MaximumHp =>
-        (uint) Math.Clamp(BaseHp + BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+        (uint)Math.Clamp(BaseHp + BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
 
     [FormulaVariable]
     public uint MaximumMp =>
-        (uint) Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+        (uint)Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
 
     [FormulaVariable]
-    public byte Str => (byte) Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
     [FormulaVariable]
-    public byte Int => (byte) Math.Clamp(BaseInt + BonusInt, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Int => (byte)Math.Clamp(BaseInt + BonusInt, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
     [FormulaVariable]
-    public byte Wis => (byte) Math.Clamp(BaseWis + BonusWis, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Wis => (byte)Math.Clamp(BaseWis + BonusWis, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
     [FormulaVariable]
-    public byte Con => (byte) Math.Clamp(BaseCon + BonusCon, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Con => (byte)Math.Clamp(BaseCon + BonusCon, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
     [FormulaVariable]
-    public byte Dex => (byte) Math.Clamp(BaseDex + BonusDex, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Dex => (byte)Math.Clamp(BaseDex + BonusDex, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
 
 
     [FormulaVariable]
-    public double Dmg => (byte) Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
+    public double Dmg => (byte)Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
 
     // These are for the client 0x08, specifically, which has some annoying limitations.
     // MR in particular can only be displayed as multiples of 10% and no negatives can be
@@ -1529,8 +1527,8 @@ public class StatInfo
         {
             return Mr switch
             {
-                < 0 => (byte) (128 + Math.Max(Mr * 8, -128)),
-                > 0 => (byte) (128 + Math.Min(Mr * 8, 127)),
+                < 0 => (byte)(128 + Math.Max(Mr * 8, -128)),
+                > 0 => (byte)(128 + Math.Min(Mr * 8, 127)),
                 _ => 128
             };
         }
@@ -1542,8 +1540,8 @@ public class StatInfo
         {
             return Dmg switch
             {
-                < 0 => (byte) (128 + Math.Max(Dmg * 8, -128)),
-                > 0 => (byte) (128 + Math.Min(Dmg * 8, 127)),
+                < 0 => (byte)(128 + Math.Max(Dmg * 8, -128)),
+                > 0 => (byte)(128 + Math.Min(Dmg * 8, 127)),
                 _ => 128
             };
         }
@@ -1555,19 +1553,19 @@ public class StatInfo
         {
             return Hit switch
             {
-                < 0 => (byte) (128 + Math.Max(Hit * 8, -128)),
-                > 0 => (byte) (128 + Math.Min(Hit * 8, 127)),
+                < 0 => (byte)(128 + Math.Max(Hit * 8, -128)),
+                > 0 => (byte)(128 + Math.Min(Hit * 8, 127)),
                 _ => 128
             };
         }
     }
 
     [FormulaVariable]
-    public double Hit => (byte) Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
+    public double Hit => (byte)Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
 
     [FormulaVariable]
     public sbyte Ac =>
-        (sbyte) Math.Clamp(BaseAc - Level / 3 + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
+        (sbyte)Math.Clamp(BaseAc - Level / 3 + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
 
     [FormulaVariable] public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
 
@@ -1685,14 +1683,14 @@ public class StatInfo
     {
         if (si1 == null || si1.Empty) return;
         // Always apply current hp/mp/gold changes
-        var hp = (long) Hp;
+        var hp = (long)Hp;
         hp += si1.DeltaHp;
         if (hp < 0) hp = 0;
-        Hp = (uint) Math.Clamp(hp, 0, uint.MaxValue);
-        var mp = (long) Mp;
+        Hp = (uint)Math.Clamp(hp, 0, uint.MaxValue);
+        var mp = (long)Mp;
         mp += si1.DeltaMp;
         if (mp < 0) mp = 0;
-        Mp = (uint) Math.Clamp(mp, 0, uint.MaxValue);
+        Mp = (uint)Math.Clamp(mp, 0, uint.MaxValue);
         var gold = Gold + si1.Gold;
         Gold = Math.Clamp(gold, 0, uint.MaxValue);
 

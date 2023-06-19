@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Hybrasyl.Interfaces
+﻿namespace Hybrasyl.Interfaces
 {
     // This exists to identify all usages of WorldStateData, to ensure we are not cross-mixing types between
     // WorldStateData and XMLManager / WorldStoreData, and to reduce / eliminate bugs from extracting all XML

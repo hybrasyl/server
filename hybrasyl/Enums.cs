@@ -337,7 +337,7 @@ namespace Hybrasyl
         {
             Unknown,
             Dodge,
-            Damage, 
+            Damage,
             Heal,
             CriticalFailure,
             CriticalMagicFailure,

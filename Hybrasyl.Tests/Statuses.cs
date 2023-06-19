@@ -1,11 +1,13 @@
-﻿using System.Linq;
-using Hybrasyl;
+﻿using System;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Status
@@ -24,12 +26,19 @@ public class Status
         Fixture.TestUser.Stats.BaseMp = 1000;
         Fixture.TestUser.Stats.Mp = 1000;
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Plus AC").FirstOrDefault();
+        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestPlusAC").FirstOrDefault();
         Assert.NotNull(castable);
+        Assert.NotNull(castable.AddStatuses);
+        Assert.NotEmpty(castable.AddStatuses);
+        var expectedStatus = Game.World.WorldData.Get<Xml.Objects.Status>(castable.AddStatuses.First().Value);
+        Assert.NotNull(expectedStatus.Effects.OnApply.StatModifiers);
+        var expectedAcDelta = Convert.ToSByte(expectedStatus.Effects.OnApply.StatModifiers.BonusAc);
+        var intensity = castable.AddStatuses.First().Intensity;
         Fixture.TestUser.SpellBook.Add(castable);
         Fixture.TestUser.UseCastable(castable, Fixture.TestUser);
-        Assert.True(Fixture.TestUser.Stats.Ac == beforeAc - 20,
-            $"ac should be {beforeAc - 20} but is {Fixture.TestUser.Stats.Ac}");
+        Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo);
+        Assert.True(Fixture.TestUser.Stats.Ac == beforeAc + (expectedAcDelta * intensity),
+            $"ac was {beforeAc}, delta {expectedAcDelta}, should be {beforeAc - expectedAcDelta} but is {Fixture.TestUser.Stats.Ac}");
     }
 
     [Fact]
@@ -38,7 +47,7 @@ public class Status
         Fixture.TestUser.Stats.BaseMp = 1000;
         Fixture.TestUser.Stats.Mp = 1000;
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Sleep").FirstOrDefault();
+        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddSleep").FirstOrDefault();
         Assert.NotNull(castable);
         Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
             "Gabbaghoul test monster not found");
@@ -64,7 +73,7 @@ public class Status
         Fixture.TestUser.Stats.Mp = 1000;
         Fixture.TestUser.RemoveAllStatuses();
 
-        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Invisible").FirstOrDefault();
+        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible").FirstOrDefault();
         var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
 
         Assert.NotNull(invisible);
@@ -76,7 +85,10 @@ public class Status
         // Using assail breaks invisibility
         Assert.True(Fixture.TestUser.UseCastable(assail));
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
-        Assert.Empty(Fixture.TestUser.Statuses);
+        // Allow sufficient time for control message handler to process messages
+        Thread.Sleep(50); 
+
+        Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
     }
 
     [Fact]
@@ -86,12 +98,13 @@ public class Status
         Fixture.TestUser.Stats.Mp = 1000;
         Fixture.TestUser.RemoveAllStatuses();
 
-        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Invisible").FirstOrDefault();
+        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible").FirstOrDefault();
         var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
         var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "beag athar").FirstOrDefault();
 
         Assert.NotNull(invisible);
         Assert.NotNull(assail);
+        Assert.NotNull(castable);
         // Apply invisibility
         Assert.True(Fixture.TestUser.UseCastable(invisible, Fixture.TestUser));
         // Should be invisible
@@ -99,7 +112,9 @@ public class Status
         // Using a spell with BreakStealth set, breaks stealth
         Fixture.TestUser.UseCastable(castable);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
-        Assert.Empty(Fixture.TestUser.Statuses);
+        // Allow sufficient time for control message handler to process messages
+        Thread.Sleep(50); 
+        Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
     }
 
 }

@@ -19,15 +19,13 @@
  * 
  */
 
-using System;
-using System.Collections;
-using System.Collections.Specialized;
-using Hybrasyl.ChatCommands;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Creature = Hybrasyl.Objects.Creature;
+using System;
+using System.Collections;
+using System.Collections.Specialized;
 
 namespace Hybrasyl.Scripting;
 
@@ -360,7 +358,7 @@ public class HybrasylWorld
         var dialog = new OptionsDialog(displayText);
         foreach (DictionaryEntry entry in dialogOptions.Options)
             if (entry.Value is string)
-                // Callback
+            // Callback
             {
                 dialog.AddDialogOption(entry.Key as string, entry.Value as string);
             }
@@ -376,7 +374,7 @@ public class HybrasylWorld
                         entry.Value.GetType().Name);
             }
             else if (entry.Value is null)
-                // This is JUST an option, with no callback or jump dialog. The dialog handler will process the option itself.
+            // This is JUST an option, with no callback or jump dialog. The dialog handler will process the option itself.
             {
                 dialog.AddDialogOption(entry.Key as string);
             }
@@ -448,18 +446,18 @@ public class HybrasylWorld
         Game.World.RegisterGlobalSequence(globalSequence.Sequence);
     }
 
-    public void SpawnMonster(ushort mapId, byte x, byte y, string name, string behaviorSet, int level, string displayName=null)
+    public void SpawnMonster(ushort mapId, byte x, byte y, string name, string behaviorSet, int level, string displayName = null)
     {
         if (!Game.World.WorldData.TryGetValue(name, out Xml.Objects.Creature creature)) return;
         if (!Game.World.WorldData.TryGetValue(behaviorSet, out CreatureBehaviorSet cbs)) return;
         if (!Game.World.WorldState.TryGetValue(mapId, out MapObject map)) return;
 
-        var spawn = new Monster(creature, SpawnFlags.Active, (byte) level,null, cbs);
+        var spawn = new Monster(creature, SpawnFlags.Active, (byte)level, null, cbs);
 
         spawn.X = x;
         spawn.Y = y;
         spawn.Name = displayName ?? name;
-        
+
         map.InsertCreature(spawn);
     }
 }

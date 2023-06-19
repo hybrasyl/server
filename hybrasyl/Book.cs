@@ -19,14 +19,14 @@
  * 
  */
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using XmlBook = Hybrasyl.Xml.Objects.Book;
 using Castable = Hybrasyl.Xml.Objects.Castable;
+using XmlBook = Hybrasyl.Xml.Objects.Book;
 
 namespace Hybrasyl;
 
@@ -34,7 +34,7 @@ public class BookConverter : JsonConverter
 {
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
-        var book = (Book) value;
+        var book = (Book)value;
         var output = new object[book.Size];
         for (byte i = 0; i < book.Size; i++)
         {
@@ -64,13 +64,13 @@ public class BookConverter : JsonConverter
                 book[i] = new BookSlot
                 {
                     Castable = Game.World.WorldData.Values<Castable>()
-                        .SingleOrDefault(predicate: x => x.Name.ToLower() == (string) item.Name)
+                        .SingleOrDefault(predicate: x => x.Name.ToLower() == (string)item.Name)
                 };
                 var bookSlot = book[i];
                 if (bookSlot == null) continue;
-                bookSlot.UseCount = (uint) (item.TotalUses ?? 0);
-                bookSlot.MasteryLevel = (byte) (item.MasteryLevel == null ? (byte) 0 : item.MasteryLevel);
-                bookSlot.LastCast = (DateTime) item.LastCast;
+                bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
+                bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                bookSlot.LastCast = (DateTime)item.LastCast;
             }
 
             return book;
@@ -86,14 +86,14 @@ public class BookConverter : JsonConverter
                 book[i] = new BookSlot
                 {
                     Castable = Game.World.WorldData.Values<Castable>()
-                        .SingleOrDefault(predicate: x => x.Name.ToLower() == (string) item.Name)
+                        .SingleOrDefault(predicate: x => x.Name.ToLower() == (string)item.Name)
                 };
                 var castable = book[i];
                 var bookSlot = book[i];
                 if (bookSlot == null) continue;
-                bookSlot.UseCount = (uint) (item.TotalUses ?? 0);
-                bookSlot.MasteryLevel = (byte) (item.MasteryLevel == null ? (byte) 0 : item.MasteryLevel);
-                bookSlot.LastCast = (DateTime) item.LastCast;
+                bookSlot.UseCount = (uint)(item.TotalUses ?? 0);
+                bookSlot.MasteryLevel = (byte)(item.MasteryLevel == null ? (byte)0 : item.MasteryLevel);
+                bookSlot.LastCast = (DateTime)item.LastCast;
             }
 
             return book;
@@ -212,11 +212,11 @@ public class Book : IEnumerable<BookSlot>
         return -2;
     }
 
-    public byte FindEmptyPrimarySlot() => (byte) (FindEmptyIndex(0, 34) + 1);
+    public byte FindEmptyPrimarySlot() => (byte)(FindEmptyIndex(0, 34) + 1);
 
-    public byte FindEmptySecondarySlot() => (byte) (FindEmptyIndex(36, 70) + 1);
+    public byte FindEmptySecondarySlot() => (byte)(FindEmptyIndex(36, 70) + 1);
 
-    public byte FindEmptyUtilitySlot() => (byte) (FindEmptyIndex(72, 88) + 1);
+    public byte FindEmptyUtilitySlot() => (byte)(FindEmptyIndex(72, 88) + 1);
 
     public byte FindEmptySlot(XmlBook book)
     {
@@ -245,9 +245,9 @@ public class Book : IEnumerable<BookSlot>
         return -1;
     }
 
-    public byte SlotOf(int id) => (byte) (IndexOf(id) + 1);
+    public byte SlotOf(int id) => (byte)(IndexOf(id) + 1);
 
-    public byte SlotOf(string name) => (byte) (IndexOf(name) + 1);
+    public byte SlotOf(string name) => (byte)(IndexOf(name) + 1);
 
     public bool Add(Castable item)
     {

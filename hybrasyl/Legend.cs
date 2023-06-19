@@ -19,13 +19,13 @@
  * 
  */
 
+using Hybrasyl.Enums;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using Hybrasyl.Enums;
-using Newtonsoft.Json;
 
 namespace Hybrasyl;
 

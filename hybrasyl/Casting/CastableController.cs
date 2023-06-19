@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Casting;
 
@@ -55,18 +55,18 @@ public class CastableController : IEnumerable<Rotation>
         {
             // If categories are present, use those. Otherwise, learn everything we can
             foreach (var category in MonsterObj.BehaviorSet.LearnSpellCategories)
-            foreach (var castable in Game.World.WorldData.FindSpells(MonsterObj.Stats.BaseStr,
-                         MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
-                         MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
-                if (!Castables.ContainsKey(castable.Name))
-                    Castables.Add(castable.Name, new BookSlot { Castable = castable });
+                foreach (var castable in Game.World.WorldData.FindSpells(MonsterObj.Stats.BaseStr,
+                             MonsterObj.Stats.BaseInt, MonsterObj.Stats.BaseWis,
+                             MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
+                    if (!Castables.ContainsKey(castable.Name))
+                        Castables.Add(castable.Name, new BookSlot { Castable = castable });
 
             foreach (var category in MonsterObj.BehaviorSet.LearnSkillCategories)
-            foreach (var castable in Game.World.WorldData.FindSkills(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt,
-                         MonsterObj.Stats.BaseWis,
-                         MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
-                if (!Castables.ContainsKey(castable.Name))
-                    Castables.Add(castable.Name, new BookSlot { Castable = castable });
+                foreach (var castable in Game.World.WorldData.FindSkills(MonsterObj.Stats.BaseStr, MonsterObj.Stats.BaseInt,
+                             MonsterObj.Stats.BaseWis,
+                             MonsterObj.Stats.BaseCon, MonsterObj.Stats.BaseDex, category))
+                    if (!Castables.ContainsKey(castable.Name))
+                        Castables.Add(castable.Name, new BookSlot { Castable = castable });
 
             if (MonsterObj.BehaviorSet.LearnSkillCategories.Count == 0 &&
                 MonsterObj.BehaviorSet.LearnSpellCategories.Count == 0)
@@ -127,7 +127,7 @@ public class CastableController : IEnumerable<Rotation>
                     if (set.HealthPercentage > 0)
                         entry.HealthPercentage = set.HealthPercentage;
                     var newEntry = new RotationEntry(slot, entry);
-                        
+
                     newRotation.Add(newEntry);
 
                     if (entry.UseOnce || entry.HealthPercentage > 0)

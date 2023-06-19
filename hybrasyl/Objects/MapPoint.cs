@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Text;
+﻿using Hybrasyl.Interfaces;
 using System;
-using Hybrasyl.Interfaces;
+using System.Collections.Generic;
+using System.Text;
 
 namespace Hybrasyl.Objects;
 
@@ -48,11 +48,11 @@ public class MapPoint : IStateStorable
         GameLog.DebugFormat("{0}, {1}, {2}, {3}, {4}, mappoint ID is {5}", XQuadrant, XOffset, YQuadrant,
             YOffset, Name.Length, Id);
 
-        bytes.Add((byte) XQuadrant);
-        bytes.Add((byte) XOffset);
-        bytes.Add((byte) YQuadrant);
-        bytes.Add((byte) YOffset);
-        bytes.Add((byte) Name.Length);
+        bytes.Add((byte)XQuadrant);
+        bytes.Add((byte)XOffset);
+        bytes.Add((byte)YQuadrant);
+        bytes.Add((byte)YOffset);
+        bytes.Add((byte)Name.Length);
         bytes.AddRange(buffer);
         bytes.AddRange(BitConverter.GetBytes(Id));
 

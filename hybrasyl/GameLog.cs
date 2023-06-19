@@ -19,14 +19,13 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
 using Hybrasyl.Xml.Objects;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System;
+using System.Collections.Generic;
 using System.IO;
-using Hybrasyl.Enums;
 namespace Hybrasyl;
 
 
@@ -77,7 +76,7 @@ public static class GameLog
     public static HybrasylLogger GetLogger(LogType type)
     {
         if (!Loggers.ContainsKey(LogType.General))
-            Loggers.Add(LogType.General,new HybrasylLogger { Logger = new LoggerConfiguration().CreateLogger()} );
+            Loggers.Add(LogType.General, new HybrasylLogger { Logger = new LoggerConfiguration().CreateLogger() });
         return Loggers.TryGetValue(type, out var ret) ? ret : Loggers[LogType.General];
     }
 
@@ -113,9 +112,11 @@ public static class GameLog
                     rollingInterval: RollingInterval.Day, retainedFileCountLimit: 90, rollOnFileSizeLimit: true);
             if (config.Type == LogType.General)
                 loggerConfig = loggerConfig.WriteTo.Console();
-            Loggers.Add(config.Type, new  HybrasylLogger
+            Loggers.Add(config.Type, new HybrasylLogger
             {
-                Logger = loggerConfig.CreateLogger(), Level = levelSwitch, DefaultLevel = ConvertLevel(config.Level),
+                Logger = loggerConfig.CreateLogger(),
+                Level = levelSwitch,
+                DefaultLevel = ConvertLevel(config.Level),
                 Path = $"{Path.Combine(dataDirectory, path)}"
             });
             Serilog.Log.Information($"Logger: added {config.Type} -> {path}");
@@ -135,7 +136,9 @@ public static class GameLog
                 .CreateLogger();
             Loggers.Add(LogType.General, new HybrasylLogger
             {
-                Logger = generalLog, Level = generalSwitch, DefaultLevel = LogEventLevel.Information,
+                Logger = generalLog,
+                Level = generalSwitch,
+                DefaultLevel = LogEventLevel.Information,
                 Path = Path.Combine(dataDirectory, "general.log")
             });
             GameLog.Info($"Logger: added General log");
@@ -161,7 +164,7 @@ public static class GameLog
             case LogEventLevel.Fatal:
                 logger.Fatal(messageTemplate, propertyValues);
                 break;
-            case LogEventLevel.Information: 
+            case LogEventLevel.Information:
             default:
                 logger.Information(messageTemplate, propertyValues);
                 break;
