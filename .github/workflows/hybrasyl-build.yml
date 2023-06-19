@@ -55,7 +55,7 @@ jobs:
           && cat Hybrasyl.Tests/hybrasyltest-settings.json
       - name: run tests
         run: >
-          cd tests && dotnet test --no-restore
+          cd Hybrasyl.Tests && dotnet test --no-restore
           --verbosity normal --collect:"XPlat Code Coverage"
       - name: Codecov
         uses: codecov/codecov-action@v3
