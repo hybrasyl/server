@@ -1,10 +1,11 @@
+---
 name: Hybrasyl packaging and testing
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]  
+    branches: [main]
 
 jobs:
   build:
@@ -35,26 +36,39 @@ jobs:
           repository: hybrasyl/ceridwen
           path: ceridwen
       - name: set world data directory
-        run: cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml" '.WorldDataDirectory = $wdd' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
+        run: >
+          cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml"
+          '.WorldDataDirectory = $wdd' tests/hybrasyltest-settings.json) >
+          tests/hybrasyltest-settings.json
+          && cat tests/hybrasyltest-settings.json
       - name: set log directory
-        run: cat <<< $(jq --arg ld "$GITHUB_WORKSPACE/ceridwen/logs" '.LogDataDirectory = $ld' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
+        run: >
+          cat <<< $(jq --arg ld "$GITHUB_WORKSPACE/ceridwen/logs"
+          '.LogDataDirectory = $ld' tests/hybrasyltest-settings.json) >
+          tests/hybrasyltest-settings.json &&
+          cat tests/hybrasyltest-settings.json
       - name: set data directory
-        run: cat <<< $(jq --arg dd "$GITHUB_WORKSPACE/ceridwen" '.DataDirectory = $dd' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
+        run: >
+          cat <<< $(jq --arg dd "$GITHUB_WORKSPACE/ceridwen"
+          '.DataDirectory = $dd' tests/hybrasyltest-settings.json) >
+          tests/hybrasyltest-settings.json
+          && cat tests/hybrasyltest-settings.json
       - name: run tests
-        run: cd tests && dotnet publish && dotnet test --no-restore --verbosity normal --collect:"XPlat Code Coverage"
+        run: >
+          cd tests && dotnet test --no-restore
+          --verbosity normal --collect:"XPlat Code Coverage"
       - name: Codecov
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
           verbose: true
       - name: Publish Win64
-	run: dotnet publish -c Release -r win10-x64
+        run: dotnet publish -c Release -r win10-x64
       - name: Publish Linux
-	run: dotnet publish -c Release -r ubuntu-18.04-x64
+        run: dotnet publish -c Release -r ubuntu-18.04-x64
       - name: Publish MacOS
-	run: dotnet publish -c Release -r osx-x64
+        run: dotnet publish -c Release -r osx-x64
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@0.3.2
-
