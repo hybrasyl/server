@@ -14,6 +14,7 @@
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
     <NoWarn>NU1701</NoWarn>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

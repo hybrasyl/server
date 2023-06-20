@@ -116,7 +116,7 @@ public partial class World : Server
         InitializeWorld();
     }
 
-    public World(int port, DataStore store, IWorldDataManager dataManager, string locale, bool adminEnabled = false, bool isDefault = false)
+    public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale, bool adminEnabled = false, bool isDefault = false)
         : base(port, isDefault)
     {
         InitializeWorld();
@@ -124,16 +124,18 @@ public partial class World : Server
 
         var datastoreConfig = new ConfigurationOptions
         {
-            DefaultDatabase = store.Database,
+            DefaultDatabase = redis.Database,
             AllowAdmin = adminEnabled,
             EndPoints =
             {
-                { store.Host, store.Port }
+                { redis.Host, redis.Port }
             }
         };
 
-        if (!string.IsNullOrEmpty(store.Password))
-            datastoreConfig.Password = store.Password;
+        if (!string.IsNullOrEmpty(redis.Password))
+            datastoreConfig.Password = redis.Password;
+
+        GameLog.Info($@"Using redis connection: {redis.Host}:{redis.Port}/{redis.Database} {(string.IsNullOrWhiteSpace(redis.Password) ? "(no password)" : "(password set)")}");
 
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));

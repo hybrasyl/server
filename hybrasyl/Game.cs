@@ -42,6 +42,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Hybrasyl.Internals;
 
 namespace Hybrasyl;
 
@@ -247,20 +248,37 @@ public static class Game
         var configOption = new Option<string>(name: "--config",
             description: "The named configuration to use in the world directory. Defaults to default");
 
+        var redisHost = new Option<string>(name: "--redisHost",
+            description: "The redis server to use. Overrides any setting in config xml.");
+
+        var redisPort = new Option<int>(name: "--redisPort",
+            description: "The port to use for Redis. Overrides any setting in config xml.");
+
+        var redisDb = new Option<int>(name: "--redisDb",
+            description: "The redis DB to use. Overrides any setting in config xml.");
+
+        var redisPassword = new Option<string>(name: "--redisPassword",
+            description: "The password to use for Redis. Overrides any setting in config xml.");
+
         var rootCommand = new RootCommand("Hybrasyl, a DOOMVAS-compatible MMO server");
 
         rootCommand.AddOption(dataOption);
         rootCommand.AddOption(worldDataOption);
         rootCommand.AddOption(logdirOption);
         rootCommand.AddOption(configOption);
+        rootCommand.AddOption(redisHost);
+        rootCommand.AddOption(redisPort);
+        rootCommand.AddOption(redisDb);
+        rootCommand.AddOption(redisPassword);
 
         rootCommand.SetHandler(StartServer,
-        dataOption, worldDataOption, logdirOption, configOption);
+        dataOption, worldDataOption, logdirOption, configOption, redisHost, redisPort, redisDb, redisPassword);
 
         rootCommand.Invoke(args);
     }
 
-    public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null, string configName = null)
+    public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null, string configName = null,
+        string redisHost = null, int redisPort = -1, int redisDb = -1, string redisPw = null)
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
@@ -271,6 +289,17 @@ public static class Game
         var world = Environment.GetEnvironmentVariable("WORLD_DIR") ?? worldDir;
         var log = Environment.GetEnvironmentVariable("LOG_DIR") ?? logDir;
         var config = Environment.GetEnvironmentVariable("CONFIG") ?? configName;
+        var rHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? redisHost;
+        var rawPort = Environment.GetEnvironmentVariable("REDIS_PORT");
+        var rawDb = Environment.GetEnvironmentVariable("REDIS_DB");
+        var rPort = string.IsNullOrWhiteSpace(rawPort)
+            ? redisPort
+            : Convert.ToInt32(rawPort);
+        var rDb = string.IsNullOrWhiteSpace(rawDb)
+            ? redisDb
+            : Convert.ToInt32(rawDb);
+
+        var rPw = Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? redisHost;
 
         DataDirectory = string.IsNullOrWhiteSpace(data) ?
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world") : data;
@@ -493,8 +522,13 @@ public static class Game
 
         Lobby = new Lobby(activeConfiguration.Network.Lobby.Port, true);
         Login = new Login(activeConfiguration.Network.Login.Port, true);
-        // TODO: alpha9
-        World = new World(activeConfiguration.Network.World.Port, activeConfiguration.DataStore,
+        var redisConnection = new RedisConnection();
+        redisConnection.Host = string.IsNullOrWhiteSpace(rHost) ? activeConfiguration.DataStore.Host : rHost;
+        redisConnection.Port = rPort == -1 ? activeConfiguration.DataStore.Port : rPort;
+        redisConnection.Database = rDb == -1 ? activeConfiguration.DataStore.Database : rDb;
+        redisConnection.Password = string.IsNullOrWhiteSpace(rPw) ? activeConfiguration.DataStore.Password : rPw;
+
+        World = new World(activeConfiguration.Network.World.Port, redisConnection,
             manager, activeConfiguration.Locale, true);
 
         Lobby.StopToken = CancellationTokenSource.Token;
