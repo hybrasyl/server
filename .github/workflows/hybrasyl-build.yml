@@ -66,6 +66,9 @@ jobs:
         run: >
           cd Hybrasyl.Tests && dotnet test --no-restore
           --verbosity normal --collect:"XPlat Code Coverage"
+        env:
+          REDIS_HOST: redis
+          REDIS_PORT: 6379
       - name: Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -78,6 +81,6 @@ jobs:
       - name: Publish MacOS
         run: dotnet publish -c Release -r osx-x64
       - name: Discord notification
+        uses: Ilshidur/action-discord@0.3.2
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        uses: Ilshidur/action-discord@0.3.2

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Hybrasyl.Internals;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -30,9 +31,20 @@ public class HybrasylFixture : IDisposable
         Game.LogDirectory = Settings.HybrasylTests.JsonSettings.LogDirectory;
         var manager = new XmlDataManager(Game.WorldDataDirectory);
         manager.LoadData();
+        var rHost = Environment.GetEnvironmentVariable("REDIS_HOST");
+        var rPassword = Environment.GetEnvironmentVariable("REDIS_PASSWORD");
+        var rawPort = Environment.GetEnvironmentVariable("REDIS_PORT");
+        var rawDb = Environment.GetEnvironmentVariable("REDIS_DB");
 
-        Game.World = new World(1337, new DataStore { Host = "127.0.0.1", Port = 6379, Database = 15 },
-            manager, "en_us", true);
+        var redisConn = new RedisConnection
+        {
+            Port = int.TryParse(rawPort, out var rPort) ? rPort : 6379,
+            Database = int.TryParse(rawDb, out var rDb) ? rDb : 15,
+            Password = rPassword,
+            Host = rHost ?? "127.0.0.1"
+        };
+
+        Game.World = new World(1337, redisConn, manager, "en_us", true);
 
         Game.World.CompileScripts();
         Game.World.SetPacketHandlers();

@@ -251,10 +251,10 @@ public static class Game
         var redisHost = new Option<string>(name: "--redisHost",
             description: "The redis server to use. Overrides any setting in config xml.");
 
-        var redisPort = new Option<int>(name: "--redisPort",
+        var redisPort = new Option<int?>(name: "--redisPort",
             description: "The port to use for Redis. Overrides any setting in config xml.");
 
-        var redisDb = new Option<int>(name: "--redisDb",
+        var redisDb = new Option<int?>(name: "--redisDb",
             description: "The redis DB to use. Overrides any setting in config xml.");
 
         var redisPassword = new Option<string>(name: "--redisPassword",
@@ -278,7 +278,7 @@ public static class Game
     }
 
     public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null, string configName = null,
-        string redisHost = null, int redisPort = -1, int redisDb = -1, string redisPw = null)
+        string redisHost = null, int? redisPort = null, int? redisDb = null, string redisPw = null)
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
@@ -524,8 +524,8 @@ public static class Game
         Login = new Login(activeConfiguration.Network.Login.Port, true);
         var redisConnection = new RedisConnection();
         redisConnection.Host = string.IsNullOrWhiteSpace(rHost) ? activeConfiguration.DataStore.Host : rHost;
-        redisConnection.Port = rPort == -1 ? activeConfiguration.DataStore.Port : rPort;
-        redisConnection.Database = rDb == -1 ? activeConfiguration.DataStore.Database : rDb;
+        redisConnection.Port = rPort ?? activeConfiguration.DataStore.Port;
+        redisConnection.Database = rDb ?? activeConfiguration.DataStore.Database;
         redisConnection.Password = string.IsNullOrWhiteSpace(rPw) ? activeConfiguration.DataStore.Password : rPw;
 
         World = new World(activeConfiguration.Network.World.Port, redisConnection,
