@@ -64,8 +64,6 @@ jobs:
           '.DataDirectory = $dd' Hybrasyl.Tests/hybrasyltest-settings.json) >
           Hybrasyl.Tests/hybrasyltest-settings.json
           && cat Hybrasyl.Tests/hybrasyltest-settings.json
-      - name: derp
-        run: host redis
       - name: run tests
         run: >
           cd Hybrasyl.Tests && dotnet test --no-restore
@@ -84,7 +82,3 @@ jobs:
         run: dotnet publish -c Release -r ubuntu-18.04-x64
       - name: Publish MacOS
         run: dotnet publish -c Release -r osx-x64
-      - name: Discord notification
-        uses: Ilshidur/action-discord@0.3.2
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
