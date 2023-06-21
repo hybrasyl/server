@@ -62,6 +62,8 @@ jobs:
           '.DataDirectory = $dd' Hybrasyl.Tests/hybrasyltest-settings.json) >
           Hybrasyl.Tests/hybrasyltest-settings.json
           && cat Hybrasyl.Tests/hybrasyltest-settings.json
+      - name: derp
+        run: host redis
       - name: run tests
         run: >
           cd Hybrasyl.Tests && dotnet test --no-restore
