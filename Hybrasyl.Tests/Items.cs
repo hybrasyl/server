@@ -5,7 +5,7 @@ using Xunit;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Items
+public class Items : IClassFixture<HybrasylFixture>
 {
     private static HybrasylFixture Fixture;
 

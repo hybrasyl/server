@@ -175,6 +175,7 @@ public class HybrasylFixture : IDisposable
     public void Dispose()
     {
         var ep = World.DatastoreConnection.GetEndPoints();
+        if (ep.First() == null) return;
         var server = World.DatastoreConnection.GetServer(ep.First().ToString());
         server.FlushDatabase(15);
     }

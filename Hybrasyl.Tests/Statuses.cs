@@ -10,7 +10,7 @@ using Creature = Hybrasyl.Xml.Objects.Creature;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Status
+public class Status : IClassFixture<HybrasylFixture>
 {
     public Status(HybrasylFixture fixture)
     {

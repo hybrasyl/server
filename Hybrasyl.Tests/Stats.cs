@@ -3,7 +3,7 @@
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Stats
+public class Stats : IClassFixture<HybrasylFixture>
 {
     private static HybrasylFixture Fixture;
 

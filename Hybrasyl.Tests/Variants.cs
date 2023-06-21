@@ -6,7 +6,7 @@ using Xunit;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Variant
+public class Variant : IClassFixture<HybrasylFixture>
 {
     private static HybrasylFixture Fixture;
 

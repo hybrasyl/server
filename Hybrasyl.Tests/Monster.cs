@@ -8,7 +8,7 @@ using Creature = Hybrasyl.Xml.Objects.Creature;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Monsters
+public class Monsters : IClassFixture<HybrasylFixture>
 {
     public Monsters(HybrasylFixture fixture)
     {
