@@ -20,7 +20,6 @@ public class HybrasylFixture : IDisposable
     public HybrasylFixture(IMessageSink sink)
     {
         this.sink = sink;
-        sink.OnMessage(new DiagnosticMessage("hello"));
         Log.Logger = new LoggerConfiguration()
             .WriteTo.TestOutput(sink)
             .CreateLogger();
@@ -41,9 +40,11 @@ public class HybrasylFixture : IDisposable
             Port = int.TryParse(rawPort, out var rPort) ? rPort : 6379,
             Database = int.TryParse(rawDb, out var rDb) ? rDb : 15,
             Password = rPassword,
-            Host = rHost ?? "127.0.0.1"
+            Host = string.IsNullOrWhiteSpace(rHost) ? "127.0.0.1" : rHost
         };
+        sink.OnMessage(new DiagnosticMessage($"Redis: {redisConn.Host}:{redisConn.Port}/{redisConn.Database}"));
 
+        GameLog.Info();
         Game.World = new World(1337, redisConn, manager, "en_us", true);
 
         Game.World.CompileScripts();
