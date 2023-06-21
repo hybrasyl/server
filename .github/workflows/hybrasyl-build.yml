@@ -19,6 +19,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 6379:6379
 
     strategy:
       matrix:
@@ -69,7 +71,7 @@ jobs:
           cd Hybrasyl.Tests && dotnet test --no-restore
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
-          REDIS_HOST: redis
+          REDIS_HOST: localhost
           REDIS_PORT: 6379
       - name: Codecov
         uses: codecov/codecov-action@v3
