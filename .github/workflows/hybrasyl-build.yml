@@ -33,7 +33,9 @@ jobs:
         dotnet-version: ['7.0.x']
 
     steps:
-      - name: Install dependencies
+      - name: what even
+        run: find /
+      - name: Install nuget dependencies
         run: dotnet restore
       - name: Check out ceridwen
         uses: actions/checkout@v3
