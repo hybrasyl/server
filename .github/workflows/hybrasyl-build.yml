@@ -59,6 +59,8 @@ jobs:
         with:
           fail_ci_if_error: true
           verbose: true
+      - name: Create release directory
+        run: mkdir /releases
       - name: Publish Win64
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win10-x64 &&
