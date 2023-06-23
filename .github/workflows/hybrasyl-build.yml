@@ -79,13 +79,15 @@ jobs:
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/osx-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
+      - name: derpity doo
+        run: ls /releases
       - name: Upload to current
         run: >
-          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-windows.zip
+          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-windows.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-windows.zip --region us-east-1 &&
-          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-linux.zip
+          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-linux.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip --region us-east-1 &&
-          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-osx.zip
+          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-osx.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip --region us-east-1
       - name: Upload to release archive
         run: >
