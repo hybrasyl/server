@@ -79,6 +79,6 @@ jobs:
       - name: Publish Win64
         run: dotnet publish -c Release -r win10-x64
       - name: Publish Linux
-        run: dotnet publish -c Release -r ubuntu-18.04-x64
+        run: dotnet publish -c Release -r ubuntu.18.04-x64
       - name: Publish MacOS
         run: dotnet publish -c Release -r osx-x64
