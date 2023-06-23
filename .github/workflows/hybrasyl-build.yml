@@ -3,14 +3,20 @@ name: Hybrasyl packaging and testing
 
 on:
   push:
-    branches: [main]
+    branches: 
+      - main
+      - develop
   pull_request:
-    branches: [main]
+    branches: 
+      - main
+      - develop
 
 jobs:
   build:
     runs-on: ubuntu-latest
     environment: deploy
+    container:
+      image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
     services:
       redis:
         image: redis
@@ -27,20 +33,8 @@ jobs:
         dotnet-version: ['7.0.x']
 
     steps:
-      - name: Check out source
-        uses: actions/checkout@v3
-      - name: Set up .NET SDK ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-      - name: Install jq tool
-        run: |
-          sudo apt-get update
-          sudo apt-get install jq
       - name: Install dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
       - name: Check out ceridwen
         uses: actions/checkout@v3
         with:
@@ -64,7 +58,7 @@ jobs:
           '.DataDirectory = $dd' Hybrasyl.Tests/hybrasyltest-settings.json) >
           Hybrasyl.Tests/hybrasyltest-settings.json
           && cat Hybrasyl.Tests/hybrasyltest-settings.json
-      - name: run tests
+      - name: build & run tests
         run: >
           cd Hybrasyl.Tests && dotnet test --no-restore
           --verbosity normal --collect:"XPlat Code Coverage"
