@@ -3,11 +3,11 @@ name: Hybrasyl packaging and testing
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - develop
   pull_request:
-    branches: 
+    branches:
       - main
       - develop
 
@@ -46,11 +46,11 @@ jobs:
         run: dotnet restore
       - name: config
         run: >
-          echo '{ "WorldDataDirectory": "$GITHUB_WORKSPACE/ceridwen/xml", 
-          "LogDataDirectory": "$GITHUB_WORKSPACE/ceridwen/logs", 
-          "DataDirectory": "$GITHUB_WORKSPACE/ceridwen"}' 
+          echo '{ "WorldDataDirectory": "$GITHUB_WORKSPACE/ceridwen/xml",
+          "LogDataDirectory": "$GITHUB_WORKSPACE/ceridwen/logs",
+          "DataDirectory": "$GITHUB_WORKSPACE/ceridwen"}'
           > Hybrasyl.Tests/hybrasyltest-settings.json
-  	shell: bash
+        shell: bash
       - name: show config
         run: cat Hybrasyl.Tests/hybrasyltest-settings.json
       - name: build & run tests
