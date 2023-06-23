@@ -34,7 +34,7 @@ jobs:
    
     steps:
       - name: go get nc
-        run: apt install -yy nc
+        run: apt install -yy netcat-openbsd
       - name: redis check
         run: echo 'INFO' | nc -v localhost 6379
       - name: Check out ceridwen (test data)
