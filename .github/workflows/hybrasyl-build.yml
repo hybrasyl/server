@@ -34,7 +34,9 @@ jobs:
    
     steps:
       - name: go get nc
-        run: apt install -yy netcat-openbsd
+        run: apt install -yy netcat-openbsd redis-server
+      - name: do everything ourselves apparently
+        run: redis-server --port 6379 &
       - name: redis check
         run: echo 'INFO' | nc -v localhost 6379
       - name: Check out ceridwen (test data)
@@ -100,3 +102,10 @@ jobs:
           s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip &&
           aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-osx.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip &&
+      - name: Notify discord
+        uses: appleboy/discord-action@master
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          args: ${{ github.event_name }} for ${SHORT_SHA} completed successfully.
+
