@@ -10,7 +10,7 @@ using Xunit;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Inventory : IClassFixture<HybrasylFixture>
+public class Inventory
 {
     private HybrasylFixture Fixture { get; set; }
 
@@ -295,6 +295,8 @@ public class Inventory : IClassFixture<HybrasylFixture>
     [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void FullInventoryShouldBeFull(params Item[] item)
     {
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Stats.BaseStr = 255;
         Fixture.TestUser.Inventory.Clear();
         for (var x = 1; x <= HybrasylFixture.InventorySize; x++)
             Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item[0].Id)),

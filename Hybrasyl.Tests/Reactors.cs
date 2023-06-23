@@ -7,7 +7,7 @@ using Creature = Hybrasyl.Xml.Objects.Creature;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Reactor : IClassFixture<HybrasylFixture>
+public class Reactor
 {
     private static HybrasylFixture Fixture;
 
@@ -48,6 +48,7 @@ public class Reactor : IClassFixture<HybrasylFixture>
     {
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
+        Fixture.ResetUserStats();
         Fixture.TestUser.Teleport(Fixture.Map.Id, 15, 15);
         // Test trap formula for uses is 2 uses > 40, 1 use otherwise
         Fixture.TestUser.Stats.Level = 39;
@@ -78,7 +79,7 @@ public class Reactor : IClassFixture<HybrasylFixture>
         // caster / other player walking over the reactor should not trigger it.
         // Note that this is done by the *script* itself and not by Hybrasyl, to allow maximum
         // flexibility for reactor event handling / scripting.
-        Assert.Equal((uint)10000, Fixture.TestUser.Stats.Hp);
+        Assert.Equal((uint)1000, Fixture.TestUser.Stats.Hp);
 
         Fixture.Map.InsertCreature(bait);
 

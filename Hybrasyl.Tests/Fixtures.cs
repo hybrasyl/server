@@ -194,8 +194,8 @@ public class HybrasylFixture : IDisposable
             BaseWis = 3,
             Level = 1,
             Gold = 1000,
-            Hp = 50,
-            Mp = 50,
+            Hp = 1000,
+            Mp = 1000,
             BaseHp = 50,
             BaseMp = 50,
             Experience = 1000,
@@ -208,5 +208,3 @@ public class HybrasylFixture : IDisposable
     }
 }
 
-[CollectionDefinition("Hybrasyl")]
-public class HybrasylCollection : IClassFixture<HybrasylFixture> { }

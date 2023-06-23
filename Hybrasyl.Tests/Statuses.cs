@@ -10,7 +10,7 @@ using Creature = Hybrasyl.Xml.Objects.Creature;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Status : IClassFixture<HybrasylFixture>
+public class Status
 {
     public Status(HybrasylFixture fixture)
     {
@@ -23,10 +23,10 @@ public class Status : IClassFixture<HybrasylFixture>
     public void ApplyStatus()
     {
         // Apply a status, verify that status exists
-        Fixture.TestUser.Stats.BaseMp = 1000;
-        Fixture.TestUser.Stats.Mp = 1000;
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Stats.BaseAc = 50;
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestPlusAC").FirstOrDefault();
+        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestPlusAc").FirstOrDefault();
         Assert.NotNull(castable);
         Assert.NotNull(castable.AddStatuses);
         Assert.NotEmpty(castable.AddStatuses);
@@ -35,17 +35,16 @@ public class Status : IClassFixture<HybrasylFixture>
         var expectedAcDelta = Convert.ToSByte(expectedStatus.Effects.OnApply.StatModifiers.BonusAc);
         var intensity = castable.AddStatuses.First().Intensity;
         Fixture.TestUser.SpellBook.Add(castable);
-        Fixture.TestUser.UseCastable(castable, Fixture.TestUser);
+        Assert.True(Fixture.TestUser.UseCastable(castable, Fixture.TestUser));
         Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo);
         Assert.True(Fixture.TestUser.Stats.Ac == beforeAc + (expectedAcDelta * intensity),
-            $"ac was {beforeAc}, delta {expectedAcDelta}, should be {beforeAc - expectedAcDelta} but is {Fixture.TestUser.Stats.Ac}");
+            $"ac was {beforeAc}, delta {expectedAcDelta}, should be {beforeAc + expectedAcDelta} but is {Fixture.TestUser.Stats.Ac}");
     }
 
     [Fact]
     public void ApplyConditionStatus()
     {
-        Fixture.TestUser.Stats.BaseMp = 1000;
-        Fixture.TestUser.Stats.Mp = 1000;
+        Fixture.ResetUserStats();
         var beforeAc = Fixture.TestUser.Stats.Ac;
         var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddSleep").FirstOrDefault();
         Assert.NotNull(castable);

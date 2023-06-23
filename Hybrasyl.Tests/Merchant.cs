@@ -6,7 +6,7 @@ using Xunit;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Merchants : IClassFixture<HybrasylFixture>
+public class Merchants
 { 
     public Merchants(HybrasylFixture fixture)
     {
