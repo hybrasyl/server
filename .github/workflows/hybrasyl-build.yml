@@ -79,9 +79,6 @@ jobs:
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/osx-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
-      - name: Upload to release archive
-        run: >
-          aws s3 sync /releases/ s3://releases.hybrasyl.com/releases/
       - name: Upload to current
         run: >
           aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-windows.zip 
@@ -90,6 +87,9 @@ jobs:
           s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip &&
           aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-osx.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip &&
+      - name: Upload to release archive
+        run: >
+          aws s3 sync /releases/ s3://releases.hybrasyl.com/releases/
       - name: Notify discord
         uses: appleboy/discord-action@master
         with:
