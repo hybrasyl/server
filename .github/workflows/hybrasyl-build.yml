@@ -33,24 +33,24 @@ jobs:
         dotnet-version: ['7.0.x']
 
     steps:
-      - name: Check out ceridwen
+      - name: Check out ceridwen (test data)
         uses: actions/checkout@v3
         with:
           repository: hybrasyl/ceridwen
           path: ceridwen
       - name: Check out server
         uses: actions/checkout@v3
+        with:
+          path: server
       - name: set safe dirs
         run: git config --global --add safe.directory $GITHUB_WORKSPACE/server/server
-      - name: what do
-        run: find $GITHUB_WORKSPACE
       - name: Install nuget dependencies
         run: dotnet restore
       - name: config
         run: >
           echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/xml\",
           \"LogDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/logs\",
-          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}'
+          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}"
           > Hybrasyl.Tests/hybrasyltest-settings.json
         shell: bash
       - name: show config
