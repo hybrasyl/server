@@ -33,15 +33,17 @@ jobs:
         dotnet-version: ['7.0.x']
 
     steps:
-      - name: what even
-        run: find /
-      - name: Install nuget dependencies
-        run: dotnet restore
       - name: Check out ceridwen
         uses: actions/checkout@v3
         with:
           repository: hybrasyl/ceridwen
           path: ceridwen
+      - name: Check out server
+        uses: actions/checkout@v3
+      - name: what do
+        run: find /home
+      - name: Install nuget dependencies
+        run: dotnet restore
       - name: set world data directory
         run: >
           cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml"
