@@ -62,19 +62,19 @@ jobs:
       - name: Publish Win64
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win10-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0}/win10-x64/publish &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0/win10-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-windows.zip .
       - name: Publish Linux
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0}/ubuntu.18.04-x64/publish &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0/ubuntu.18.04-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
       - name: Publish MacOS
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r osx-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0}/osx-x64/publish &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0/osx-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
       - name: Upload to release archive
