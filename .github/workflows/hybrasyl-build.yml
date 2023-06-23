@@ -42,24 +42,22 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: server
-      - name: test
-        run: echo $GITHUB_WORKSPACE
-      - name: set safe dirs
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE/server/server
-      - name: config
+      - name: generate short sha for release filename
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+      - name: generate test config
         run: >
-          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/server/ceridwen/xml\",
-          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/server/ceridwen/logs\",
-          \"DataDirectory\": \"$GITHUB_WORKSPACE/server/ceridwen\"}"
-          > Hybrasyl.Tests/hybrasyltest-settings.json
+          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/xml\",
+          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/logs\",
+          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}"
+          > $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
         shell: bash
       - name: show config
-        run: cat Hybrasyl.Tests/hybrasyltest-settings.json
+        run: cat $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
       - name: Install nuget dependencies
-        run: cd $GITHUB_WORKSPACE/server/server && dotnet restore
+        run: cd $GITHUB_WORKSPACE/server && dotnet restore
       - name: build & run tests
         run: >
-          cd $GITHUB_WORKSPACE/server/server/Hybrasyl.Tests && dotnet test --no-restore
+          cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test --no-restore
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
           REDIS_HOST: localhost
@@ -70,8 +68,31 @@ jobs:
           fail_ci_if_error: true
           verbose: true
       - name: Publish Win64
-        run: dotnet publish -c Release -r win10-x64
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win10-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0}/win10-x64/publish &&
+          echo "${SHORT_SHA}" > commit.txt &&
+          zip -r /releases/HybrasylServer-${SHORT_SHA}-windows.zip .
       - name: Publish Linux
-        run: dotnet publish -c Release -r ubuntu.18.04-x64
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0}/ubuntu.18.04-x64/publish &&
+          echo "${SHORT_SHA}" > commit.txt &&
+          zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
       - name: Publish MacOS
-        run: dotnet publish -c Release -r osx-x64
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r osx-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/7.0}/osx-x64/publish &&
+          echo "${SHORT_SHA}" > commit.txt &&
+          zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
+      - name: Upload to release archive
+        run: >
+          aws s3 cp /releases/*.zip s3://releases.hybrasyl.com/releases/
+      - name: Upload to current
+        run: >
+          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-windows.zip 
+          s3://releases.hybrasyl.com/HybrasylServer-current-windows.zip &&
+          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-linux.zip 
+          s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip &&
+          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-osx.zip
+          s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip &&
