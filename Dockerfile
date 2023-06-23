@@ -4,7 +4,7 @@
 # and not a viable production server.
 #
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
+FROM mcr.microsoft.com/dotnet/runtime:7.0
 
 COPY /hybrasyl/bin/Release/net6.0/linux-x64 /App
 

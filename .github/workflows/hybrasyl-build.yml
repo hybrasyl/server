@@ -17,28 +17,14 @@ jobs:
     environment: deploy
     container:
       image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
-    services:
-      redis:
-        image: redis
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
 
     strategy:
       matrix:
         dotnet-version: ['7.0.x']
    
     steps:
-      - name: go get nc
-        run: apt install -yy netcat-openbsd redis-server
-      - name: do everything ourselves apparently
+      - name: start local redis 
         run: redis-server --port 6379 &
-      - name: redis check
-        run: echo 'INFO' | nc -v localhost 6379
       - name: Check out ceridwen (test data)
         uses: actions/checkout@v3
         with:
