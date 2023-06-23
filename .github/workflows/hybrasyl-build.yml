@@ -32,7 +32,7 @@ jobs:
       matrix:
         dotnet-version: ['7.0.x']
 
-    steps:
+    STEPS:
       - name: Check out ceridwen (test data)
         uses: actions/checkout@v3
         with:
@@ -42,22 +42,24 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: server
+      - name: test
+        run: echo $GITHUB_WORKSPACE
       - name: set safe dirs
         run: git config --global --add safe.directory $GITHUB_WORKSPACE/server/server
-      - name: Install nuget dependencies
-        run: dotnet restore
       - name: config
         run: >
-          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/xml\",
-          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/logs\",
-          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}"
+          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/server/ceridwen/xml\",
+          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/server/ceridwen/logs\",
+          \"DataDirectory\": \"$GITHUB_WORKSPACE/server/ceridwen\"}"
           > Hybrasyl.Tests/hybrasyltest-settings.json
         shell: bash
       - name: show config
         run: cat Hybrasyl.Tests/hybrasyltest-settings.json
+      - name: Install nuget dependencies
+        run: cd $GITHUB_WORKSPACE/server/server && dotnet restore
       - name: build & run tests
         run: >
-          cd Hybrasyl.Tests && dotnet test --no-restore
+          cd $GITHUB_WORKSPACE/server/server/Hybrasyl.Tests && dotnet test --no-restore
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
           REDIS_HOST: localhost
