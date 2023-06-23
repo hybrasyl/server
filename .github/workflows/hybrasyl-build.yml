@@ -89,9 +89,15 @@ jobs:
           s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip --region us-east-1 &&
           aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-osx.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip --region us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: Upload to release archive
         run: >
           aws s3 sync /releases/ s3://releases.hybrasyl.com/releases/ --region us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: {{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: {{ secrets.AWS_SECRET_ACCESS_KEY }}      
       - name: Notify discord
         uses: appleboy/discord-action@master
         with:
