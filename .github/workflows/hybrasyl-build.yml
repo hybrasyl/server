@@ -81,12 +81,12 @@ jobs:
           zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
       - name: Upload to current
         run: >
-          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-windows.zip 
+          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-windows.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-windows.zip &&
-          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-linux.zip 
+          aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-linux.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip &&
           aws s3 cp /releases/Hybrasyl_Server-${SHORT_SHA}-osx.zip
-          s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip &&
+          s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip
       - name: Upload to release archive
         run: >
           aws s3 sync /releases/ s3://releases.hybrasyl.com/releases/
