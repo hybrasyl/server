@@ -41,27 +41,18 @@ jobs:
       - name: Check out server
         uses: actions/checkout@v3
       - name: what do
-        run: find /home
+        run: find $GITHUB_WORKSPACE
       - name: Install nuget dependencies
         run: dotnet restore
-      - name: set world data directory
+      - name: config
         run: >
-          cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml"
-          '.WorldDataDirectory = $wdd' Hybrasyl.Tests/hybrasyltest-settings.json) >
-          Hybrasyl.Tests/hybrasyltest-settings.json
-          && cat Hybrasyl.Tests/hybrasyltest-settings.json
-      - name: set log directory
-        run: >
-          cat <<< $(jq --arg ld "$GITHUB_WORKSPACE/ceridwen/logs"
-          '.LogDataDirectory = $ld' Hybrasyl.Tests/hybrasyltest-settings.json) >
-          Hybrasyl.Tests/hybrasyltest-settings.json &&
-          cat Hybrasyl.Tests/hybrasyltest-settings.json
-      - name: set data directory
-        run: >
-          cat <<< $(jq --arg dd "$GITHUB_WORKSPACE/ceridwen"
-          '.DataDirectory = $dd' Hybrasyl.Tests/hybrasyltest-settings.json) >
-          Hybrasyl.Tests/hybrasyltest-settings.json
-          && cat Hybrasyl.Tests/hybrasyltest-settings.json
+          echo '{ "WorldDataDirectory": "$GITHUB_WORKSPACE/ceridwen/xml", 
+          "LogDataDirectory": "$GITHUB_WORKSPACE/ceridwen/logs", 
+          "DataDirectory": "$GITHUB_WORKSPACE/ceridwen"}' 
+          > Hybrasyl.Tests/hybrasyltest-settings.json
+  	shell: bash
+      - name: show config
+        run: cat Hybrasyl.Tests/hybrasyltest-settings.json
       - name: build & run tests
         run: >
           cd Hybrasyl.Tests && dotnet test --no-restore
