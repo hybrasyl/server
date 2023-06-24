@@ -107,6 +107,7 @@ jobs:
           --url "https://releases.hybrasyl.com"
           --footer "Hybrasyl GitHub Actions"
           --timestamp
+        shell: bash
       - name: Notify discord of failure
         if: ${{ failure() }}
         run: >
@@ -119,3 +120,4 @@ jobs:
           --url "https://releases.hybrasyl.com"
           --footer "Hybrasyl GitHub Actions"
           --timestamp
+        shell: bash
