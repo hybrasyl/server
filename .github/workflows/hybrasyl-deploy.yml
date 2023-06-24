@@ -42,7 +42,7 @@ jobs:
           path: server
       - uses: webfactory/ssh-agent@v0.8.0
         with:
-          ssh-private-key: ${{ secrets.QA_DEPLOY_KEY }}
+          ssh-private-key: ${{ secrets.HYB_DEPLOY_KEY }}
       - name: generate short sha
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: Install nuget dependencies
