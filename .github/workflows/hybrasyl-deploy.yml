@@ -6,9 +6,9 @@ on:
     inputs:
       env:
         type: choice
-        description: Environment
+        description: 'Environment to receive the deploy'
         required: true
-	default: 'qa'
+        default: 'qa'
         options:
           - qa
           - staging
@@ -18,10 +18,9 @@ on:
         default: 'main'
         description: 'The branch or commit to deploy'
       debug:
-        type: string
-        required: true
-	default: false
         type: boolean
+        required: true
+        default: false
         description: 'Whether or not to build a debug build'
 
 jobs:
@@ -45,7 +44,6 @@ jobs:
           ssh-private-key: ${{ secrets.QA_DEPLOY_KEY }}
       - name: generate short sha
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-        run: cat $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
       - name: Install nuget dependencies
         run: cd $GITHUB_WORKSPACE/server && dotnet restore
       - name: Publish Linux
@@ -55,7 +53,8 @@ jobs:
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
       - name: Stop server
-        ssh hybrasyl@${{ inputs.env }}.hybrasyl.com 'sudo systemctl stop hybrasyl' 
+        run: >
+          ssh hybrasyl@${{ inputs.env }}.hybrasyl.com 'sudo systemctl stop hybrasyl' 
       - name: Copy to target environment
         run: >
           rsync -avz --delete ${GITHUB_WORKSPACE}/server/hybrasyl/bin/Release/net70/ubuntu.18.04-x64/publish/
