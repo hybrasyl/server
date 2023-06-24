@@ -3,10 +3,16 @@ name: Hybrasyl packaging and testing
 
 on:
   push:
+    paths-ignore:
+      - contrib/*
+      - *.md
     branches:
       - main
       - develop
   pull_request:
+    paths-ignore:
+      - contrib/*
+      - *.md
     branches:
       - main
       - develop
