@@ -42,6 +42,7 @@ jobs:
           path: server
       - name: Install host pubkeys
         run: >
+          mkdir -p ~/.ssh/ && touch ~/.ssh/known_hosts && 
           cat $GITHUB_WORKSPACE/server/contrib/build/host_pubkeys >> ~/.ssh/known_hosts
       - uses: webfactory/ssh-agent@v0.8.0
         with:
