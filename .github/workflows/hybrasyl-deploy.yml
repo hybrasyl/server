@@ -49,10 +49,7 @@ jobs:
         run: cd $GITHUB_WORKSPACE/server && dotnet restore
       - name: Publish Linux
         run: >
-          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/ubuntu.18.04-x64/publish &&
-          echo "${SHORT_SHA}" > commit.txt &&
-          zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64
       - name: Stop server
         run: >
           ssh hybrasyl@${{ inputs.env }}.hybrasyl.com 'sudo systemctl stop hybrasyl' 
