@@ -67,7 +67,7 @@ jobs:
       - name: Notify discord
         run: >
           /usr/local/bin/discord.sh
-          --webhook-url="${{ secrets.HYB_DEV_WEBHOOK }}"
+          --webhook-url "${{ secrets.HYB_DEV_WEBHOOK }}"
           --username "Hybrasyl GitHub Actions" 
           --title "Deploy to ${{ inputs.env}}: success"
           --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
@@ -80,7 +80,7 @@ jobs:
         if: ${{ failure() }}
         run: >
           /usr/local/bin/discord.sh
-          --webhook-url="${{ secrets.HYB_DEV_WEBHOOK }}"
+          --webhook-url "${{ secrets.HYB_DEV_WEBHOOK }}"
           --username "Hybrasyl GitHub Actions"
           --title "Deploy to ${{ inputs.env }}: failed"
           --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"

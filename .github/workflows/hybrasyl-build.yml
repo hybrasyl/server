@@ -107,7 +107,7 @@ jobs:
       - name: Notify discord
         run: >
           /usr/local/bin/discord.sh
-          --webhook-url="${{ secrets.HYB_DEV_WEBHOOK }}"
+          --webhook-url "${{ secrets.HYB_DEV_WEBHOOK }}"
           --username "Hybrasyl GitHub Actions" 
           --title "Job ${GITHUB_RUN_ID}: success, release artifacts updated"
           --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
