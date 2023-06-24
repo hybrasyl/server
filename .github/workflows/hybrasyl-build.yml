@@ -107,3 +107,15 @@ jobs:
           --url "https://releases.hybrasyl.com"
           --footer "Hybrasyl GitHub Actions"
           --timestamp
+      - name: Notify discord of failure
+        if: ${{ failure() }}
+        run: >
+          /usr/local/bin/discord.sh
+          --webhook-url="${{ secrets.HYB_DEV_WEBHOOK }}"
+          --username "Hybrasyl GitHub Actions"
+          --title "Job ${GITHUB_RUN_ID}: build failure - $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
+          --color "0xFF0000"
+          --url "https://releases.hybrasyl.com"
+          --footer "Hybrasyl GitHub Actions"
+          --timestamp
