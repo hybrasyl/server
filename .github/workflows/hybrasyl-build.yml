@@ -79,8 +79,6 @@ jobs:
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/osx-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
-      - name: derpity doo
-        run: ls /releases
       - name: Upload to current
         run: >
           aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-windows.zip
@@ -99,9 +97,13 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
       - name: Notify discord
-        uses: appleboy/discord-action@master
-        with:
-          webhook_id: ${{ secrets.WEBHOOK_ID }}
-          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
-          args: ${{ github.event_name }} for ${SHORT_SHA} completed successfully.
-
+        run: >
+          /usr/local/bin/discord.sh
+          --webhook-url="${{ secrets.HYB_DEV_WEBHOOK }}"
+          --username "Hybrasyl GitHub Actions" 
+          --title "Job ${GITHUB_RUN_ID}: success, release artifacts updated"
+          --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
+          --color "0x00FF00"
+          --url "https://releases.hybrasyl.com"
+          --footer "Hybrasyl GitHub Actions"
+          --timestamp
