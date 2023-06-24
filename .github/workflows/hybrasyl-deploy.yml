@@ -59,7 +59,7 @@ jobs:
           ssh hybrasyl@${{ inputs.env }}.hybrasyl.com 'sudo systemctl stop hybrasyl' 
       - name: Copy to target environment
         run: >
-          rsync -avz --delete ${GITHUB_WORKSPACE}/server/hybrasyl/bin/Release/net70/ubuntu.18.04-x64/publish/
+          rsync -avz --delete ${GITHUB_WORKSPACE}/server/hybrasyl/bin/Release/net7.0/ubuntu.18.04-x64/publish/
           hybrasyl@${{ inputs.env }}.hybrasyl.com:/srv/hybrasyl/
       - name: Restart server
         run: >
