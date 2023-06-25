@@ -25,6 +25,7 @@ on:
 
 jobs:
   build-and-deploy:
+    if: github.repository == 'hybrasyl/server'
     runs-on: ubuntu-latest
     environment: deploy
     container:
