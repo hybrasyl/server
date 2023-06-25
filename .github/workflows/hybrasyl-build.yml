@@ -22,6 +22,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: deploy
     if: github.repository == 'hybrasyl/server'
     container:
       image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
