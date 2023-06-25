@@ -5023,7 +5023,7 @@ public class User : Creature
 
     public void SendCombatLogMessage(ICombatEvent e)
     {
-        if (GetSessionCookie("combatlog") != "on") return;
+        if (GetCookie("combatlog") != "on") return;
 
         foreach (var line in e.ToString().Split("\n"))
             Client?.SendMessage(line, (byte)MessageType.Group);
