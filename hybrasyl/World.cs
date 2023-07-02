@@ -1713,8 +1713,6 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.UpdateUser)]
     private void ControlMessage_UpdateUser(HybrasylControlMessage message)
     {
-        if(Debugger.IsAttached)
-            Debugger.Break();
         var targetGuid = (Guid)message.Arguments[0];
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
@@ -1727,8 +1725,6 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.DisplayCreature)]
     private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
     {
-        if(Debugger.IsAttached)
-            Debugger.Break();
         var targetGuid = (Guid)message.Arguments[0];
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 

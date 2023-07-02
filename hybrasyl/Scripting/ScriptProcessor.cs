@@ -41,6 +41,7 @@ public class ScriptProcessor
         UserData.RegisterType<LegendMark>();
         UserData.RegisterType<DateTime>();
         UserData.RegisterType<TimeSpan>();
+        UserData.RegisterType<ElementType>();
         _scripts = new Dictionary<string, List<Script>>();
     }
 

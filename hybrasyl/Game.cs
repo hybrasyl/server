@@ -333,7 +333,7 @@ public static class Game
             // TODO: improve in library
             while (true)
             {
-                if (manager.Ready)
+                if (manager.IsReady)
                     break;
                 Thread.Sleep(250);
             }

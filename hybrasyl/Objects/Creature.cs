@@ -1029,6 +1029,9 @@ public class Creature : VisibleObject
             damageEvent.ElementalAugmented = Convert.ToUInt32(damage * augment);
         }
 
+        // Negative damage (possible with augments and resistances) 
+        if (damage < 0) damage = 1;
+
         // Now, normalize damage for uint (max hp)
         var normalized = (uint)damage;
 
