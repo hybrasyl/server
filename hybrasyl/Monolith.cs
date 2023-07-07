@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
+using Hybrasyl.Xml.Interfaces;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 
@@ -36,7 +37,7 @@ namespace Hybrasyl;
 //This class is defined to control the mob spawning thread.
 internal class Monolith
 {
-    private readonly ConcurrentDictionary<string, SpawnGroup> Spawns;
+    private ConcurrentDictionary<string, SpawnGroup> Spawns;
 
     internal Monolith()
     {
@@ -79,14 +80,16 @@ internal class Monolith
         map.SpawnDirectives.MapId = map.Id;
         map.SpawnDirectives.Status = new SpawnStatus();
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
+        GameLog.Warning($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
     }
 
     public void Start()
     {
-        // Resolve active spawns
+
         foreach (var spawnmap in Game.World.WorldState.Values<MapObject>())
         {
-            if (spawnmap.SpawningDisabled) continue;
+            if (spawnmap.SpawningDisabled) 
+                continue;
             LoadSpawns(spawnmap);
         }
 

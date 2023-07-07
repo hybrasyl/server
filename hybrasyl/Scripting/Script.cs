@@ -226,6 +226,7 @@ public class Script
         Compiled.Globals["Gender"] = UserData.CreateStatic<Gender>();
         Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
         Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
+        Compiled.Globals["Element"] = UserData.CreateStatic(typeof(Element));
         Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
         Compiled.Globals["utility"] = typeof(HybrasylUtility);
         Compiled.Globals.Set("world", UserData.Create(Processor.World));

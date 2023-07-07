@@ -24,10 +24,12 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
 
 [JsonObject(MemberSerialization.OptIn)]
+[MoonSharpUserData]
 public class ElementalModifiers
 {
     [JsonProperty] private Dictionary<ElementType, double> Resistances = new();

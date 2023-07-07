@@ -43,6 +43,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Hybrasyl.Internals;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 
@@ -612,15 +613,18 @@ public static class Game
         _lobbyThread = new Thread(Lobby.StartListening);
         _loginThread = new Thread(Login.StartListening);
         _worldThread = new Thread(World.StartListening);
-
         _spawnThread = new Thread(_monolith.Start);
         _controlThread = new Thread(_monolithControl.Start);
 
         _lobbyThread.Start();
         _loginThread.Start();
         _worldThread.Start();
-        _spawnThread.Start();
         _controlThread.Start();
+
+        while (!World.WorldState.Ready)
+            Thread.Sleep(1000);
+
+        _spawnThread.Start();
 
         Task.Run(CheckVersion).GetAwaiter();
         Task.Run(GetCommitLog).GetAwaiter();

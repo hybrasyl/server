@@ -204,16 +204,16 @@ namespace Hybrasyl
         public static long MIN_BASE_HPMP = 1;
         public static long MAX_BASE_HPMP = uint.MaxValue;
 
-        public static double MIN_DMG = -16.0;
-        public static double MAX_DMG = 16.0;
-        public static double MIN_HIT = -16.0;
-        public static double MAX_HIT = 16.0;
+        public static double MIN_DMG = -0.16;
+        public static double MAX_DMG = 0.16;
+        public static double MIN_HIT = -0.16;
+        public static double MAX_HIT = 0.16;
         public static long MIN_AC = -90;
         public static long MAX_AC = 100;
-        public static double MIN_MR = -16.0;
-        public static double MAX_MR = 16.0;
-        public static double MIN_REGEN = -16.0;
-        public static double MAX_REGEN = 16.0;
+        public static double MIN_MR = -0.16;
+        public static double MAX_MR = 0.16;
+        public static double MIN_REGEN = -0.16;
+        public static double MAX_REGEN = 0.16;
     }
 
     internal static class DialogTypes

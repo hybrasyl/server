@@ -66,6 +66,7 @@ public class WorldStateStore
     }
 
     public IDatabase Redis => World.DatastoreConnection.GetDatabase();
+    public bool Ready { get; set; } = false;
 
     private HashSet<Type> RedisTypes { get; }
 

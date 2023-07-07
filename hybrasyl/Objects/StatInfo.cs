@@ -1514,7 +1514,8 @@ public class StatInfo
 
 
     [FormulaVariable]
-    public double Dmg => (byte)Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG);
+    // Normalize to a double between 0.84 / 1.16
+    public double Dmg => Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG) / 100 + 1.0;
 
     // These are for the client 0x08, specifically, which has some annoying limitations.
     // MR in particular can only be displayed as multiples of 10% and no negatives can be
@@ -1527,8 +1528,8 @@ public class StatInfo
         {
             return Mr switch
             {
-                < 0 => (byte)(128 + Math.Max(Mr * 8, -128)),
-                > 0 => (byte)(128 + Math.Min(Mr * 8, 127)),
+                < 1.0 => (byte) (128 - Math.Min((1.0 - Mr) * 800, 128)),
+                > 1.0 => (byte) (128 + Math.Min((Mr - 1.0) * 800, 127)),
                 _ => 128
             };
         }
@@ -1540,8 +1541,8 @@ public class StatInfo
         {
             return Dmg switch
             {
-                < 0 => (byte)(128 + Math.Max(Dmg * 8, -128)),
-                > 0 => (byte)(128 + Math.Min(Dmg * 8, 127)),
+                < 1.0 => (byte) (128 - Math.Min((1.0 - Dmg) * 800, 128)),
+                > 1.0 => (byte) (128 + Math.Min((Dmg - 1.0) * 800, 127)),
                 _ => 128
             };
         }
@@ -1553,24 +1554,29 @@ public class StatInfo
         {
             return Hit switch
             {
-                < 0 => (byte)(128 + Math.Max(Hit * 8, -128)),
-                > 0 => (byte)(128 + Math.Min(Hit * 8, 127)),
+                < 1.0 => (byte) (128 - Math.Min((1.0 - Hit) * 800, 128)),
+                > 1.0 => (byte) (128 + Math.Min((Hit - 1.0) * 800, 127)),
                 _ => 128
             };
         }
     }
 
     [FormulaVariable]
-    public double Hit => (byte)Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT);
+    // Normalize to a double between -0.84 / 1.16
+    public double Hit => Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT) / 100 + 1.0;
 
     [FormulaVariable]
     public sbyte Ac =>
         (sbyte)Math.Clamp(BaseAc - Level / 3 + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
 
-    [FormulaVariable] public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR);
+    [FormulaVariable]
+    // Normalize to a double between -0.84 / 1.16
+    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR) / 100 + 1.0;
 
     [FormulaVariable]
-    public double Regen => Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN);
+    // Normalize to a double between -0.84 / 1.16
+    public double Regen =>
+        Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN) / 100 + 1.0;
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 

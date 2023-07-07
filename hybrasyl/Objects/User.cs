@@ -2663,6 +2663,13 @@ public class User : Creature
             }
         }
 
+        //Check immunities
+        if (target is Monster m && (m.BehaviorSet?.Immunities?.Contains(castableXml.Name.ToLower()) ?? false))
+        {
+            SendSystemMessage($"{m.Name} is immune to {castableXml.Name}!");
+            return false;
+        }
+
         if (evalRestrictions)
         {
             if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))

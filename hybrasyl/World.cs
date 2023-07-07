@@ -258,6 +258,7 @@ public partial class World : Server
             return false;
         }
 
+        WorldState.Ready = true;
         WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
         GenerateMetafiles();
         SetPacketHandlers();
@@ -3160,8 +3161,8 @@ public partial class World : Server
 
         if (user.IsAtWorldMap)
         {
-            MapPoint targetmap;
-            if (WorldState.TryGetValue(target, out targetmap))
+            WorldMapPoint targetmap;
+            if (WorldData.TryGetValue(target, out targetmap))
                 user.Teleport(targetmap.DestinationMap, targetmap.DestinationX, targetmap.DestinationY);
             else
                 GameLog.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",

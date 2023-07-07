@@ -34,7 +34,10 @@ public class ScriptProcessor
     {
         World = new HybrasylWorld(world);
         // Register UserData types for MoonScript
+        // NB registering assemblies is required for RegisterType of
+        // any type in that assembly to work correctly
         UserData.RegisterAssembly(typeof(Game).Assembly);
+        UserData.RegisterAssembly(typeof(ElementType).Assembly);
         UserData.RegisterType<Gender>();
         UserData.RegisterType<LegendIcon>();
         UserData.RegisterType<LegendColor>();

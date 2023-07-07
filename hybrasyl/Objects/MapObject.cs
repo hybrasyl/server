@@ -354,6 +354,8 @@ public class MapObject : IStateStorable
 
                 if (obj is User u) Users.Add(u.Name, u);
             }
+            else
+                throw new Exception("What in the fuck");
 
             if (obj is User user)
                 if (updateClient)

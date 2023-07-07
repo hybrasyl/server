@@ -56,7 +56,10 @@ public record DodgeEvent : CombatEvent
 public record HealEvent : StatChangeEvent
 {
     public override CombatLogEventType EventType => CombatLogEventType.Heal;
-    public override string ToString() => $"[combat] Heal: {SourceCastableName} on {TargetName}: {Amount}";
+    public override string ToString() => $"[combat] Heal: {SourceCastableName} on {TargetName}: {Amount} (modified {BonusHeal})";
+    // Amount of healing buff / debuff from inbound modifiers
+    public int BonusHeal { get; set; } = 0;
+
 }
 
 [MoonSharpUserData]
@@ -71,19 +74,19 @@ public record DamageEvent : StatChangeEvent
     public ElementType Element { get; set; } = ElementType.None;
 
     // The "natural interaction" bonus or penalty (say air v fire)
-    public uint ElementalInteraction { get; set; } = 0;
+    public int ElementalInteraction { get; set; } = 0;
 
     // The amount of additional resistance or penalty from equipment/statuses/etc
-    public uint ElementalResisted { get; set; } = 0;
+    public int ElementalResisted { get; set; } = 0;
 
     // The amount of additional amplification (augment) or penalty from the attacker's equipment/statuses/etc
-    public uint ElementalAugmented { get; set; } = 0;
+    public int ElementalAugmented { get; set; } = 0;
 
     // The amount of damage resisted or amplified by MR 
-    public uint MagicResisted { get; set; } = 0;
+    public int MagicResisted { get; set; } = 0;
 
     // Amount of damage reduced by AC
-    public uint ArmorReduction { get; set; } = 0;
+    public int ArmorReduction { get; set; } = 0;
 
     // Is this a critical hit?
     public bool Crit { get; set; } = false;
@@ -92,7 +95,10 @@ public record DamageEvent : StatChangeEvent
     public bool MagicCrit { get; set; } = false;
 
     // Amount of damage buffed or debuffed by DMG
-    public uint BonusDmg { get; set; } = 0;
+    public int BonusDmg { get; set; } = 0;
+
+    // Amount of damage buffed or debuffed by damage modifiers
+    public int ModifierDmg { get; set; } = 0;
 
     // Was the damage actually applied or was the target immune?
     public bool Applied { get; set; } = true;
@@ -100,7 +106,7 @@ public record DamageEvent : StatChangeEvent
     public override string ToString()
     {
         var str =
-            $"Damage: {SourceName}: {SourceCastableName} on {TargetName} ({Element}, {Type})\n  [{(Applied ? "Applied" : "Immune")}] {Amount} dmg, ER {ElementalResisted}, EA {ElementalAugmented} MR {MagicResisted}, AC {ArmorReduction}";
+            $"Damage: {SourceName}: {SourceCastableName} on {TargetName} ({Element}, {Type})\n  [{(Applied ? "Applied" : "Immune")}] {Amount} dmg, ER {ElementalResisted}, EA {ElementalAugmented} MR {MagicResisted}, AC {ArmorReduction} Mod {ModifierDmg}";
         if (Crit || MagicCrit)
             str = $"CRIT {str}";
         return $"[combat] {str}";
