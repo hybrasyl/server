@@ -21,13 +21,13 @@ public class Items
         Fixture.TestUser.Class = Class.Monk;
         Fixture.TestUser.Gender = Gender.Male;
         var error = string.Empty;
-        Assert.True(Game.World.WorldData.TryGetValueByIndex("Test Armor Require Boots", out Item armorItem));
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Require Boots", out Item armorItem));
         Assert.NotNull(armorItem);
         Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
         var armor = Fixture.TestUser.World.CreateItem(armorItem);
         // Check requirement: equip armor with slot restriction (requires boots), should fail
         Assert.False(armor.CheckRequirements(Fixture.TestUser, out error));
-        var item2 = Game.World.WorldData.TryGetValueByIndex("Test Boots", out Item bootItem);
+        var item2 = Game.World.WorldData.TryGetValueByIndex("Testinium Foot", out Item bootItem);
         Assert.NotNull(item2);
         // Now equip boots
         var boots = Fixture.TestUser.World.CreateItem(bootItem);
@@ -53,26 +53,26 @@ public class Items
         Fixture.TestUser.Class = Class.Monk;
         Fixture.TestUser.Gender = Gender.Male;
         var error = string.Empty;
-        var item = Game.World.WorldData.TryGetValueByIndex("Test Armor 1 Male Monk", out Item armorItem);
+        var item = Game.World.WorldData.TryGetValueByIndex("Forbid Boots", out Item armorItem);
         Assert.NotNull(item);
         Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
         var armor = Fixture.TestUser.World.CreateItem(armorItem);
         // Equip armor with slot restriction
         Assert.True(armor.CheckRequirements(Fixture.TestUser, out error));
         Assert.True(Fixture.TestUser.AddEquipment(armor, armor.EquipmentSlot, false));
-        var item2 = Game.World.WorldData.TryGetValueByIndex("Test Boots", out Item bootItem);
+        var item2 = Game.World.WorldData.TryGetValueByIndex("Testinium Foot", out Item bootItem);
         Assert.NotNull(item2);
         var boots = Fixture.TestUser.World.CreateItem(bootItem);
         // Above armor has a slot restriction on boot usage, so this should fail
         Assert.False(boots.CheckRequirements(Fixture.TestUser, out error));
-        Assert.Equal("monk_equip_fail", error);
+        Assert.Equal("You cannot equip this now.", error);
         // Now try the other way - put the boots on first and then equip the armor
         Assert.True(Fixture.TestUser.RemoveEquipment((byte)ItemSlots.Armor));
         Assert.Null(Fixture.TestUser.Equipment.Armor);
         Assert.Null(Fixture.TestUser.Equipment.Boots);
         Assert.True(Fixture.TestUser.AddEquipment(boots, boots.EquipmentSlot, false));
         Assert.False(armor.CheckRequirements(Fixture.TestUser, out error));
-        Assert.Equal("monk_equip_fail", error);
+        Assert.Equal("You cannot equip this now.", error);
     }
 
     [Fact]

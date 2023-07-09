@@ -1515,7 +1515,7 @@ public class StatInfo
 
     [FormulaVariable]
     // Normalize to a double between 0.84 / 1.16
-    public double Dmg => Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG) / 100 + 1.0;
+    public double Dmg => Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG) + 1.0;
 
     // These are for the client 0x08, specifically, which has some annoying limitations.
     // MR in particular can only be displayed as multiples of 10% and no negatives can be
@@ -1563,7 +1563,7 @@ public class StatInfo
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
-    public double Hit => Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT) / 100 + 1.0;
+    public double Hit => Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT) + 1.0;
 
     [FormulaVariable]
     public sbyte Ac =>
@@ -1571,12 +1571,12 @@ public class StatInfo
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
-    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR) / 100 + 1.0;
+    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR) + 1.0;
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
     public double Regen =>
-        Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN) / 100 + 1.0;
+        Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN) + 1.0;
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 

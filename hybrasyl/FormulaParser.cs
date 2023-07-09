@@ -113,9 +113,10 @@ internal static class FormulaParser
         e = Parameterize(e, evalEnvironment);
         try
         {
-            //GameLog.Info($"Eval of {expression} : {e.Evaluate()} ");
+            GameLog.Info($"Eval of {expression} : {e.Evaluate()} ");
             var f = e.Evaluate();
-            return Convert.ToDouble(e.Evaluate());
+            var r = Convert.ToDouble(e.Evaluate());
+            return r;
         }
         catch (Exception ex)
         {

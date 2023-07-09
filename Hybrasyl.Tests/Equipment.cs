@@ -333,11 +333,11 @@ public class Equipment
             BonusWis = "50",
             BonusCrit = "10",
             BonusMagicCrit = "10",
-            BonusDmg = "10",
-            BonusHit = "10",
+            BonusDmg = "0.10",
+            BonusHit = "0.10",
             BonusAc = "-50",
-            BonusMr = "10",
-            BonusRegen = "10",
+            BonusMr = "0.10",
+            BonusRegen = "0.10",
             BonusInboundDamageModifier = "10",
             BonusInboundHealModifier = "10",
             BonusOutboundDamageModifier = "10",
@@ -356,7 +356,7 @@ public class Equipment
 
         var ringObj = Game.World.CreateItem(ring);
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand);
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
         var expectedAc = 100 - Fixture.TestUser.Stats.Level / 3 +
                          Fixture.TestUser.Stats.BonusAc;
 
@@ -378,16 +378,16 @@ public class Equipment
             $"Crit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseCrit + 10}, is {Fixture.TestUser.Stats.Crit})");
         Assert.True(Fixture.TestUser.Stats.MagicCrit == Fixture.TestUser.Stats.BaseMagicCrit + 10,
             $"MagicCrit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMagicCrit + 10}, is {Fixture.TestUser.Stats.MagicCrit})");
-        Assert.True(Fixture.TestUser.Stats.Dmg == Fixture.TestUser.Stats.BaseDmg + 10,
-            $"Dmg: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDmg + 10}, is {Fixture.TestUser.Stats.Dmg})");
-        Assert.True(Fixture.TestUser.Stats.Hit == Fixture.TestUser.Stats.BaseHit + 10,
-            $"Hit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHit + 10}, is {Fixture.TestUser.Stats.Hit})");
+        Assert.True(Fixture.TestUser.Stats.Dmg == Fixture.TestUser.Stats.BaseDmg + 1.10,
+            $"Dmg: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDmg + 1.10}, is {Fixture.TestUser.Stats.Dmg})");
+        Assert.True(Fixture.TestUser.Stats.Hit == Fixture.TestUser.Stats.BaseHit + 1.10,
+            $"Hit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHit + 1.10}, is {Fixture.TestUser.Stats.Hit})");
         Assert.True(Fixture.TestUser.Stats.Ac == expectedAc,
             $"Ac: bonus from equipping item is not correct (should be {expectedAc}, is {Fixture.TestUser.Stats.Ac})");
-        Assert.True(Fixture.TestUser.Stats.Mr == Fixture.TestUser.Stats.BaseMr + 10,
-            $"Mr: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMr + 10}, is {Fixture.TestUser.Stats.Mr})");
-        Assert.True(Fixture.TestUser.Stats.Regen == Fixture.TestUser.Stats.BaseRegen + 10,
-            $"Regen: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseRegen + 10}, is {Fixture.TestUser.Stats.Regen})");
+        Assert.True(Fixture.TestUser.Stats.Mr == Fixture.TestUser.Stats.BaseMr + 1.10,
+            $"Mr: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMr + 1.10}, is {Fixture.TestUser.Stats.Mr})");
+        Assert.True(Fixture.TestUser.Stats.Regen == Fixture.TestUser.Stats.BaseRegen + 1.10,
+            $"Regen: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseRegen + 1.10}, is {Fixture.TestUser.Stats.Regen})");
         Assert.True(
             Fixture.TestUser.Stats.InboundDamageModifier == Fixture.TestUser.Stats.BaseInboundDamageModifier + 10,
             $"InboundDamageModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInboundDamageModifier + 10}, is {Fixture.TestUser.Stats.InboundDamageModifier})");
@@ -443,15 +443,15 @@ public class Equipment
             $"Crit: after removal, should be 0, is {Fixture.TestUser.Stats.Crit}");
         Assert.True(Fixture.TestUser.Stats.MagicCrit == 0,
             $"MagicCrit: after removal, should be 0, is {Fixture.TestUser.Stats.MagicCrit}");
-        Assert.True(Fixture.TestUser.Stats.Dmg == 0,
-            $"Dmg: after removal, should be 0, is {Fixture.TestUser.Stats.Dmg}");
-        Assert.True(Fixture.TestUser.Stats.Hit == 0,
-            $"Hit: after removal, should be 0, is {Fixture.TestUser.Stats.Hit}");
+        Assert.True(Fixture.TestUser.Stats.Dmg == 1,
+            $"Dmg: after removal, should be 1, is {Fixture.TestUser.Stats.Dmg}");
+        Assert.True(Fixture.TestUser.Stats.Hit == 1,
+            $"Hit: after removal, should be 1, is {Fixture.TestUser.Stats.Hit}");
         Assert.True(Fixture.TestUser.Stats.Ac == currentAc,
             $"Ac: after removal, should be {currentAc}, is {Fixture.TestUser.Stats.Ac}");
-        Assert.True(Fixture.TestUser.Stats.Mr == 0, $"Mr: after removal, should be 10, is {Fixture.TestUser.Stats.Mr}");
-        Assert.True(Fixture.TestUser.Stats.Regen == 0,
-            $"Regen: after removal, should be 10, is {Fixture.TestUser.Stats.Regen}");
+        Assert.True(Fixture.TestUser.Stats.Mr == 1, $"Mr: after removal, should be 10, is {Fixture.TestUser.Stats.Mr}");
+        Assert.True(Fixture.TestUser.Stats.Regen == 1,
+            $"Regen: after removal, should be 1, is {Fixture.TestUser.Stats.Regen}");
         Assert.True(Fixture.TestUser.Stats.InboundDamageModifier == 0,
             $"InboundDamageModifier: after removal, should be 10, is {Fixture.TestUser.Stats.InboundDamageModifier}");
         Assert.True(Fixture.TestUser.Stats.InboundHealModifier == 0,

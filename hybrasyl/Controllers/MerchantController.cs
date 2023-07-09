@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using App.Metrics.Counter;
 
 namespace Hybrasyl.Controllers;
 
@@ -186,6 +187,12 @@ public class MerchantController
             {
                 coins += (uint)(user.Inventory[slot].Value * user.Inventory[slot].Count);
                 user.RemoveItem(slot);
+            }
+
+            if (coins == 0)
+            {
+                Merchant.Say("You don't seem to have any of those.");
+                return;
             }
 
             Merchant.Say($"Certainly. That will be {Pluralize(coins)}, {user.Name}.");
