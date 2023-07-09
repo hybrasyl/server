@@ -2686,7 +2686,7 @@ public class User : Creature
 
         }
 
-        return true;
+        return base.UseCastable(castableXml, target);
     }
 
     public void AssailAttack(Direction direction, Creature target = null)

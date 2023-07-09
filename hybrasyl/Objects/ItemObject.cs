@@ -475,7 +475,7 @@ public class ItemObject : VisibleObject, IInteractable
                 }
 
             }
-
+            
             foreach (var remove in Use.Statuses.Remove)
             {
 
