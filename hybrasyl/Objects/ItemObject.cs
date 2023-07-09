@@ -206,7 +206,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     public uint DisplayDurability => Convert.ToUInt32(Math.Round(Durability));
 
-    public new string Name => Template.Name;
+    public override string Name => Template.Name;
 
     public new ushort Sprite => Template.Properties.Appearance.Sprite;
 

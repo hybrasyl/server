@@ -887,10 +887,10 @@ public partial class World : Server
         obj.ServerGuid = Guid;
         obj.SendId();
 
-        if (obj is ItemObject)
+        if (obj is ItemObject i)
         {
             Script itemscript;
-            if (Game.World.ScriptProcessor.TryGetScript(obj.Name, out itemscript))
+            if (Game.World.ScriptProcessor.TryGetScript(i.Name, out itemscript))
             {
                 var clone = itemscript.Clone();
                 itemscript.AssociateScriptWithObject(obj);

@@ -34,7 +34,6 @@ public class WorldObject : IQuadStorable, IWorldObject
 {
     public WorldObject()
     {
-        Name = string.Empty;
         CreationTime = DateTime.Now;
     }
 
