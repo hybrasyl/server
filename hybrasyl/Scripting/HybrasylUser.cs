@@ -1105,7 +1105,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
     /// <param name="associateOverride">An IInteractable to associate with the dialog as the origin.</param>
-    public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
+    public void StartSequence(string sequenceName, dynamic associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1113,6 +1113,7 @@ public class HybrasylUser : HybrasylWorldObject
                 User.Name);
             return;
         }
+
         DialogSequence sequence = null;
         IInteractable associate = null;
         GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
@@ -1130,7 +1131,9 @@ public class HybrasylUser : HybrasylWorldObject
         }
         else
         {
-            associate = associateOverride.WorldObject as IInteractable;
+            // Deal with some Lua vagaries here. We use a dynamic in the signature so we can handle a variety of object types
+            // coming back from Lua, which in general, doesn't like interfaces (and also we have to deal with our own wrapping)
+            associate = associateOverride is HybrasylWorldObject hwo ? hwo.WorldObject as IInteractable : associateOverride as IInteractable;
         }
 
         // If we didn't get a sequence before, try with our associate. Either we know it implements an Interactable 

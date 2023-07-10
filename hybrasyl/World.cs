@@ -382,25 +382,18 @@ public partial class World : Server
             env.Add("associate", associate);
             env.Add("origin", associate);
             var result = script.ExecuteFunction("OnLoad", env);
-            if (result.Result == ScriptResult.Success)
+            var castableObject = new CastableObject
             {
-                var castableObject = new CastableObject
-                {
-                    Guid = castable.Guid,
-                    Id = castableId,
-                    Template = castable,
-                    ScriptedDialogs = associate,
-                    Sprite = associate.Sprite,
-                    Script = script
-                };
-                // Store the CastableObject for later usage by dialog system, along with guid index
-                WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
-                castableId++;
-            }
-            else if (result.Result != ScriptResult.FunctionMissing)
-            {
-                GameLog.DataLogError($"OnLoad for {castable.Name}: errors encountered, check scripting log");
-            }
+                Guid = castable.Guid,
+                Id = castableId,
+                Template = castable,
+                ScriptedDialogs = associate,
+                Sprite = associate.Sprite,
+                Script = script
+            };
+            // Store the CastableObject for later usage by dialog system, along with guid index
+            WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
+            castableId++;
         }
 
         // Create a static "monster weapon" that is used in various places
