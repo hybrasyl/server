@@ -576,7 +576,7 @@ public class Creature : VisibleObject
             }
 
             // Handle statuses
-
+        
             foreach (var status in castableXml.AddStatuses)
                 if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {

@@ -180,8 +180,9 @@ public class ItemObject : VisibleObject, IInteractable
     public bool Consumable => Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
 
     public bool Undamageable => Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
-    public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
 
+    public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
+    
     public bool IsVariant => Template.IsVariant;
 
     public Item ParentItem => Template.ParentItem;

@@ -197,7 +197,7 @@ public static class HybrasylUtility
         Title = title
     });
 
-    public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldState.RegisterQuest(data);
+    //public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldState.RegisterQuest(data);
 
     public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level, bool aggro)
     {
