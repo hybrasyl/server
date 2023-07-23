@@ -430,6 +430,7 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         // Random allocation
         for (var x = 1; x <= points; x++)
+        {
             switch (Random.Shared.Next(1, 6))
             {
                 case 1:
@@ -448,6 +449,19 @@ public class Monster : Creature, ICloneable, IEphemeral
                     Stats.BaseWis += 1;
                     break;
             }
+
+            if (x % 2 == 0)
+            {
+                var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
+                var bonusHpGain =
+                    (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
+                var bonusMpGain =
+                    (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
+
+                Stats.BaseHp += bonusHpGain + 25;
+                Stats.BaseMp += bonusMpGain + 25;
+            }
+        }
     }
 
     public void AllocateStats()
