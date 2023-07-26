@@ -196,16 +196,11 @@ public class Login : Server
 
         // Try to get our map
         // TODO: replace with XML config for start map, x, y
-        MapObject map;
-        if (!Game.World.WorldState.TryGetValue(136, out map))
-            map = Game.World.WorldState.GetDictionary<MapObject>().First().Value;
-        if (!World.PlayerExists(client.NewCharacterName))
+     if (!World.PlayerExists(client.NewCharacterName))
         {
             var newPlayer = new User();
             newPlayer.Name = client.NewCharacterName;
             newPlayer.Gender = (Gender)gender;
-            newPlayer.Location.Direction = Direction.South;
-            newPlayer.Location.Map = map;
             newPlayer.Location.X = 10;
             newPlayer.Location.Y = 10;
             newPlayer.HairColor = hairColor;
