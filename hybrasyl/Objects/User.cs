@@ -3046,7 +3046,7 @@ public class User : Creature
     public void ShowLearnSkill(Merchant merchant, Castable castable)
     {
         var skillDesc =
-            castable.Descriptions.Single(predicate: x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
+            castable.Descriptions.First(predicate: x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3087,7 +3087,7 @@ public class User : Creature
     {
         var castable = PendingLearnableCastable;
         //now check requirements.
-        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3183,7 +3183,7 @@ public class User : Creature
     public void ShowLearnSkillAccept(Merchant merchant)
     {
         var castable = PendingLearnableCastable;
-        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
 
         var prompt = string.Empty;
         var options = new MerchantOptions();
@@ -3296,7 +3296,7 @@ public class User : Creature
     public void ShowLearnSpell(Merchant merchant, Castable castable)
     {
         var spellDesc =
-            castable.Descriptions.Single(predicate: x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
+            castable.Descriptions.First(predicate: x => x.Class.Contains(Class) || x.Class.Contains(Class.Peasant));
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3337,7 +3337,7 @@ public class User : Creature
     {
         var castable = PendingLearnableCastable;
         //now check requirements.
-        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
         var prompt = string.Empty;
@@ -3438,7 +3438,7 @@ public class User : Creature
     public void ShowLearnSpellAccept(Merchant merchant)
     {
         var castable = PendingLearnableCastable;
-        var classReq = castable.Requirements.Single(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
+        var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
         var prompt = string.Empty;
         var options = new MerchantOptions
         {

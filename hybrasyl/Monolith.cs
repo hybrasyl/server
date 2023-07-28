@@ -79,6 +79,11 @@ internal class Monolith
         map.SpawnDirectives.Spawns = spawnlist;
         map.SpawnDirectives.MapId = map.Id;
         map.SpawnDirectives.Status = new SpawnStatus();
+        if (Spawns.ContainsKey(map.SpawnDirectives.Name))
+        {
+            GameLog.Error($"Duplicate spawngroup (ignored): map {map.Name}, spawngroup {map.SpawnDirectives.Name}");
+            return;
+        }
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
         GameLog.Warning($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
     }

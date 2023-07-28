@@ -930,10 +930,8 @@ public class Creature : VisibleObject
         // Handle dmg/mr/crit/magiccrit
         if (attacker != null && damageType != DamageType.Direct)
         {
-            _mLastHitter = attacker.Id;
             damage += damage * attacker.Stats.Dmg;
             damageEvent.BonusDmg = Convert.ToInt32(damage * attacker.Stats.Dmg);
- 
 
             if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
@@ -1037,6 +1035,7 @@ public class Creature : VisibleObject
         }
 
         damageEvent.Amount = normalized;
+        _mLastHitter = attacker?.Id ?? 0;
         OnDamage(damageEvent);
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects

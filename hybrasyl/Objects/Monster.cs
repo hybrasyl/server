@@ -250,6 +250,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             if (DeathDisabled)
             {
                 Stats.Hp = Stats.MaximumHp;
+                Condition.Alive = true; 
                 return;
             }
 
