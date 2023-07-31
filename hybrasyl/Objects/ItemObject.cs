@@ -456,6 +456,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
                 {
                     var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
+                    var tick = add.Tick == 0 ? applyStatus.Tick : add.Tick;
                     var overlap = trigger.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
                     if (overlap.Any())
                     {
@@ -465,7 +466,7 @@ public class ItemObject : VisibleObject, IInteractable
                     {
                         GameLog.UserActivityInfo(
                             $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
-                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, -1,
+                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, tick,
                             add.Intensity));
                     }
                 }

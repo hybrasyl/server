@@ -581,6 +581,7 @@ public class Creature : VisibleObject
                 if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
+                    var tick = status.Tick == 0 ? applyStatus.Tick : status.Tick;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
                     if (tar.CurrentStatusInfo.Count > 0)
@@ -598,7 +599,7 @@ public class Creature : VisibleObject
                         }
                     }
 
-                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
+                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
                         status.Intensity));
                 }
                 else
@@ -1113,7 +1114,10 @@ public class Creature : VisibleObject
                     });
         }
 
-        Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
+        if ((MagicalImmortal && damageType != DamageType.Magical) ||
+            (PhysicalImmortal && damageType != DamageType.Physical) ||
+            !AbsoluteImmortal)
+            Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
 
         SendDamageUpdate(this);
 

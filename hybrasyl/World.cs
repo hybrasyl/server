@@ -447,8 +447,6 @@ public partial class World : Server
 
     private void GenerateMetafiles()
     {
-        // these might be better suited in LoadData as the database is being read, but only items are in database atm
-
         #region ItemInfo
 
         var itmIndex = 0;
@@ -524,6 +522,8 @@ public partial class World : Server
             sclass.Nodes.Add("Skill");
             foreach (var skill in skills)
             {
+                if (!skill.IncludeInMetafile)
+                    continue;
                 var desc = "";
                 if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
                     desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class)).Value;
@@ -607,6 +607,8 @@ public partial class World : Server
             foreach (var spell in spells)
             // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
             {
+                if (!spell.IncludeInMetafile)
+                    continue;
                 var desc = "";
                 if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
                     desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class)).Value;

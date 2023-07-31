@@ -259,7 +259,7 @@ public class StatInfo
         {
             lock (_lock)
             {
-                _currentHp = value;
+                _currentHp = value > MaximumHp ? MaximumHp : value;
             }
         }
     }
@@ -318,7 +318,7 @@ public class StatInfo
         {
             lock (_lock)
             {
-                _currentMp = value;
+                _currentMp = value > MaximumMp ? MaximumMp : value;
             }
         }
     }

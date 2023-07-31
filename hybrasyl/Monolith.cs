@@ -85,7 +85,7 @@ internal class Monolith
             return;
         }
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
-        GameLog.Warning($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
+        GameLog.Debug($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
     }
 
     public void Start()

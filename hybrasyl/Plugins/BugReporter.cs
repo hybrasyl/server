@@ -25,6 +25,7 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
             return true;
         }
 
+
         throw new ArgumentException("Initialize: needed WebhookUrl and OutputDir to be defined, aborting");
     }
 
@@ -63,7 +64,7 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
     {
         try
         {
-            await File.WriteAllTextAsync(Path.Join(OutputDir, $"bugreport-{sender}-{id}.txt"), text);
+            await File.WriteAllTextAsync(Path.Join(Game.DataDirectory, OutputDir, $"bugreport-{sender}-{id}.txt"), text);
         }
         catch (Exception e)
         {
