@@ -425,10 +425,10 @@ public class Equipment
         var currentAc = Fixture.TestUser.Stats.BaseAc - Fixture.TestUser.Stats.Level / 3 +
                         Fixture.TestUser.Stats.BonusAc;
         // TODO: maybe implement as equality operator on statinfo and keep our "original" stats around
-        Assert.True(Fixture.TestUser.Stats.MaximumHp == 50,
-            $"Hp: after removal, should be 10000, is {Fixture.TestUser.Stats.MaximumHp}");
-        Assert.True(Fixture.TestUser.Stats.MaximumMp == 50,
-            $"Mp: after removal, should be 10000, is {Fixture.TestUser.Stats.MaximumMp}");
+        Assert.True(Fixture.TestUser.Stats.MaximumHp == 1000,
+            $"Hp: after removal, should be 1000, is {Fixture.TestUser.Stats.MaximumHp}");
+        Assert.True(Fixture.TestUser.Stats.MaximumMp == 1000,
+            $"Mp: after removal, should be 1000, is {Fixture.TestUser.Stats.MaximumMp}");
         Assert.True(Fixture.TestUser.Stats.Str == 3,
             $"Str: after removal, should be 3, is {Fixture.TestUser.Stats.Str}");
         Assert.True(Fixture.TestUser.Stats.Con == 3,

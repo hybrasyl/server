@@ -119,9 +119,9 @@ public class Items
         var ringObj = Game.World.CreateItem(ring);
         ringObj.Invoke(Fixture.TestUser);
 
-        Assert.True(Fixture.TestUser.Stats.BaseHp == 100,
+        Assert.True(Fixture.TestUser.Stats.BaseHp == 1050,
             $"Hp: after item usage, should be 100, is {Fixture.TestUser.Stats.BaseHp}");
-        Assert.True(Fixture.TestUser.Stats.BaseMp == 100,
+        Assert.True(Fixture.TestUser.Stats.BaseMp == 1050,
             $"Mp: after item usage, should be 100, is {Fixture.TestUser.Stats.BaseMp}");
         Assert.True(Fixture.TestUser.Stats.BaseStr == 53,
             $"Str: after item usage, should be 53, is {Fixture.TestUser.Stats.BaseStr}");

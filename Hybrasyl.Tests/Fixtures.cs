@@ -194,13 +194,13 @@ public class HybrasylFixture : IDisposable
             BaseWis = 3,
             Level = 1,
             Gold = 1000,
-            Hp = 1000,
-            Mp = 1000,
-            BaseHp = 50,
-            BaseMp = 50,
+            BaseHp = 1000,
+            BaseMp = 1000,
             Experience = 1000,
             BaseAc = 100
         };
+        TestUser.Stats.Hp = 1000;
+        TestUser.Stats.Mp = 1000;
         TestUser.Class = Class.Peasant;
         TestUser.Inventory.Clear();
         TestUser.Equipment.Clear();
