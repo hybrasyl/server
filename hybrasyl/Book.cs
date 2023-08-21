@@ -300,6 +300,12 @@ public class Book : IEnumerable<BookSlot>
         Count = 0;
         _itemIndex.Clear();
     }
+
+    public BookSlot GetSlotByName(string name)
+    {
+        var i = IndexOf(name);
+        return i == -1 ? null : _items[i];
+    }
 }
 
 [JsonConverter(typeof(BookConverter))]

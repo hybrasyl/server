@@ -672,42 +672,6 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
-    ///     Display a special effect visible to players.
-    /// </summary>
-    /// <param name="effect">ushort id of effect (references client datfile)</param>
-    /// <param name="speed">speed of the effect (generally 100)</param>
-    /// <param name="global">
-    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
-    ///     the effect
-    /// </param>
-    public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
-    {
-        if (!global)
-            User.SendEffect(User.Id, effect, speed);
-        else
-            User.Effect(effect, speed);
-    }
-
-    /// <summary>
-    ///     Display an effect at a given x,y coordinate on the current player's map.
-    /// </summary>
-    /// <param name="x">X coordinate where effect will be displayed</param>
-    /// <param name="y">Y coordinate where effect will be displayed</param>
-    /// <param name="effect">ushort id of effect (references client datfile)</param>
-    /// <param name="speed">speed of the effect (generally 100)</param>
-    /// <param name="global">
-    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
-    ///     the effect
-    /// </param>
-    public void DisplayEffectAtCoords(short x, short y, ushort effect, short speed = 100, bool global = true)
-    {
-        if (!global)
-            User.SendEffect(x, y, effect, speed);
-        else
-            User.Effect(x, y, effect, speed);
-    }
-
-    /// <summary>
     ///     Display a motion on the user
     /// </summary>
     /// <param name="motionId">the motion to display</param>
@@ -733,15 +697,6 @@ public class HybrasylUser : HybrasylWorldObject
         }
 
         User.Teleport(location, (byte)x, (byte)y);
-    }
-
-    /// <summary>
-    ///     Play a sound effect.
-    /// </summary>
-    /// <param name="sound">byte id of the sound, referencing a sound effect in client datfiles.</param>
-    public void SoundEffect(byte sound)
-    {
-        User.SendSound(sound);
     }
 
     /// <summary>
@@ -1198,5 +1153,20 @@ public class HybrasylUser : HybrasylWorldObject
     {
         var color = (ItemColor)Enum.Parse(typeof(ItemColor), itemColor);
         User.SetHairColor(color);
+    }
+
+    public void SetCooldown(string name, bool reset)
+    {
+        var castable = User.SpellBook.IndexOf(name) == -1 ? User.SkillBook.GetSlotByName(name) : User.SpellBook.GetSlotByName(name);
+        if (castable == null)
+        {
+            GameLog.ScriptingError("SetCooldown: {name} not found in user's castables");
+            return;
+        }
+
+        if (reset)
+            castable.ClearCooldown();
+        else
+            castable.TriggerCooldown();
     }
 }

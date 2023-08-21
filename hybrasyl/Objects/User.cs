@@ -1609,6 +1609,23 @@ public class User : Creature
         Enqueue(x2C);
     }
 
+    public void SendCooldown(BookSlot item)
+    {
+        if (item == null) return;
+        var slot = item.Castable.IsSkill
+            ? SkillBook.IndexOf(item.Castable.Name)
+            : SpellBook.IndexOf(item.Castable.Name);
+        
+        if (slot == -1) return;
+
+        Client.Enqueue(new ServerPacketStructures.Cooldown
+        {
+            Length = (uint) item.Castable.Cooldown,
+            Pane = 1,
+            Slot = (byte) slot
+        }.Packet());
+
+    }
     public void SendSpellUpdate(BookSlot item, int slot)
     {
         if (item == null)

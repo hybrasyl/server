@@ -15,4 +15,14 @@ public class BookSlot
 
     public bool HasBeenUsed => LastCast != default;
     public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
+
+    public void TriggerCooldown()
+    {
+        LastCast = DateTime.Now;
+    }
+
+    public void ClearCooldown()
+    {
+        LastCast = DateTime.MinValue;
+    }
 }

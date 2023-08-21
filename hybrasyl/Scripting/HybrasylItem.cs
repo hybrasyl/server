@@ -41,6 +41,10 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
     public bool Undamageable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
     public bool Consumable => Item.Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
 
+    public bool Stackable => Item.Template.Properties.Stackable.Max > 1;
+    public byte StackableMax => Item.Template.Properties.Stackable.Max;
+
+
     public ushort Sprite
     {
         get => Item.Sprite;

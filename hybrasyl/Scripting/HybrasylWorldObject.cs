@@ -430,4 +430,67 @@ public class HybrasylWorldObject : IScriptable
 
         return false;
     }
+
+    /// <summary>
+    ///     Display a special effect visible to players.
+    /// </summary>
+    /// <param name="effect">ushort id of effect (references client datfile)</param>
+    /// <param name="speed">speed of the effect (generally 100)</param>
+    /// <param name="global">
+    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
+    ///     the effect
+    /// </param>
+    public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
+    {
+        if (Obj is not VisibleObject vo) return;
+        if (!global && Obj is User u)
+            u.SendEffect(u.Id, effect, speed);
+        else
+            vo.Effect(effect, speed);
+    }
+
+    /// <summary>
+    ///     Display an effect at a given x,y coordinate on the current player's map.
+    /// </summary>
+    /// <param name="x">X coordinate where effect will be displayed</param>
+    /// <param name="y">Y coordinate where effect will be displayed</param>
+    /// <param name="effect">ushort id of effect (references client datfile)</param>
+    /// <param name="speed">speed of the effect (generally 100)</param>
+    /// <param name="global">
+    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
+    ///     the effect
+    /// </param>
+    public void DisplayEffectAtCoords(short x, short y, ushort effect, short speed = 100, bool global = true)
+    {
+        if (Obj is not VisibleObject vo) return;
+
+        if (!global && Obj is User u)
+                u.SendEffect(x, y, effect, speed);
+        else
+            vo.Effect(x, y, effect, speed);
+    }
+
+    /// <summary>
+    ///     Play a sound effect.
+    /// </summary>
+    /// <param name="sound">byte id of the sound, referencing a sound effect in client datfiles.</param>
+    public void SoundEffect(byte sound)
+    {
+        if (Obj is not VisibleObject vo) return;
+
+        vo.PlaySound(sound);
+    }
+
+    /// <summary>
+    /// Change the sprite of an object in the world. A Show() is automatically called to display the new sprite to any nearby players.
+    /// </summary>
+    /// <param name="sprite">ushort id of the sprite, referencing a sprite in client datfiles.</param>
+    public void SetSprite(ushort sprite)
+    {
+        if (Obj is not VisibleObject vo) return;
+        vo.Sprite = sprite;
+        vo.Show();
+    }
+
+
 }
