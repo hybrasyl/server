@@ -105,6 +105,15 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
+      - name: Build documentation
+        run: >
+          cd $GITHUB_WORKSPACE/server && mono /usr/local/naturaldocs/NaturalDocs.exe .ndconfig
+      - name: Upload to docs site
+        run: >
+          aws s3 sync .ndoutput s3://docs.hybrasyl.com/ --region us-west-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
       - name: Notify discord
         run: >
           /usr/local/bin/discord.sh
