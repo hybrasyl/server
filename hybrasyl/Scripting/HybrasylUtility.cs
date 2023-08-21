@@ -180,8 +180,6 @@ public static class HybrasylUtility
             userObj.SendSystemMessage(Game.World.GetLocalString("send_parcel_system_msg", ("$NAME", from)));
             userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         }
-
-        userObj.ParcelStore.AddItem(from, itemName, (uint)quantity);
         return true;
     }
 

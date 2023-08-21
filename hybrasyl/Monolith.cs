@@ -298,7 +298,8 @@ internal class Monolith
                         foreach (var coord in spawn.Coordinates)
                         {
                             if (spawnmap.EntityTree.GetObjects(new Rectangle(coord.X, coord.Y, 1, 1))
-                                .Any(predicate: e => e is Objects.Creature)) continue;
+                                .Any(predicate: e => e is Objects.Creature)) 
+                                continue;
                             xcoord = coord.X;
                             ycoord = coord.Y;
                         }
@@ -393,7 +394,9 @@ internal class Monolith
     private static void SpawnMonster(Monster monster, MapObject map)
     {
         if (!World.ControlMessageQueue.IsCompleted)
+        {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
+        }
     }
 }
 

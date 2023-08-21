@@ -54,7 +54,8 @@ public class HybrasylUser : HybrasylWorldObject
         get
         {
             var f = User.Inventory[1];
-            return f is null ? null : new HybrasylItemObject(f);
+            var hio = new HybrasylItemObject(f);
+            return f is null ? null : hio;
         }
     }
 

@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/hybrasyl/server</RepositoryUrl>
     <Company>Project Hybrasyl</Company>
     <Product>Hybrasyl Server</Product>
-    <VersionPrefix>0.9.3.1</VersionPrefix>
+    <VersionPrefix>0.9.3.2</VersionPrefix>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
     <NoWarn>NU1701</NoWarn>
@@ -49,15 +49,15 @@
     <PackageReference Include="App.Metrics" Version="4.3.0" />
     <PackageReference Include="App.Metrics.Reporting.GrafanaCloudHostedMetrics" Version="4.3.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-    <PackageReference Include="Discord.Net.Webhook" Version="3.11.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.23.4" />
+    <PackageReference Include="Discord.Net.Webhook" Version="3.12.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.24.1" />
     <PackageReference Include="Grpc" Version="2.46.6" />
-    <PackageReference Include="Grpc.Tools" Version="2.56.2">
+    <PackageReference Include="Grpc.Tools" Version="2.57.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
-    <PackageReference Include="Hybrasyl.Xml" Version="0.9.3.15" />
+    <PackageReference Include="Hybrasyl.Xml" Version="0.9.3.17" />
     <PackageReference Include="MoonSharp" Version="2.0.0" />
     <PackageReference Include="MSBuildGitHash" Version="2.0.2">
       <PrivateAssets>all</PrivateAssets>
@@ -66,7 +66,7 @@
     <PackageReference Include="NCalcSync" Version="3.8.0" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Sentry" Version="3.34.0" />
+    <PackageReference Include="Sentry" Version="3.35.1" />
     <PackageReference Include="Serilog" Version="3.0.1" />
     <PackageReference Include="Serilog.Enrichers.ExceptionData" Version="1.0.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />

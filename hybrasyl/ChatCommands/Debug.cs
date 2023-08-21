@@ -19,6 +19,7 @@
  * 
  */
 
+using System.Drawing;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 
@@ -93,5 +94,87 @@ internal class SpawnToggleCommand : ChatCommand
         }
 
         return Fail($"Spawngroup {args[0]} not found");
+    }
+}
+
+
+internal class RepopCommand : ChatCommand
+{
+    public new static string Command = "repop";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Helps ghosts find their way home";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (Game.ActiveConfiguration.Handlers?.Death == null)
+            return Fail("Death is currently disabled.");
+
+        if (string.IsNullOrWhiteSpace(Game.ActiveConfiguration.Handlers.Death.Map?.Value))
+            return Fail("Death map not defined.");
+
+        if (user.Location.Map.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
+        {
+            GameLog.UserActivityWarning($"User {user.Name}: /repop usage, current map {user.Location.Map.Name}, last hit by {user.LastHitter?.Name ?? "unknown"}, stats {user.Stats}");
+            if (user.Condition.Alive)
+                return Fail("You're not dead.");
+            user.Teleport(Game.ActiveConfiguration.Handlers.Death.Map.Value,
+                Game.ActiveConfiguration.Handlers.Death.Map.X,
+                Game.ActiveConfiguration.Handlers.Death.Map.Y);
+            if (user.Map.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
+                GameLog.UserActivityFatal($"User {user.Name}: teleported, but not in {Game.ActiveConfiguration.Handlers.Death.Map.Value}...?");
+        }
+        else
+            return Fail($"You are already in {Game.ActiveConfiguration.Handlers.Death.Map.Value}.");
+        
+        return Success("You are where you should be.");
+    }
+}
+
+
+internal class StuckCommand : ChatCommand
+{
+    public new static string Command = "stuck";
+    public new static string ArgumentText = "<string reason>";
+    public new static string HelpText = "Use if you are stuck and cannot move. Abuse of this command will have severe consequences.";
+    public new static bool Privileged = false;
+
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        GameLog.UserActivityInfo($"/stuck: {user.Name}: {args[0]}");
+        if (user.Location.Map == null)
+            GameLog.UserActivityError($"/stuck: {user.Name} is not on a map...?");
+        else
+        {
+            GameLog.UserActivityWarning(
+                $"/stuck: {user.Name}, current location ({user.Location.X},{user.Location.Y})@{user.Location.Map.Name}");
+            // Run some various checks for debugging purposes
+            if (!user.Location.Map.Users.ContainsKey(user.Name))
+                GameLog.UserActivityFatal($"/stuck: {user.Name} is on map {user.Location.Map.Name} but not in user cache");
+            if (!user.Location.Map.Objects.Contains(user))
+                GameLog.UserActivityFatal($"/stuck: {user.Name} is on map {user.Location.Map.Name} but not in object cache");
+            if (!user.Location.Map.EntityTree.Contains(user))
+                GameLog.UserActivityFatal($"/stuck: {user.Name} is on map {user.Location.Map.Name} but not in quadtree");
+            if (user.Location.X > user.Location.Map.X || user.Location.Y > user.Location.Map.Y)
+                GameLog.UserActivityFatal($"/stuck: {user.Name} out of bounds");
+            // Gather nearby objects
+            foreach (var obj in user.Location.Map.EntityTree.GetObjects(new Rectangle(user.Location.X, user.Location.Y,
+                         1, 1)))
+            {
+                GameLog.UserActivityInfo($"/stuck: {user.Name}: coords {user.Location.X},{user.Location.Y}: Quadtree rectangle contains {obj.Type} ({obj.Name})");
+            }
+            if (user.DialogState.InDialog)
+                GameLog.UserActivityInfo($"/stuck: {user.Name}: in dialog, with {user.DialogState.Associate?.Name ?? "unknown"}");
+        }
+
+        if (user.Nation == null)
+        {
+            user.Teleport("Gate of Lighter Slumber", 5, 5);
+            return Success("The gods show mercy for your situation.");
+        }
+
+        var spawnPoint = user.Nation.RandomSpawnPoint;
+        user.Teleport(spawnPoint.MapName, spawnPoint.X, spawnPoint.Y);
+        return Success($"You are rescued by citizens of {user.Nation.Name}.");
     }
 }

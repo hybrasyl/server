@@ -211,15 +211,19 @@ public class VisibleObject : WorldObject, IVisible
     {
         if (!World.WorldState.ContainsKey<MapObject>(mapid)) return;
         Map?.Remove(this);
-        GameLog.DebugFormat("Teleporting {0} to {1}.", Name, World.WorldState.Get<MapObject>(mapid).Name);
+        GameLog.DebugFormat("Teleporting {0} to {1}", Name, World.WorldState.Get<MapObject>(mapid).Name);
         World.WorldState.Get<MapObject>(mapid).Insert(this, x, y);
     }
 
     public virtual void Teleport(string name, byte x, byte y)
     {
-        if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex(name, out MapObject targetMap)) return;
+        if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex(name, out MapObject targetMap))
+        {
+            GameLog.Warning($"Teleport to nonexistent map {name}");
+            return;
+        }
         Map?.Remove(this);
-        GameLog.DebugFormat("Teleporting {0} to {1}.", Name, targetMap.Name);
+        GameLog.DebugFormat("Teleporting {0} to {1}", Name, targetMap.Name);
         targetMap.Insert(this, x, y);
     }
 

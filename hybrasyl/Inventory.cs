@@ -808,6 +808,8 @@ public class Inventory : IEnumerable<ItemObject>
 
     public int EmptySlots => Size - Count;
 
+    public virtual bool IsEmpty => Count == 0;
+
     public ItemObject this[byte slot]
     {
         get
@@ -965,7 +967,8 @@ public class Inventory : IEnumerable<ItemObject>
         return Items.First(predicate: x => x.Value == null).Key;
     }
 
-    public byte SlotOfId(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
+    public byte SlotOfId(string id) =>
+        ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
 
     public byte SlotOfName(string name) =>
         (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Slot)
@@ -1093,6 +1096,9 @@ public class Equipment : Inventory
     public bool RingEquipped => LRing != null || RRing != null;
     public bool GauntletEquipped => LGauntlet != null || RGauntlet != null;
 
+
+    public ItemObject this[EquipmentSlot slot] => this[(byte) slot];
+    
     public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
     {
         var returnList = new List<Tuple<ushort, byte>>();

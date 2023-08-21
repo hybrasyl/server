@@ -479,4 +479,18 @@ public class Equipment
         Assert.True(Fixture.TestUser.Stats.ManaSteal == 0,
             $"ManaSteal: after removal, should be 10, is {Fixture.TestUser.Stats.ManaSteal}");
     }
+
+    [Fact]
+    public void EquipmentSlotOf()
+    {
+        Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
+        ring.Name = "Test Ring";
+        var ringObj = Game.World.CreateItem(ring);
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
+        Assert.Equal((byte)EquipmentSlot.RightHand, Fixture.TestUser.Equipment.SlotOfName(ringObj.Name));
+        Assert.Equal((byte) EquipmentSlot.None, Fixture.TestUser.Equipment.SlotOfName("Something that does not exist"));
+    }
 }

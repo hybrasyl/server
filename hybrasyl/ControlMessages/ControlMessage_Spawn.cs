@@ -13,9 +13,6 @@ public partial class World : Server
         var monster = (Monster)message.Arguments[0];
         var map = (MapObject)message.Arguments[1];
         map.InsertCreature(monster);
-
-        GameLog.SpawnInfo(
-            $"{monster.Name} @ {monster.Map.Name} ({monster.X},{monster.Y}): Level {monster.Stats.Level} HP {monster.Stats.Hp} MP {monster.Stats.Mp} S/C/D/I/W {monster.Stats.Str}/{monster.Stats.Con}/{monster.Stats.Dex}/{monster.Stats.Int}/{monster.Stats.Wis}");
     }
 
     [HybrasylMessageHandler(ControlOpcode.MonolithControl)]
