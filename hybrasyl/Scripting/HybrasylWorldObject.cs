@@ -300,15 +300,15 @@ public class HybrasylWorldObject : IScriptable
         return -1;
     }
 
-    ///// <summary>
-    ///// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
-    ///// </summary>
-    ///// <param name="targetUser">The logged-in player that will receive the dialog</param>
-    ///// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
-    ///// <param name="sequenceName">The sequence that will be started for the target player</param>
-    ///// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
-    ///// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
-    ///// <returns>Boolean indicating success</returns>
+    /// <summary>
+    /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
+    /// </summary>
+    /// <param name="targetUser">The logged-in player that will receive the dialog</param>
+    /// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
+    /// <param name="sequenceName">The sequence that will be started for the target player</param>
+    /// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
+    /// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
+    /// <returns>Boolean indicating success</returns>
     public bool RequestDialog(string targetUser, string sourceGuid, string sequenceName, string originGuid,
         bool requireLocal = true)
     {
@@ -457,6 +457,7 @@ public class HybrasylWorldObject : IScriptable
     /// <param name="effect">ushort id of effect (references client datfile)</param>
     /// <param name="speed">speed of the effect (generally 100)</param>
     /// <param name="global">
+    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
     ///     boolean indicating whether or not other players can see the effect, or just the player displaying
     ///     the effect
     /// </param>

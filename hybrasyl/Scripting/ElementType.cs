@@ -8,7 +8,7 @@ namespace Hybrasyl.Scripting;
 /* Workaround to make Elements easily accessible in Lua via Moonsharp,
    for unknown reasons it seemingly refuses to register an enum from an 
    outside assembly */
-
+// Group: Scripting
 public static class Element
 {
     public static ElementType None => ElementType.None;
