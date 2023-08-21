@@ -298,3 +298,6 @@ hybrasyl/toc.yml
 
 # Local container data
 data/*
+
+# Documentation build stuff
+.ndoutput/*
