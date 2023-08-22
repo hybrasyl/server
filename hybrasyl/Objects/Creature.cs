@@ -408,7 +408,8 @@ public class Creature : VisibleObject
             }
         }
 
-        return finalTargets;
+        // Lastly, remove any duplicates
+        return finalTargets.DistinctBy(x => x.Guid).ToList();
     }
 
     public virtual bool UseCastable(Castable castableXml, Creature target = null)

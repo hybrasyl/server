@@ -130,6 +130,15 @@ public class MapObject : IStateStorable
         AllowSpeaking = true;
     }
 
+    public void Clear()
+    {
+        Objects = new HashSet<VisibleObject>();
+        Users = new Dictionary<string, User>();
+        Warps = new Dictionary<Tuple<byte, byte>, Warp>();
+        EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
+        Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
+    }
+
     public void Init()
     {
         RawData = new byte[0];
