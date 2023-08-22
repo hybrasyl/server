@@ -103,14 +103,12 @@ public class User : Creature
     {
         get
         {
-            return Stats.Level switch
-            {
-                < LevelCircles.CIRCLE_1 => 0,
-                < LevelCircles.CIRCLE_2 => 1,
-                < LevelCircles.CIRCLE_3 => 2,
-                < LevelCircles.CIRCLE_4 => 3,
-                _ => 4
-            };
+
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle1) return 0;
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle2) return 1;
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle3) return 2;
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle4) return 3;
+            return 4;
         }
     }
 
@@ -143,7 +141,7 @@ public class User : Creature
         get
         {
             var levelExp = (uint) Math.Pow(Stats.Level, 3) * 250;
-            if (Stats.Level == Constants.MAX_LEVEL || Stats.Experience >= levelExp)
+            if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel || Stats.Experience >= levelExp)
                 return 0;
 
             return (uint) (Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
@@ -803,7 +801,7 @@ public class User : Creature
 
         exp = Convert.ToUInt32(bonus + exp);
 
-        if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
+        if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel || exp < ExpToLevel)
         {
             if (uint.MaxValue - Stats.Experience >= exp)
             {
@@ -957,7 +955,7 @@ public class User : Creature
         profilePacket.WriteString8("");
         profilePacket.WriteByte((byte) (Grouping ? 1 : 0));
         profilePacket.WriteString8(guildInfo.GuildRank);
-        profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int) Class].Capitalize());
+        profilePacket.WriteString8(Game.ActiveConfiguration.GetClassName((byte) Class));
         profilePacket.WriteString8(guildInfo.GuildName);
         profilePacket.WriteByte((byte) Legend.Count);
         foreach (var mark in Legend.Where(predicate: mark => mark.Public))
@@ -1250,7 +1248,7 @@ public class User : Creature
             if (targetCreature == null || targetCreature.Map != Map)
                 return;
 
-            if (Distance(targetCreature) > Constants.HALF_VIEWPORT_SIZE)
+            if (Distance(targetCreature) > Game.ActiveConfiguration.Constants.PlayerMaxCastDistance)
             {
                 SendSystemMessage("Your target is too far away.");
                 return;
@@ -1871,7 +1869,7 @@ public class User : Creature
         var arrivingViewport = Rectangle.Empty;
         var departingViewport = Rectangle.Empty;
         var commonViewport = Rectangle.Empty;
-        var halfViewport = Constants.VIEWPORT_SIZE / 2;
+        var halfViewport = Game.ActiveConfiguration.Constants.ViewportSize / 2;
 
         if (Condition.Disoriented)
         {
@@ -1898,30 +1896,30 @@ public class User : Creature
             case Direction.North:
                 --newY;
                 arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 break;
             case Direction.South:
                 ++newY;
                 arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 break;
             case Direction.West:
                 --newX;
                 arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 break;
             case Direction.East:
                 ++newX;
                 arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 break;
         }
 
@@ -1984,10 +1982,10 @@ public class User : Creature
 
         // Calculate the common viewport between the old and new position
 
-        commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE);
-        commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE));
+        commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize);
+        commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize));
         GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
         GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
             arrivingViewport.Y);
@@ -2073,7 +2071,7 @@ public class User : Creature
 
     public bool AddGold(uint amount)
     {
-        if (Gold + amount > Constants.MAXIMUM_GOLD)
+        if (Gold + amount > Game.ActiveConfiguration.Constants.PlayerMaxGold)
         {
             Client.SendMessage("You cannot carry any more gold.", 3);
             return false;
@@ -2938,7 +2936,7 @@ public class User : Creature
             CanGroup = Grouping,
             GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
             Class = (byte)Class,
-            ClassName = IsMaster ? "Master" : Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
+            ClassName = IsMaster ? "Master" : Game.ActiveConfiguration.GetClassName((byte) Class).Capitalize(),
             GuildName = GetGuildInfo().GuildName,
             PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
         };
@@ -3907,7 +3905,7 @@ public class User : Creature
                 prompt = merchant.GetLocalString("sell_failure_quantity");
 
         if (prompt == string.Empty)
-            if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
+            if (PendingMerchantOffer + Gold > Game.ActiveConfiguration.Constants.PlayerMaxGold)
                 prompt = merchant.GetLocalString("sell_failure_gold_limit");
 
         if (prompt == string.Empty)

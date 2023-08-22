@@ -50,7 +50,7 @@ public class DialogState
         get
         {
             if (InDialog)
-                if (CurrentPursuitId == Constants.DIALOG_SEQUENCE_ASYNC)
+                if (CurrentPursuitId == Game.ActiveConfiguration.Constants.DialogSequenceAsync)
                     // Async dialogs have a fixed merchant ID of 0xFFFFFFFF
                     return int.MaxValue;
                 else
@@ -64,7 +64,7 @@ public class DialogState
         get
         {
             if (ActiveDialog == null || ActiveDialogSequence == null) return false;
-            if (ActiveDialogSequence.Id < Constants.DIALOG_SEQUENCE_SHARED)
+            if (ActiveDialogSequence.Id < Game.ActiveConfiguration.Constants.DialogSequenceShared)
                 return true;
             return Associate != null;
         }
@@ -175,7 +175,7 @@ public class DialogState
                 break;
         }
 
-        if (target == null && pursuitId > Constants.DIALOG_SEQUENCE_SHARED)
+        if (target == null && pursuitId > Game.ActiveConfiguration.Constants.DialogSequenceShared)
         {
             Log.Error("{Username}: dialog associate is null but pursuitId is associate-specific");
             return false;

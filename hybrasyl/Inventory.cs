@@ -74,7 +74,7 @@ public class Exchange
     {
         errorMessage = string.Empty;
         var locationCheck = source.Map == target.Map && source.IsInViewport(target) &&
-                            target.IsInViewport(source) && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
+                            target.IsInViewport(source) && target.Distance(source) <= Game.ActiveConfiguration.Constants.PlayerExchangeDistance;
 
         var flagCheck = source.Condition.NoFlags && target.Condition.NoFlags;
 

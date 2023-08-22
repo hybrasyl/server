@@ -1491,31 +1491,31 @@ public class StatInfo
 
     [FormulaVariable]
     public uint MaximumHp =>
-        (uint)Math.Clamp(BaseHp + BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+        (uint)Math.Clamp(BaseHp + BonusHp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp, Game.ActiveConfiguration.Constants.PlayerMaxBaseHpMp);
 
     [FormulaVariable]
     public uint MaximumMp =>
-        (uint)Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+        (uint)Math.Clamp(BaseMp + BonusMp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp, Game.ActiveConfiguration.Constants.PlayerMaxBaseHpMp);
 
     [FormulaVariable]
-    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, Game.ActiveConfiguration.Constants.PlayerMinStat, Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Int => (byte)Math.Clamp(BaseInt + BonusInt, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Int => (byte)Math.Clamp(BaseInt + BonusInt, Game.ActiveConfiguration.Constants.PlayerMinStat, Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Wis => (byte)Math.Clamp(BaseWis + BonusWis, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Wis => (byte)Math.Clamp(BaseWis + BonusWis, Game.ActiveConfiguration.Constants.PlayerMinStat, Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Con => (byte)Math.Clamp(BaseCon + BonusCon, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Con => (byte)Math.Clamp(BaseCon + BonusCon, Game.ActiveConfiguration.Constants.PlayerMinStat, Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Dex => (byte)Math.Clamp(BaseDex + BonusDex, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Dex => (byte)Math.Clamp(BaseDex + BonusDex, Game.ActiveConfiguration.Constants.PlayerMinStat, Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
 
     [FormulaVariable]
     // Normalize to a double between 0.84 / 1.16
-    public double Dmg => Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG) + 1.0;
+    public double Dmg => Math.Clamp(BonusDmg, Game.ActiveConfiguration.Constants.PlayerMinDmg, Game.ActiveConfiguration.Constants.PlayerMaxDmg) + 1.0;
 
     // These are for the client 0x08, specifically, which has some annoying limitations.
     // MR in particular can only be displayed as multiples of 10% and no negatives can be
@@ -1563,20 +1563,20 @@ public class StatInfo
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
-    public double Hit => Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT) + 1.0;
+    public double Hit => Math.Clamp(BonusHit, Game.ActiveConfiguration.Constants.PlayerMinHit, Game.ActiveConfiguration.Constants.PlayerMaxHit) + 1.0;
 
     [FormulaVariable]
     public sbyte Ac =>
-        (sbyte)Math.Clamp(BaseAc - Level / 3 + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
+        (sbyte)Math.Clamp(BaseAc - Level / 3 + BonusAc, Game.ActiveConfiguration.Constants.PlayerMinAc, Game.ActiveConfiguration.Constants.PlayerMaxAc);
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
-    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR) + 1.0;
+    public double Mr => Math.Clamp(BonusMr,  Game.ActiveConfiguration.Constants.PlayerMinMr, Game.ActiveConfiguration.Constants.PlayerMaxMr) + 1.0;
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
     public double Regen =>
-        Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN) + 1.0;
+        Math.Clamp(BonusRegen,  Game.ActiveConfiguration.Constants.PlayerMinRegen, Game.ActiveConfiguration.Constants.PlayerMaxRegen) + 1.0;
 
     public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 

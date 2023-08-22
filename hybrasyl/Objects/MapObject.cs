@@ -467,14 +467,14 @@ public class MapObject : IStateStorable
 
 
     public Rectangle GetViewport(byte x, byte y) =>
-        new(x - Constants.VIEWPORT_SIZE / 2,
-            y - Constants.VIEWPORT_SIZE / 2, Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE);
+        new(x - Game.ActiveConfiguration.Constants.ViewportSize / 2,
+            y - Game.ActiveConfiguration.Constants.ViewportSize / 2, Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize);
 
     public Rectangle GetShoutViewport(byte x, byte y) =>
-        new(x - Constants.VIEWPORT_SIZE,
-            y - Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE * 2,
-            Constants.VIEWPORT_SIZE * 2);
+        new(x - Game.ActiveConfiguration.Constants.ViewportSize,
+            y - Game.ActiveConfiguration.Constants.ViewportSize, Game.ActiveConfiguration.Constants.ViewportSize * 2,
+            Game.ActiveConfiguration.Constants.ViewportSize * 2);
 
     public void Remove(VisibleObject obj)
     {

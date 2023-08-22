@@ -135,14 +135,14 @@ public class VisibleObject : WorldObject, IVisible
         if (ItemDropType == ItemDropType.MonsterLootPile)
         {
             if (ItemDropAllowedLooters.Contains(username)) return true;
-            if (timeDropDifference > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
+            if (timeDropDifference > Game.ActiveConfiguration.Constants.MonsterLootDropTimeout) return true;
         }
         else // (ItemDropType == ItemDropType.UserDeathPile)
         {
             if (DeathPileOwner.Equals(username)) return true;
             if (ItemDropAllowedLooters.Contains(username) &&
-                timeDropDifference > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-            if (timeDropDifference > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+                timeDropDifference > Game.ActiveConfiguration.Constants.DeathpileOtherTimeout) return true;
+            if (timeDropDifference > Game.ActiveConfiguration.Constants.DeathpileGroupTimeout) return true;
         }
 
         error = "These items are cursed.";
@@ -169,17 +169,17 @@ public class VisibleObject : WorldObject, IVisible
 
     public Rectangle GetViewport() =>
         new(
-            X - Constants.VIEWPORT_SIZE / 2,
-            Y - Constants.VIEWPORT_SIZE / 2,
-            Constants.VIEWPORT_SIZE + 1,
-            Constants.VIEWPORT_SIZE + 1);
+            X - Game.ActiveConfiguration.Constants.ViewportSize / 2,
+            Y - Game.ActiveConfiguration.Constants.ViewportSize / 2,
+            Game.ActiveConfiguration.Constants.ViewportSize + 1,
+            Game.ActiveConfiguration.Constants.ViewportSize + 1);
 
     public Rectangle GetShoutViewport() =>
         new(
-            X - Constants.VIEWPORT_SIZE,
-            Y - Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE * 2 + 1,
-            Constants.VIEWPORT_SIZE * 2 + 1);
+            X - Game.ActiveConfiguration.Constants.ViewportSize,
+            Y - Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize * 2 + 1,
+            Game.ActiveConfiguration.Constants.ViewportSize * 2 + 1);
 
     public virtual void Show()
     {

@@ -26,7 +26,7 @@ namespace Hybrasyl.Jobs;
 
 public static class TickHeartbeatJob
 {
-    public static readonly int Interval = Constants.TICK_HEARTBEAT_INTERVAL;
+    public static readonly int Interval = Game.ActiveConfiguration.Constants.TickHeartbeatInterval;
 
     public static void Execute(object obj, ElapsedEventArgs args)
     {

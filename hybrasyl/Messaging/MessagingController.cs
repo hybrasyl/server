@@ -388,7 +388,7 @@ internal static class MessagingController
                 try
                 {
                     if ((DateTime.Now - senderSentMail.LastMailMessageSent).TotalSeconds <
-                        Constants.MAIL_MESSAGE_COOLDOWN &&
+                        Game.ActiveConfiguration.Constants.MailMessageCooldown &&
                         senderSentMail.LastMailRecipient == recipient)
                     {
                         success = false;

@@ -31,7 +31,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         {
             // This is a local sequence, so assign it into the pursuit range and
             // assign an ID
-            pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count);
+            pursuit.Id = (uint)(Game.ActiveConfiguration.Constants.DialogSequenceShared + Pursuits.Count);
             Pursuits.Add(pursuit);
         }
         else

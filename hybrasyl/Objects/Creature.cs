@@ -652,7 +652,7 @@ public class Creature : VisibleObject
             var arrivingViewport = Rectangle.Empty;
             var departingViewport = Rectangle.Empty;
             var commonViewport = Rectangle.Empty;
-            var halfViewport = Constants.VIEWPORT_SIZE / 2;
+            var halfViewport = Game.ActiveConfiguration.Constants.ViewportSize / 2;
             Warp targetWarp;
 
             switch (direction)
@@ -666,31 +666,31 @@ public class Creature : VisibleObject
 
                 case Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
                     break;
                 case Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
-                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
                     break;
                 case Direction.West:
                     --newX;
                     arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     break;
                 case Direction.East:
                     ++newX;
                     arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     break;
             }
 
@@ -741,10 +741,10 @@ public class Creature : VisibleObject
 
             // Calculate the common viewport between the old and new position
 
-            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
-                Constants.VIEWPORT_SIZE);
-            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
-                Constants.VIEWPORT_SIZE));
+            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
+                Game.ActiveConfiguration.Constants.ViewportSize);
+            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
+                Game.ActiveConfiguration.Constants.ViewportSize));
             GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
             GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
                 arrivingViewport.Y);
@@ -900,7 +900,7 @@ public class Creature : VisibleObject
         if (attacker is User && this is Monster)
         {
             if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) ||
-                (DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT) FirstHitter = attacker;
+                (DateTime.Now - LastHitTime).TotalSeconds > Game.ActiveConfiguration.Constants.MonsterTaggingTimeout) FirstHitter = attacker;
             if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
         }
 

@@ -282,7 +282,7 @@ public partial class World : Server
 
     internal void RegisterGlobalSequence(DialogSequence sequence)
     {
-        if (GlobalSequences.Count > Constants.DIALOG_SEQUENCE_SHARED)
+        if (GlobalSequences.Count > Game.ActiveConfiguration.Constants.DialogSequenceShared)
         {
             GameLog.Error(
                 $"Maximum number of global sequences exceeded - registation request for {sequence.Name} ignored!");
@@ -1797,8 +1797,8 @@ public partial class World : Server
         var y = packet.ReadInt16();
 
         // Is the player within PICKUP_DISTANCE tiles of what they're trying to pick up?
-        if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
-            Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+        if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
+            Math.Abs(y - user.Y) > Game.ActiveConfiguration.Constants.PlayerPickupDistance)
             return;
 
         // Check if inventory slot is valid and empty
@@ -1856,7 +1856,7 @@ public partial class World : Server
         // If the add is successful, remove the item from the map quadtree
         if (pickupObject is Gold gold)
         {
-            var pickupAmount = Constants.MAXIMUM_GOLD - user.Gold;
+            var pickupAmount = (uint) Game.ActiveConfiguration.Constants.PlayerMaxGold - user.Gold;
             if (gold.Amount > pickupAmount && pickupAmount > 0)
             {
                 gold.Amount -= pickupAmount;
@@ -1938,11 +1938,11 @@ public partial class World : Server
         //
         // Is the distance valid? (Can't drop things beyond
         // MAXIMUM_DROP_DISTANCE tiles away)
-        if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
-            Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+        if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
+            Math.Abs(y - user.Y) > Game.ActiveConfiguration.Constants.PlayerPickupDistance)
         {
             GameLog.ErrorFormat("Request to drop item exceeds maximum distance {0}",
-                Constants.MAXIMUM_DROP_DISTANCE);
+                Game.ActiveConfiguration.Constants.PlayerMaxDropDistance);
             return;
         }
 
@@ -2216,7 +2216,7 @@ public partial class World : Server
             }
         }
         else if (loginUser.Nation.SpawnPoints.Count != 0 &&
-                 loginUser.SinceLastLogin > Constants.NATION_SPAWN_TIMEOUT)
+                 loginUser.SinceLastLogin > Game.ActiveConfiguration.Constants.NationalSpawnTimeout)
         {
             var spawnpoint = loginUser.Nation.RandomSpawnPoint;
             if (spawnpoint != null && !string.IsNullOrEmpty(spawnpoint.MapName))
@@ -2681,11 +2681,11 @@ public partial class World : Server
 
         // Is the distance valid? (Can't drop things beyond
         // MAXIMUM_DROP_DISTANCE tiles away)
-        if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
-            Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+        if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
+            Math.Abs(y - user.Y) > Game.ActiveConfiguration.Constants.PlayerPickupDistance)
         {
             GameLog.ErrorFormat("Request to drop gold exceeds maximum distance {0}",
-                Constants.MAXIMUM_DROP_DISTANCE);
+                Game.ActiveConfiguration.Constants.PlayerMaxDropDistance);
             return;
         }
 
@@ -3034,16 +3034,16 @@ public partial class World : Server
             case 1:
                 {
                     var book = user.SpellBook;
-                    if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_BOOK || newSlot == 0 ||
-                        newSlot > Constants.MAXIMUM_BOOK || (book[oldSlot] == null && book[newSlot] == null)) return;
+                    if (oldSlot == 0 || oldSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || newSlot == 0 ||
+                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || (book[oldSlot] == null && book[newSlot] == null)) return;
                     user.SwapCastable(oldSlot, newSlot, book);
                     break;
                 }
             case 2:
                 {
                     var book = user.SkillBook;
-                    if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_BOOK || newSlot == 0 ||
-                        newSlot > Constants.MAXIMUM_BOOK || (book[oldSlot] == null && book[newSlot] == null)) return;
+                    if (oldSlot == 0 || oldSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || newSlot == 0 ||
+                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || (book[oldSlot] == null && book[newSlot] == null)) return;
                     user.SwapCastable(oldSlot, newSlot, book);
                     break;
                 }
@@ -3203,7 +3203,7 @@ public partial class World : Server
             // Are we handling a global sequence?
             DialogSequence pursuit;
 
-            if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
+            if (pursuitId < Game.ActiveConfiguration.Constants.DialogSequenceShared)
             {
                 // Does the sequence exist in the global catalog?
                 if (!GlobalSequences.TryGetValue(pursuitId, out pursuit))
@@ -3213,7 +3213,7 @@ public partial class World : Server
                     return;
                 }
             }
-            else if (pursuitId >= Constants.DIALOG_SEQUENCE_HARDCODED)
+            else if (pursuitId >= Game.ActiveConfiguration.Constants.DialogSequenceHardcoded)
             {
                 if (!(wobj is Merchant))
                 {
@@ -3248,7 +3248,7 @@ public partial class World : Server
                 // This is a local pursuit
                 try
                 {
-                    pursuit = ip.Pursuits[pursuitId - Constants.DIALOG_SEQUENCE_SHARED];
+                    pursuit = ip.Pursuits[pursuitId - Game.ActiveConfiguration.Constants.DialogSequenceShared];
                 }
                 catch
                 {

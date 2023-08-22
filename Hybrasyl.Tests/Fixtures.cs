@@ -46,7 +46,7 @@ public class HybrasylFixture : IDisposable
 
         GameLog.Info();
         Game.World = new World(1337, redisConn, manager, "en_us", true);
-
+        Game.ActiveConfiguration = new ServerConfig();
         Game.World.CompileScripts();
         Game.World.SetPacketHandlers();
         Game.World.SetControlMessageHandlers();

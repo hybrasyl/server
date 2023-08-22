@@ -293,7 +293,7 @@ public class Client
     public void SendByteHeartbeat()
     {
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
-        if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
+        if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
         var byteHeartbeat = new ServerPacket(0x3b);
         var a = Random.Shared.Next(254);
@@ -313,7 +313,7 @@ public class Client
     {
         var now = DateTime.Now.Ticks;
         var idletime = new TimeSpan(now - _lastReceived);
-        if (idletime.TotalSeconds > Constants.IDLE_TIME)
+        if (idletime.TotalSeconds > Game.ActiveConfiguration.Constants.PlayerIdleTime)
         {
             GameLog.DebugFormat("cid {0}: idle for {1} seconds, marking as idle", ConnectionId, idletime.TotalSeconds);
             ToggleIdle();
@@ -332,7 +332,7 @@ public class Client
     public void SendTickHeartbeat()
     {
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
-        if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
+        if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
         var tickHeartbeat = new ServerPacket(0x68);
         // We never really want to deal with negative values
@@ -396,8 +396,8 @@ public class Client
         GameLog.DebugFormat("cid {0}: tick heartbeat elapsed seconds {1}, byte heartbeat elapsed seconds {2}",
             ConnectionId, tickSpan.TotalSeconds, byteSpan.TotalSeconds);
 
-        if (tickSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL ||
-            byteSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL)
+        if (tickSpan.TotalSeconds > Game.ActiveConfiguration.Constants.ReapHeartbeatInterval ||
+            byteSpan.TotalSeconds > Game.ActiveConfiguration.Constants.ReapHeartbeatInterval)
         {
             // DON'T FEAR THE REAPER
             GameLog.InfoFormat("cid {0}: heartbeat expired", ConnectionId);
