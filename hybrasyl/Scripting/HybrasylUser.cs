@@ -76,20 +76,6 @@ public class HybrasylUser : HybrasylWorldObject
     public Gender Gender => User.Gender;
 
     /// <summary>
-    ///     The current HP (hit points) of the user. This can be set to an arbitrary value; the player's HP display is
-    ///     automatically updated.
-    /// </summary>
-    public uint Hp
-    {
-        get => User.Stats.Hp;
-        set
-        {
-            User.Stats.Hp = value;
-            User.UpdateAttributes(StatUpdateFlags.Current);
-        }
-    }
-
-    /// <summary>
     ///     The current level of the user. Client supports up to level 255; Hybrasyl has the same level cap as usda, 99.
     /// </summary>
     public int Level => User.Stats.Level;
@@ -111,21 +97,6 @@ public class HybrasylUser : HybrasylWorldObject
     public bool Alive => User.Condition.Alive;
 
     public ushort WeaponSmallDamage => User.WeaponSmallDamage;
-
-
-    /// <summary>
-    ///     The current MP (magic points) of the user. This can be set to an arbitrary value; the player's MP display is
-    ///     automatically updated.
-    /// </summary>
-    public uint Mp
-    {
-        get => User.Stats.Mp;
-        set
-        {
-            User.Stats.Mp = value;
-            User.UpdateAttributes(StatUpdateFlags.Current);
-        }
-    }
 
     /// <summary>
     ///     Give the specified amount of gold to the user.
@@ -1154,8 +1125,12 @@ public class HybrasylUser : HybrasylWorldObject
         var color = (ItemColor)Enum.Parse(typeof(ItemColor), itemColor);
         User.SetHairColor(color);
     }
-
-    public void SetCooldown(string name, bool reset)
+    /// <summary>
+    /// Trigger or clear a cooldown for a specific spell or skill.
+    /// </summary>
+    /// <param name="name">The name of the spell or skill</param>
+    /// <param name="reset">Wheter or not to trigger or clear. True clears; false triggers.</param>
+    public void SetCooldown(string name, bool reset=false)
     {
         var castable = User.SpellBook.IndexOf(name) == -1 ? User.SkillBook.GetSlotByName(name) : User.SpellBook.GetSlotByName(name);
         if (castable == null)
@@ -1169,4 +1144,10 @@ public class HybrasylUser : HybrasylWorldObject
         else
             castable.TriggerCooldown();
     }
+
+    /// <summary>
+    /// Send an update to the client that stats have changed.
+    /// </summary>
+    public void UpdateAttributes() => User.UpdateAttributes(StatUpdateFlags.Full);
+
 }
