@@ -39,7 +39,6 @@ using Hybrasyl.Xml.Interfaces;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
-using Serilog.Events;
 using StackExchange.Redis;
 using System;
 using System.Collections;
@@ -54,7 +53,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using Serilog.Core;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using Reactor = Hybrasyl.Objects.Reactor;
@@ -112,13 +110,13 @@ public partial class World : Server
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-    
+
     public World(int port, bool isDefault = false) : base(port, isDefault)
     {
         InitializeWorld();
     }
 
-    public World(int port, DataStore store, IWorldDataManager dataManager, string locale, bool adminEnabled = false, bool isDefault = false)
+    public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale, bool adminEnabled = false, bool isDefault = false)
         : base(port, isDefault)
     {
         InitializeWorld();
@@ -126,16 +124,18 @@ public partial class World : Server
 
         var datastoreConfig = new ConfigurationOptions
         {
-            DefaultDatabase = store.Database,
+            DefaultDatabase = redis.Database,
             AllowAdmin = adminEnabled,
             EndPoints =
             {
-                { store.Host, store.Port }
+                { redis.Host, redis.Port }
             }
         };
 
-        if (!string.IsNullOrEmpty(store.Password))
-            datastoreConfig.Password = store.Password;
+        if (!string.IsNullOrEmpty(redis.Password))
+            datastoreConfig.Password = redis.Password;
+
+        GameLog.Info($@"Using redis connection: {redis.Host}:{redis.Port}/{redis.Database} {(string.IsNullOrWhiteSpace(redis.Password) ? "(no password)" : "(password set)")}");
 
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));
@@ -258,6 +258,7 @@ public partial class World : Server
             return false;
         }
 
+        WorldState.Ready = true;
         WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
         GenerateMetafiles();
         SetPacketHandlers();
@@ -281,16 +282,16 @@ public partial class World : Server
 
     internal void RegisterGlobalSequence(DialogSequence sequence)
     {
-        if (GlobalSequences.Count > Constants.DIALOG_SEQUENCE_SHARED)
+        if (GlobalSequences.Count > Game.ActiveConfiguration.Constants.DialogSequenceShared)
         {
             GameLog.Error(
                 $"Maximum number of global sequences exceeded - registation request for {sequence.Name} ignored!");
             return;
         }
 
-        sequence.Id = (uint) GlobalSequences.Count + 1;
+        sequence.Id = (uint)GlobalSequences.Count + 1;
         // Global sequences obviously always have IDs
-        GlobalSequences.Add((uint) sequence.Id, sequence.Name, sequence);
+        GlobalSequences.Add((uint)sequence.Id, sequence.Name, sequence);
     }
 
     public static bool PlayerExists(string name)
@@ -381,25 +382,18 @@ public partial class World : Server
             env.Add("associate", associate);
             env.Add("origin", associate);
             var result = script.ExecuteFunction("OnLoad", env);
-            if (result.Result == ScriptResult.Success)
+            var castableObject = new CastableObject
             {
-                var castableObject = new CastableObject
-                {
-                    Guid = castable.Guid,
-                    Id = castableId,
-                    Template = castable,
-                    ScriptedDialogs = associate,
-                    Sprite = associate.Sprite,
-                    Script = script
-                };
-                // Store the CastableObject for later usage by dialog system, along with guid index
-                WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
-                castableId++;
-            }
-            else if (result.Result != ScriptResult.FunctionMissing)
-            {
-                GameLog.DataLogError($"OnLoad for {castable.Name}: errors encountered, check scripting log");
-            }
+                Guid = castable.Guid,
+                Id = castableId,
+                Template = castable,
+                ScriptedDialogs = associate,
+                Sprite = associate.Sprite,
+                Script = script
+            };
+            // Store the CastableObject for later usage by dialog system, along with guid index
+            WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
+            castableId++;
         }
 
         // Create a static "monster weapon" that is used in various places
@@ -453,8 +447,6 @@ public partial class World : Server
 
     private void GenerateMetafiles()
     {
-        // these might be better suited in LoadData as the database is being read, but only items are in database atm
-
         #region ItemInfo
 
         var itmIndex = 0;
@@ -484,7 +476,7 @@ public partial class World : Server
                 else
                     desc = item.Properties.Vendor?.Description;
 
-                iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int) xclass, weight, tab, desc));
+                iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
             }
 
             WorldState.Set(iteminfo.Name, iteminfo.Compile());
@@ -501,7 +493,7 @@ public partial class World : Server
 
             List<Castable> skills = null;
             List<Castable> spells = null;
-            var @class = (Class) i;
+            var @class = (Class)i;
 
             skills = WorldData.Values<Castable>().Where(predicate: x => x.IsSkill && x.Class.Contains(@class)).OrderBy(
                     keySelector: x =>
@@ -530,6 +522,8 @@ public partial class World : Server
             sclass.Nodes.Add("Skill");
             foreach (var skill in skills)
             {
+                if (!skill.IncludeInMetafile)
+                    continue;
                 var desc = "";
                 if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
                     desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class)).Value;
@@ -611,8 +605,10 @@ public partial class World : Server
             sclass.Nodes.Add("");
             sclass.Nodes.Add("Spell");
             foreach (var spell in spells)
-                // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
+            // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
             {
+                if (!spell.IncludeInMetafile)
+                    continue;
                 var desc = "";
                 if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
                     desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class)).Value;
@@ -740,8 +736,8 @@ public partial class World : Server
         foreach (var quest in Game.World.WorldState.QuestMetadata)
         {
             if (quest.Circle < 1 || quest.Circle > 6) continue;
-            var file = files[quest.Circle-1];
-            var hdr = quests[quest.Circle-1].ToString().PadLeft(2, '0');
+            var file = files[quest.Circle - 1];
+            var hdr = quests[quest.Circle - 1].ToString().PadLeft(2, '0');
             file.Nodes.Add(new MetafileNode($"{hdr}_start"));
             file.Nodes.Add(new MetafileNode($"{hdr}_title", quest.Title));
             file.Nodes.Add(new MetafileNode($"{hdr}_id", quest.Id));
@@ -751,7 +747,7 @@ public partial class World : Server
             file.Nodes.Add(new MetafileNode($"{hdr}_sub", quest.Prerequisite));
             file.Nodes.Add(new MetafileNode($"{hdr}_reward", quest.Reward));
             file.Nodes.Add(new MetafileNode($"{hdr}_end"));
-            quests[quest.Circle-1]++;
+            quests[quest.Circle - 1]++;
         }
 
         foreach (var f in files)
@@ -886,10 +882,10 @@ public partial class World : Server
         obj.ServerGuid = Guid;
         obj.SendId();
 
-        if (obj is ItemObject)
+        if (obj is ItemObject i)
         {
             Script itemscript;
-            if (Game.World.ScriptProcessor.TryGetScript(obj.Name, out itemscript))
+            if (Game.World.ScriptProcessor.TryGetScript(i.Name, out itemscript))
             {
                 var clone = itemscript.Clone();
                 itemscript.AssociateScriptWithObject(obj);
@@ -965,7 +961,7 @@ public partial class World : Server
 
             if (message != null)
             {
-                var clientMessage = (HybrasylClientMessage) message;
+                var clientMessage = (HybrasylClientMessage)message;
                 var handler = WorldPacketHandlers[clientMessage.Packet.Opcode];
                 var timerOptions = PacketHandlerMetrics[clientMessage.Packet.Opcode];
 
@@ -1067,7 +1063,7 @@ public partial class World : Server
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter, 
+                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter,
                         $"0x{clientMessage.Packet.Opcode}");
                     GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!",
                         clientMessage.Packet.Opcode);
@@ -1098,17 +1094,17 @@ public partial class World : Server
             if (message is HybrasylControlMessage hcm)
                 try
                 {
-                    var watch = Stopwatch.StartNew(); 
+                    var watch = Stopwatch.StartNew();
                     ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                     watch.Stop();
                     if (ControlMessageMetrics.TryGetValue(hcm.Opcode, out var timerOptions))
-                        Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
+                        Game.MetricsStore?.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
 
                 }
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter, $"cm_{hcm.Opcode}");
+                    Game.MetricsStore?.Measure.Meter.Mark(ExceptionMeter, $"cm_{hcm.Opcode}");
                     GameLog.Error("Exception encountered in control message handler: {exception}", e);
                 }
         }
@@ -1116,17 +1112,19 @@ public partial class World : Server
 
     public void StartQueueConsumer()
     {
+        if (ConsumerThread?.IsAlive ?? false) return;
+
         // Start our consumer
         ConsumerThread = new Thread(QueueConsumer);
-        if (ConsumerThread.IsAlive) return;
         ConsumerThread.Start();
         GameLog.InfoFormat("Consumer thread: started");
     }
 
     public void StartControlConsumers()
     {
+        if (ControlConsumerThread?.IsAlive ?? false) return;
+
         ControlConsumerThread = new Thread(ControlQueueConsumer);
-        if (ControlConsumerThread.IsAlive) return;
         ControlConsumerThread.Start();
         GameLog.Info("Control consumer thread: started");
     }
@@ -1159,7 +1157,7 @@ public partial class World : Server
             {
                 var aTimer = new Timer();
                 aTimer.Elapsed +=
-                    (ElapsedEventHandler) Delegate.CreateDelegate(typeof(ElapsedEventHandler), executeMethod);
+                    (ElapsedEventHandler)Delegate.CreateDelegate(typeof(ElapsedEventHandler), executeMethod);
                 // Interval is set to whatever is in the class
                 var interval = jobClass.GetField("Interval").GetValue(null);
 
@@ -1169,7 +1167,7 @@ public partial class World : Server
                     continue;
                 }
 
-                aTimer.Interval = (int) interval * 1000; // Interval is in ms; interval in Job classes is s
+                aTimer.Interval = (int)interval * 1000; // Interval is in ms; interval in Job classes is s
 
                 GameLog.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, aTimer.Interval);
                 aTimer.Enabled = true;
@@ -1197,11 +1195,13 @@ public partial class World : Server
         {
             var attr = method.GetCustomAttributes<HybrasylMessageHandler>().FirstOrDefault();
             if (attr == null) continue;
-            ControlMessageHandlers[attr.Opcode] = (ControlMessageHandler) Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
+            ControlMessageHandlers[attr.Opcode] = (ControlMessageHandler)Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
             // Add metrics timers
             ControlMessageMetrics[attr.Opcode] = new TimerOptions
             {
-                Name = method.Name, MeasurementUnit = Unit.Requests, DurationUnit =  TimeUnit.Milliseconds,
+                Name = method.Name,
+                MeasurementUnit = Unit.Requests,
+                DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Milliseconds
             };
         }
@@ -1217,10 +1217,12 @@ public partial class World : Server
             var attr = method.GetCustomAttributes<PacketHandler>().FirstOrDefault();
             if (attr == null) continue;
             WorldPacketHandlers[attr.Opcode] =
-                (WorldPacketHandler) Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
+                (WorldPacketHandler)Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
             PacketHandlerMetrics[attr.Opcode] = new TimerOptions
             {
-                Name = method.Name, MeasurementUnit = Unit.Requests, DurationUnit =  TimeUnit.Milliseconds,
+                Name = method.Name,
+                MeasurementUnit = Unit.Requests,
+                DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Milliseconds
             };
         }
@@ -1416,19 +1418,19 @@ public partial class World : Server
     private void ControlMessage_CleanupUser(HybrasylControlMessage message)
     {
         // clean up after a broken connection
-        var cleanupType = (CleanupType) message.Arguments[0];
+        var cleanupType = (CleanupType)message.Arguments[0];
         dynamic searchKey;
         User cleanup;
         if (cleanupType == CleanupType.ByConnectionId)
         {
-            searchKey = (long) message.Arguments[1];
+            searchKey = (long)message.Arguments[1];
             // Already cleaned up, ignore
             if (!TryGetActiveUserById(searchKey, out cleanup))
                 return;
         }
         else
         {
-            searchKey = (string) message.Arguments[1];
+            searchKey = (string)message.Arguments[1];
             // Already cleaned up, ignore
             if (!TryGetActiveUser(searchKey, out cleanup))
                 return;
@@ -1480,30 +1482,30 @@ public partial class World : Server
         // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
         // Regen = regen * 0.0015 (so 100 regen = 15%)
         User user;
-        var connectionId = (long) message.Arguments[0];
+        var connectionId = (long)message.Arguments[0];
         if (!TryGetActiveUserById(connectionId, out user)) return;
         if (user.Condition.Comatose || !user.Condition.Alive) return;
         uint hpRegen = 0;
         uint mpRegen = 0;
         if (user.Stats.Hp != user.Stats.MaximumHp)
-            hpRegen = (uint) Math.Min(
+            hpRegen = (uint)Math.Min(
                 user.Stats.MaximumHp * (0.1 + Math.Max(user.Stats.Con, user.Stats.Con - user.Stats.Level) * 0.01),
                 user.Stats.MaximumHp * 0.20);
 
         if (user.Stats.Mp != user.Stats.MaximumMp)
-            mpRegen = (uint) Math.Ceiling(Math.Min(
+            mpRegen = (uint)Math.Ceiling(Math.Min(
                 user.Stats.MaximumMp * (0.1 + Math.Max(user.Stats.Wis, user.Stats.Wis - user.Stats.Level) * 0.01),
                 user.Stats.MaximumMp * 0.20));
 
         switch (user.Stats.Regen)
         {
             case > 0:
-                hpRegen += (uint) (hpRegen * (user.Stats.Regen / 100));
-                mpRegen += (uint) (mpRegen * (user.Stats.Regen / 100));
+                hpRegen += (uint)(hpRegen * (user.Stats.Regen / 100));
+                mpRegen += (uint)(mpRegen * (user.Stats.Regen / 100));
                 break;
             case < 0:
-                hpRegen -= (uint) (hpRegen * (user.Stats.Regen / 100) * -1);
-                mpRegen -= (uint) (mpRegen * (user.Stats.Regen / 100) * -1);
+                hpRegen -= (uint)(hpRegen * (user.Stats.Regen / 100) * -1);
+                mpRegen -= (uint)(mpRegen * (user.Stats.Regen / 100) * -1);
                 break;
         }
 
@@ -1519,7 +1521,7 @@ public partial class World : Server
     {
         // save a user
         User user;
-        var connectionId = (long) message.Arguments[0];
+        var connectionId = (long)message.Arguments[0];
         if (TryGetActiveUserById(connectionId, out user))
         {
             GameLog.DebugFormat("Saving user {0}", user.Name);
@@ -1536,8 +1538,8 @@ public partial class World : Server
     private void ControlMessage_ShutdownServer(HybrasylControlMessage message)
     {
         // Initiate an orderly shutdown
-        var userName = (string) message.Arguments[0];
-        var delay = (int) message.Arguments[1];
+        var userName = (string)message.Arguments[0];
+        var delay = (int)message.Arguments[1];
 
         if (delay == 0)
         {
@@ -1570,7 +1572,7 @@ public partial class World : Server
     private void ControlMessage_LogoffUser(HybrasylControlMessage message)
     {
         // Log off the specified user
-        var userName = (string) message.Arguments[0];
+        var userName = (string)message.Arguments[0];
         GameLog.WarningFormat("{0}: forcing logoff", userName);
         User user;
         if (TryGetActiveUser(userName, out user)) user.Logoff(true);
@@ -1580,7 +1582,7 @@ public partial class World : Server
     private void ControlMessage_MailNotifyUser(HybrasylControlMessage message)
     {
         // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
-        var userName = (string) message.Arguments[0];
+        var userName = (string)message.Arguments[0];
         GameLog.DebugFormat("mail: attempting to notify {0} of new mail", userName);
         User user;
         if (TryGetActiveUser(userName, out user))
@@ -1597,7 +1599,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.StatusTick)]
     private void ControlMessage_StatusTick(HybrasylControlMessage message)
     {
-        var objectId = (uint) message.Arguments[0];
+        var objectId = (uint)message.Arguments[0];
         if (Objects.TryGetValue(objectId, out var wobj))
         {
             if (wobj is Creature creature)
@@ -1610,7 +1612,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.TriggerRefresh)]
     private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
     {
-        var connectionId = (long) message.Arguments[0];
+        var connectionId = (long)message.Arguments[0];
         if (TryGetActiveUserById(connectionId, out var user))
             user.Refresh();
     }
@@ -1618,7 +1620,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.DialogRequest)]
     private void ControlMessage_DialogRequest(HybrasylControlMessage message)
     {
-        var asyncDialogId = (uint) message.Arguments[0];
+        var asyncDialogId = (uint)message.Arguments[0];
         if (WorldState.TryGetValue(asyncDialogId, out AsyncDialogSession ads))
             ads.ShowTo();
     }
@@ -1626,7 +1628,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.HandleDeath)]
     private void ControlMessage_HandleDeath(HybrasylControlMessage message)
     {
-        var creature = (Creature) message.Arguments[0];
+        var creature = (Creature)message.Arguments[0];
         if (creature is User u) u.OnDeath();
         if (creature is Monster ms && !ms.DeathProcessed) ms.OnDeath();
     }
@@ -1634,7 +1636,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.GlobalMessage)]
     private void ControlMessage_GlobalMessage(HybrasylControlMessage message)
     {
-        var msg = (string) message.Arguments[0];
+        var msg = (string)message.Arguments[0];
         foreach (var user in ActiveUsers)
             // TODO: make less teeth-grindingly dumb
             try
@@ -1655,8 +1657,8 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.ModifyStats)]
     private void ControlMessage_ModifyStats(HybrasylControlMessage message)
     {
-        var guid = (Guid) message.Arguments[0];
-        var statinfo = (StatInfo) message.Arguments[1];
+        var guid = (Guid)message.Arguments[0];
+        var statinfo = (StatInfo)message.Arguments[1];
         if (!WorldState.TryGetWorldObject(guid, out Creature obj)) return;
         obj.Stats.Apply(statinfo);
         if (obj is User u)
@@ -1666,10 +1668,10 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.ProcessProc)]
     private void ControlMessage_ProcessProc(HybrasylControlMessage message)
     {
-        var proc = (Proc) message.Arguments[0];
-        var castable = (Castable) message.Arguments[1];
-        var sourceGuid = (Guid) message.Arguments[2];
-        var targetGuid = (Guid) message.Arguments[3];
+        var proc = (Proc)message.Arguments[0];
+        var castable = (Castable)message.Arguments[1];
+        var sourceGuid = (Guid)message.Arguments[2];
+        var targetGuid = (Guid)message.Arguments[3];
 
         var source = WorldState.GetWorldObject<Creature>(sourceGuid);
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
@@ -1689,7 +1691,7 @@ public partial class World : Server
                 if (result.Result != ScriptResult.Success)
                     GameLog.ScriptingError($"{source.Name}: proc for {castable.Name}, script {script.Name}: {result.Error}");
             }
-            else 
+            else
                 GameLog.Error($"Proc: references {script} but does not exist");
         }
 
@@ -1699,7 +1701,7 @@ public partial class World : Server
             if (source is User u)
                 u.UseCastable(procCastable, target, false, false);
         }
-        else 
+        else
             GameLog.Error($"{source.Name}: proc references {proc.Castable}, but does not exist");
 
     }
@@ -1707,7 +1709,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.UpdateUser)]
     private void ControlMessage_UpdateUser(HybrasylControlMessage message)
     {
-        var targetGuid = (Guid) message.Arguments[0];
+        var targetGuid = (Guid)message.Arguments[0];
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not User user) return;
@@ -1719,7 +1721,7 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.DisplayCreature)]
     private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
     {
-        var targetGuid = (Guid) message.Arguments[0];
+        var targetGuid = (Guid)message.Arguments[0];
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not Creature creature) return;
@@ -1740,8 +1742,8 @@ public partial class World : Server
     [HybrasylMessageHandler(ControlOpcode.CombatLog)]
     private void ControlMessage_CombatLog(HybrasylControlMessage message)
     {
-        var targetGuid = (Guid) message.Arguments[0];
-        var logEvent = (ICombatEvent) message.Arguments[1];
+        var targetGuid = (Guid)message.Arguments[0];
+        var logEvent = (ICombatEvent)message.Arguments[1];
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
         if (target is not User user) return;
         user.SendCombatLogMessage(logEvent);
@@ -1754,7 +1756,7 @@ public partial class World : Server
     [PacketHandler(0x05)]
     private void PacketHandler_0x05_RequestMap(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var index = 0;
 
         for (ushort row = 0; row < user.Map.Y; ++row)
@@ -1777,11 +1779,11 @@ public partial class World : Server
         PlayerFlags.InDialog)]
     private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var direction = packet.ReadByte();
         if (direction > 3) return;
         user.Condition.Casting = false;
-        user.Walk((Direction) direction);
+        user.Walk((Direction)direction);
     }
 
     [PacketHandler(0x07)]
@@ -1789,14 +1791,14 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var slot = packet.ReadByte();
         var x = packet.ReadInt16();
         var y = packet.ReadInt16();
 
         // Is the player within PICKUP_DISTANCE tiles of what they're trying to pick up?
-        if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
-            Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+        if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
+            Math.Abs(y - user.Y) > Game.ActiveConfiguration.Constants.PlayerPickupDistance)
             return;
 
         // Check if inventory slot is valid and empty
@@ -1835,7 +1837,7 @@ public partial class World : Server
         // We do it this way to provide maximum flexibility to scripts 
         // (for instance: a reactor that destroys items outright, or damages them
         // before being picked up, etc)
-        var coordinates = ((byte) x, (byte) y);
+        var coordinates = ((byte)x, (byte)y);
         if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
         {
             // Remove the item from the map
@@ -1854,7 +1856,7 @@ public partial class World : Server
         // If the add is successful, remove the item from the map quadtree
         if (pickupObject is Gold gold)
         {
-            var pickupAmount = Constants.MAXIMUM_GOLD - user.Gold;
+            var pickupAmount = (uint) Game.ActiveConfiguration.Constants.PlayerMaxGold - user.Gold;
             if (gold.Amount > pickupAmount && pickupAmount > 0)
             {
                 gold.Amount -= pickupAmount;
@@ -1874,7 +1876,7 @@ public partial class World : Server
         }
         else if (pickupObject is ItemObject)
         {
-            var item = (ItemObject) pickupObject;
+            var item = (ItemObject)pickupObject;
             if (item.UniqueInventory && user.Inventory.ContainsId(item.TemplateId))
             {
                 user.SendMessage(string.Format("You can't carry any more of those.", item.Name), 3);
@@ -1890,7 +1892,7 @@ public partial class World : Server
             {
                 var existingSlot = user.Inventory.SlotOfId(item.TemplateId);
                 var existingItem = user.Inventory[existingSlot];
-                var success = user.AddItem(item.Name, (ushort) item.Count);
+                var success = user.AddItem(item.Name, (ushort)item.Count);
 
                 GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
                     item.Name, item.Count, user.Map.Name, x, y);
@@ -1924,7 +1926,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var slot = packet.ReadByte();
         var x = packet.ReadInt16();
         var y = packet.ReadInt16();
@@ -1936,11 +1938,11 @@ public partial class World : Server
         //
         // Is the distance valid? (Can't drop things beyond
         // MAXIMUM_DROP_DISTANCE tiles away)
-        if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
-            Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+        if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
+            Math.Abs(y - user.Y) > Game.ActiveConfiguration.Constants.PlayerPickupDistance)
         {
             GameLog.ErrorFormat("Request to drop item exceeds maximum distance {0}",
-                Constants.MAXIMUM_DROP_DISTANCE);
+                Game.ActiveConfiguration.Constants.PlayerMaxDropDistance);
             return;
         }
 
@@ -1973,11 +1975,11 @@ public partial class World : Server
 
         if (toDrop.Stackable && count < toDrop.Count)
         {
-            toDrop.Count -= (int) count;
+            toDrop.Count -= (int)count;
             user.SendItemUpdate(toDrop, slot);
 
             toDrop = new ItemObject(toDrop);
-            toDrop.Count = (int) count;
+            toDrop.Count = (int)count;
         }
         else
         {
@@ -1999,7 +2001,7 @@ public partial class World : Server
         toDrop.ItemDropType = ItemDropType.Normal;
         // Are we dropping an item onto a reactor?
 
-        var coordinates = ((byte) x, (byte) y);
+        var coordinates = ((byte)x, (byte)y);
         if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
             foreach (var reactor in reactors.Values.Where(predicate: x => x.OnDropCapable))
             {
@@ -2013,7 +2015,7 @@ public partial class World : Server
     [PacketHandler(0x0E)]
     private void PacketHandler_0x0E_Talk(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var isShout = packet.ReadByte();
         var message = packet.ReadString8();
         var cmdPrefix = Game.ActiveConfiguration.Handlers?.Chat?.CommandPrefix ?? "/";
@@ -2056,7 +2058,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var slot = packet.ReadByte();
         var target = packet.ReadUInt32();
         user.UseSpell(slot, target);
@@ -2066,7 +2068,7 @@ public partial class World : Server
     [PacketHandler(0x0B)]
     private void PacketHandler_0x0B_ClientExit(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var endSignal = packet.ReadByte();
 
         if (endSignal == 1)
@@ -2103,7 +2105,7 @@ public partial class World : Server
     [PacketHandler(0x0C)]
     private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var missingObjId = packet.ReadUInt32();
         if (user.World.Objects.TryGetValue(missingObjId, out var missingObj) &&
             missingObj is VisibleObject missingVisibleObj &&
@@ -2115,7 +2117,7 @@ public partial class World : Server
     [PacketHandler(0x10)]
     private void PacketHandler_0x10_ClientJoin(object obj, ClientPacket packet)
     {
-        var connectionId = (long) obj;
+        var connectionId = (long)obj;
 
         var seed = packet.ReadByte();
         var keyLength = packet.ReadByte();
@@ -2127,7 +2129,7 @@ public partial class World : Server
 
         if (!redirect.Matches(name, key, seed)) return;
 
-        ((IDictionary) ExpectedConnections).Remove(id);
+        ((IDictionary)ExpectedConnections).Remove(id);
 
         if (!WorldState.TryGetUser(name, out var loginUser))
         {
@@ -2201,20 +2203,20 @@ public partial class World : Server
                 else
                 {
                     // Teleport user to the center of the first known map and hope for the best
-                    loginUser.Teleport(targetmap.Id, (byte) (targetmap.X / 2), (byte) (targetmap.Y / 2));
+                    loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
                     GameLog.Error(
                         $"{loginUser.Name} first login: map {startmap.Value} not found, using first available map {targetmap.Name}. Safety not guaranteed.");
                 }
             }
             else
             {
-                loginUser.Teleport(targetmap.Id, (byte) (targetmap.X / 2), (byte) (targetmap.Y / 2));
+                loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
                 GameLog.Error(
                     $"{loginUser.Name} first login: start map config missing, using first available map {targetmap.Name}. Safety not guaranteed.");
             }
         }
         else if (loginUser.Nation.SpawnPoints.Count != 0 &&
-                 loginUser.SinceLastLogin > Constants.NATION_SPAWN_TIMEOUT)
+                 loginUser.SinceLastLogin > Game.ActiveConfiguration.Constants.NationalSpawnTimeout)
         {
             var spawnpoint = loginUser.Nation.RandomSpawnPoint;
             if (spawnpoint != null && !string.IsNullOrEmpty(spawnpoint.MapName))
@@ -2246,11 +2248,11 @@ public partial class World : Server
     [Prohibited(CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var direction = packet.ReadByte();
         if (direction > 3) return;
         user.Condition.Casting = false;
-        user.Turn((Direction) direction);
+        user.Turn((Direction)direction);
     }
 
     [PacketHandler(0x13)]
@@ -2258,34 +2260,34 @@ public partial class World : Server
         PlayerFlags.InDialog)]
     private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         user.AssailAttack(user.Direction);
     }
 
     [PacketHandler(0x18)]
     private void PacketHandler_0x18_ShowPlayerList(object obj, ClientPacket packet)
     {
-        var me = (User) obj;
+        var me = (User)obj;
 
         var list = from user in ActiveUsers
-            orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2
-                descending, user.Name
-            select user;
+                   orderby user.IsMaster descending, user.Stats.Level descending, user.Stats.BaseHp + user.Stats.BaseMp * 2
+                       descending, user.Name
+                   select user;
 
         var listPacket = new ServerPacket(0x36);
-        listPacket.WriteUInt16((ushort) list.Count());
-        listPacket.WriteUInt16((ushort) list.Count());
+        listPacket.WriteUInt16((ushort)list.Count());
+        listPacket.WriteUInt16((ushort)list.Count());
 
         foreach (var user in list)
         {
             var levelDifference = Math.Abs(user.Stats.Level - me.Stats.Level);
 
-            listPacket.WriteByte((byte) user.Class);
+            listPacket.WriteByte((byte)user.Class);
             if (me.GuildGuid != Guid.Empty && user.GuildGuid == me.GuildGuid) listPacket.WriteByte(84);
             else if (levelDifference <= 5) listPacket.WriteByte(151);
             else listPacket.WriteByte(255);
 
-            listPacket.WriteByte((byte) user.GroupStatus);
+            listPacket.WriteByte((byte)user.GroupStatus);
             listPacket.WriteString8(user.Title);
             listPacket.WriteBoolean(user.IsMaster);
             listPacket.WriteString8(user.Name);
@@ -2298,7 +2300,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x19_Whisper(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var size = packet.ReadByte();
         var target = Encoding.ASCII.GetString(packet.Read(size));
         var msgsize = packet.ReadByte();
@@ -2368,35 +2370,10 @@ public partial class World : Server
                         user.AdHocScript = string.Empty;
                         return;
                     case "end":
-                    {
-                        user.DisplayOutgoingWhisper("$", "Executing adhoc script");
-                        var ret = script.ExecuteExpression(user.AdHocScript, env);
-                        user.AdHocScript = null;
-                        if (ret.Result != ScriptResult.Success)
                         {
-                            user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
-                            return;
-                        }
-
-                        if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
-                            user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
-                        else
-                            user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
-                        return;
-                        
-                    }
-                    default:
-                    {
-                        if (user.AdHocScript != null)
-                        {
-                            user.AdHocScript += $"\n{message}";
-                            user.DisplayIncomingWhisper("$", $"> {message}");
-                        }
-                        else
-                        {
-                            user.DisplayOutgoingWhisper("$", message);
-                            // Tack on return here so we actually get the DynValue out
-                            var ret = script.ExecuteExpression($"return {message}", env);
+                            user.DisplayOutgoingWhisper("$", "Executing adhoc script");
+                            var ret = script.ExecuteExpression(user.AdHocScript, env);
+                            user.AdHocScript = null;
                             if (ret.Result != ScriptResult.Success)
                             {
                                 user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
@@ -2407,11 +2384,36 @@ public partial class World : Server
                                 user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
                             else
                                 user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
+                            return;
 
                         }
+                    default:
+                        {
+                            if (user.AdHocScript != null)
+                            {
+                                user.AdHocScript += $"\n{message}";
+                                user.DisplayIncomingWhisper("$", $"> {message}");
+                            }
+                            else
+                            {
+                                user.DisplayOutgoingWhisper("$", message);
+                                // Tack on return here so we actually get the DynValue out
+                                var ret = script.ExecuteExpression($"return {message}", env);
+                                if (ret.Result != ScriptResult.Success)
+                                {
+                                    user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
+                                    return;
+                                }
 
-                        return;
-                    }
+                                if (ret.Return.Equals(DynValue.Nil) || ret.Return.Equals(DynValue.Void))
+                                    user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
+                                else
+                                    user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
+
+                            }
+
+                            return;
+                        }
                 }
 
             default:
@@ -2459,7 +2461,7 @@ public partial class World : Server
             var displayString =
                 $"{Game.ActiveConfiguration.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] ? "ON" : "OFF")}";
             var x0a = new ServerPacketStructures.SettingsMessage
-                { DisplayString = displayString, Number = settingNumber };
+            { DisplayString = displayString, Number = settingNumber };
             var settingspacket = x0a.Packet();
             x0a.Packet().DumpPacket();
             user.Enqueue(settingspacket);
@@ -2472,7 +2474,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1C_UseItem(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var slot = packet.ReadByte();
 
         GameLog.DebugFormat("Updating slot {0}", slot);
@@ -2492,7 +2494,7 @@ public partial class World : Server
         switch (item.ItemObjectType)
         {
             case ItemObjectType.CanUse:
-                if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte) ItemSlots.None) != (byte) ItemSlots.None)
+                if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte)ItemSlots.None) != (byte)ItemSlots.None)
                 {
                     user.SendSystemMessage("This item is too badly damaged to use.");
                     return;
@@ -2510,137 +2512,137 @@ public partial class World : Server
                 break;
 
             case ItemObjectType.Equipment:
-            {
-                if (user.Condition.IsEquipmentChangeProhibited)
                 {
-                    user.SendSystemMessage("A strange force prevents you from wielding it.");
-                    return;
-                }
-
-                if (item.Durability == 0)
-                {
-                    user.SendSystemMessage("This item is too badly damaged to use.");
-                    return;
-                }
-
-                // Check item requirements here before we do anything rash
-                string message;
-                if (!item.CheckRequirements(user, out message))
-                {
-                    // If an item can't be equipped, CheckRequirements will return false
-                    // and also set the appropriate message for us via out
-                    user.SendMessage(message, 3);
-                    return;
-                }
-
-                GameLog.DebugFormat("Equipping {0}", item.Name);
-                // Remove the item from inventory, but we don't decrement its count, as it still exists.
-                user.RemoveItem(slot);
-
-                // Handle gauntlet / ring special cases
-                if (item.EquipmentSlot == (byte) ItemSlots.Gauntlet)
-                {
-                    GameLog.DebugFormat("item is gauntlets");
-                    // First, is the left arm slot occupied?
-                    if (user.Equipment[(byte) ItemSlots.LArm] != null)
+                    if (user.Condition.IsEquipmentChangeProhibited)
                     {
-                        if (user.Equipment[(byte) ItemSlots.RArm] == null)
+                        user.SendSystemMessage("A strange force prevents you from wielding it.");
+                        return;
+                    }
+
+                    if (item.Durability == 0)
+                    {
+                        user.SendSystemMessage("This item is too badly damaged to use.");
+                        return;
+                    }
+
+                    // Check item requirements here before we do anything rash
+                    string message;
+                    if (!item.CheckRequirements(user, out message))
+                    {
+                        // If an item can't be equipped, CheckRequirements will return false
+                        // and also set the appropriate message for us via out
+                        user.SendMessage(message, 3);
+                        return;
+                    }
+
+                    GameLog.DebugFormat("Equipping {0}", item.Name);
+                    // Remove the item from inventory, but we don't decrement its count, as it still exists.
+                    user.RemoveItem(slot);
+
+                    // Handle gauntlet / ring special cases
+                    if (item.EquipmentSlot == (byte)ItemSlots.Gauntlet)
+                    {
+                        GameLog.DebugFormat("item is gauntlets");
+                        // First, is the left arm slot occupied?
+                        if (user.Equipment[(byte)ItemSlots.LArm] != null)
                         {
-                            // Right arm slot is empty; use it
-                            user.AddEquipment(item, (byte) ItemSlots.RArm);
+                            if (user.Equipment[(byte)ItemSlots.RArm] == null)
+                            {
+                                // Right arm slot is empty; use it
+                                user.AddEquipment(item, (byte)ItemSlots.RArm);
+                            }
+                            else
+                            {
+                                // Right arm slot is in use; replace LArm with item
+                                var olditem = user.Equipment[(byte)ItemSlots.LArm];
+                                user.RemoveEquipment((byte)ItemSlots.LArm);
+                                user.AddItem(olditem, slot);
+                                user.AddEquipment(item, (byte)ItemSlots.LArm);
+                            }
                         }
                         else
                         {
-                            // Right arm slot is in use; replace LArm with item
-                            var olditem = user.Equipment[(byte) ItemSlots.LArm];
-                            user.RemoveEquipment((byte) ItemSlots.LArm);
-                            user.AddItem(olditem, slot);
-                            user.AddEquipment(item, (byte) ItemSlots.LArm);
+                            user.AddEquipment(item, (byte)ItemSlots.LArm);
                         }
                     }
-                    else
+                    else if (item.EquipmentSlot == (byte)ItemSlots.Ring)
                     {
-                        user.AddEquipment(item, (byte) ItemSlots.LArm);
-                    }
-                }
-                else if (item.EquipmentSlot == (byte) ItemSlots.Ring)
-                {
-                    GameLog.DebugFormat("item is ring");
+                        GameLog.DebugFormat("item is ring");
 
-                    // First, is the left ring slot occupied?
-                    if (user.Equipment[(byte) ItemSlots.LHand] != null)
-                    {
-                        if (user.Equipment[(byte) ItemSlots.RHand] == null)
+                        // First, is the left ring slot occupied?
+                        if (user.Equipment[(byte)ItemSlots.LHand] != null)
                         {
-                            // Right ring slot is empty; use it
-                            user.AddEquipment(item, (byte) ItemSlots.RHand);
+                            if (user.Equipment[(byte)ItemSlots.RHand] == null)
+                            {
+                                // Right ring slot is empty; use it
+                                user.AddEquipment(item, (byte)ItemSlots.RHand);
+                            }
+                            else
+                            {
+                                // Right ring slot is in use; replace LHand with item
+                                var olditem = user.Equipment[(byte)ItemSlots.LHand];
+                                user.RemoveEquipment((byte)ItemSlots.LHand);
+                                user.AddItem(olditem, slot);
+                                user.AddEquipment(item, (byte)ItemSlots.LHand);
+                            }
                         }
                         else
                         {
-                            // Right ring slot is in use; replace LHand with item
-                            var olditem = user.Equipment[(byte) ItemSlots.LHand];
-                            user.RemoveEquipment((byte) ItemSlots.LHand);
-                            user.AddItem(olditem, slot);
-                            user.AddEquipment(item, (byte) ItemSlots.LHand);
+                            user.AddEquipment(item, (byte)ItemSlots.LHand);
+                        }
+                    }
+                    else if (item.EquipmentSlot == (byte)ItemSlots.FirstAcc ||
+                             item.EquipmentSlot == (byte)ItemSlots.SecondAcc ||
+                             item.EquipmentSlot == (byte)ItemSlots.ThirdAcc)
+                    {
+                        if (user.Equipment.FirstAcc == null)
+                        {
+                            user.AddEquipment(item, (byte)ItemSlots.FirstAcc);
+                        }
+                        else if (user.Equipment.SecondAcc == null)
+                        {
+                            user.AddEquipment(item, (byte)ItemSlots.SecondAcc);
+                        }
+                        else if (user.Equipment.ThirdAcc == null)
+                        {
+                            user.AddEquipment(item, (byte)ItemSlots.ThirdAcc);
+                        }
+                        else
+                        {
+                            // Remove first accessory
+                            var oldItem = user.Equipment.FirstAcc;
+                            user.RemoveEquipment((byte)ItemSlots.FirstAcc);
+                            user.AddEquipment(item, (byte)ItemSlots.FirstAcc);
+                            user.AddItem(oldItem, slot);
+                            user.Show();
                         }
                     }
                     else
                     {
-                        user.AddEquipment(item, (byte) ItemSlots.LHand);
-                    }
-                }
-                else if (item.EquipmentSlot == (byte) ItemSlots.FirstAcc ||
-                         item.EquipmentSlot == (byte) ItemSlots.SecondAcc ||
-                         item.EquipmentSlot == (byte) ItemSlots.ThirdAcc)
-                {
-                    if (user.Equipment.FirstAcc == null)
-                    {
-                        user.AddEquipment(item, (byte) ItemSlots.FirstAcc);
-                    }
-                    else if (user.Equipment.SecondAcc == null)
-                    {
-                        user.AddEquipment(item, (byte) ItemSlots.SecondAcc);
-                    }
-                    else if (user.Equipment.ThirdAcc == null)
-                    {
-                        user.AddEquipment(item, (byte) ItemSlots.ThirdAcc);
-                    }
-                    else
-                    {
-                        // Remove first accessory
-                        var oldItem = user.Equipment.FirstAcc;
-                        user.RemoveEquipment((byte) ItemSlots.FirstAcc);
-                        user.AddEquipment(item, (byte) ItemSlots.FirstAcc);
-                        user.AddItem(oldItem, slot);
-                        user.Show();
-                    }
-                }
-                else
-                {
-                    var equipSlot = item.EquipmentSlot;
-                    var oldItem = user.Equipment[equipSlot];
+                        var equipSlot = item.EquipmentSlot;
+                        var oldItem = user.Equipment[equipSlot];
 
-                    if (oldItem != null)
-                    {
-                        GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
-                        GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
-                        GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
-                        user.RemoveEquipment(equipSlot);
-                        user.AddItem(oldItem, slot);
-                        user.AddEquipment(item, equipSlot);
-                        user.Show();
-                        GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                        if (oldItem != null)
+                        {
+                            GameLog.DebugFormat(" Attemping to equip {0}", item.Name);
+                            GameLog.DebugFormat("..which would unequip {0}", oldItem.Name);
+                            GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                            user.RemoveEquipment(equipSlot);
+                            user.AddItem(oldItem, slot);
+                            user.AddEquipment(item, equipSlot);
+                            user.Show();
+                            GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);
+                        }
+                        else
+                        {
+                            GameLog.DebugFormat("Attemping to equip {0}", item.Name);
+                            user.AddEquipment(item, equipSlot);
+                            user.Show();
+                        }
                     }
-                    else
-                    {
-                        GameLog.DebugFormat("Attemping to equip {0}", item.Name);
-                        user.AddEquipment(item, equipSlot);
-                        user.Show();
-                    }
-                }
 
-                break;
-            }
+                    break;
+                }
         }
     }
 
@@ -2649,7 +2651,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var emote = packet.ReadByte();
         if (emote <= 35)
         {
@@ -2663,7 +2665,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var amount = packet.ReadUInt32();
         var x = packet.ReadInt16();
         var y = packet.ReadInt16();
@@ -2679,11 +2681,11 @@ public partial class World : Server
 
         // Is the distance valid? (Can't drop things beyond
         // MAXIMUM_DROP_DISTANCE tiles away)
-        if (Math.Abs(x - user.X) > Constants.PICKUP_DISTANCE ||
-            Math.Abs(y - user.Y) > Constants.PICKUP_DISTANCE)
+        if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
+            Math.Abs(y - user.Y) > Game.ActiveConfiguration.Constants.PlayerPickupDistance)
         {
             GameLog.ErrorFormat("Request to drop gold exceeds maximum distance {0}",
-                Constants.MAXIMUM_DROP_DISTANCE);
+                Game.ActiveConfiguration.Constants.PlayerMaxDropDistance);
             return;
         }
 
@@ -2708,7 +2710,7 @@ public partial class World : Server
         toDrop.ItemDropType = ItemDropType.Normal;
 
         // Are we dropping an item onto a reactor?
-        var coordinates = ((byte) x, (byte) y);
+        var coordinates = ((byte)x, (byte)y);
         var handled = false;
         if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
         {
@@ -2732,7 +2734,7 @@ public partial class World : Server
     {
         //this handler also handles group management pane
 
-        var user = (User) obj;
+        var user = (User)obj;
         user.SendProfile();
     }
 
@@ -2757,12 +2759,12 @@ public partial class World : Server
          * 6) If accepted, join group (see stage 0x03).
          */
 
-        var user = (User) obj;
+        var user = (User)obj;
 
         // stage:
         //   0x02 = user is sending initial request to invitee
         //   0x03 = invitee responds with a "yes"
-        var stage = (GroupClientPacketType) packet.ReadByte();
+        var stage = (GroupClientPacketType)packet.ReadByte();
 
         if (!TryGetActiveUser(packet.ReadString8(), out var partner))
             return;
@@ -2807,7 +2809,7 @@ public partial class World : Server
 
                 // Send partner a dialog asking whether they want to group (opcode 0x63).
                 var response = new ServerPacket(0x63);
-                response.WriteByte((byte) GroupServerPacketType.Ask);
+                response.WriteByte((byte)GroupServerPacketType.Ask);
                 response.WriteString8(user.Name);
                 response.WriteByte(0);
                 response.WriteByte(0);
@@ -2870,7 +2872,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2F_GroupToggle(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
 
         // If the user is in a group, they must leave (in particular going from true to false,
         // but in no case should you be able to hold a group across this transition).
@@ -2897,7 +2899,7 @@ public partial class World : Server
         var goldAmount = packet.ReadUInt32();
         var targetId = packet.ReadUInt32();
 
-        var user = (User) obj;
+        var user = (User)obj;
         // If the object is a creature or an NPC, simply give them the item, otherwise,
         // initiate an exchange
         if (goldAmount > user.Gold)
@@ -2910,12 +2912,12 @@ public partial class World : Server
         if (!user.World.Objects.TryGetValue(targetId, out target))
             return;
 
-        if (user.Map.Objects.Contains((VisibleObject) target))
+        if (user.Map.Objects.Contains((VisibleObject)target))
         {
             if (target is User)
             {
                 // Initiate exchange and put gold in it
-                var playerTarget = (User) target;
+                var playerTarget = (User)target;
 
                 // Pre-flight checks
                 if (!Exchange.StartConditionsValid(user, playerTarget, out var errorMessage))
@@ -2929,10 +2931,10 @@ public partial class World : Server
                 exchange.StartExchange();
                 exchange.AddGold(user, goldAmount);
             }
-            else if (target is Creature && user.IsInViewport((VisibleObject) target))
+            else if (target is Creature && user.IsInViewport((VisibleObject)target))
             {
                 // Give gold to Creature and go about our lives
-                var creature = (Creature) target;
+                var creature = (Creature)target;
                 creature.Stats.Gold += goldAmount;
                 user.Stats.Gold -= goldAmount;
                 user.UpdateAttributes(StatUpdateFlags.Stats);
@@ -2952,7 +2954,7 @@ public partial class World : Server
         var itemSlot = packet.ReadByte();
         var targetId = packet.ReadUInt32();
         var quantity = packet.ReadByte();
-        var user = (User) obj;
+        var user = (User)obj;
 
 
         // If the object is a creature or an NPC, simply give them the item, otherwise,
@@ -2962,11 +2964,11 @@ public partial class World : Server
         if (!user.World.Objects.TryGetValue(targetId, out target))
             return;
 
-        if (user.Map.Objects.Contains((VisibleObject) target))
+        if (user.Map.Objects.Contains((VisibleObject)target))
         {
             if (target is User)
             {
-                var playerTarget = (User) target;
+                var playerTarget = (User)target;
 
                 // Pre-flight checks
 
@@ -2984,9 +2986,9 @@ public partial class World : Server
                 else
                     exchange.AddItem(user, itemSlot, quantity);
             }
-            else if (target is Creature && user.IsInViewport((VisibleObject) target))
+            else if (target is Creature && user.IsInViewport((VisibleObject)target))
             {
-                var creature = (Creature) target;
+                var creature = (Creature)target;
                 var item = user.Inventory[itemSlot];
                 if (item != null)
                 {
@@ -3003,7 +3005,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x30_MoveUIElement(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var window = packet.ReadByte();
         var oldSlot = packet.ReadByte();
         var newSlot = packet.ReadByte();
@@ -3021,30 +3023,30 @@ public partial class World : Server
         switch (window)
         {
             case 0:
-            {
-                var inventory = user.Inventory;
-                if (oldSlot == 0 || oldSlot > Inventory.DefaultSize || newSlot == 0 ||
-                    newSlot > Inventory.DefaultSize ||
-                    (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
-                user.SwapItem(oldSlot, newSlot);
-                break;
-            }
+                {
+                    var inventory = user.Inventory;
+                    if (oldSlot == 0 || oldSlot > Inventory.DefaultSize || newSlot == 0 ||
+                        newSlot > Inventory.DefaultSize ||
+                        (inventory[oldSlot] == null && inventory[newSlot] == null)) return;
+                    user.SwapItem(oldSlot, newSlot);
+                    break;
+                }
             case 1:
-            {
-                var book = user.SpellBook;
-                if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_BOOK || newSlot == 0 ||
-                    newSlot > Constants.MAXIMUM_BOOK || (book[oldSlot] == null && book[newSlot] == null)) return;
-                user.SwapCastable(oldSlot, newSlot, book);
-                break;
-            }
+                {
+                    var book = user.SpellBook;
+                    if (oldSlot == 0 || oldSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || newSlot == 0 ||
+                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || (book[oldSlot] == null && book[newSlot] == null)) return;
+                    user.SwapCastable(oldSlot, newSlot, book);
+                    break;
+                }
             case 2:
-            {
-                var book = user.SkillBook;
-                if (oldSlot == 0 || oldSlot > Constants.MAXIMUM_BOOK || newSlot == 0 ||
-                    newSlot > Constants.MAXIMUM_BOOK || (book[oldSlot] == null && book[newSlot] == null)) return;
-                user.SwapCastable(oldSlot, newSlot, book);
-                break;
-            }
+                {
+                    var book = user.SkillBook;
+                    if (oldSlot == 0 || oldSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || newSlot == 0 ||
+                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || (book[oldSlot] == null && book[newSlot] == null)) return;
+                    user.SwapCastable(oldSlot, newSlot, book);
+                    break;
+                }
         }
 
         // Is the slot invalid? Does at least one of the slots contain an item?
@@ -3053,7 +3055,7 @@ public partial class World : Server
     [PacketHandler(0x3b)]
     private void PacketHandler_0x3B_AccessMessages(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
 
         var action = packet.ReadByte();
 
@@ -3063,71 +3065,71 @@ public partial class World : Server
         switch (action)
         {
             case 0x01:
-            {
-                // Get list of boards / mailboxes (w key)
-                user.Enqueue(MessagingController.BoardList(user.GuidReference).Packet());
-            }
+                {
+                    // Get list of boards / mailboxes (w key)
+                    user.Enqueue(MessagingController.BoardList(user.GuidReference).Packet());
+                }
                 break;
             case 0x02:
-            {
-                // Get message list
-                var boardId = packet.ReadUInt16();
-                var startPostId = packet.ReadInt16();
-                user.Enqueue(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId).Packet());
-            }
+                {
+                    // Get message list
+                    var boardId = packet.ReadUInt16();
+                    var startPostId = packet.ReadInt16();
+                    user.Enqueue(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId).Packet());
+                }
                 break;
             case 0x03:
-            {
-                // Get message
-                var boardId = packet.ReadUInt16();
-                var postId = packet.ReadInt16();
-                var offset = packet.ReadSByte();
-                user.Enqueue(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId).Packet());
-                if (boardId == 0)
-                    user.UpdateAttributes(StatUpdateFlags.Secondary);
-            }
+                {
+                    // Get message
+                    var boardId = packet.ReadUInt16();
+                    var postId = packet.ReadInt16();
+                    var offset = packet.ReadSByte();
+                    user.Enqueue(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId).Packet());
+                    if (boardId == 0)
+                        user.UpdateAttributes(StatUpdateFlags.Secondary);
+                }
                 break;
             case 0x04:
-            {
-                // Send message
-                var boardId = packet.ReadUInt16();
-                var subject = packet.ReadString8();
-                var body = packet.ReadString16();
-                user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body)
-                    .Packet());
-            }
+                {
+                    // Send message
+                    var boardId = packet.ReadUInt16();
+                    var subject = packet.ReadString8();
+                    var body = packet.ReadString16();
+                    user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body)
+                        .Packet());
+                }
                 break;
             case 0x05:
-            {
-                // Delete post
-                var boardId = packet.ReadUInt16();
-                var postId = packet.ReadUInt16();
-                user.Enqueue(MessagingController.DeleteMessage(user.GuidReference, boardId, postId).Packet());
-            }
+                {
+                    // Delete post
+                    var boardId = packet.ReadUInt16();
+                    var postId = packet.ReadUInt16();
+                    user.Enqueue(MessagingController.DeleteMessage(user.GuidReference, boardId, postId).Packet());
+                }
                 break;
             case 0x06:
-            {
-                // Replies (why is this separate)
-                var boardId = packet.ReadUInt16();
-                var recipient = packet.ReadString8();
-                var subject = packet.ReadString8();
-                var body = packet.ReadString16();
-                user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body)
-                    .Packet());
-            }
+                {
+                    // Replies (why is this separate)
+                    var boardId = packet.ReadUInt16();
+                    var recipient = packet.ReadString8();
+                    var subject = packet.ReadString8();
+                    var body = packet.ReadString16();
+                    user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body)
+                        .Packet());
+                }
                 break;
             case 0x07:
                 // Highlight message
-            {
-                var boardId = packet.ReadUInt16();
-                var postId = packet.ReadInt16();
-                user.Enqueue(MessagingController.HighlightMessage(user.GuidReference, boardId, postId).Packet());
-            }
+                {
+                    var boardId = packet.ReadUInt16();
+                    var postId = packet.ReadInt16();
+                    user.Enqueue(MessagingController.HighlightMessage(user.GuidReference, boardId, postId).Packet());
+                }
                 break;
             default:
-            {
-                user.Enqueue(MessagingController.UnknownError.Packet());
-            }
+                {
+                    user.Enqueue(MessagingController.UnknownError.Packet());
+                }
                 break;
         }
     }
@@ -3138,7 +3140,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var slot = packet.ReadByte();
 
         user.UseSkill(slot);
@@ -3148,14 +3150,14 @@ public partial class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var target = BitConverter.ToInt64(packet.Read(8), 0);
         GameLog.DebugFormat("target bytes are: {0}, maybe", target);
 
         if (user.IsAtWorldMap)
         {
-            MapPoint targetmap;
-            if (WorldState.TryGetValue(target, out targetmap))
+            WorldMapPoint targetmap;
+            if (WorldData.TryGetValue(target, out targetmap))
                 user.Teleport(targetmap.DestinationMap, targetmap.DestinationX, targetmap.DestinationY);
             else
                 GameLog.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",
@@ -3172,7 +3174,7 @@ public partial class World : Server
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x38_Refresh(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         user.Condition.Casting = false;
         user.Refresh();
     }
@@ -3181,7 +3183,7 @@ public partial class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
 
         // We just ignore the header, because, really, what exactly is a 16-bit encryption
         // key plus CRC really doing for you
@@ -3201,7 +3203,7 @@ public partial class World : Server
             // Are we handling a global sequence?
             DialogSequence pursuit;
 
-            if (pursuitId < Constants.DIALOG_SEQUENCE_SHARED)
+            if (pursuitId < Game.ActiveConfiguration.Constants.DialogSequenceShared)
             {
                 // Does the sequence exist in the global catalog?
                 if (!GlobalSequences.TryGetValue(pursuitId, out pursuit))
@@ -3211,7 +3213,7 @@ public partial class World : Server
                     return;
                 }
             }
-            else if (pursuitId >= Constants.DIALOG_SEQUENCE_HARDCODED)
+            else if (pursuitId >= Game.ActiveConfiguration.Constants.DialogSequenceHardcoded)
             {
                 if (!(wobj is Merchant))
                 {
@@ -3220,8 +3222,8 @@ public partial class World : Server
                     return;
                 }
 
-                var menuItem = (MerchantMenuItem) pursuitId;
-                var merchant = (Merchant) wobj;
+                var menuItem = (MerchantMenuItem)pursuitId;
+                var merchant = (Merchant)wobj;
                 MerchantMenuHandler handler;
 
                 if (!merchantMenuHandlers.TryGetValue(menuItem, out handler))
@@ -3246,7 +3248,7 @@ public partial class World : Server
                 // This is a local pursuit
                 try
                 {
-                    pursuit = ip.Pursuits[pursuitId - Constants.DIALOG_SEQUENCE_SHARED];
+                    pursuit = ip.Pursuits[pursuitId - Game.ActiveConfiguration.Constants.DialogSequenceShared];
                 }
                 catch
                 {
@@ -3271,10 +3273,10 @@ public partial class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
     private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
 
         var header = packet.ReadDialogHeader();
-        var objectType = (DialogObjectType) packet.ReadByte();
+        var objectType = (DialogObjectType)packet.ReadByte();
         var objectID = packet.ReadUInt32();
         var pursuitID = packet.ReadUInt16();
         var pursuitIndex = packet.ReadUInt16();
@@ -3429,17 +3431,17 @@ public partial class World : Server
                     user.DialogState.ActiveDialog.ShowTo(invocation);
                     return;
                 case FunctionDialog:
-                {
-                    var currpid = user.DialogState.CurrentPursuitId;
-                    user.DialogState.ActiveDialog.ShowTo(invocation);
-                    // Check to see if a script function changed the active dialog.
-                    // If it did, we don't need to send a close dialog packet.
-                    if (user.DialogState.CurrentPursuitId != currpid) return;
-                    GameLog.DebugFormat("Sending close packet");
-                    user.SendCloseDialog();
+                    {
+                        var currpid = user.DialogState.CurrentPursuitId;
+                        user.DialogState.ActiveDialog.ShowTo(invocation);
+                        // Check to see if a script function changed the active dialog.
+                        // If it did, we don't need to send a close dialog packet.
+                        if (user.DialogState.CurrentPursuitId != currpid) return;
+                        GameLog.DebugFormat("Sending close packet");
+                        user.SendCloseDialog();
 
-                    return;
-                }
+                        return;
+                    }
             }
 
             if (user.DialogState.ActiveDialogSequence.CloseOnEnd)
@@ -3520,7 +3522,7 @@ public partial class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
     private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var clickType = packet.ReadByte();
         var commonViewport = user.GetViewport();
         // N.B. We handle dead checks here rather than at the Required attribute level due to some 
@@ -3529,69 +3531,69 @@ public partial class World : Server
         {
             // User has clicked an X,Y point
             case 3:
-            {
-                var x = (byte) packet.ReadUInt16();
-                var y = (byte) packet.ReadUInt16();
-                var coords = (x, y);
-                GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
-
-                if (user.Map.Doors.ContainsKey(coords))
                 {
-                    if (!user.Condition.Alive)
+                    var x = (byte)packet.ReadUInt16();
+                    var y = (byte)packet.ReadUInt16();
+                    var coords = (x, y);
+                    GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
+
+                    if (user.Map.Doors.ContainsKey(coords))
                     {
-                        user.SendSystemMessage("You try, but your hands pass right through it.");
-                        return;
-                    }
-
-                    user.SendSystemMessage(user.Map.Doors[coords].Closed ? "It's open." : "It's closed.");
-
-                    user.Map.ToggleDoors(x, y);
-                }
-                else if (user.Map.Signposts.ContainsKey(coords))
-                {
-                    user.Map.Signposts[coords].OnClick(user);
-                }
-                else
-                {
-                    GameLog.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
-                        user.Map.Name, x, y);
-                }
-
-                break;
-            }
-            // User has clicked on another entity
-            case 1:
-            {
-                var entityId = packet.ReadUInt32();
-                GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
-
-                var clickTarget = new WorldObject();
-
-                if (user.World.Objects.TryGetValue(entityId, out clickTarget))
-                {
-                    var type = clickTarget.GetType();
-                    var methodInfo = type.GetMethod("OnClick");
-                    var associate = clickTarget as VisibleObject;
-                    if (associate.Map == user.Map)
-                    {
-                        // Certain NPCs can be "spoken to" even when dead
-                        if (user.LastAssociate is Merchant && !user.Condition.Alive && !user.LastAssociate.AllowDead)
+                        if (!user.Condition.Alive)
                         {
-                            user.SendSystemMessage("You cannot do that now.");
+                            user.SendSystemMessage("You try, but your hands pass right through it.");
                             return;
                         }
 
-                        methodInfo.Invoke(clickTarget, new[] { user });
+                        user.SendSystemMessage(user.Map.Doors[coords].Closed ? "It's open." : "It's closed.");
+
+                        user.Map.ToggleDoors(x, y);
+                    }
+                    else if (user.Map.Signposts.ContainsKey(coords))
+                    {
+                        user.Map.Signposts[coords].OnClick(user);
                     }
                     else
                     {
-                        GameLog.Warning(
-                            $"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
+                        GameLog.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
+                            user.Map.Name, x, y);
                     }
-                }
 
-                break;
-            }
+                    break;
+                }
+            // User has clicked on another entity
+            case 1:
+                {
+                    var entityId = packet.ReadUInt32();
+                    GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
+
+                    var clickTarget = new WorldObject();
+
+                    if (user.World.Objects.TryGetValue(entityId, out clickTarget))
+                    {
+                        var type = clickTarget.GetType();
+                        var methodInfo = type.GetMethod("OnClick");
+                        var associate = clickTarget as VisibleObject;
+                        if (associate.Map == user.Map)
+                        {
+                            // Certain NPCs can be "spoken to" even when dead
+                            if (user.LastAssociate is Merchant && !user.Condition.Alive && !user.LastAssociate.AllowDead)
+                            {
+                                user.SendSystemMessage("You cannot do that now.");
+                                return;
+                            }
+
+                            methodInfo.Invoke(clickTarget, new[] { user });
+                        }
+                        else
+                        {
+                            GameLog.Warning(
+                                $"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
+                        }
+                    }
+
+                    break;
+                }
             default:
                 GameLog.DebugFormat("Unsupported clickType {0}", clickType);
                 GameLog.DebugFormat("Packet follows:");
@@ -3605,7 +3607,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         // This packet is received when a client unequips an item from the detail (a) screen.
 
         var slot = packet.ReadByte();
@@ -3642,7 +3644,7 @@ public partial class World : Server
     [PacketHandler(0x45)]
     private void PacketHandler_0x45_ByteHeartbeat(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         // Client sends 0x45 response in the reverse order of what the server sends...
         var byteB = packet.ReadByte();
         var byteA = packet.ReadByte();
@@ -3663,7 +3665,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         if (user.LevelPoints > 0)
         {
             switch (packet.ReadByte())
@@ -3702,7 +3704,7 @@ public partial class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var tradeStage = packet.ReadByte();
 
         if (tradeStage == 0 && user.ActiveExchange != null)
@@ -3717,40 +3719,40 @@ public partial class World : Server
         switch (tradeStage)
         {
             case 0x00:
-            {
-                // Starting trade
-                var x0PlayerId = packet.ReadInt32();
+                {
+                    // Starting trade
+                    var x0PlayerId = packet.ReadInt32();
 
-                WorldObject target;
-                if (Objects.TryGetValue((uint) x0PlayerId, out target))
-                    if (target is User playerTarget)
-                    {
-                        if (!Exchange.StartConditionsValid(user, playerTarget, out var errorMessage))
+                    WorldObject target;
+                    if (Objects.TryGetValue((uint)x0PlayerId, out target))
+                        if (target is User playerTarget)
                         {
-                            user.SendSystemMessage(errorMessage);
-                            return;
-                        }
+                            if (!Exchange.StartConditionsValid(user, playerTarget, out var errorMessage))
+                            {
+                                user.SendSystemMessage(errorMessage);
+                                return;
+                            }
 
-                        // Initiate exchange
-                        var exchange = new Exchange(user, playerTarget);
-                        exchange.StartExchange();
-                    }
-            }
+                            // Initiate exchange
+                            var exchange = new Exchange(user, playerTarget);
+                            exchange.StartExchange();
+                        }
+                }
                 break;
 
             case 0x01:
                 // Add item to trade
-            {
-                // We ignore playerId because we only allow one exchange at a time and we
-                // keep track of the participants on both sides
-                var x1playerId = packet.ReadInt32();
-                var x1ItemSlot = packet.ReadByte();
-                if (user.Inventory[x1ItemSlot] != null && user.Inventory[x1ItemSlot].Count > 1)
-                    // Send quantity request
-                    user.SendExchangeQuantityPrompt(x1ItemSlot);
-                else
-                    user.ActiveExchange.AddItem(user, x1ItemSlot);
-            }
+                {
+                    // We ignore playerId because we only allow one exchange at a time and we
+                    // keep track of the participants on both sides
+                    var x1playerId = packet.ReadInt32();
+                    var x1ItemSlot = packet.ReadByte();
+                    if (user.Inventory[x1ItemSlot] != null && user.Inventory[x1ItemSlot].Count > 1)
+                        // Send quantity request
+                        user.SendExchangeQuantityPrompt(x1ItemSlot);
+                    else
+                        user.ActiveExchange.AddItem(user, x1ItemSlot);
+                }
                 break;
 
             case 0x02:
@@ -3789,7 +3791,7 @@ public partial class World : Server
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         user.Condition.Casting = true;
     }
 
@@ -3797,11 +3799,11 @@ public partial class World : Server
     [Prohibited(PlayerFlags.InDialog)]
     private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var text = packet.ReadString8();
 
         var x0D = new ServerPacketStructures.CastLine
-            { ChatType = 2, LineLength = (byte) text.Length, LineText = text, TargetId = user.Id };
+        { ChatType = 2, LineLength = (byte)text.Length, LineText = text, TargetId = user.Id };
         var enqueue = x0D.Packet();
 
         user.SendCastLine(enqueue);
@@ -3810,7 +3812,7 @@ public partial class World : Server
     [PacketHandler(0x4F)]
     private void PacketHandler_0x4F_ProfileTextPortrait(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var totalLength = packet.ReadUInt16();
         var portraitLength = packet.ReadUInt16();
         var portraitData = packet.Read(portraitLength);
@@ -3823,7 +3825,7 @@ public partial class World : Server
     [PacketHandler(0x55)]
     private void PacketHandler_0x55_Manufacture(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
 
         if (user.ManufactureState == null) return;
 
@@ -3833,7 +3835,7 @@ public partial class World : Server
     [PacketHandler(0x75)]
     private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var serverTick = packet.ReadInt32();
         var clientTick = packet.ReadInt32(); // Dunno what to do with this right now, so we just store it
 
@@ -3851,22 +3853,22 @@ public partial class World : Server
     [PacketHandler(0x79)]
     private void PacketHandler_0x79_Status(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var status = packet.ReadByte();
-        if (status <= 7) user.GroupStatus = (UserStatus) status;
+        if (status <= 7) user.GroupStatus = (UserStatus)status;
     }
 
     [PacketHandler(0x7B)]
     private void PacketHandler_0x7B_RequestMetafile(object obj, ClientPacket packet)
     {
-        var user = (User) obj;
+        var user = (User)obj;
         var all = packet.ReadBoolean();
 
         if (all)
         {
             var x6F = new ServerPacket(0x6F);
             x6F.WriteBoolean(all);
-            x6F.WriteUInt16((ushort) WorldState.Count<CompiledMetafile>());
+            x6F.WriteUInt16((ushort)WorldState.Count<CompiledMetafile>());
             foreach (var metafile in WorldState.Values<CompiledMetafile>())
             {
                 x6F.WriteString8(metafile.Name);
@@ -3886,7 +3888,7 @@ public partial class World : Server
             x6F.WriteBoolean(all);
             x6F.WriteString8(file.Name);
             x6F.WriteUInt32(file.Checksum);
-            x6F.WriteUInt16((ushort) file.Data.Length);
+            x6F.WriteUInt16((ushort)file.Data.Length);
             x6F.Write(file.Data);
             user.Enqueue(x6F);
         }

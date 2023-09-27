@@ -19,18 +19,8 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Text;
-using C3;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
-using Creature = Hybrasyl.Objects.Creature;
-using Reactor = Hybrasyl.Objects.Reactor;
+using System;
 
 namespace Hybrasyl;
 

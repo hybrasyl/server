@@ -19,11 +19,11 @@
  * 
  */
 
+using Hybrasyl.Enums;
+using Hybrasyl.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Enums;
-using Hybrasyl.Plugins;
 
 namespace Hybrasyl.Messaging;
 
@@ -50,7 +50,7 @@ internal static class MessagingController
         foreach (var board in Game.World.WorldState.Values<Board>().Where(predicate: mb => mb.Global &&
                      mb.CheckAccessLevel(userRef.UserName,
                          BoardAccessLevel.Read)))
-            boards.Add(((ushort) board.Id, board.DisplayName));
+            boards.Add(((ushort)board.Id, board.DisplayName));
 
         return new ServerPacketStructures.MessagingResponse
         {
@@ -145,56 +145,56 @@ internal static class MessagingController
         switch (offset)
         {
             case 0:
-            {
-                // postId is the exact message
-                if (postId >= 0 && postId <= store.Messages.Count)
-                    message = store.Messages[messageId];
-                else
-                    error = "That post could not be found.";
-                break;
-            }
+                {
+                    // postId is the exact message
+                    if (postId >= 0 && postId <= store.Messages.Count)
+                        message = store.Messages[messageId];
+                    else
+                        error = "That post could not be found.";
+                    break;
+                }
             case 1:
-            {
-                // Client clicked "prev", which hilariously means "newer"
-                // postId in this case is the next message
-                if (postId > store.Messages.Count)
                 {
-                    error = "There are no newer messages.";
-                }
-                else
-                {
-                    var messageList = store.Messages.GetRange(messageId,
-                        store.Messages.Count - messageId);
-                    message = messageList.Find(match: m => m.Deleted == false);
-
-                    if (message == null)
+                    // Client clicked "prev", which hilariously means "newer"
+                    // postId in this case is the next message
+                    if (postId > store.Messages.Count)
+                    {
                         error = "There are no newer messages.";
+                    }
+                    else
+                    {
+                        var messageList = store.Messages.GetRange(messageId,
+                            store.Messages.Count - messageId);
+                        message = messageList.Find(match: m => m.Deleted == false);
+
+                        if (message == null)
+                            error = "There are no newer messages.";
+                    }
                 }
-            }
                 break;
             case -1:
-            {
-                // Client clicked "next", which means "older"
-                // postId is previous message
-                if (postId < 0)
                 {
-                    error = "There are no older messages.";
-                }
-                else
-                {
-                    var messageList = store.Messages.GetRange(0, postId);
-                    messageList.Reverse();
-                    message = messageList.Find(match: m => m.Deleted == false);
-                    if (message == null)
+                    // Client clicked "next", which means "older"
+                    // postId is previous message
+                    if (postId < 0)
+                    {
                         error = "There are no older messages.";
+                    }
+                    else
+                    {
+                        var messageList = store.Messages.GetRange(0, postId);
+                        messageList.Reverse();
+                        message = messageList.Find(match: m => m.Deleted == false);
+                        if (message == null)
+                            error = "There are no older messages.";
+                    }
                 }
-            }
                 break;
 
             default:
-            {
-                error = "Invalid offset (nice try, chief)";
-            }
+                {
+                    error = "Invalid offset (nice try, chief)";
+                }
                 break;
         }
 
@@ -388,7 +388,7 @@ internal static class MessagingController
                 try
                 {
                     if ((DateTime.Now - senderSentMail.LastMailMessageSent).TotalSeconds <
-                        Constants.MAIL_MESSAGE_COOLDOWN &&
+                        Game.ActiveConfiguration.Constants.MailMessageCooldown &&
                         senderSentMail.LastMailRecipient == recipient)
                     {
                         success = false;
@@ -417,7 +417,7 @@ internal static class MessagingController
                     response = $"{recipient} cannot receive mail at this time. Sorry!";
                 }
 
-                senderSentMail.ReceiveMessage((Message) msg.Clone());
+                senderSentMail.ReceiveMessage((Message)msg.Clone());
             }
         }
         else if (success)
@@ -433,7 +433,7 @@ internal static class MessagingController
                         {
                             response = "The message was sent.";
                             success = true;
-                            var sentMsg = (Message) msg.Clone();
+                            var sentMsg = (Message)msg.Clone();
                             sentMsg.Recipient = board.DisplayName;
                             senderSentMail.ReceiveMessage(sentMsg);
                         }
@@ -478,7 +478,7 @@ internal static class MessagingController
         {
             if (Game.World.WorldState.TryGetValueByIndex(boardId, out board))
             {
-                if (board.ToggleHighlight((short) messageId))
+                if (board.ToggleHighlight((short)messageId))
                 {
                     response = "The message was highlighted.";
                     success = true;

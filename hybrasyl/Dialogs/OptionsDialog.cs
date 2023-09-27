@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using Hybrasyl.Scripting;
+﻿using Hybrasyl.Scripting;
 using MoonSharp.Interpreter;
 using Serilog;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Dialogs;
 
@@ -20,7 +20,7 @@ public class OptionsDialog : InputDialog
     {
         var dialogPacket = GenerateBasePacket(invocation);
         if (Options.Count <= 0) return;
-        dialogPacket.WriteByte((byte) Options.Count);
+        dialogPacket.WriteByte((byte)Options.Count);
         foreach (var option in Options) dialogPacket.WriteString8(option.OptionText);
         invocation.Target.Enqueue(dialogPacket);
         RunCallback(invocation);

@@ -1,60 +1,150 @@
+---
 name: Hybrasyl packaging and testing
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main ]
+    paths-ignore:
+      - 'contrib/**'
+      - '**.md'
+      - '.github/**'
+    branches:
+      - main
+      - develop
   pull_request:
     branches: [ main ]  
   workflow_dispatch:
+    paths-ignore:
+      - 'contrib/**'
+      - '**.md'
+      - '.github/**'
+    branches:
+      - main
+      - develop
 
 jobs:
   build:
     runs-on: ubuntu-latest
     environment: deploy
+    if: github.repository == 'hybrasyl/server'
+    container:
+      image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
+
     strategy:
       matrix:
         dotnet-version: ['7.0.x']
-
+   
     steps:
-      - name: Check out source
-        uses: actions/checkout@v3
-      - name: Set up .NET SDK ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-      - name: Install jq tool
-        run: |
-          sudo apt-get update
-          sudo apt-get install jq
-      - name: Install dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-      - name: Check out ceridwen
+      - name: start local redis 
+        run: redis-server --port 6379 &
+      - name: Check out ceridwen (test data)
         uses: actions/checkout@v3
         with:
           repository: hybrasyl/ceridwen
           path: ceridwen
-      - name: set world data directory
-        run: cat <<< $(jq --arg wdd "$GITHUB_WORKSPACE/ceridwen/xml" '.WorldDataDirectory = $wdd' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
-      - name: set log directory
-        run: cat <<< $(jq --arg ld "$GITHUB_WORKSPACE/ceridwen/logs" '.LogDataDirectory = $ld' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
-      - name: set data directory
-        run: cat <<< $(jq --arg dd "$GITHUB_WORKSPACE/ceridwen" '.DataDirectory = $dd' tests/hybrasyltest-settings.json) > tests/hybrasyltest-settings.json && cat tests/hybrasyltest-settings.json
-      - name: run tests
-        run: cd tests && dotnet publish && dotnet test --no-restore --verbosity normal --collect:"XPlat Code Coverage"
+      - name: Check out server
+        uses: actions/checkout@v3
+        with:
+          path: server
+      - name: generate short sha for release filename
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+      - name: generate test config
+        run: >
+          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/xml\",
+          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/logs\",
+          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}"
+          > $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
+        shell: bash
+      - name: show config
+        run: cat $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
+      - name: Install nuget dependencies
+        run: cd $GITHUB_WORKSPACE/server && dotnet restore
+      - name: build & run tests
+        run: >
+          cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test --no-restore
+          --verbosity normal --collect:"XPlat Code Coverage"
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
       - name: Codecov
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
           verbose: true
+      - name: Create release directory
+        run: mkdir /releases
+      - name: Publish Win64
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win10-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/win10-x64/publish &&
+          echo "${SHORT_SHA}" > commit.txt &&
+          zip -r /releases/HybrasylServer-${SHORT_SHA}-windows.zip .
+      - name: Publish Linux
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/ubuntu.18.04-x64/publish &&
+          echo "${SHORT_SHA}" > commit.txt &&
+          zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
+      - name: Publish MacOS
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r osx-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/osx-x64/publish &&
+          echo "${SHORT_SHA}" > commit.txt &&
+          zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
+      - name: Upload to current
+        run: >
+          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-windows.zip
+          s3://releases.hybrasyl.com/HybrasylServer-current-windows.zip --region us-east-1 &&
+          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-linux.zip
+          s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip --region us-east-1 &&
+          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-osx.zip
+          s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip --region us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Upload to release archive
+        run: >
+          aws s3 sync /releases/ s3://releases.hybrasyl.com/releases/ --region us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
+      - name: Build documentation
+        run: >
+          cd $GITHUB_WORKSPACE/server && mono /usr/local/bin/naturaldocs/NaturalDocs.exe .ndconfig
+      - name: Upload to docs site
+        run: >
+          aws s3 sync $GITHUB_WORKSPACE/server/.ndoutput s3://docs.hybrasyl.com/ --region us-west-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
       - name: Build docker image
         run: docker build -t hybrasyl-server .
       - name: tag image
         run: docker tag $(docker images | grep hybrasyl | awk '{ print $3; }' | head -1) ghcr.io/hybrasyl/server:latest
       - name: upload to ghcr
         run: docker push ghcr.io/hybrasyl/server:latest
-      - name: Discord notification
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        uses: Ilshidur/action-discord@0.3.2
+      - name: Notify discord
+        run: >
+          /usr/local/bin/discord.sh
+          --webhook-url "${{ secrets.HYB_DEV_WEBHOOK }}"
+          --username "Hybrasyl GitHub Actions" 
+          --title "Job ${GITHUB_RUN_ID}: success, release artifacts updated"
+          --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
+          --color "0x00FF00"
+          --url "https://releases.hybrasyl.com"
+          --footer "Hybrasyl GitHub Actions"
+          --timestamp
+        shell: bash
+      - name: Notify discord of failure
+        if: ${{ failure() }}
+        run: >
+          /usr/local/bin/discord.sh
+          --webhook-url="${{ secrets.HYB_DEV_WEBHOOK }}"
+          --username "Hybrasyl GitHub Actions"
+          --title "Job ${GITHUB_RUN_ID}: build failure - $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
+          --color "0xFF0000"
+          --url "https://releases.hybrasyl.com"
+          --footer "Hybrasyl GitHub Actions"
+          --timestamp
+        shell: bash

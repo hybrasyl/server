@@ -19,9 +19,9 @@
  * 
  */
 
+using Hybrasyl.Enums;
 using System;
 using System.Threading;
-using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 

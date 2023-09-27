@@ -1,33 +1,22 @@
+using Hybrasyl.ClientPackets;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl;
-using Hybrasyl.ClientPackets;
-using Hybrasyl.Xml.Objects;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Inventory
 {
-    private static HybrasylFixture Fixture;
+    private HybrasylFixture Fixture { get; set; }
 
     public Inventory(HybrasylFixture fixture)
     {
         Fixture = fixture;
-    }
-
-    public static IEnumerable<object[]> XmlItems()
-    {
-        yield return new object[] { Fixture.TestItem, Fixture.StackableTestItem };
-    }
-
-    public static IEnumerable<object[]> StackableXmlItems()
-    {
-        yield return new object[] { Fixture.StackableTestItem };
     }
 
     [Fact]
@@ -80,7 +69,7 @@ public class Inventory
 
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems),MemberType = typeof(XmlItemTestData))]
     public void AddRetrieveAndRemoveItems(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -121,7 +110,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems),MemberType = typeof(XmlItemTestData))]
     public void FindItemsByCategory(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -150,13 +139,13 @@ public class Inventory
             Fixture.TestUser.Inventory.GetSlotsByCategory("StAcKaBlE"));
 
         // After a swap, GetSlotsByCategory should return correct results
-        for (byte x = 6; x <= 10; x++) Assert.True(Fixture.TestUser.Inventory.Swap(x, (byte) (59 - x)));
+        for (byte x = 6; x <= 10; x++) Assert.True(Fixture.TestUser.Inventory.Swap(x, (byte)(59 - x)));
         Assert.Equal(new List<byte> { 53, 52, 51, 50, 49 },
             Fixture.TestUser.Inventory.GetSlotsByCategory("stackable"));
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void ContainsGuid(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -169,7 +158,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void AddItemsToInventory(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -185,7 +174,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void DropItemPacket(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -193,11 +182,11 @@ public class Inventory
 
         var guid = Fixture.TestUser.Inventory[1].Guid;
         var testPacket = new DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
-            (uint) Fixture.TestUser.Inventory[1].Count);
+            (uint)Fixture.TestUser.Inventory[1].Count);
 
         var handler = Game.World.WorldPacketHandlers[0x08];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, (ClientPacket) testPacket);
+        handler(Fixture.TestUser, (ClientPacket)testPacket);
 
         // Assert X,Y contains the item we just dropped
 
@@ -215,7 +204,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void SwapItems(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -262,7 +251,7 @@ public class Inventory
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         var ringObj = Game.World.CreateItem(ring);
         Assert.NotNull(ringObj);
-        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
+        Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand);
         while (!Fixture.TestUser.Inventory.IsFull)
         {
             var anotherRingObj = Game.World.CreateItem(ring);
@@ -270,18 +259,18 @@ public class Inventory
         }
         Assert.True(Fixture.TestUser.Inventory.IsFull);
         var guid = Fixture.TestUser.Inventory[1].Guid;
-        var testPacket = new EquipItemClick((byte) EquipmentSlot.RightHand);
+        var testPacket = new EquipItemClick((byte)EquipmentSlot.RightHand);
 
         var handler = Game.World.WorldPacketHandlers[testPacket.Opcode];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, (ClientPacket) testPacket);
+        handler(Fixture.TestUser, (ClientPacket)testPacket);
         Assert.Equal("You can't carry anything else.", Fixture.TestUser.LastSystemMessage);
 
     }
 
 
-        [Theory]
-    [MemberData(nameof(XmlItems))]
+    [Theory]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void MoveItemBetweenSlotsInInventory(params Item[] item)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -303,9 +292,11 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void FullInventoryShouldBeFull(params Item[] item)
     {
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Stats.BaseStr = 255;
         Fixture.TestUser.Inventory.Clear();
         for (var x = 1; x <= HybrasylFixture.InventorySize; x++)
             Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item[0].Id)),
@@ -318,7 +309,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void WeightCalculations(params Item[] item)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -343,7 +334,7 @@ public class Inventory
             if (slot == EquipmentSlot.None || slot == EquipmentSlot.Gauntlet ||
                 slot == EquipmentSlot.Ring) continue;
             var itemObject = Game.World.CreateItem(Fixture.TestEquipment[slot].Id);
-            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte) slot, false),
+            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte)slot, false),
                 $"Adding equipment to {slot} failed, last sys message {Fixture.TestUser.LastSystemMessage}");
         }
 
@@ -390,7 +381,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void InventorySerialization(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -425,7 +416,7 @@ public class Inventory
             if (slot == EquipmentSlot.None || slot == EquipmentSlot.Gauntlet ||
                 slot == EquipmentSlot.Ring) continue;
             var itemObject = Game.World.CreateItem(Fixture.TestEquipment[slot].Id);
-            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte) slot, false),
+            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte)slot, false),
                 $"Adding equipment to {slot} failed");
         }
 
@@ -479,15 +470,15 @@ public class Inventory
         {
             if (slot == EquipmentSlot.None || slot == EquipmentSlot.Gauntlet ||
                 slot == EquipmentSlot.Ring) continue;
-            Assert.True(u1.Equipment[(byte) slot].Durability == 1000, "Durability of item in {slot} is not 1000");
-            Assert.True(u1.Equipment[(byte) slot].Guid != default, "Guid for {slot} is corrupt / not set");
-            Assert.True(u1.Equipment[(byte) slot].TemplateId == Fixture.TestEquipment[slot].Id,
+            Assert.True(u1.Equipment[(byte)slot].Durability == 1000, "Durability of item in {slot} is not 1000");
+            Assert.True(u1.Equipment[(byte)slot].Guid != default, "Guid for {slot} is corrupt / not set");
+            Assert.True(u1.Equipment[(byte)slot].TemplateId == Fixture.TestEquipment[slot].Id,
                 "{slot}: ID of item in inventory does not match template");
         }
     }
 
     [Theory]
-    [MemberData(nameof(XmlItems))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void InventoryContains(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -508,7 +499,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(StackableXmlItems))]
+    [MemberData(nameof(XmlItemTestData.StackableXmlItems),MemberType = typeof(XmlItemTestData))]
     public void RemoveQuantity(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -564,7 +555,7 @@ public class Inventory
                             Fixture.TestUser.Inventory[3].Count;
 
             Assert.True(remaining == 15,
-                $"TryRemoveQuantity: attempted to remove 5 from 20, removed {removed1} {itemObj.Name}, but {remaining} remaining");
+                $"TryRemoveQuantity: attempted to remove 5 from 20, removed {removed1.Count} {itemObj.Name}, but {remaining} remaining");
             // Should now be 1 4 10
             Fixture.TestUser.Inventory.TryRemoveQuantity(item.Id, out var removed2, 7);
             var remaining2 = Fixture.TestUser.Inventory[1]?.Count ?? 0 +

@@ -19,16 +19,16 @@
  * 
  */
 
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -113,13 +113,13 @@ public class Monster : Creature, ICloneable, IEphemeral
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }
-    
+
     public CastableController CastableController { get; set; }
     private CreatureBehaviorSet _behaviorSet { get; set; }
     public CreatureHostilitySettings Hostility { get; set; }
     public DateTime CreationTime { get; set; }
     public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
-    
+
     public bool IsHostile(Creature hostile = null)
     {
         // Default to no aggressiveness in the absence of a <Hostility> tag or no <Player> tag;
@@ -236,6 +236,13 @@ public class Monster : Creature, ICloneable, IEphemeral
         ActiveSince = DateTime.Now;
     }
 
+    public bool MeetsRequirement(Requirement req)
+    {
+        if (req.Physical == null) return true;
+        return Stats.Str >= req.Physical.Str && Stats.Int >= req.Physical.Int && Stats.Wis >= req.Physical.Wis &&
+               Stats.Con >= req.Physical.Con && Stats.Dex >= req.Physical.Dex;
+    }
+
     public override void OnDeath()
     {
         lock (_lock)
@@ -243,6 +250,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             if (DeathDisabled)
             {
                 Stats.Hp = Stats.MaximumHp;
+                Condition.Alive = true; 
                 return;
             }
 
@@ -389,7 +397,7 @@ public class Monster : Creature, ICloneable, IEphemeral
                 user.SendCombatLogMessage(damageEvent);
 
             if (Script == null) return;
-            
+
             var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, this, damageEvent.Source);
             env.Add("damage", damageEvent);
             Script.ExecuteFunction("OnDamage", env);
@@ -408,11 +416,11 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public void ApplyModifier(double modifier)
     {
-        Stats.BaseHp = (uint) (Stats.BaseHp * (1 + modifier));
-        Stats.BaseMp = (uint) (Stats.BaseMp * (1 + modifier));
-        LootableXP = (uint) (LootableXP * (1 + modifier));
+        Stats.BaseHp = (uint)(Stats.BaseHp * (1 + modifier));
+        Stats.BaseMp = (uint)(Stats.BaseMp * (1 + modifier));
+        LootableXP = (uint)(LootableXP * (1 + modifier));
         if (Loot?.Gold > 0)
-            Loot.Gold = (uint) (Loot.Gold * (1 + modifier));
+            Loot.Gold = (uint)(Loot.Gold * (1 + modifier));
         Stats.BaseOutboundDamageModifier = 1 + modifier;
         Stats.BaseInboundDamageModifier = 1 - modifier;
         Stats.BaseOutboundHealModifier = 1 + modifier;
@@ -423,6 +431,7 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         // Random allocation
         for (var x = 1; x <= points; x++)
+        {
             switch (Random.Shared.Next(1, 6))
             {
                 case 1:
@@ -441,6 +450,19 @@ public class Monster : Creature, ICloneable, IEphemeral
                     Stats.BaseWis += 1;
                     break;
             }
+
+            if (x % 2 == 0)
+            {
+                var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
+                var bonusHpGain =
+                    (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
+                var bonusMpGain =
+                    (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
+
+                Stats.BaseHp += bonusHpGain + 25;
+                Stats.BaseMp += bonusMpGain + 25;
+            }
+        }
     }
 
     public void AllocateStats()
@@ -483,9 +505,9 @@ public class Monster : Creature, ICloneable, IEphemeral
                     {
                         var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
                         var bonusHpGain =
-                            (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
+                            (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
                         var bonusMpGain =
-                            (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
+                            (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
 
                         Stats.BaseHp += bonusHpGain + 25;
                         Stats.BaseMp += bonusMpGain + 25;
@@ -773,7 +795,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             else
             {
                 next = Random.Shared.Next(1, 3); //cast or move
-                _actionQueue.Enqueue((MobAction) next);
+                _actionQueue.Enqueue((MobAction)next);
             }
         }
         else
@@ -824,88 +846,88 @@ public class Monster : Creature, ICloneable, IEphemeral
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
                 case MobAction.Move when ShouldWander || Condition.Blinded:
-                {
-                    var rand = Random.Shared.NextDouble();
-                    var dir = Random.Shared.Next(0, 4);
-                    if (rand > 0.33)
                     {
-                        if (Direction == (Direction) dir)
-                            if (!Walk(Direction))
-                            {
-                                Turn(Opposite(Direction));
-                                Walk(Opposite(Direction));
-                            }
-                            else
-                                Turn((Direction) dir);
-                    }
-                    else
-                        Walk(Direction);
-
-                    break;
-                }
-                case MobAction.Move:
-                {
-                    if (ThreatInfo.HighestThreat == null)
-                    {
-                        ShouldWander = true;
-                        return;
-                    }
-
-                    if (Condition.MovementAllowed)
-                    {
-                        if (CurrentPath == null || !AStarPathClear())
-                            // If we don't have a current path to our threat target, OR if there is something in the way of
-                            // our existing path, calculate a new one
+                        var rand = Random.Shared.NextDouble();
+                        var dir = Random.Shared.Next(0, 4);
+                        if (rand > 0.33)
                         {
-                            if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
-                            if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
-                            Target = ThreatInfo.HighestThreat;
-                            CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
-                                ThreatInfo.HighestThreat.Location.Y, X, Y);
+                            if (Direction == (Direction)dir)
+                                if (!Walk(Direction))
+                                {
+                                    Turn(Opposite(Direction));
+                                    Walk(Opposite(Direction));
+                                }
+                                else
+                                    Turn((Direction)dir);
+                        }
+                        else
+                            Walk(Direction);
+
+                        break;
+                    }
+                case MobAction.Move:
+                    {
+                        if (ThreatInfo.HighestThreat == null)
+                        {
+                            ShouldWander = true;
+                            return;
                         }
 
-                        if (CurrentPath != null)
+                        if (Condition.MovementAllowed)
                         {
-                            // We have a path, check its validity
-                            // We recalculate our path if we're within five spaces of the target and they have moved
-
-                            if (Distance(ThreatInfo.HighestThreat) < 5 &&
-                                CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
-                                CurrentPath.Target.Y != ThreatInfo.HighestThreat.Location.Y)
+                            if (CurrentPath == null || !AStarPathClear())
+                            // If we don't have a current path to our threat target, OR if there is something in the way of
+                            // our existing path, calculate a new one
                             {
-                                GameLog.Info("Distance less than five and target moved, recalculating path");
+                                if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
+                                if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
+                                Target = ThreatInfo.HighestThreat;
                                 CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
                                     ThreatInfo.HighestThreat.Location.Y, X, Y);
                             }
 
-                            if (Walk(AStarGetDirection()))
+                            if (CurrentPath != null)
                             {
-                                if (X != CurrentPath.X || Y != CurrentPath.Y)
-                                    GameLog.SpawnError(
-                                        $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
-                                // We've moved; update our path
-                                CurrentPath = CurrentPath.Parent;
+                                // We have a path, check its validity
+                                // We recalculate our path if we're within five spaces of the target and they have moved
+
+                                if (Distance(ThreatInfo.HighestThreat) < 5 &&
+                                    CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
+                                    CurrentPath.Target.Y != ThreatInfo.HighestThreat.Location.Y)
+                                {
+                                    GameLog.Info("Distance less than five and target moved, recalculating path");
+                                    CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
+                                        ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                }
+
+                                if (Walk(AStarGetDirection()))
+                                {
+                                    if (X != CurrentPath.X || Y != CurrentPath.Y)
+                                        GameLog.SpawnError(
+                                            $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
+                                    // We've moved; update our path
+                                    CurrentPath = CurrentPath.Parent;
+                                }
+                                else
+                                // Couldn't move, attempt to recalculate path
+                                {
+                                    CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
+                                        ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                }
                             }
                             else
-                                // Couldn't move, attempt to recalculate path
+                            // If we can't find a path, return to wandering
                             {
-                                CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
-                                    ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                ShouldWander = true;
                             }
                         }
                         else
-                            // If we can't find a path, return to wandering
                         {
-                            ShouldWander = true;
+                            GameLog.SpawnError("Can't move");
                         }
-                    }
-                    else
-                    {
-                        GameLog.SpawnError("Can't move");
-                    }
 
-                    break;
-                }
+                        break;
+                    }
                 case MobAction.Idle:
                     //do nothing
                     break;

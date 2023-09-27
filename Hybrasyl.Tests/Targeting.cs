@@ -1,11 +1,10 @@
-﻿using System.Linq;
-using Hybrasyl;
-using Hybrasyl.Objects;
+﻿using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Targeting
@@ -24,6 +23,8 @@ public class Targeting
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
         Fixture.TestUser.Stats.Level = 41; // Test trap formula for uses is 2 uses > 40, 1 use otherwise
+        Fixture.Map.Clear();
+
         Fixture.TestUser.Teleport(Fixture.Map.Id, 20, 20);
 
         var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
@@ -38,7 +39,7 @@ public class Targeting
                     Hp = 500
                 },
                 Name = "Bee Bait",
-                X = (byte) (Fixture.TestUser.X - i),
+                X = (byte)(Fixture.TestUser.X - i),
                 Y = Fixture.TestUser.Y
             };
             Fixture.Map.InsertCreature(bait);
@@ -56,6 +57,54 @@ public class Targeting
         Assert.Equal(Fixture.TestUser.Y, firstTarget.Y);
         Assert.Equal(Fixture.TestUser.X - 5, lastTarget.X);
         Assert.Equal(Fixture.TestUser.Y, lastTarget.Y);
+    }
+
+    [Fact]
+    public void NoDuplicateTargets()
+    {
+
+        Fixture.TestUser.SkillBook.Clear();
+        Fixture.TestUser.SpellBook.Clear();
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 20, 20);
+        Fixture.Map.Clear();
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500
+            },
+            Name = "Bee Bait",
+            X = (byte) (Fixture.TestUser.X - 1),
+            Y = Fixture.TestUser.Y
+        };
+        var bait2 = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500
+            },
+            Name = "Bee Bait",
+            X = (byte) (bait.X - 1),
+            Y = bait.Y
+        };
+
+        Fixture.Map.InsertCreature(bait);
+        Fixture.Map.InsertCreature(bait2);
+
+        var castable = Game.World.WorldData.GetByIndex<Castable>("athar meall");
+        Assert.NotNull(castable);
+
+        var targets = Fixture.TestUser.GetTargets(castable, bait);
+        Assert.Equal(2, targets.Count);
+        Fixture.Map.Clear();
+        Fixture.Map.InsertCreature(bait2);
+        var targets2 = Fixture.TestUser.GetTargets(castable, bait2);
+        Assert.Single(targets2);
+
     }
 
 }

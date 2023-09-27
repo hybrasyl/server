@@ -19,15 +19,15 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Controllers;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -114,12 +114,12 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         npcPacket.WriteUInt16(X);
         npcPacket.WriteUInt16(Y);
         npcPacket.WriteUInt32(Id);
-        npcPacket.WriteUInt16((ushort) (Sprite + 0x4000));
+        npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(0);
-        npcPacket.WriteByte((byte) Direction);
+        npcPacket.WriteByte((byte)Direction);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
         npcPacket.WriteString8(Name);
@@ -129,10 +129,10 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
     public string Filename { get; set; }
 
     // TODO: remove this when base(<interface name>) is actually added to the language. .NET 7 maybe
-    public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);
+    public string GetLocalString(string key) => ((IResponseCapable)this).DefaultGetLocalString(key);
 
     public string GetLocalString(string key, params (string Token, string Value)[] replacements) =>
-        ((IResponseCapable) this).DefaultGetLocalString(key, replacements);
+        ((IResponseCapable)this).DefaultGetLocalString(key, replacements);
 
     public uint GetOnHand(string itemName)
     {
@@ -181,7 +181,8 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
 
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        Castable castable = null, bool onDeath = true) { }
+        Castable castable = null, bool onDeath = true)
+    { }
 
     public void OnSpawn()
     {
@@ -193,8 +194,8 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             {
                 foreach (var item in Template.Roles.Vend.Items)
                     if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Item worldItem))
-                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,
-                            (uint) item.Quantity, item.Restock, DateTime.Now));
+                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity,
+                            (uint)item.Quantity, item.Restock, DateTime.Now));
                     else
                         GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
             }

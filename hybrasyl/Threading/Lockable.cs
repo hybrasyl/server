@@ -57,9 +57,9 @@ public class Lockable<T>
 
     public static Lockable<T> operator *(Lockable<T> a, Lockable<T> b) => new(Product(a.Value, b.Value));
 
-    private static T Sum(T a, T b) => (dynamic) a + (dynamic) b;
+    private static T Sum(T a, T b) => (dynamic)a + (dynamic)b;
 
-    private static T Difference(T a, T b) => (dynamic) a - (dynamic) b;
+    private static T Difference(T a, T b) => (dynamic)a - (dynamic)b;
 
-    private static T Product(T a, T b) => (dynamic) a * (dynamic) b;
+    private static T Product(T a, T b) => (dynamic)a * (dynamic)b;
 }

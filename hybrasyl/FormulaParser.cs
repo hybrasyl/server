@@ -19,14 +19,13 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using NCalc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;
@@ -116,7 +115,8 @@ internal static class FormulaParser
         {
             //GameLog.Info($"Eval of {expression} : {e.Evaluate()} ");
             var f = e.Evaluate();
-            return Convert.ToDouble(e.Evaluate());
+            var r = Convert.ToDouble(e.Evaluate());
+            return r;
         }
         catch (Exception ex)
         {

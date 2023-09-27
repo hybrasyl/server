@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.ChatCommands;
@@ -69,7 +69,7 @@ public static class EvalCommand
             var regex = new Regex(attr.Trigger);
             var cmd = new EvalSubcommand
             {
-                Delegate = (Func<User, Match, CommandResult>) Delegate.CreateDelegate(
+                Delegate = (Func<User, Match, CommandResult>)Delegate.CreateDelegate(
                     typeof(Func<User, Match, CommandResult>), method)
             };
             var attr2 = method.GetCustomAttribute<UsageText>();

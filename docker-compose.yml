@@ -19,7 +19,7 @@ services:
     # If you want to rebuild the image used for the quickstart, uncomment this
     #build: .
     volumes:
-      - ./HybrasylTests/world:/HybrasylData/world/
+      - ./Hybrasyl.Tests/world:/HybrasylData/world/
       - ./contrib/config.xml:/root/Hybrasyl/config.xml
     ports:
       - "2610:2610"

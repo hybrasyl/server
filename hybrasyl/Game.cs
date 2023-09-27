@@ -19,8 +19,19 @@
  * 
  */
 
+using App.Metrics;
+using Grpc.Core;
+using Hybrasyl.Utility;
+using Hybrasyl.Xml.Manager;
+using Hybrasyl.Xml.Objects;
+using HybrasylGrpc;
+using Newtonsoft.Json.Linq;
+using Sentry;
+using Serilog;
+using Serilog.Core;
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -31,17 +42,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using App.Metrics;
-using Grpc.Core;
-using Hybrasyl.Utility;
-using Hybrasyl.Xml.Objects;
-using HybrasylGrpc;
-using Newtonsoft.Json.Linq;
-using Sentry;
-using Serilog;
-using Serilog.Core;
-using System.CommandLine;
-using Hybrasyl.Xml.Manager;
+using Hybrasyl.Internals;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 
@@ -160,7 +162,7 @@ public static class Game
     public static string LogDirectory { get; set; }
     public static string ActiveConfigurationName { get; set; }
 
-    public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T) Servers[g] : null;
+    public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T)Servers[g] : null;
 
     public static T GetDefaultServer<T>() where T : Server
     {
@@ -247,39 +249,67 @@ public static class Game
         var configOption = new Option<string>(name: "--config",
             description: "The named configuration to use in the world directory. Defaults to default");
 
+        var redisHost = new Option<string>(name: "--redisHost",
+            description: "The redis server to use. Overrides any setting in config xml.");
+
+        var redisPort = new Option<int?>(name: "--redisPort",
+            description: "The port to use for Redis. Overrides any setting in config xml.");
+
+        var redisDb = new Option<int?>(name: "--redisDb",
+            description: "The redis DB to use. Overrides any setting in config xml.");
+
+        var redisPassword = new Option<string>(name: "--redisPassword",
+            description: "The password to use for Redis. Overrides any setting in config xml.");
+
         var rootCommand = new RootCommand("Hybrasyl, a DOOMVAS-compatible MMO server");
 
         rootCommand.AddOption(dataOption);
         rootCommand.AddOption(worldDataOption);
         rootCommand.AddOption(logdirOption);
         rootCommand.AddOption(configOption);
+        rootCommand.AddOption(redisHost);
+        rootCommand.AddOption(redisPort);
+        rootCommand.AddOption(redisDb);
+        rootCommand.AddOption(redisPassword);
 
         rootCommand.SetHandler(StartServer,
-        dataOption, worldDataOption, logdirOption, configOption);
+        dataOption, worldDataOption, logdirOption, configOption, redisHost, redisPort, redisDb, redisPassword);
 
         rootCommand.Invoke(args);
     }
 
-    public static void StartServer(string dataDir=null, string worldDir=null, string logDir=null, string configName=null)
+    public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null, string configName = null,
+        string redisHost = null, int? redisPort = null, int? redisDb = null, string redisPw = null)
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
-        
+
         // Gather our directories from env vars / command line switches
 
         var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
         var world = Environment.GetEnvironmentVariable("WORLD_DIR") ?? worldDir;
         var log = Environment.GetEnvironmentVariable("LOG_DIR") ?? logDir;
         var config = Environment.GetEnvironmentVariable("CONFIG") ?? configName;
-        
-        DataDirectory = string.IsNullOrWhiteSpace(data) ? 
+        var rHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? redisHost;
+        var rawPort = Environment.GetEnvironmentVariable("REDIS_PORT");
+        var rawDb = Environment.GetEnvironmentVariable("REDIS_DB");
+        var rPort = string.IsNullOrWhiteSpace(rawPort)
+            ? redisPort
+            : Convert.ToInt32(rawPort);
+        var rDb = string.IsNullOrWhiteSpace(rawDb)
+            ? redisDb
+            : Convert.ToInt32(rawDb);
+
+        var rPw = Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? redisHost;
+
+        DataDirectory = string.IsNullOrWhiteSpace(data) ?
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world") : data;
-        WorldDataDirectory = string.IsNullOrWhiteSpace(world) ? 
+        WorldDataDirectory = string.IsNullOrWhiteSpace(world) ?
             Path.Combine(DataDirectory, "xml") : world;
-        LogDirectory = string.IsNullOrWhiteSpace(log) ? 
+        LogDirectory = string.IsNullOrWhiteSpace(log) ?
             Path.Combine(DataDirectory, "logs") : log;
         ActiveConfigurationName = string.IsNullOrWhiteSpace(config) ? "default" : config;
-        
+
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
         Log.Information($"Data directory: {DataDirectory}");
@@ -300,11 +330,11 @@ public static class Game
         {
             Log.Information("Loading xml...");
             manager.LoadData();
-//            Task.Run(manager.LoadDataAsync).Wait();
+            //            Task.Run(manager.LoadDataAsync).Wait();
             // TODO: improve in library
             while (true)
             {
-                if (manager.Ready)
+                if (manager.IsReady)
                     break;
                 Thread.Sleep(250);
             }
@@ -415,7 +445,7 @@ public static class Game
         activeConfiguration.Constants ??= new ServerConstants();
         // Set our active configuration to the one we just loaded
         ActiveConfiguration = activeConfiguration;
-        
+
         // Configure logging 
         GameLog.Initialize(LogDirectory, activeConfiguration.Logging);
 
@@ -424,7 +454,7 @@ public static class Game
 
         Log.Information("Hybrasyl: server start");
         Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
-        
+
         Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash}) starting.");
         Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.",
             Assemblyinfo.Copyright);
@@ -493,8 +523,13 @@ public static class Game
 
         Lobby = new Lobby(activeConfiguration.Network.Lobby.Port, true);
         Login = new Login(activeConfiguration.Network.Login.Port, true);
-        // TODO: alpha9
-        World = new World(activeConfiguration.Network.World.Port, activeConfiguration.DataStore,
+        var redisConnection = new RedisConnection();
+        redisConnection.Host = string.IsNullOrWhiteSpace(rHost) ? activeConfiguration.DataStore.Host : rHost;
+        redisConnection.Port = rPort ?? activeConfiguration.DataStore.Port;
+        redisConnection.Database = rDb ?? activeConfiguration.DataStore.Database;
+        redisConnection.Password = string.IsNullOrWhiteSpace(rPw) ? activeConfiguration.DataStore.Password : rPw;
+
+        World = new World(activeConfiguration.Network.World.Port, redisConnection,
             manager, activeConfiguration.Locale, true);
 
         Lobby.StopToken = CancellationTokenSource.Token;
@@ -520,11 +555,11 @@ public static class Game
         {
             using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
             {
-                multiServerTableWriter.Write((byte) 1);
-                multiServerTableWriter.Write((byte) 1);
+                multiServerTableWriter.Write((byte)1);
+                multiServerTableWriter.Write((byte)1);
                 multiServerTableWriter.Write(addressBytes);
-                multiServerTableWriter.Write((byte) (2611 / 256));
-                multiServerTableWriter.Write((byte) (2611 % 256));
+                multiServerTableWriter.Write((byte)(2611 / 256));
+                multiServerTableWriter.Write((byte)(2611 % 256));
                 multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
             }
 
@@ -578,15 +613,18 @@ public static class Game
         _lobbyThread = new Thread(Lobby.StartListening);
         _loginThread = new Thread(Login.StartListening);
         _worldThread = new Thread(World.StartListening);
-
         _spawnThread = new Thread(_monolith.Start);
         _controlThread = new Thread(_monolithControl.Start);
 
         _lobbyThread.Start();
         _loginThread.Start();
         _worldThread.Start();
-        _spawnThread.Start();
         _controlThread.Start();
+
+        while (!World.WorldState.Ready)
+            Thread.Sleep(1000);
+
+        _spawnThread.Start();
 
         Task.Run(CheckVersion).GetAwaiter();
         Task.Run(GetCommitLog).GetAwaiter();
@@ -852,19 +890,19 @@ public static class Crc16
         byte valueA = 0, valueB = 0;
 
         for (var i = 0; i < buffer.Length; i += 6)
-        for (var ix = 0; ix < 6; ix++)
-        {
-            byte[] table;
+            for (var ix = 0; ix < 6; ix++)
+            {
+                byte[] table;
 
-            if ((valueB & 128) != 0)
-                table = crcTable2;
-            else
-                table = crcTable1;
+                if ((valueB & 128) != 0)
+                    table = crcTable2;
+                else
+                    table = crcTable1;
 
-            var valueC = valueB << 1;
-            valueB = (byte) (valueA ^ table[valueC++ % 256]);
-            valueA = (byte) (buffer[i + ix] ^ table[valueC % 256]);
-        }
+                var valueC = valueB << 1;
+                valueB = (byte)(valueA ^ table[valueC++ % 256]);
+                valueA = (byte)(buffer[i + ix] ^ table[valueC % 256]);
+            }
 
         byte[] ret = { valueA, valueB };
         Array.Reverse(ret);
@@ -922,7 +960,7 @@ public static class Crc32
 
         for (var i = 0; i < filedata.Length; ++i)
         {
-            data = (byte) (filedata[i] ^ (hash & 0xFF));
+            data = (byte)(filedata[i] ^ (hash & 0xFF));
             hash = crc32Table[data] ^ (hash >> 0x8);
         }
 

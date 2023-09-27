@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -26,7 +27,6 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
-using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
@@ -104,7 +104,7 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                key = (byte[]) JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
             }
         }
         catch (Exception e)
@@ -137,7 +137,7 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                valid = (bool) JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
             }
         }
         catch (Exception e)

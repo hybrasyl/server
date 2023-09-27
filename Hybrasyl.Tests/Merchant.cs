@@ -1,14 +1,13 @@
-﻿using System.Linq;
-using Hybrasyl;
-using Hybrasyl.Objects;
+﻿using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Merchants
-{
+{ 
     public Merchants(HybrasylFixture fixture)
     {
         Fixture = fixture;
@@ -202,7 +201,7 @@ public class Merchants
         msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
         Assert.Equal("You have 30000 coins on deposit.", msg.Message);
-        Assert.Equal(Fixture.TestUser.Stats.Gold, (uint) 70000);
+        Assert.Equal(Fixture.TestUser.Stats.Gold, (uint)70000);
     }
 
     [Fact]
@@ -221,7 +220,7 @@ public class Merchants
         Assert.Equal("Epee, that'll be 50 coins.", msg.Message);
         Assert.False(Fixture.TestUser.Inventory.ContainsName("Epee"));
         Assert.True(Fixture.TestUser.Vault.Items.ContainsKey("Epee"));
-        Assert.Equal(Fixture.TestUser.Vault.Items["Epee"], (uint) 1);
+        Assert.Equal(Fixture.TestUser.Vault.Items["Epee"], (uint)1);
     }
 
     [Fact]
@@ -235,7 +234,7 @@ public class Merchants
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
         Assert.Equal("Here are your 30000 coins.", msg.Message);
-        Assert.Equal(Fixture.TestUser.Vault.CurrentGold, (uint) 0);
+        Assert.Equal(Fixture.TestUser.Vault.CurrentGold, (uint)0);
         Assert.Equal(Fixture.TestUser.Stats.Gold, before + 30000);
     }
 
@@ -261,7 +260,7 @@ public class Merchants
         item.Count = item.MaximumStack - 1;
         Fixture.TestUser.AddItem(item);
         var item2 = new ItemObject(junk, Fixture.TestUser.World.Guid);
-        Fixture.TestUser.Vault.AddItem(item2.Name, (ushort) item2.Count);
+        Fixture.TestUser.Vault.AddItem(item2.Name, (ushort)item2.Count);
         Fixture.TestUser.Say("withdraw Bent Needle");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);

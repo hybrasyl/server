@@ -19,13 +19,13 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
 
@@ -96,7 +96,7 @@ public class Reactor : VisibleObject, IPursuitable
         p.WriteUInt16(Y);
         p.WriteUInt32(Id);
         if (Sprite != 0)
-            p.WriteUInt16((ushort) (Sprite + 0x8000));
+            p.WriteUInt16((ushort)(Sprite + 0x8000));
         else
             p.WriteUInt16(Sprite);
 
@@ -104,11 +104,11 @@ public class Reactor : VisibleObject, IPursuitable
         p.WriteByte(0); // random 2                                                                                                                                                                                                
         p.WriteByte(0); // random 3                                                                                                                                                                                                
         p.WriteByte(0); // unknown a                                                                                                                                                                                               
-        p.WriteByte((byte) Direction);
+        p.WriteByte((byte)Direction);
         p.WriteByte(0); // unknown b                                                                                                                                                                                               
         p.WriteByte(0);
         p.WriteByte(0); // unknown d                                                                                                                                                                                               
-        p.WriteByte((byte) MonsterType.Reactor);
+        p.WriteByte((byte)MonsterType.Reactor);
         p.WriteString8(Name);
         user.Enqueue(p);
     }
@@ -154,7 +154,7 @@ public class Reactor : VisibleObject, IPursuitable
 
         if (!Ready) return;
         var wef = Script.ExecuteFunction("OnEntry",
-            ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+            ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -162,14 +162,14 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiEntry(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
     }
 
     public virtual void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
-            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
         if (obj is User user)
             user.LastAssociate = null;
     }
@@ -179,14 +179,14 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiDeparture(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
         if (!Ready) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, dropped);
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this);
         env.Add("item", dropped);
         Script.ExecuteFunction("OnDrop", env);
     }
@@ -195,14 +195,14 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         if (!Ready) return;
-        Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, obj));
+        Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
     {
         if (Expired) return;
         if (!Ready) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, taken);
+        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this);
         env.Add("item", taken);
         Script.ExecuteFunction("OnTake", env);
     }

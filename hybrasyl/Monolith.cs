@@ -19,15 +19,16 @@
  * 
  */
 
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Hybrasyl.Enums;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
+using Hybrasyl.Xml.Interfaces;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 
@@ -36,7 +37,7 @@ namespace Hybrasyl;
 //This class is defined to control the mob spawning thread.
 internal class Monolith
 {
-    private readonly ConcurrentDictionary<string, SpawnGroup> Spawns;
+    private ConcurrentDictionary<string, SpawnGroup> Spawns;
 
     internal Monolith()
     {
@@ -78,15 +79,22 @@ internal class Monolith
         map.SpawnDirectives.Spawns = spawnlist;
         map.SpawnDirectives.MapId = map.Id;
         map.SpawnDirectives.Status = new SpawnStatus();
+        if (Spawns.ContainsKey(map.SpawnDirectives.Name))
+        {
+            GameLog.Error($"Duplicate spawngroup (ignored): map {map.Name}, spawngroup {map.SpawnDirectives.Name}");
+            return;
+        }
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
+        GameLog.Debug($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
     }
 
     public void Start()
     {
-        // Resolve active spawns
+
         foreach (var spawnmap in Game.World.WorldState.Values<MapObject>())
         {
-            if (spawnmap.SpawningDisabled) continue;
+            if (spawnmap.SpawningDisabled) 
+                continue;
             LoadSpawns(spawnmap);
         }
 
@@ -180,18 +188,18 @@ internal class Monolith
             try
             {
                 if (!string.IsNullOrEmpty(spawn.Spec.MaxCount))
-                    maxcount = (int) FormulaParser.Eval(spawn.Spec.MaxCount, formeval);
+                    maxcount = (int)FormulaParser.Eval(spawn.Spec.MaxCount, formeval);
                 if (!string.IsNullOrEmpty(spawn.Spec.Interval))
-                    interval = (int) FormulaParser.Eval(spawn.Spec.Interval, formeval);
+                    interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
                 if (!string.IsNullOrEmpty(spawn.Spec.MaxPerInterval))
-                    maxPerInterval = (int) FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
+                    maxPerInterval = (int)FormulaParser.Eval(spawn.Spec.MaxPerInterval, formeval);
 
                 // If the spawn itself has a level defined, evaluate and use it; otherwise,
                 // the spawn group (imported, or in the map itself) should define a base level
                 if (string.IsNullOrEmpty(spawn.Base?.Level))
-                    baseLevel = (int) FormulaParser.Eval(spawnGroup.BaseLevel, formeval);
+                    baseLevel = (int)FormulaParser.Eval(spawnGroup.BaseLevel, formeval);
                 else
-                    baseLevel = (int) FormulaParser.Eval(spawn.Base.Level, formeval);
+                    baseLevel = (int)FormulaParser.Eval(spawn.Base.Level, formeval);
             }
             catch (Exception ex)
             {
@@ -230,7 +238,7 @@ internal class Monolith
                     newSpawnLoot += LootBox.CalculateLoot(creature.Loot);
                     newSpawnLoot += LootBox.CalculateLoot(spawnGroup.Loot);
 
-                    var baseMob = new Monster(creature, spawn.Flags, (byte) baseLevel,
+                    var baseMob = new Monster(creature, spawn.Flags, (byte)baseLevel,
                         newSpawnLoot);
 
                     if (baseMob.LootableXP == 0)
@@ -282,7 +290,7 @@ internal class Monolith
                         }
                     }
 
-                    var mob = (Monster) baseMob.Clone();
+                    var mob = (Monster)baseMob.Clone();
                     var xcoord = 0;
                     var ycoord = 0;
 
@@ -290,7 +298,8 @@ internal class Monolith
                         foreach (var coord in spawn.Coordinates)
                         {
                             if (spawnmap.EntityTree.GetObjects(new Rectangle(coord.X, coord.Y, 1, 1))
-                                .Any(predicate: e => e is Objects.Creature)) continue;
+                                .Any(predicate: e => e is Objects.Creature)) 
+                                continue;
                             xcoord = coord.X;
                             ycoord = coord.Y;
                         }
@@ -301,8 +310,8 @@ internal class Monolith
                             ycoord = Random.Shared.Next(0, spawnmap.Y);
                         } while (spawnmap.IsWall(xcoord, ycoord));
 
-                    baseMob.X = (byte) xcoord;
-                    baseMob.Y = (byte) ycoord;
+                    baseMob.X = (byte)xcoord;
+                    baseMob.Y = (byte)ycoord;
 
                     if (spawn.Hostility != null)
                         baseMob.Hostility = spawn.Hostility;
@@ -317,8 +326,8 @@ internal class Monolith
 
                         try
                         {
-                            minDmg = (ushort) FormulaParser.Eval(spawn.Damage.MinDmg, formeval);
-                            maxDmg = (ushort) FormulaParser.Eval(spawn.Damage.MaxDmg, formeval);
+                            minDmg = (ushort)FormulaParser.Eval(spawn.Damage.MinDmg, formeval);
+                            maxDmg = (ushort)FormulaParser.Eval(spawn.Damage.MaxDmg, formeval);
 
                             if (minDmg > 0)
                                 // They need some kind of weapon
@@ -333,7 +342,7 @@ internal class Monolith
                                     baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
                                     var item = new ItemObject(newTemplate);
-                                    baseMob.Equipment.Insert((byte) ItemSlots.Weapon, item);
+                                    baseMob.Equipment.Insert((byte)ItemSlots.Weapon, item);
                                 }
                         }
                         catch (Exception ex)
@@ -353,8 +362,8 @@ internal class Monolith
 
                         try
                         {
-                            Ac = (sbyte) FormulaParser.Eval(spawn.Defense.Ac, formeval);
-                            Mr = (sbyte) FormulaParser.Eval(spawn.Defense.Mr, formeval);
+                            Ac = (sbyte)FormulaParser.Eval(spawn.Defense.Ac, formeval);
+                            Mr = (sbyte)FormulaParser.Eval(spawn.Defense.Mr, formeval);
                         }
                         catch (Exception ex)
                         {
@@ -385,7 +394,9 @@ internal class Monolith
     private static void SpawnMonster(Monster monster, MapObject map)
     {
         if (!World.ControlMessageQueue.IsCompleted)
+        {
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
+        }
     }
 }
 

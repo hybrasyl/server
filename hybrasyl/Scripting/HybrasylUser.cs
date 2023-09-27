@@ -13,21 +13,21 @@
  * You should have received a copy of the Affero General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * (C) 2020 ERISCO, LLC 
+ * (C) 2020 ERISCO, LLC
  *
  * For contributors and individual authors please refer to CONTRIBUTORS.MD.
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Scripting;
@@ -54,7 +54,8 @@ public class HybrasylUser : HybrasylWorldObject
         get
         {
             var f = User.Inventory[1];
-            return f is null ? null : new HybrasylItemObject(f);
+            var hio = new HybrasylItemObject(f);
+            return f is null ? null : hio;
         }
     }
 
@@ -73,20 +74,6 @@ public class HybrasylUser : HybrasylWorldObject
     ///     The gender of the player. For Darkages purpose, this will evaluate to Male or Female.
     /// </summary>
     public Gender Gender => User.Gender;
-
-    /// <summary>
-    ///     The current HP (hit points) of the user. This can be set to an arbitrary value; the player's HP display is
-    ///     automatically updated.
-    /// </summary>
-    public uint Hp
-    {
-        get => User.Stats.Hp;
-        set
-        {
-            User.Stats.Hp = value;
-            User.UpdateAttributes(StatUpdateFlags.Current);
-        }
-    }
 
     /// <summary>
     ///     The current level of the user. Client supports up to level 255; Hybrasyl has the same level cap as usda, 99.
@@ -110,21 +97,6 @@ public class HybrasylUser : HybrasylWorldObject
     public bool Alive => User.Condition.Alive;
 
     public ushort WeaponSmallDamage => User.WeaponSmallDamage;
-
-
-    /// <summary>
-    ///     The current MP (magic points) of the user. This can be set to an arbitrary value; the player's MP display is
-    ///     automatically updated.
-    /// </summary>
-    public uint Mp
-    {
-        get => User.Stats.Mp;
-        set
-        {
-            User.Stats.Mp = value;
-            User.UpdateAttributes(StatUpdateFlags.Current);
-        }
-    }
 
     /// <summary>
     ///     Give the specified amount of gold to the user.
@@ -222,7 +194,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>A HybrasylMonster object.</returns>
     public HybrasylMonster GetFacingMonster()
     {
-        var facing = (Monster) User.GetFacingObjects().Where(predicate: X => X is Monster).FirstOrDefault();
+        var facing = (Monster)User.GetFacingObjects().Where(predicate: X => X is Monster).FirstOrDefault();
         return facing != null ? new HybrasylMonster(facing) : null;
     }
 
@@ -233,7 +205,7 @@ public class HybrasylUser : HybrasylWorldObject
     public void ChangeDirection(string direction)
     {
         Enum.TryParse(typeof(Direction), direction, out var result);
-        User.Direction = (Direction) result;
+        User.Direction = (Direction)result;
     }
 
     /// <summary>
@@ -273,7 +245,7 @@ public class HybrasylUser : HybrasylWorldObject
     public dynamic GetLegendMark(string prefix)
     {
         LegendMark mark;
-        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object) null;
+        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
     }
 
     /// <summary>
@@ -671,49 +643,13 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
-    ///     Display a special effect visible to players.
-    /// </summary>
-    /// <param name="effect">ushort id of effect (references client datfile)</param>
-    /// <param name="speed">speed of the effect (generally 100)</param>
-    /// <param name="global">
-    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
-    ///     the effect
-    /// </param>
-    public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
-    {
-        if (!global)
-            User.SendEffect(User.Id, effect, speed);
-        else
-            User.Effect(effect, speed);
-    }
-
-    /// <summary>
-    ///     Display an effect at a given x,y coordinate on the current player's map.
-    /// </summary>
-    /// <param name="x">X coordinate where effect will be displayed</param>
-    /// <param name="y">Y coordinate where effect will be displayed</param>
-    /// <param name="effect">ushort id of effect (references client datfile)</param>
-    /// <param name="speed">speed of the effect (generally 100)</param>
-    /// <param name="global">
-    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
-    ///     the effect
-    /// </param>
-    public void DisplayEffectAtCoords(short x, short y, ushort effect, short speed = 100, bool global = true)
-    {
-        if (!global)
-            User.SendEffect(x, y, effect, speed);
-        else
-            User.Effect(x, y, effect, speed);
-    }
-
-    /// <summary>
     ///     Display a motion on the user
     /// </summary>
     /// <param name="motionId">the motion to display</param>
     /// <param name="speed">speed of the diplayed motion</param>
     public void DisplayMotion(int motionId, short speed = 20)
     {
-        User.Motion((byte) motionId, speed);
+        User.Motion((byte)motionId, speed);
     }
 
     /// <summary>
@@ -731,16 +667,7 @@ public class HybrasylUser : HybrasylWorldObject
             return;
         }
 
-        User.Teleport(location, (byte) x, (byte) y);
-    }
-
-    /// <summary>
-    ///     Play a sound effect.
-    /// </summary>
-    /// <param name="sound">byte id of the sound, referencing a sound effect in client datfiles.</param>
-    public void SoundEffect(byte sound)
-    {
-        User.SendSound(sound);
+        User.Teleport(location, (byte)x, (byte)y);
     }
 
     /// <summary>
@@ -908,7 +835,7 @@ public class HybrasylUser : HybrasylWorldObject
 
         if (User.Inventory.ContainsName(name))
         {
-            if (User.RemoveItem(name, (ushort) count,true, force))
+            if (User.RemoveItem(name, (ushort)count, true, force))
                 return true;
             GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}, might be bound", User.Name, name);
         }
@@ -927,18 +854,18 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>true</returns>
     public void GiveExperience(int exp)
     {
-        User.GiveExperience((uint) exp);
+        User.GiveExperience((uint)exp);
     }
 
     public void GiveScaledExperience(float scaleFactor, int levelMaximum, int expMinimum, int expMaximum)
     {
         if (User.Stats.Level > levelMaximum)
         {
-            User.GiveExperience((uint) expMaximum);
+            User.GiveExperience((uint)expMaximum);
             return;
         }
 
-        User.GiveExperience((uint) (scaleFactor * User.ExpToLevel > expMinimum
+        User.GiveExperience((uint)(scaleFactor * User.ExpToLevel > expMinimum
             ? scaleFactor * User.ExpToLevel
             : expMinimum));
     }
@@ -953,9 +880,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// </returns>
     public bool TakeExperience(int exp)
     {
-        if ((uint) exp > User.Stats.Experience)
+        if ((uint)exp > User.Stats.Experience)
             return false;
-        User.Stats.Experience -= (uint) exp;
+        User.Stats.Experience -= (uint)exp;
         SystemMessage($"Your world spins as your insight leaves you ((-{exp} experience!))");
         User.UpdateAttributes(StatUpdateFlags.Experience);
         return true;
@@ -1085,7 +1012,7 @@ public class HybrasylUser : HybrasylWorldObject
 
     public void SendMessage(string message, int type)
     {
-        User.SendMessage(message, (byte) type);
+        User.SendMessage(message, (byte)type);
     }
 
     /// Close any active dialogs for the current player.
@@ -1105,7 +1032,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
     /// <param name="associateOverride">An IInteractable to associate with the dialog as the origin.</param>
-    public void StartSequence(string sequenceName, HybrasylWorldObject associateOverride = null)
+    public void StartSequence(string sequenceName, dynamic associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1113,6 +1040,7 @@ public class HybrasylUser : HybrasylWorldObject
                 User.Name);
             return;
         }
+
         DialogSequence sequence = null;
         IInteractable associate = null;
         GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
@@ -1130,7 +1058,9 @@ public class HybrasylUser : HybrasylWorldObject
         }
         else
         {
-            associate = associateOverride.WorldObject as IInteractable;
+            // Deal with some Lua vagaries here. We use a dynamic in the signature so we can handle a variety of object types
+            // coming back from Lua, which in general, doesn't like interfaces (and also we have to deal with our own wrapping)
+            associate = associateOverride is HybrasylWorldObject hwo ? hwo.WorldObject as IInteractable : associateOverride as IInteractable;
         }
 
         // If we didn't get a sequence before, try with our associate. Either we know it implements an Interactable 
@@ -1183,7 +1113,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="hairStyle">The target hairstyle</param>
     public void SetHairstyle(int hairStyle)
     {
-        User.SetHairstyle((ushort) hairStyle);
+        User.SetHairstyle((ushort)hairStyle);
     }
 
     /// <summary>
@@ -1192,7 +1122,32 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="itemColor">The color to apply</param>
     public void SetHairColor(string itemColor)
     {
-        var color = (ItemColor) Enum.Parse(typeof(ItemColor), itemColor);
+        var color = (ItemColor)Enum.Parse(typeof(ItemColor), itemColor);
         User.SetHairColor(color);
     }
+    /// <summary>
+    /// Trigger or clear a cooldown for a specific spell or skill.
+    /// </summary>
+    /// <param name="name">The name of the spell or skill</param>
+    /// <param name="reset">Wheter or not to trigger or clear. True clears; false triggers.</param>
+    public void SetCooldown(string name, bool reset=false)
+    {
+        var castable = User.SpellBook.IndexOf(name) == -1 ? User.SkillBook.GetSlotByName(name) : User.SpellBook.GetSlotByName(name);
+        if (castable == null)
+        {
+            GameLog.ScriptingError("SetCooldown: {name} not found in user's castables");
+            return;
+        }
+
+        if (reset)
+            castable.ClearCooldown();
+        else
+            castable.TriggerCooldown();
+    }
+
+    /// <summary>
+    /// Send an update to the client that stats have changed.
+    /// </summary>
+    public void UpdateAttributes() => User.UpdateAttributes(StatUpdateFlags.Full);
+
 }

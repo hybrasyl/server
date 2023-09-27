@@ -19,9 +19,9 @@
  * 
  */
 
+using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
-using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 
@@ -59,12 +59,12 @@ public class ManufactureState
 
     public void ProcessManufacturePacket(ClientPacket packet)
     {
-        var manufactureType = (ManufactureType) packet.ReadByte();
+        var manufactureType = (ManufactureType)packet.ReadByte();
         var slotIndex = packet.ReadByte();
 
         if (manufactureType != Type || slotIndex != Slot) return;
 
-        var manufacturePacketType = (ManufactureClientPacketType) packet.ReadByte();
+        var manufacturePacketType = (ManufactureClientPacketType)packet.ReadByte();
 
         switch (manufacturePacketType)
         {
@@ -86,10 +86,10 @@ public class ManufactureState
     public void ShowWindow()
     {
         var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte) Type);
-        manufacturePacket.WriteByte((byte) Slot);
-        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Open);
-        manufacturePacket.WriteByte((byte) Recipes.Count);
+        manufacturePacket.WriteByte((byte)Type);
+        manufacturePacket.WriteByte((byte)Slot);
+        manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Open);
+        manufacturePacket.WriteByte((byte)Recipes.Count);
         User.Enqueue(manufacturePacket);
     }
 
@@ -98,11 +98,11 @@ public class ManufactureState
         SelectedIndex = pageIndex;
 
         var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte) Type);
-        manufacturePacket.WriteByte((byte) Slot);
-        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Page);
-        manufacturePacket.WriteByte((byte) pageIndex);
-        manufacturePacket.WriteUInt16((ushort) (SelectedRecipe.Tile + 0x8000));
+        manufacturePacket.WriteByte((byte)Type);
+        manufacturePacket.WriteByte((byte)Slot);
+        manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Page);
+        manufacturePacket.WriteByte((byte)pageIndex);
+        manufacturePacket.WriteUInt16((ushort)(SelectedRecipe.Tile + 0x8000));
         manufacturePacket.WriteString8(SelectedRecipe.Name);
         manufacturePacket.WriteString16(SelectedRecipe.Description);
         manufacturePacket.WriteString16(SelectedRecipe.HighlightedIngredientsText(User));
@@ -145,13 +145,13 @@ public class ManufactureRecipe
         }
 
         if (HasAddItem && (addSlotIndex < 1 || addSlotIndex > user.Inventory.Size ||
-                           user.Inventory[(byte) addSlotIndex]?.Name != AddItemName))
+                           user.Inventory[(byte)addSlotIndex]?.Name != AddItemName))
         {
             user.SendSystemMessage($"That recipe requires {AddItemName} to be added to the window.");
             return false;
         }
 
-        user.RemoveItem((byte) addSlotIndex);
+        user.RemoveItem((byte)addSlotIndex);
         TakeIngredientsFrom(user);
         GiveManufacturedItemTo(user);
         user.SendSystemMessage($"You create {Name}.");
@@ -219,7 +219,7 @@ public class ManufactureIngredient
 
     public void TakeFrom(User user)
     {
-        user.RemoveItem(Name, (ushort) Quantity);
+        user.RemoveItem(Name, (ushort)Quantity);
     }
 
     public string HighlightedText(User user)

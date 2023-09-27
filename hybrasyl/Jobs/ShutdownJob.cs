@@ -19,8 +19,8 @@
  * 
  */
 
-using System.Timers;
 using Hybrasyl.Enums;
+using System.Timers;
 
 namespace Hybrasyl.Jobs;
 

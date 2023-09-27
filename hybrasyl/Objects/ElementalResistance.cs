@@ -19,16 +19,17 @@
  * 
  */
 
+using Hybrasyl.Xml.Objects;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
 [JsonObject(MemberSerialization.OptIn)]
+[MoonSharpUserData]
 public class ElementalModifiers
 {
     [JsonProperty] private Dictionary<ElementType, double> Resistances = new();
@@ -119,7 +120,7 @@ public class ElementalModifiers
         return ret;
     }
 
-    public bool Empty =>  NoAugments && NoResistances;
+    public bool Empty => NoAugments && NoResistances;
 
     public bool NoAugments =>
         Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(type => Augments[type] == 0);

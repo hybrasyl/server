@@ -86,7 +86,7 @@ public static class Adler32
 
             while (--n >= 0)
             {
-                s1 = s1 + (uint) (buffer[offset++] & 0xFF);
+                s1 = s1 + (uint)(buffer[offset++] & 0xFF);
                 s2 = s2 + s1;
             }
 

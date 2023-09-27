@@ -20,12 +20,12 @@
  */
 
 
-using System;
-using System.Drawing;
 using C3;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Newtonsoft.Json;
+using System;
+using System.Drawing;
 
 namespace Hybrasyl.Objects;
 
@@ -34,7 +34,6 @@ public class WorldObject : IQuadStorable, IWorldObject
 {
     public WorldObject()
     {
-        Name = string.Empty;
         CreationTime = DateTime.Now;
     }
 

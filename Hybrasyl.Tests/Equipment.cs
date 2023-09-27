@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using Hybrasyl.Xml.Objects;
+using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl;
-using Hybrasyl.Xml.Objects;
 using Xunit;
 
-namespace HybrasylTests;
+namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Equipment
@@ -100,9 +99,9 @@ public class Equipment
         var equipment = Game.World.CreateItem(item);
         Assert.True(equipment.CheckRequirements(Fixture.TestUser, out var m1),
             $"Equipment min level is 50, player level is 50, CheckRequirements failed with {m1}");
-        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte) EquipmentSlot.Armor),
+        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte)EquipmentSlot.Armor),
             "Equipment level is 50, player level is 50, AddEquipment failed");
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Armor), "Failed to unequip equipment");
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor), "Failed to unequip equipment");
         Fixture.TestUser.Stats.Level = 49;
         Assert.False(equipment.CheckRequirements(Fixture.TestUser, out var m2),
             "Equipment min level is 50, player level is 49, CheckRequirements succeeded");
@@ -138,9 +137,9 @@ public class Equipment
         Fixture.TestUser.Class = Class.Monk;
         Assert.True(equipment.CheckRequirements(Fixture.TestUser, out var m3),
             $"Equipment class is Monk, user is Monk, CheckRequirements failed {m3}");
-        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte) EquipmentSlot.Armor),
+        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte)EquipmentSlot.Armor),
             "Equipment class is Monk, user is Monk, AddEquipment failed");
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Armor), "Failed to unequip equipment");
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor), "Failed to unequip equipment");
     }
 
     [Fact]
@@ -159,9 +158,9 @@ public class Equipment
         Fixture.TestUser.Stats.Level = 99;
         Assert.True(equipment.CheckRequirements(Fixture.TestUser, out var m3),
             $"Equipment weight is 100, user is str 255 / level 99, CheckRequirements failed {m3}");
-        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte) EquipmentSlot.Armor),
+        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte)EquipmentSlot.Armor),
             "Equipment weight is 100, user is str 255 / level 99, AddEquipment failed");
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Armor), "Failed to unequip equipment");
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor), "Failed to unequip equipment");
     }
 
     [Fact]
@@ -176,16 +175,16 @@ public class Equipment
         var twohandObj = Game.World.CreateItem(twohand);
         Assert.True(
             shieldObj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(shieldObj, (byte) EquipmentSlot.Shield),
+            Fixture.TestUser.AddEquipment(shieldObj, (byte)EquipmentSlot.Shield),
             $"Check & Equip shield failed ({m1})");
         Assert.False(twohandObj.CheckRequirements(Fixture.TestUser, out var m2),
             "Shield equipped, equip two handed weapon,1 CheckRequirements succeeded");
         Assert.Equal(Game.World.GetLocalString("item_equip_2h_shield"), m2);
 
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Shield));
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Shield));
         Assert.True(
             twohandObj.CheckRequirements(Fixture.TestUser, out var m3) &&
-            Fixture.TestUser.AddEquipment(twohandObj, (byte) EquipmentSlot.Weapon),
+            Fixture.TestUser.AddEquipment(twohandObj, (byte)EquipmentSlot.Weapon),
             "Check & Equip 2H weapon failed");
         Assert.False(shieldObj.CheckRequirements(Fixture.TestUser, out var m4));
         Assert.Equal(Game.World.GetLocalString("item_equip_shield_2h"), m4);
@@ -205,7 +204,7 @@ public class Equipment
         var ring2Obj = Game.World.CreateItem(ring2);
         Assert.True(
             ring1Obj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(ring1Obj, (byte) EquipmentSlot.LeftHand), $"Equip first ring failed ({m1})");
+            Fixture.TestUser.AddEquipment(ring1Obj, (byte)EquipmentSlot.LeftHand), $"Equip first ring failed ({m1})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null);
         Assert.False(ring2Obj.CheckRequirements(Fixture.TestUser, out var m2),
             "Ring 1 equipped, Equipping duplicate unique-equipped item, CheckRequirements succeeded");
@@ -253,7 +252,7 @@ public class Equipment
 
         Assert.True(
             ringObj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.LeftHand),
+            Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.LeftHand),
             $"Equip armor-prohibiting ring failed ({m1})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null, "Ring is missing");
         Assert.False(armorObj.CheckRequirements(Fixture.TestUser, out var m2),
@@ -263,7 +262,7 @@ public class Equipment
         // Try the reverse now
         Assert.True(
             ringObj.CheckRequirements(Fixture.TestUser, out var m3) &&
-            Fixture.TestUser.AddEquipment(armorObj, (byte) EquipmentSlot.Armor),
+            Fixture.TestUser.AddEquipment(armorObj, (byte)EquipmentSlot.Armor),
             $"Equip ring-prohibiting armor failed ({m3})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null, "Armor is missing");
         Assert.False(ringObj.CheckRequirements(Fixture.TestUser, out var m4),
@@ -288,7 +287,7 @@ public class Equipment
         ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "-3" };
 
         var ringObj = Game.World.CreateItem(ring);
-        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
         Assert.True(Fixture.TestUser.Stats.ExtraXp == -3.0);
 
         Fixture.TestUser.GiveExperience(10000, true);
@@ -307,7 +306,7 @@ public class Equipment
         ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "3" };
 
         var ringObj = Game.World.CreateItem(ring);
-        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
         Assert.True(Fixture.TestUser.Stats.ExtraXp == 3.0);
 
         Fixture.TestUser.GiveExperience(10000, true);
@@ -334,11 +333,11 @@ public class Equipment
             BonusWis = "50",
             BonusCrit = "10",
             BonusMagicCrit = "10",
-            BonusDmg = "10",
-            BonusHit = "10",
+            BonusDmg = "0.10",
+            BonusHit = "0.10",
             BonusAc = "-50",
-            BonusMr = "10",
-            BonusRegen = "10",
+            BonusMr = "0.10",
+            BonusRegen = "0.10",
             BonusInboundDamageModifier = "10",
             BonusInboundHealModifier = "10",
             BonusOutboundDamageModifier = "10",
@@ -357,7 +356,7 @@ public class Equipment
 
         var ringObj = Game.World.CreateItem(ring);
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
         var expectedAc = 100 - Fixture.TestUser.Stats.Level / 3 +
                          Fixture.TestUser.Stats.BonusAc;
 
@@ -379,16 +378,16 @@ public class Equipment
             $"Crit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseCrit + 10}, is {Fixture.TestUser.Stats.Crit})");
         Assert.True(Fixture.TestUser.Stats.MagicCrit == Fixture.TestUser.Stats.BaseMagicCrit + 10,
             $"MagicCrit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMagicCrit + 10}, is {Fixture.TestUser.Stats.MagicCrit})");
-        Assert.True(Fixture.TestUser.Stats.Dmg == Fixture.TestUser.Stats.BaseDmg + 10,
-            $"Dmg: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDmg + 10}, is {Fixture.TestUser.Stats.Dmg})");
-        Assert.True(Fixture.TestUser.Stats.Hit == Fixture.TestUser.Stats.BaseHit + 10,
-            $"Hit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHit + 10}, is {Fixture.TestUser.Stats.Hit})");
+        Assert.True(Fixture.TestUser.Stats.Dmg == Fixture.TestUser.Stats.BaseDmg + 1.10,
+            $"Dmg: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseDmg + 1.10}, is {Fixture.TestUser.Stats.Dmg})");
+        Assert.True(Fixture.TestUser.Stats.Hit == Fixture.TestUser.Stats.BaseHit + 1.10,
+            $"Hit: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseHit + 1.10}, is {Fixture.TestUser.Stats.Hit})");
         Assert.True(Fixture.TestUser.Stats.Ac == expectedAc,
             $"Ac: bonus from equipping item is not correct (should be {expectedAc}, is {Fixture.TestUser.Stats.Ac})");
-        Assert.True(Fixture.TestUser.Stats.Mr == Fixture.TestUser.Stats.BaseMr + 10,
-            $"Mr: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMr + 10}, is {Fixture.TestUser.Stats.Mr})");
-        Assert.True(Fixture.TestUser.Stats.Regen == Fixture.TestUser.Stats.BaseRegen + 10,
-            $"Regen: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseRegen + 10}, is {Fixture.TestUser.Stats.Regen})");
+        Assert.True(Fixture.TestUser.Stats.Mr == Fixture.TestUser.Stats.BaseMr + 1.10,
+            $"Mr: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseMr + 1.10}, is {Fixture.TestUser.Stats.Mr})");
+        Assert.True(Fixture.TestUser.Stats.Regen == Fixture.TestUser.Stats.BaseRegen + 1.10,
+            $"Regen: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseRegen + 1.10}, is {Fixture.TestUser.Stats.Regen})");
         Assert.True(
             Fixture.TestUser.Stats.InboundDamageModifier == Fixture.TestUser.Stats.BaseInboundDamageModifier + 10,
             $"InboundDamageModifier: bonus from equipping item is not correct (should be {Fixture.TestUser.Stats.BaseInboundDamageModifier + 10}, is {Fixture.TestUser.Stats.InboundDamageModifier})");
@@ -421,15 +420,15 @@ public class Equipment
 
         // Now remove
 
-        Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.RightHand);
+        Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.RightHand);
 
         var currentAc = Fixture.TestUser.Stats.BaseAc - Fixture.TestUser.Stats.Level / 3 +
                         Fixture.TestUser.Stats.BonusAc;
         // TODO: maybe implement as equality operator on statinfo and keep our "original" stats around
-        Assert.True(Fixture.TestUser.Stats.MaximumHp == 50,
-            $"Hp: after removal, should be 10000, is {Fixture.TestUser.Stats.MaximumHp}");
-        Assert.True(Fixture.TestUser.Stats.MaximumMp == 50,
-            $"Mp: after removal, should be 10000, is {Fixture.TestUser.Stats.MaximumMp}");
+        Assert.True(Fixture.TestUser.Stats.MaximumHp == 1000,
+            $"Hp: after removal, should be 1000, is {Fixture.TestUser.Stats.MaximumHp}");
+        Assert.True(Fixture.TestUser.Stats.MaximumMp == 1000,
+            $"Mp: after removal, should be 1000, is {Fixture.TestUser.Stats.MaximumMp}");
         Assert.True(Fixture.TestUser.Stats.Str == 3,
             $"Str: after removal, should be 3, is {Fixture.TestUser.Stats.Str}");
         Assert.True(Fixture.TestUser.Stats.Con == 3,
@@ -444,15 +443,15 @@ public class Equipment
             $"Crit: after removal, should be 0, is {Fixture.TestUser.Stats.Crit}");
         Assert.True(Fixture.TestUser.Stats.MagicCrit == 0,
             $"MagicCrit: after removal, should be 0, is {Fixture.TestUser.Stats.MagicCrit}");
-        Assert.True(Fixture.TestUser.Stats.Dmg == 0,
-            $"Dmg: after removal, should be 0, is {Fixture.TestUser.Stats.Dmg}");
-        Assert.True(Fixture.TestUser.Stats.Hit == 0,
-            $"Hit: after removal, should be 0, is {Fixture.TestUser.Stats.Hit}");
+        Assert.True(Fixture.TestUser.Stats.Dmg == 1,
+            $"Dmg: after removal, should be 1, is {Fixture.TestUser.Stats.Dmg}");
+        Assert.True(Fixture.TestUser.Stats.Hit == 1,
+            $"Hit: after removal, should be 1, is {Fixture.TestUser.Stats.Hit}");
         Assert.True(Fixture.TestUser.Stats.Ac == currentAc,
             $"Ac: after removal, should be {currentAc}, is {Fixture.TestUser.Stats.Ac}");
-        Assert.True(Fixture.TestUser.Stats.Mr == 0, $"Mr: after removal, should be 10, is {Fixture.TestUser.Stats.Mr}");
-        Assert.True(Fixture.TestUser.Stats.Regen == 0,
-            $"Regen: after removal, should be 10, is {Fixture.TestUser.Stats.Regen}");
+        Assert.True(Fixture.TestUser.Stats.Mr == 1, $"Mr: after removal, should be 10, is {Fixture.TestUser.Stats.Mr}");
+        Assert.True(Fixture.TestUser.Stats.Regen == 1,
+            $"Regen: after removal, should be 1, is {Fixture.TestUser.Stats.Regen}");
         Assert.True(Fixture.TestUser.Stats.InboundDamageModifier == 0,
             $"InboundDamageModifier: after removal, should be 10, is {Fixture.TestUser.Stats.InboundDamageModifier}");
         Assert.True(Fixture.TestUser.Stats.InboundHealModifier == 0,
@@ -479,5 +478,19 @@ public class Equipment
             $"LifeSteal: after removal, should be 10, is {Fixture.TestUser.Stats.LifeSteal}");
         Assert.True(Fixture.TestUser.Stats.ManaSteal == 0,
             $"ManaSteal: after removal, should be 10, is {Fixture.TestUser.Stats.ManaSteal}");
+    }
+
+    [Fact]
+    public void EquipmentSlotOf()
+    {
+        Fixture.TestUser.Equipment.Clear();
+        Fixture.ResetUserStats();
+
+        var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
+        ring.Name = "Test Ring";
+        var ringObj = Game.World.CreateItem(ring);
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
+        Assert.Equal((byte)EquipmentSlot.RightHand, Fixture.TestUser.Equipment.SlotOfName(ringObj.Name));
+        Assert.Equal((byte) EquipmentSlot.None, Fixture.TestUser.Equipment.SlotOfName("Something that does not exist"));
     }
 }

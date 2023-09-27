@@ -19,11 +19,11 @@
  * 
  */
 
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl;
@@ -61,7 +61,7 @@ internal static class NumberCruncher
             throw new InvalidOperationException("Invalid type passed to _evalSimple");
         // Simple damage can either be expressed as a fixed value <Simple>50</Simple> or a min/max <Simple Min="50" Max="100"/>
         if (sq.Value != 0) return sq.Value;
-        return Random.Shared.Next((int) sq.Min, (int) (sq.Max + 1));
+        return Random.Shared.Next((int)sq.Min, (int)(sq.Max + 1));
     }
 
     private static double _evalFormula(string formula, ItemObject item, Creature source)
@@ -184,7 +184,7 @@ internal static class NumberCruncher
 
         if (effect.Damage == null)
             return new DamageOutput
-                { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element };
+            { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element };
 
         var statusAdd = castable?.Effects?.Statuses?.Add?.Where(predicate: e => e.Value == statusName)?.ToList();
         var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
@@ -253,7 +253,7 @@ internal static class NumberCruncher
     public static CastCost CalculateCastCost(Castable castable, Creature target, Creature source)
     {
 
-        if (castable == null) return new CastCost { Mp = 0};
+        if (castable == null) return new CastCost { Mp = 0 };
         var cost = new CastCost();
 
         if (castable.CastCosts.Count == 0 || !(source is User user)) return cost;
@@ -269,13 +269,13 @@ internal static class NumberCruncher
         var toEvaluate = costs.First();
 
         if (toEvaluate.Stat?.Hp != null)
-            cost.Hp = (uint) _evalFormula(toEvaluate.Stat.Hp, castable, target, source);
+            cost.Hp = (uint)_evalFormula(toEvaluate.Stat.Hp, castable, target, source);
 
         if (toEvaluate.Stat?.Mp != null)
-            cost.Mp = (uint) _evalFormula(toEvaluate.Stat.Mp, castable, target, source);
+            cost.Mp = (uint)_evalFormula(toEvaluate.Stat.Mp, castable, target, source);
 
         if (toEvaluate.Gold != null)
-            cost.Gold = (uint) _evalFormula(toEvaluate.Gold, castable, target, source);
+            cost.Gold = (uint)_evalFormula(toEvaluate.Gold, castable, target, source);
 
         if (toEvaluate.Items.Count > 0)
             cost.Items = toEvaluate.Items.Select(selector: x => (x.Quantity, x.Value)).ToList();
@@ -292,24 +292,24 @@ internal static class NumberCruncher
 
         var modifiers = new StatInfo
         {
-            DeltaHp = (long) _evalFormula(effect.CurrentHp, item, source),
-            DeltaMp = (long) _evalFormula(effect.CurrentMp, item, source),
-            BaseHp = (long) _evalFormula(effect.BaseHp, item, source),
-            BaseMp = (long) _evalFormula(effect.BaseMp, item, source),
-            BaseStr = (long) _evalFormula(effect.BaseStr, item, source),
-            BaseCon = (long) _evalFormula(effect.BaseCon, item, source),
-            BaseDex = (long) _evalFormula(effect.BaseDex, item, source),
-            BaseInt = (long) _evalFormula(effect.BaseInt, item, source),
-            BaseWis = (long) _evalFormula(effect.BaseWis, item, source),
+            DeltaHp = (long)_evalFormula(effect.CurrentHp, item, source),
+            DeltaMp = (long)_evalFormula(effect.CurrentMp, item, source),
+            BaseHp = (long)_evalFormula(effect.BaseHp, item, source),
+            BaseMp = (long)_evalFormula(effect.BaseMp, item, source),
+            BaseStr = (long)_evalFormula(effect.BaseStr, item, source),
+            BaseCon = (long)_evalFormula(effect.BaseCon, item, source),
+            BaseDex = (long)_evalFormula(effect.BaseDex, item, source),
+            BaseInt = (long)_evalFormula(effect.BaseInt, item, source),
+            BaseWis = (long)_evalFormula(effect.BaseWis, item, source),
             BaseCrit = _evalFormula(effect.BaseCrit, item, source),
             BaseMagicCrit = _evalFormula(effect.BaseMagicCrit, item, source),
             BaseDodge = _evalFormula(effect.BaseDodge, item, source),
             BaseMagicDodge = _evalFormula(effect.BaseMagicDodge, item, source),
-            BaseDmg = (long) _evalFormula(effect.BaseDmg, item, source),
-            BaseHit = (long) _evalFormula(effect.BaseHit, item, source),
-            BaseAc = (long) _evalFormula(effect.BaseAc, item, source),
-            BaseMr = (long) _evalFormula(effect.BaseMr, item, source),
-            BaseRegen = (long) _evalFormula(effect.BaseRegen, item, source),
+            BaseDmg = _evalFormula(effect.BaseDmg, item, source),
+            BaseHit = _evalFormula(effect.BaseHit, item, source),
+            BaseAc = (long)_evalFormula(effect.BaseAc, item, source),
+            BaseMr = _evalFormula(effect.BaseMr, item, source),
+            BaseRegen = _evalFormula(effect.BaseRegen, item, source),
             BaseInboundDamageModifier = _evalFormula(effect.BaseInboundDamageModifier, item, source),
             BaseInboundHealModifier = _evalFormula(effect.BaseInboundHealModifier, item, source),
             BaseOutboundDamageModifier = _evalFormula(effect.BaseOutboundDamageModifier, item, source),
@@ -322,22 +322,22 @@ internal static class NumberCruncher
             BaseLifeSteal = _evalFormula(effect.BaseLifeSteal, item, source),
             BaseManaSteal = _evalFormula(effect.BaseManaSteal, item, source),
             BaseInboundDamageToMp = _evalFormula(effect.BaseInboundDamageToMp, item, source),
-            BonusHp = (long) _evalFormula(effect.BonusHp, item, source),
-            BonusMp = (long) _evalFormula(effect.BonusMp, item, source),
-            BonusStr = (long) _evalFormula(effect.BonusStr, item, source),
-            BonusCon = (long) _evalFormula(effect.BonusCon, item, source),
-            BonusDex = (long) _evalFormula(effect.BonusDex, item, source),
-            BonusInt = (long) _evalFormula(effect.BonusInt, item, source),
-            BonusWis = (long) _evalFormula(effect.BonusWis, item, source),
+            BonusHp = (long)_evalFormula(effect.BonusHp, item, source),
+            BonusMp = (long)_evalFormula(effect.BonusMp, item, source),
+            BonusStr = (long)_evalFormula(effect.BonusStr, item, source),
+            BonusCon = (long)_evalFormula(effect.BonusCon, item, source),
+            BonusDex = (long)_evalFormula(effect.BonusDex, item, source),
+            BonusInt = (long)_evalFormula(effect.BonusInt, item, source),
+            BonusWis = (long)_evalFormula(effect.BonusWis, item, source),
             BonusCrit = _evalFormula(effect.BonusCrit, item, source),
             BonusMagicCrit = _evalFormula(effect.BonusMagicCrit, item, source),
             BonusDodge = _evalFormula(effect.BonusDodge, item, source),
             BonusMagicDodge = _evalFormula(effect.BonusMagicDodge, item, source),
-            BonusDmg = (long) _evalFormula(effect.BonusDmg, item, source),
-            BonusHit = (long) _evalFormula(effect.BonusHit, item, source),
-            BonusAc = (long) _evalFormula(effect.BonusAc, item, source),
-            BonusMr = (long) _evalFormula(effect.BonusMr, item, source),
-            BonusRegen = (long) _evalFormula(effect.BonusRegen, item, source),
+            BonusDmg = _evalFormula(effect.BonusDmg, item, source),
+            BonusHit = _evalFormula(effect.BonusHit, item, source),         
+            BonusAc = (long)_evalFormula(effect.BonusAc, item, source),
+            BonusMr = _evalFormula(effect.BonusMr, item, source),
+            BonusRegen = _evalFormula(effect.BonusRegen, item, source),
             BonusInboundDamageModifier = _evalFormula(effect.BonusInboundDamageModifier, item, source),
             BonusInboundHealModifier = _evalFormula(effect.BonusInboundHealModifier, item, source),
             BonusOutboundDamageModifier = _evalFormula(effect.BonusOutboundDamageModifier, item, source),
@@ -366,8 +366,8 @@ internal static class NumberCruncher
 
     public static long Modify(double val, double intensity)
     {
-        if (intensity == 0) return (long) val;
-        return (long) (val * intensity);
+        if (intensity == 0) return (long)val;
+        return (long)(val * intensity);
     }
 
     public static StatInfo CalculateStatusModifiers(Castable castable, double intensity, StatModifiers effect,
@@ -377,7 +377,7 @@ internal static class NumberCruncher
         var modifiers = new StatInfo
         {
             DeltaHp = Modify(_evalFormula(effect.CurrentHp, castable, target, source), intensity),
-            DeltaMp = (long) _evalFormula(effect.CurrentMp, castable, target, source),
+            DeltaMp = (long)_evalFormula(effect.CurrentMp, castable, target, source),
             BonusHp = Modify(_evalFormula(effect.BonusHp, castable, target, source), intensity),
             BonusMp = Modify(_evalFormula(effect.BonusMp, castable, target, source), intensity),
             BonusStr = Modify(_evalFormula(effect.BonusStr, castable, target, source), intensity),

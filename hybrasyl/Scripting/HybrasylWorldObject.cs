@@ -20,14 +20,14 @@
  */
 
 
-using System.Linq;
-using System.Reflection;
 using Hybrasyl.Casting;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System.Linq;
+using System.Reflection;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Scripting;
@@ -82,7 +82,7 @@ public class HybrasylWorldObject : IScriptable
     public void SetNpcDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.DialogSprite = (ushort) (0x4000 + displaySprite);
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetNpcDisplaySprite: underlying object is not a visible object, ignoring");
     }
@@ -94,7 +94,7 @@ public class HybrasylWorldObject : IScriptable
     public void SetItemDisplaySprite(int displaySprite)
     {
         if (Obj is VisibleObject vobj)
-            vobj.DialogSprite = (ushort) (0x4000 + displaySprite);
+            vobj.DialogSprite = (ushort)(0x4000 + displaySprite);
         else
             GameLog.ScriptingError("SetItemDisplaySprite: underlying object is not a visible object, ignoring");
     }
@@ -300,15 +300,15 @@ public class HybrasylWorldObject : IScriptable
         return -1;
     }
 
-    ///// <summary>
-    ///// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
-    ///// </summary>
-    ///// <param name="targetUser">The logged-in player that will receive the dialog</param>
-    ///// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
-    ///// <param name="sequenceName">The sequence that will be started for the target player</param>
-    ///// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
-    ///// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
-    ///// <returns>Boolean indicating success</returns>
+    /// <summary>
+    /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
+    /// </summary>
+    /// <param name="targetUser">The logged-in player that will receive the dialog</param>
+    /// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
+    /// <param name="sequenceName">The sequence that will be started for the target player</param>
+    /// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
+    /// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
+    /// <returns>Boolean indicating success</returns>
     public bool RequestDialog(string targetUser, string sourceGuid, string sequenceName, string originGuid,
         bool requireLocal = true)
     {
@@ -430,4 +430,68 @@ public class HybrasylWorldObject : IScriptable
 
         return false;
     }
+
+    /// <summary>
+    ///     Display a special effect visible to players.
+    /// </summary>
+    /// <param name="effect">ushort id of effect (references client datfile)</param>
+    /// <param name="speed">speed of the effect (generally 100)</param>
+    /// <param name="global">
+    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
+    ///     the effect
+    /// </param>
+    public void DisplayEffect(ushort effect, short speed = 100, bool global = true)
+    {
+        if (Obj is not VisibleObject vo) return;
+        if (!global && Obj is User u)
+            u.SendEffect(u.Id, effect, speed);
+        else
+            vo.Effect(effect, speed);
+    }
+
+    /// <summary>
+    ///     Display an effect at a given x,y coordinate on the current player's map.
+    /// </summary>
+    /// <param name="x">X coordinate where effect will be displayed</param>
+    /// <param name="y">Y coordinate where effect will be displayed</param>
+    /// <param name="effect">ushort id of effect (references client datfile)</param>
+    /// <param name="speed">speed of the effect (generally 100)</param>
+    /// <param name="global">
+    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
+    ///     boolean indicating whether or not other players can see the effect, or just the player displaying
+    ///     the effect
+    /// </param>
+    public void DisplayEffectAtCoords(short x, short y, ushort effect, short speed = 100, bool global = true)
+    {
+        if (Obj is not VisibleObject vo) return;
+
+        if (!global && Obj is User u)
+                u.SendEffect(x, y, effect, speed);
+        else
+            vo.Effect(x, y, effect, speed);
+    }
+
+    /// <summary>
+    ///     Play a sound effect.
+    /// </summary>
+    /// <param name="sound">byte id of the sound, referencing a sound effect in client datfiles.</param>
+    public void SoundEffect(byte sound)
+    {
+        if (Obj is not VisibleObject vo) return;
+
+        vo.PlaySound(sound);
+    }
+
+    /// <summary>
+    /// Change the sprite of an object in the world. A Show() is automatically called to display the new sprite to any nearby players.
+    /// </summary>
+    /// <param name="sprite">ushort id of the sprite, referencing a sprite in client datfiles.</param>
+    public void SetSprite(ushort sprite)
+    {
+        if (Obj is not VisibleObject vo) return;
+        vo.Sprite = sprite;
+        vo.Show();
+    }
+
+
 }

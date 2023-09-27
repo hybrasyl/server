@@ -19,12 +19,12 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl;
 
@@ -90,7 +90,7 @@ public class ServerPacketStructures
         {
             var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(Icon);
-            packet.WriteByte((byte) BarColor);
+            packet.WriteByte((byte)BarColor);
             return packet;
         }
     }
@@ -176,42 +176,42 @@ public class ServerPacketStructures
             switch (Action)
             {
                 case ExchangeActions.Initiate:
-                {
-                    packet.WriteUInt32(RequestorId);
-                    packet.WriteString8(RequestorName);
-                }
+                    {
+                        packet.WriteUInt32(RequestorId);
+                        packet.WriteString8(RequestorName);
+                    }
                     break;
                 case ExchangeActions.QuantityPrompt:
-                {
-                    packet.WriteByte(ItemSlot);
-                }
+                    {
+                        packet.WriteByte(ItemSlot);
+                    }
                     break;
                 case ExchangeActions.ItemUpdate:
-                {
-                    packet.WriteByte((byte) (Side ? 0 : 1));
-                    packet.WriteByte(ItemSlot);
-                    packet.WriteUInt16((ushort) (0x8000 + ItemSprite));
-                    packet.WriteByte(ItemColor);
-                    packet.WriteString8(ItemName);
-                }
+                    {
+                        packet.WriteByte((byte)(Side ? 0 : 1));
+                        packet.WriteByte(ItemSlot);
+                        packet.WriteUInt16((ushort)(0x8000 + ItemSprite));
+                        packet.WriteByte(ItemColor);
+                        packet.WriteString8(ItemName);
+                    }
                     break;
                 case ExchangeActions.GoldUpdate:
-                {
-                    packet.WriteByte((byte) (Side ? 0 : 1));
-                    packet.WriteUInt32(Gold);
-                }
+                    {
+                        packet.WriteByte((byte)(Side ? 0 : 1));
+                        packet.WriteUInt32(Gold);
+                    }
                     break;
                 case ExchangeActions.Cancel:
-                {
-                    packet.WriteByte((byte) (Side ? 0 : 1));
-                    packet.WriteString8(CancelMessage);
-                }
+                    {
+                        packet.WriteByte((byte)(Side ? 0 : 1));
+                        packet.WriteString8(CancelMessage);
+                    }
                     break;
                 case ExchangeActions.Confirm:
-                {
-                    packet.WriteByte((byte) (Side ? 0 : 1));
-                    packet.WriteString8(ConfirmMessage);
-                }
+                    {
+                        packet.WriteByte((byte)(Side ? 0 : 1));
+                        packet.WriteString8(ConfirmMessage);
+                    }
                     break;
             }
 
@@ -313,8 +313,8 @@ public class ServerPacketStructures
             var position = packet.Position;
             packet.WriteUInt32(TargetId);
             packet.WriteUInt32(SourceId ?? 0);
-            packet.WriteUInt16((ushort) TargetAnimation);
-            packet.WriteUInt16((ushort) (SourceAnimation ?? 0));
+            packet.WriteUInt16((ushort)TargetAnimation);
+            packet.WriteUInt16((ushort)(SourceAnimation ?? 0));
             packet.WriteInt16(Speed);
             packet.WriteInt32(0);
             return packet;
@@ -350,13 +350,13 @@ public class ServerPacketStructures
             var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(X);
             packet.WriteUInt16(Y);
-            packet.WriteByte((byte) Direction);
+            packet.WriteByte((byte)Direction);
             packet.WriteUInt32(Id);
             packet.WriteUInt16(Helmet);
 
             if (!DisplayAsMonster)
             {
-                packet.WriteByte((byte) ((byte) Gender * 16 + BodySpriteOffset));
+                packet.WriteByte((byte)((byte)Gender * 16 + BodySpriteOffset));
                 packet.WriteUInt16(Armor);
                 packet.WriteByte(Boots);
                 packet.WriteUInt16(Armor);
@@ -370,11 +370,11 @@ public class ServerPacketStructures
                 packet.WriteUInt16(SecondAcc);
                 packet.WriteByte(ThirdAccColor);
                 packet.WriteUInt16(ThirdAcc);
-                packet.WriteByte((byte) LanternSize);
-                packet.WriteByte((byte) RestPosition);
+                packet.WriteByte((byte)LanternSize);
+                packet.WriteByte((byte)RestPosition);
                 packet.WriteUInt16(Overcoat);
                 packet.WriteByte(OvercoatColor);
-                packet.WriteByte((byte) SkinColor);
+                packet.WriteByte((byte)SkinColor);
                 packet.WriteBoolean(Invisible);
                 packet.WriteByte(FaceShape);
             }
@@ -392,7 +392,7 @@ public class ServerPacketStructures
                 packet.WriteByte(0x00);
             }
 
-            packet.WriteByte((byte) NameStyle);
+            packet.WriteByte((byte)NameStyle);
             packet.WriteString8(Name ?? string.Empty);
             packet.WriteString8(GroupName ?? string.Empty);
 
@@ -482,14 +482,14 @@ public class ServerPacketStructures
         internal ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
-            packet.WriteByte((byte) MerchantDialogType);
-            packet.WriteByte((byte) MerchantDialogObjectType);
+            packet.WriteByte((byte)MerchantDialogType);
+            packet.WriteByte((byte)MerchantDialogObjectType);
             packet.WriteUInt32(ObjectId);
             packet.WriteByte(0);
-            packet.WriteInt16((short) Tile1);
+            packet.WriteInt16((short)Tile1);
             packet.WriteByte(0);
             packet.WriteByte(1);
-            packet.WriteInt16((short) Tile1);
+            packet.WriteInt16((short)Tile1);
             packet.WriteByte(0);
             packet.WriteByte(0);
             packet.WriteString8(Name);
@@ -646,11 +646,11 @@ public class ServerPacketStructures
             packet.WriteByte(0x00);
             packet.WriteString8(Player.IsMaster ? "Master" : Player.Class.ToString());
             packet.WriteString8(GuildName ?? string.Empty);
-            packet.WriteByte((byte) (Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
+            packet.WriteByte((byte)(Player.Legend.Count > 255 ? 255 : Player.Legend.Count));
             foreach (var mark in Player.Legend)
             {
-                packet.WriteByte((byte) mark.Icon);
-                packet.WriteByte((byte) mark.Color);
+                packet.WriteByte((byte)mark.Icon);
+                packet.WriteByte((byte)mark.Color);
                 packet.WriteString8(mark.Prefix);
                 packet.WriteString8(mark.ToString());
             }
@@ -724,9 +724,9 @@ public class ServerPacketStructures
         {
             var packet = new ServerPacket(OpCode);
             packet.WriteUInt32(User.Id);
-            packet.WriteByte((byte) User.Direction);
+            packet.WriteByte((byte)User.Direction);
             packet.WriteByte(213);
-            packet.WriteByte((byte) User.Class);
+            packet.WriteByte((byte)User.Class);
             packet.WriteUInt16(0);
 
             return packet;
@@ -748,8 +748,8 @@ public class ServerPacketStructures
         {
             var packet = new ServerPacket(OpCode);
             packet.WriteUInt16(User.Map.Id);
-            packet.WriteByte((byte) (User.Map.X % 256));
-            packet.WriteByte((byte) (User.Map.Y % 256));
+            packet.WriteByte((byte)(User.Map.X % 256));
+            packet.WriteByte((byte)(User.Map.Y % 256));
             byte flags = 0;
             //if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
             //    flags |= 1;
@@ -760,10 +760,10 @@ public class ServerPacketStructures
             //if ((User.Map.Flags & MapFlags.Winter) == MapFlags.Winter)
             //    flags |= 128;
             packet.WriteByte(flags);
-            packet.WriteByte((byte) (User.Map.X / 256));
-            packet.WriteByte((byte) (User.Map.Y / 256));
-            packet.WriteByte((byte) (User.Map.Checksum % 256));
-            packet.WriteByte((byte) (User.Map.Checksum / 256));
+            packet.WriteByte((byte)(User.Map.X / 256));
+            packet.WriteByte((byte)(User.Map.Y / 256));
+            packet.WriteByte((byte)(User.Map.Checksum % 256));
+            packet.WriteByte((byte)(User.Map.Checksum / 256));
             packet.WriteString8(User.Map.Name);
 
             return packet;
@@ -807,7 +807,7 @@ public class ServerPacketStructures
             {
                 var packet = new ServerPacket(OpCode);
 
-                packet.WriteUInt16((ushort) row);
+                packet.WriteUInt16((ushort)row);
                 for (var column = 0; column < Map.X * 6; column += 2)
                 {
                     packet.WriteByte(Map.RawData[tile + 1]);
@@ -879,8 +879,8 @@ public class ServerPacketStructures
             // Unusually, this message length includes the settings number above,
             // and is not just the string length...
             packet.WriteByte(00);
-            packet.WriteByte((byte) (DisplayString.Length + 1));
-            packet.WriteByte((byte) (Number + 0x30));
+            packet.WriteByte((byte)(DisplayString.Length + 1));
+            packet.WriteByte((byte)(Number + 0x30));
             packet.WriteString(DisplayString);
             return packet;
         }
@@ -1086,7 +1086,7 @@ public class ServerPacketStructures
                 packet.WriteByte(0x00);
                 packet.WriteUInt32(ShopGold);
                 packet.WriteByte(0x64); // unknown
-                packet.WriteByte((byte) ShopItems.Length);
+                packet.WriteByte((byte)ShopItems.Length);
                 foreach (var listing in ShopItems)
                 {
                     packet.WriteUInt32(listing.id);
@@ -1123,7 +1123,7 @@ public class ServerPacketStructures
         {
             var packet = new ServerPacket(OpCode);
             packet.WriteByte(Slot);
-            packet.WriteByte((byte) Type);
+            packet.WriteByte((byte)Type);
             packet.WriteByte(Width);
             packet.WriteByte(Height);
             packet.WriteString16(Text);
@@ -1150,7 +1150,7 @@ public class ServerPacketStructures
         public ServerPacket Packet()
         {
             var packet = new ServerPacket(OpCode);
-            packet.WriteByte((byte) Type);
+            packet.WriteByte((byte)Type);
             packet.WriteByte(Width);
             packet.WriteByte(Height);
             packet.WriteBoolean(Centered);
@@ -1190,7 +1190,7 @@ public class ServerPacketStructures
                 ResponseType == BoardResponseType.DeleteMessage ||
                 ResponseType == BoardResponseType.HighlightMessage)
             {
-                packet.WriteByte((byte) ResponseType);
+                packet.WriteByte((byte)ResponseType);
                 packet.WriteBoolean(ResponseSuccess);
                 packet.WriteString8(ResponseString);
             }
@@ -1205,12 +1205,12 @@ public class ServerPacketStructures
                 else
                 {
                     packet.WriteByte(0x02);
-                    packet.WriteByte((byte) (isClick ? 0x02 : 0x01));
+                    packet.WriteByte((byte)(isClick ? 0x02 : 0x01));
                 }
 
                 packet.WriteUInt16(BoardId);
                 packet.WriteString8(BoardName);
-                packet.WriteByte((byte) Messages.Count);
+                packet.WriteByte((byte)Messages.Count);
                 foreach (var message in Messages)
                 {
                     packet.WriteBoolean(message.Highlight);
@@ -1225,7 +1225,7 @@ public class ServerPacketStructures
             else if (ResponseType == BoardResponseType.DisplayList)
             {
                 packet.WriteByte(0x01);
-                packet.WriteUInt16((ushort) (Boards.Count + 1));
+                packet.WriteUInt16((ushort)(Boards.Count + 1));
                 packet.WriteUInt16(0);
                 packet.WriteString8("Mail");
                 foreach (var (Id, Name) in Boards)
@@ -1256,7 +1256,7 @@ public class ServerPacketStructures
                     packet.WriteBoolean(message.Highlight);
                 }
 
-                packet.WriteUInt16((ushort) message.Id);
+                packet.WriteUInt16((ushort)message.Id);
                 packet.WriteString8(message.Sender);
                 packet.WriteByte(message.Month);
                 packet.WriteByte(message.Day);

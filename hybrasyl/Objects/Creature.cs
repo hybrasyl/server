@@ -19,18 +19,17 @@
  * 
  */
 
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
-using Sentry;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -96,11 +95,11 @@ public class Creature : VisibleObject
         {
             if (Equipment.Weapon is null)
                 return 0;
-            var mindmg = (int) Equipment.Weapon.MinSDamage;
-            var maxdmg = (int) Equipment.Weapon.MaxSDamage;
+            var mindmg = (int)Equipment.Weapon.MinSDamage;
+            var maxdmg = (int)Equipment.Weapon.MaxSDamage;
             if (mindmg == 0) mindmg = 1;
             if (maxdmg == 0) maxdmg = 1;
-            return (ushort) Random.Shared.Next(mindmg, maxdmg + 1);
+            return (ushort)Random.Shared.Next(mindmg, maxdmg + 1);
         }
     }
 
@@ -111,11 +110,11 @@ public class Creature : VisibleObject
         {
             if (Equipment.Weapon is null)
                 return 0;
-            var mindmg = (int) Equipment.Weapon.MinLDamage;
-            var maxdmg = (int) Equipment.Weapon.MaxLDamage;
+            var mindmg = (int)Equipment.Weapon.MinLDamage;
+            var maxdmg = (int)Equipment.Weapon.MaxLDamage;
             if (mindmg == 0) mindmg = 1;
             if (maxdmg == 0) maxdmg = 1;
-            return (ushort) Random.Shared.Next(mindmg, maxdmg + 1);
+            return (ushort)Random.Shared.Next(mindmg, maxdmg + 1);
         }
     }
 
@@ -149,24 +148,24 @@ public class Creature : VisibleObject
         switch (direction)
         {
             case Direction.East:
-            {
-                obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X + 1 && x.Y == Y && x is Creature);
-            }
+                {
+                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X + 1 && x.Y == Y && x is Creature);
+                }
                 break;
             case Direction.West:
-            {
-                obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X - 1 && x.Y == Y && x is Creature);
-            }
+                {
+                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X - 1 && x.Y == Y && x is Creature);
+                }
                 break;
             case Direction.North:
-            {
-                obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y - 1 && x is Creature);
-            }
+                {
+                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y - 1 && x is Creature);
+                }
                 break;
             case Direction.South:
-            {
-                obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y + 1 && x is Creature);
-            }
+                {
+                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y + 1 && x is Creature);
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
@@ -190,24 +189,24 @@ public class Creature : VisibleObject
         switch (direction)
         {
             case Direction.East:
-            {
-                rect = new Rectangle(X + 1, Y, radius, 1);
-            }
+                {
+                    rect = new Rectangle(X + 1, Y, radius, 1);
+                }
                 break;
             case Direction.West:
-            {
-                rect = new Rectangle(X - radius, Y, radius, 1);
-            }
+                {
+                    rect = new Rectangle(X - radius, Y, radius, 1);
+                }
                 break;
             case Direction.South:
-            {
-                rect = new Rectangle(X, Y + 1, 1, radius);
-            }
+                {
+                    rect = new Rectangle(X, Y + 1, 1, radius);
+                }
                 break;
             case Direction.North:
-            {
-                rect = new Rectangle(X, Y - radius, 1, radius);
-            }
+                {
+                    rect = new Rectangle(X, Y - radius, 1, radius);
+                }
                 break;
         }
 
@@ -241,7 +240,7 @@ public class Creature : VisibleObject
             }
         }
 
-        if (!castable.IsAssail || Equipment?.Weapon?.Procs == null) 
+        if (!castable.IsAssail || Equipment?.Weapon?.Procs == null)
             return;
 
         foreach (var proc in Equipment.Weapon.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
@@ -409,7 +408,8 @@ public class Creature : VisibleObject
             }
         }
 
-        return finalTargets;
+        // Lastly, remove any duplicates
+        return finalTargets.DistinctBy(x => x.Guid).ToList();
     }
 
     public virtual bool UseCastable(Castable castableXml, Creature target = null)
@@ -448,13 +448,13 @@ public class Creature : VisibleObject
         {
             if (castableXml.Effects?.Animations?.OnCast.Target != null)
                 foreach (var tar in targets)
-                foreach (var user in tar.viewportUsers.ToList())
-                {
-                    GameLog.UserActivityInfo(
-                        $"UseCastable: Sending {user.Name} effect for {Name}: {castableXml.Effects.Animations.OnCast.Target.Id}");
-                    user.SendEffect(tar.Id, castableXml.Effects.Animations.OnCast.Target.Id,
-                        castableXml.Effects.Animations.OnCast.Target.Speed);
-                }
+                    foreach (var user in tar.viewportUsers.ToList())
+                    {
+                        GameLog.UserActivityInfo(
+                            $"UseCastable: Sending {user.Name} effect for {Name}: {castableXml.Effects.Animations.OnCast.Target.Id}");
+                        user.SendEffect(tar.Id, castableXml.Effects.Animations.OnCast.Target.Id,
+                            castableXml.Effects.Animations.OnCast.Target.Speed);
+                    }
 
             if (castableXml.Effects?.Animations?.OnCast?.SpellEffect != null)
             {
@@ -464,7 +464,7 @@ public class Creature : VisibleObject
                     castableXml.Effects.Animations.OnCast.SpellEffect.Speed);
             }
         }
-
+        
         if (castableXml.IsAssail)
         {
             if (Equipment?.Weapon?.AssailSound != null)
@@ -511,8 +511,8 @@ public class Creature : VisibleObject
                 if (X + reactor.RelativeX < byte.MinValue || X + reactor.RelativeX > byte.MaxValue ||
                     Y + reactor.RelativeY < byte.MinValue || Y + reactor.RelativeY > byte.MaxValue)
                     continue;
-                var actualX = (byte) (X + reactor.RelativeX);
-                var actualY = (byte) (Y + reactor.RelativeY);
+                var actualX = (byte)(X + reactor.RelativeX);
+                var actualY = (byte)(Y + reactor.RelativeY);
                 var reactorObj =
                     new Reactor(actualX, actualY, tar.Map, reactor.Script,
                         reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking);
@@ -533,8 +533,8 @@ public class Creature : VisibleObject
                 var damageOutput = NumberCruncher.CalculateDamage(castableXml, tar, this);
                 attackElement = castableXml.Element switch
                 {
-                    ElementType.RandomTemuair => (ElementType) Random.Shared.Next(1, 7),
-                    ElementType.RandomExpanded => (ElementType) Random.Shared.Next(1, 10),
+                    ElementType.RandomTemuair => (ElementType)Random.Shared.Next(1, 7),
+                    ElementType.RandomExpanded => (ElementType)Random.Shared.Next(1, 10),
                     ElementType.Belt => Equipment?.Belt?.Element ?? ElementType.None,
                     ElementType.Necklace => Equipment?.Necklace?.Element ?? ElementType.None,
                     ElementType.None => ElementType.None,
@@ -577,11 +577,12 @@ public class Creature : VisibleObject
             }
 
             // Handle statuses
-
+        
             foreach (var status in castableXml.AddStatuses)
                 if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
+                    var tick = status.Tick == 0 ? applyStatus.Tick : status.Tick;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
                     if (tar.CurrentStatusInfo.Count > 0)
@@ -599,7 +600,7 @@ public class Creature : VisibleObject
                         }
                     }
 
-                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, -1,
+                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
                         status.Intensity));
                 }
                 else
@@ -635,7 +636,7 @@ public class Creature : VisibleObject
         GameLog.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = (ServerPacket) packet.Clone();
+            var nPacket = (ServerPacket)packet.Clone();
             GameLog.DebugFormat($"SendCastLine to {user.Name}");
             user.Enqueue(nPacket);
         }
@@ -651,7 +652,7 @@ public class Creature : VisibleObject
             var arrivingViewport = Rectangle.Empty;
             var departingViewport = Rectangle.Empty;
             var commonViewport = Rectangle.Empty;
-            var halfViewport = Constants.VIEWPORT_SIZE / 2;
+            var halfViewport = Game.ActiveConfiguration.Constants.ViewportSize / 2;
             Warp targetWarp;
 
             switch (direction)
@@ -665,35 +666,35 @@ public class Creature : VisibleObject
 
                 case Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
                     break;
                 case Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
-                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
                     break;
                 case Direction.West:
                     --newX;
                     arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     break;
                 case Direction.East:
                     ++newX;
                     arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     break;
             }
 
-            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte) newX, (byte) newY), out targetWarp);
+            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -711,7 +712,7 @@ public class Creature : VisibleObject
             }
 
             // Is the player trying to walk into an occupied tile?
-            foreach (var obj in Map.GetTileContents((byte) newX, (byte) newY))
+            foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
             {
                 GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
                 if (obj is Creature)
@@ -740,10 +741,10 @@ public class Creature : VisibleObject
 
             // Calculate the common viewport between the old and new position
 
-            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
-                Constants.VIEWPORT_SIZE);
-            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
-                Constants.VIEWPORT_SIZE));
+            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
+                Game.ActiveConfiguration.Constants.ViewportSize);
+            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Game.ActiveConfiguration.Constants.ViewportSize,
+                Game.ActiveConfiguration.Constants.ViewportSize));
             GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
             GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
                 arrivingViewport.Y);
@@ -753,8 +754,8 @@ public class Creature : VisibleObject
                 commonViewport.X,
                 commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
-            X = (byte) newX;
-            Y = (byte) newY;
+            X = (byte)newX;
+            Y = (byte)newY;
             Direction = direction;
             // Objects in the common viewport receive a "walk" (0x0C) packet
             // Objects in the arriving viewport receive a "show to" (0x33) packet
@@ -768,9 +769,9 @@ public class Creature : VisibleObject
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                     var x0C = new ServerPacket(0x0C);
                     x0C.WriteUInt32(Id);
-                    x0C.WriteUInt16((byte) oldX);
-                    x0C.WriteUInt16((byte) oldY);
-                    x0C.WriteByte((byte) direction);
+                    x0C.WriteUInt16((byte)oldX);
+                    x0C.WriteUInt16((byte)oldY);
+                    x0C.WriteByte((byte)direction);
                     x0C.WriteByte(0x00);
                     user.Enqueue(x0C);
                 }
@@ -811,7 +812,7 @@ public class Creature : VisibleObject
                 var user = obj as User;
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
-                x11.WriteByte((byte) direction);
+                x11.WriteByte((byte)direction);
                 user.Enqueue(x11);
             }
 
@@ -820,7 +821,7 @@ public class Creature : VisibleObject
                 var mob = obj as Monster;
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
-                x11.WriteByte((byte) direction);
+                x11.WriteByte((byte)direction);
                 foreach (var user in Map.EntityTree.GetObjects(Map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
                     user.Enqueue(x11);
             }
@@ -840,11 +841,15 @@ public class Creature : VisibleObject
 
     public virtual void Heal(double heal, Creature source = null, Castable castable = null)
     {
-        OnHeal(new HealEvent { Amount = Convert.ToUInt32(heal), Source = source, SourceCastable = castable, Target = this});
+        var bonusHeal = (heal * Stats.BaseInboundHealModifier) + (heal * source?.Stats.BaseOutboundHealModifier ?? 0.0);
+        heal += bonusHeal;
+
+        OnHeal(new HealEvent { Amount = Convert.ToUInt32(heal), BonusHeal = Convert.ToInt32(bonusHeal), 
+            Source = source, SourceCastable = castable, Target = this });
 
         if (AbsoluteImmortal || PhysicalImmortal) return;
         if (Stats.Hp == Stats.MaximumHp) return;
-        Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint) (Stats.Hp + heal));
+        Stats.Hp = heal > uint.MaxValue ? Stats.MaximumHp : Math.Min(Stats.MaximumHp, (uint)(Stats.Hp + heal));
         SendDamageUpdate(this);
     }
 
@@ -856,7 +861,7 @@ public class Creature : VisibleObject
         if (Stats.Mp == Stats.MaximumMp || mp > Stats.MaximumMp)
             return;
 
-        Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint) (Stats.Mp + mp));
+        Stats.Mp = mp > uint.MaxValue ? Stats.MaximumMp : Math.Min(Stats.MaximumMp, (uint)(Stats.Mp + mp));
     }
 
     public virtual void Damage(double damage, ElementType element = ElementType.None,
@@ -869,15 +874,15 @@ public class Creature : VisibleObject
         damageEvent.SourceCastable = castable;
         damageEvent.Target = this;
         damageEvent.Element = element;
+        damageEvent.Type = damageType;
 
         // Handle dodging first
         if (damageType == DamageType.Physical && Stats.Dodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
             var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
-            if (Random.Shared.Next(100) <= Stats.Dodge - dodgeReduction)
+            if (Random.Shared.NextDouble() <= Stats.Dodge * dodgeReduction)
             {
                 Effect(115, 100);
-
                 return;
             }
         }
@@ -885,7 +890,7 @@ public class Creature : VisibleObject
         if (damageType == DamageType.Magical && Stats.MagicDodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
             var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
-            if (Random.Shared.Next(100) <= Stats.MagicDodge - dodgeReduction)
+            if (Random.Shared.NextDouble() <= Stats.MagicDodge * dodgeReduction)
             {
                 Effect(33, 100);
                 return;
@@ -895,7 +900,7 @@ public class Creature : VisibleObject
         if (attacker is User && this is Monster)
         {
             if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) ||
-                (DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT) FirstHitter = attacker;
+                (DateTime.Now - LastHitTime).TotalSeconds > Game.ActiveConfiguration.Constants.MonsterTaggingTimeout) FirstHitter = attacker;
             if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
         }
 
@@ -907,7 +912,7 @@ public class Creature : VisibleObject
             double armor = Stats.Ac * -1 + 100;
             var reduction = damage * (armor / (armor + 50));
             damage -= reduction;
-            damageEvent.ArmorReduction = Convert.ToUInt32(reduction);
+            damageEvent.ArmorReduction = Convert.ToInt32(reduction);
         }
 
         // handle elements
@@ -919,7 +924,7 @@ public class Creature : VisibleObject
             {
                 var multiplier = multiplierList
                     .FirstOrDefault(predicate: x => x.Element == Stats.BaseDefensiveElement)?.Multiplier ?? 1.0;
-                damageEvent.ElementalInteraction = Convert.ToUInt32(damage * multiplier);
+                damageEvent.ElementalInteraction = Convert.ToInt32(damage * multiplier);
                 damage *= multiplier;
             }
         }
@@ -927,45 +932,27 @@ public class Creature : VisibleObject
         // Handle dmg/mr/crit/magiccrit
         if (attacker != null && damageType != DamageType.Direct)
         {
-            _mLastHitter = attacker.Id;
-            if (attacker.Stats.Dmg > 0)
-            {
-                damage += damage * attacker.Stats.Dmg;
-                damageEvent.BonusDmg = Convert.ToUInt32(damage * attacker.Stats.Dmg);
-            }
-            else
-            {
-                damage -= damage * attacker.Stats.Dmg;
-                damageEvent.BonusDmg = Convert.ToUInt32(damage * attacker.Stats.Dmg * -1);
-            }
-
+            damage += damage * attacker.Stats.Dmg;
+            damageEvent.BonusDmg = Convert.ToInt32(damage * attacker.Stats.Dmg);
 
             if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
-                if (Stats.Mr > 0)
-                {
-                    damage -= damage * Stats.Mr;
-                    damageEvent.MagicResisted = Convert.ToUInt32(damage * Stats.Mr);
-                }
-                else
-                {
-                    damage += damage * Stats.Mr * -1;
-                    damageEvent.MagicResisted = Convert.ToUInt32(damage * Stats.Mr * -1);
-                }
+                damage += damage * Stats.Mr;
+                damageEvent.MagicResisted = Convert.ToInt32(damage * Stats.Mr);
             }
 
             if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical &&
                 !damageFlags.HasFlag(DamageFlags.NoCrit))
-                if (Random.Shared.Next(100) <= attacker.Stats.Crit)
+                if (Random.Shared.NextDouble() <= attacker.Stats.Crit)
                 {
-                   damage += damage * 0.5;
-                   damageEvent.Crit = true;
-                   Effect(24, 100);
+                    damage += damage * 0.5;
+                    damageEvent.Crit = true;
+                    Effect(24, 100);
                 }
 
             if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical &&
                 !damageFlags.HasFlag(DamageFlags.NoCrit))
-                if (Random.Shared.Next(100) <= attacker.Stats.Crit)
+                if (Random.Shared.NextDouble() <= attacker.Stats.Crit)
                 {
                     damage += damage * 2;
                     damageEvent.MagicCrit = true;
@@ -974,34 +961,38 @@ public class Creature : VisibleObject
 
             // negative dodge, aka "i rolled a 1 and hit myself in the face"
             if (damageType != DamageType.Magical && Stats.Dodge < 0)
-                if (Random.Shared.Next(100) <= Stats.Dodge * -1)
+                if (Random.Shared.Next() <= Stats.Dodge * -1)
                 {
                     Effect(68, 100);
                     var selfDamage = damage * -1 * 0.25;
                     (attacker as User)?.SendSystemMessage("You fumble, and strike yourself hard!");
                     attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
-                        new StatInfo { DeltaHp = (long) selfDamage },
+                        new StatInfo { DeltaHp = (long)selfDamage },
                         new StatChangeEvent
                         {
                             Amount = Convert.ToUInt32(selfDamage),
-                            EventType = CombatLogEventType.CriticalFailure, Source = attacker, Target = this
+                            EventType = CombatLogEventType.CriticalFailure,
+                            Source = attacker,
+                            Target = this
                         });
                     return;
                 }
 
             // negative magic dodge, aka "i rolled a 1 and my robes exploded"
             if (damageType == DamageType.Magical && Stats.MagicDodge < 0)
-                if (Random.Shared.Next(100) <= Stats.MagicDodge * -1)
+                if (Random.Shared.NextDouble() <= Stats.MagicDodge * -1)
                 {
                     Effect(68, 100);
                     var selfDamage = damage * -1 * 0.25;
                     (attacker as User)?.SendSystemMessage("You stammer, and flames envelop you!");
                     attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
-                        new StatInfo { DeltaHp = (long) selfDamage },
+                        new StatInfo { DeltaHp = (long)selfDamage },
                         new StatChangeEvent
                         {
                             Amount = Convert.ToUInt32(selfDamage),
-                            EventType = CombatLogEventType.CriticalMagicFailure, Source = attacker, Target = this
+                            EventType = CombatLogEventType.CriticalMagicFailure,
+                            Source = attacker,
+                            Target = this
                         });
                     return;
                 }
@@ -1010,24 +1001,26 @@ public class Creature : VisibleObject
 
         // Apply elemental resistances, if they exist
         var resisted = Stats.ElementalModifiers?.GetResistance(element) ?? 0.0;
-
-        if (resisted != 0.0)
-        {
-            damage -= damage * resisted;
-            damageEvent.ElementalResisted = Convert.ToUInt32(damage * resisted);
-        }
+        damage -= damage * resisted;
+        damageEvent.ElementalResisted = Convert.ToInt32(damage * resisted);
 
         // Apply augmentation, if exists
         var augment = attacker?.Stats?.ElementalModifiers?.GetAugment(element) ?? 0.0;
+        damage += damage * augment;
+        damageEvent.ElementalAugmented = Convert.ToInt32(damage * augment);
 
-        if (augment != 0.0)
-        {
-            damage += damage * augment;
-            damageEvent.ElementalAugmented = Convert.ToUInt32(damage * augment);
-        }
+        // Handle straight damage buff / debuff from inbound modifiers
+        var modified = (damage * Stats.InboundDamageModifier) +
+                       (damage * attacker?.Stats?.OutboundDamageModifier ?? 0.0);
+        damage += modified;
+        damageEvent.ModifierDmg = Convert.ToInt32(modified);
+        
+        
+        // Negative damage (possible with augments and resistances) 
+        if (damage < 0) damage = 1;
 
         // Now, normalize damage for uint (max hp)
-        var normalized = (uint) damage;
+        var normalized = (uint)damage;
 
         if (normalized > Stats.Hp && damageFlags.HasFlag(DamageFlags.Nonlethal))
             normalized = Stats.Hp - 1;
@@ -1044,55 +1037,64 @@ public class Creature : VisibleObject
         }
 
         damageEvent.Amount = normalized;
+        _mLastHitter = attacker?.Id ?? 0;
         OnDamage(damageEvent);
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects
         // without mitigation.
         if (Stats.ReflectMagical > 0 && damageType == DamageType.Magical && attacker != null)
         {
-            var reflected = Stats.ReflectMagical / 100 * normalized;
+            var reflected = Stats.ReflectMagical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) (reflected * -1) },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(reflected * -1) },
                     new StatChangeEvent
                     {
-                        Amount = Convert.ToUInt32(reflected * -1), EventType = CombatLogEventType.ReflectMagical,
-                        Source = attacker, Target = this
+                        Amount = Convert.ToUInt32(reflected * -1),
+                        EventType = CombatLogEventType.ReflectMagical,
+                        Source = attacker,
+                        Target = this
                     });
         }
 
         if (Stats.ReflectPhysical > 0 && damageType == DamageType.Physical && attacker != null)
         {
-            var reflected = Stats.ReflectPhysical / 100 * normalized;
+            var reflected = Stats.ReflectPhysical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) reflected * -1 },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)reflected * -1 },
                     new StatChangeEvent
                     {
-                        Amount = Convert.ToUInt32(reflected * -1), EventType = CombatLogEventType.ReflectPhysical,
-                        Source = attacker, Target = this
+                        Amount = Convert.ToUInt32(reflected * -1),
+                        EventType = CombatLogEventType.ReflectPhysical,
+                        Source = attacker,
+                        Target = this
                     });
         }
 
         if (attacker != null && attacker.Stats.LifeSteal > 0)
         {
-            var stolen = normalized * (Stats.LifeSteal / 100);
+            var stolen = normalized * Stats.LifeSteal;
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long) stolen },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)stolen },
                     new StatChangeEvent
                     {
                         Amount = Convert.ToUInt32(stolen),
-                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this
+                        EventType = CombatLogEventType.LifeSteal,
+                        Source = attacker,
+                        Target = this
                     });
         }
 
         if (attacker != null && attacker.Stats.ManaSteal > 0)
         {
-            var stolen = normalized * (Stats.ManaSteal / 100);
+            var stolen = normalized * Stats.ManaSteal;
             if (stolen > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) stolen },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long)stolen },
                     new StatChangeEvent
                     {
                         Amount = Convert.ToUInt32(stolen),
-                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this
+                        EventType = CombatLogEventType.LifeSteal,
+                        Source = attacker,
+                        Target = this
                     });
         }
 
@@ -1100,17 +1102,23 @@ public class Creature : VisibleObject
 
         if (attacker != null && Stats.InboundDamageToMp > 0)
         {
-            var redirected = Stats.InboundDamageToMp / 100 * normalized;
+            var redirected = Stats.InboundDamageToMp * normalized;
             if (redirected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long) redirected },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaMp = (long)redirected },
                     new StatChangeEvent
                     {
                         Amount = Convert.ToUInt32(redirected),
-                        EventType = CombatLogEventType.LifeSteal, Source = attacker, Target = this, SourceCastable = castable
+                        EventType = CombatLogEventType.LifeSteal,
+                        Source = attacker,
+                        Target = this,
+                        SourceCastable = castable
                     });
         }
 
-        Stats.Hp = (int) Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
+        if ((MagicalImmortal && damageType != DamageType.Magical) ||
+            (PhysicalImmortal && damageType != DamageType.Physical) ||
+            !AbsoluteImmortal)
+            Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
 
         SendDamageUpdate(this);
 
@@ -1123,12 +1131,12 @@ public class Creature : VisibleObject
     private void SendDamageUpdate(Creature creature)
     {
         if (Map == null) return;
-        var percent = creature.Stats.Hp / (double) creature.Stats.MaximumHp * 100;
-        var healthbar = new ServerPacketStructures.HealthBar { CurrentPercent = (byte) percent, ObjId = creature.Id };
+        var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
+        var healthbar = new ServerPacketStructures.HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = (ServerPacket) healthbar.Packet().Clone();
+            var nPacket = healthbar.Packet().Clone();
             user.Enqueue(nPacket);
         }
     }

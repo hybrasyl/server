@@ -19,12 +19,12 @@
  * 
  */
 
+using Hybrasyl.Interfaces;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Interfaces;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Messaging;
 
@@ -60,7 +60,7 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
 
     public IEnumerator<Message> GetEnumerator()
     {
-        return Messages.Take(Constants.MESSAGE_RETURN_SIZE).Where(predicate: message => !message.Deleted)
+        return Messages.Take(Game.ActiveConfiguration.Constants.BoardMessageResponseSize).Where(predicate: message => !message.Deleted)
             .GetEnumerator();
     }
 
@@ -142,7 +142,7 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
     public List<MessageInfo> GetIndex()
     {
         var index = new List<MessageInfo>();
-        foreach (var message in this.Take(Constants.MESSAGE_RETURN_SIZE))
+        foreach (var message in this.Take(Game.ActiveConfiguration.Constants.BoardMessageResponseSize))
         {
             var info = message.Info;
             if (this is Board)

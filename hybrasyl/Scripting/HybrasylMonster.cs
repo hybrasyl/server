@@ -52,7 +52,7 @@ public class HybrasylMonster : HybrasylWorldObject
 
     public void SetCreatureDisplaySprite(int displaySprite)
     {
-        Monster.Sprite = (ushort) displaySprite;
+        Monster.Sprite = (ushort)displaySprite;
     }
 
     public int GetCreatureDisplaySprite() => Monster.Sprite;
@@ -83,7 +83,7 @@ public class HybrasylMonster : HybrasylWorldObject
         s += $"AbsoluteImmortal: {Monster.AbsoluteImmortal}\n";
         s += $"PhysicalImmortal: {Monster.PhysicalImmortal}\n";
         s += $"MagicalImmortal: {Monster.MagicalImmortal}\n";
-        
+
         s += $"ShouldWander: {Monster.ShouldWander}\n";
 
         if (Monster.Target != null) s += $"Target: {Monster.Target.Name}\n";

@@ -1,7 +1,7 @@
-﻿using System;
-using System.Linq;
-using Hybrasyl.Enums;
+﻿using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using System;
+using System.Linq;
 
 namespace Hybrasyl.ChatCommands;
 

@@ -19,10 +19,10 @@
  * 
  */
 
-using System.Linq;
-using System.Text.RegularExpressions;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -175,8 +175,8 @@ internal class ItemListCommand : ChatCommand
         {
             var term = new Regex($"{searchstring}");
             var queryItems = from aitem in Game.World.WorldData.Values<Item>()
-                where term.IsMatch(aitem.Name)
-                select aitem;
+                             where term.IsMatch(aitem.Name)
+                             select aitem;
 
             var result = queryItems.Aggregate("", func: (current, item) => current + $"{item.Name}\n");
             if (result.Length > 65400)

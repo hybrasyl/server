@@ -65,7 +65,7 @@ public class Warp
                 {
                     SourceMap.Remove(target);
                     target.SendWorldMap(wmap);
-                    SourceMap.World.WorldState.Get<MapObject>(Constants.LAG_MAP).Insert(target, 5, 5, false);
+                    SourceMap.World.WorldState.Get<MapObject>(Game.ActiveConfiguration.Constants.LagMap).Insert(target, 5, 5, false);
                     return true;
                 }
 

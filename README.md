@@ -1,5 +1,5 @@
 # Hybrasyl Server
-
+[![Create a Game Account](https://img.shields.io/badge/-Create%20A%20Game%20Account-red?style=plastic)](http://accounts.hybrasyl.com/)   
 [![Project website](https://img.shields.io/badge/-Project%20Website-blue?style=plastic)](http://hybrasyl.com/) 
 [![Bug Tracker](https://img.shields.io/badge/-Bug%20Tracker-blue?style=plastic)](https://www.hybrasyl.com/bugs/) 
 [![Server](https://img.shields.io/badge/-Server-blue?style=plastic)](https://github.com/hybrasyl/server)
@@ -10,10 +10,13 @@
 
 Our aim is to create a well-documented and
 exceptionally accurate DOOMVAS v1 emulator (example:
-[Dark Ages](http://www.darkages.com)). Look around,
-[make an account](https://www.hybrasyl.com/accounts/sign_up), and join us
-sometime.
+[Dark Ages](http://www.darkages.com)). 
 
+### For Players
+>**If you are looking to play Hybrasyl, you're in the wrong spot!**  
+[Create an account](https://accounts.hybrasyl.com), and join us as we implement Kennerly's vision with new technology and better gameplay.
+
+### For Developers, Contributors, Server Hosts
 This document is intended for developers; if you're interested in
 using a released version of Hybrasyl server, please check our
 [Github releases page](https://github.com/hybrasyl/server/releases).

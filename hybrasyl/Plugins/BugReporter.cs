@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Discord.Webhook;
+using System;
 using System.IO;
 using System.Threading.Tasks;
-using Discord.Webhook;
 
 namespace Hybrasyl.Plugins;
 
@@ -24,6 +24,7 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
             Disabled = false;
             return true;
         }
+
 
         throw new ArgumentException("Initialize: needed WebhookUrl and OutputDir to be defined, aborting");
     }
@@ -63,7 +64,7 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
     {
         try
         {
-            await File.WriteAllTextAsync(Path.Join(OutputDir, $"bugreport-{sender}-{id}.txt"), text);
+            await File.WriteAllTextAsync(Path.Join(Game.DataDirectory, OutputDir, $"bugreport-{sender}-{id}.txt"), text);
         }
         catch (Exception e)
         {

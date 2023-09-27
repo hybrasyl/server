@@ -19,6 +19,7 @@
  * 
  */
 
+using Hybrasyl.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -30,7 +31,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Hybrasyl.Enums;
 
 namespace Hybrasyl;
 
@@ -210,26 +210,26 @@ public class Client
         ClientState = new ClientState(socket);
         Server = server;
         GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
-            ((IPEndPoint) Socket.RemoteEndPoint).Address.ToString(),
-            ((IPEndPoint) Socket.RemoteEndPoint).Port);
+            ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
+            ((IPEndPoint)Socket.RemoteEndPoint).Port);
 
         if (server is Lobby)
         {
             EncryptionKey = Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint != null
                 ? GlobalConnectionManifest.RequestEncryptionKey(Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
-                    ((IPEndPoint) socket.RemoteEndPoint).Address)
+                    ((IPEndPoint)socket.RemoteEndPoint).Address)
                 : Encoding.ASCII.GetBytes("UrkcnItnI");
             GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
 
             var valid = Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint != null
                 ? GlobalConnectionManifest.ValidateEncryptionKey(Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint.Url,
                     new ServerToken
-                        { Ip = ((IPEndPoint) socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey })
+                    { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey })
                 : true;
 
             if (!valid)
             {
-                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint) Socket.RemoteEndPoint).Address.ToString());
+                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString());
                 socket.Disconnect(true);
             }
         }
@@ -255,7 +255,7 @@ public class Client
     {
         get
         {
-            if (Socket != null) return ((IPEndPoint) Socket.RemoteEndPoint).Address.ToString();
+            if (Socket != null) return ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString();
             return "nil";
         }
     }
@@ -293,15 +293,15 @@ public class Client
     public void SendByteHeartbeat()
     {
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
-        if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
+        if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
         var byteHeartbeat = new ServerPacket(0x3b);
         var a = Random.Shared.Next(254);
         var b = Random.Shared.Next(254);
         Interlocked.Exchange(ref _heartbeatA, a);
         Interlocked.Exchange(ref _heartbeatB, b);
-        byteHeartbeat.WriteByte((byte) a);
-        byteHeartbeat.WriteByte((byte) b);
+        byteHeartbeat.WriteByte((byte)a);
+        byteHeartbeat.WriteByte((byte)b);
         Enqueue(byteHeartbeat);
         Interlocked.Exchange(ref _byteHeartbeatSent, DateTime.Now.Ticks);
     }
@@ -313,7 +313,7 @@ public class Client
     {
         var now = DateTime.Now.Ticks;
         var idletime = new TimeSpan(now - _lastReceived);
-        if (idletime.TotalSeconds > Constants.IDLE_TIME)
+        if (idletime.TotalSeconds > Game.ActiveConfiguration.Constants.PlayerIdleTime)
         {
             GameLog.DebugFormat("cid {0}: idle for {1} seconds, marking as idle", ConnectionId, idletime.TotalSeconds);
             ToggleIdle();
@@ -332,7 +332,7 @@ public class Client
     public void SendTickHeartbeat()
     {
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
-        if (aliveSince.TotalSeconds < Constants.BYTE_HEARTBEAT_INTERVAL)
+        if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
         var tickHeartbeat = new ServerPacket(0x68);
         // We never really want to deal with negative values
@@ -396,8 +396,8 @@ public class Client
         GameLog.DebugFormat("cid {0}: tick heartbeat elapsed seconds {1}, byte heartbeat elapsed seconds {2}",
             ConnectionId, tickSpan.TotalSeconds, byteSpan.TotalSeconds);
 
-        if (tickSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL ||
-            byteSpan.TotalSeconds > Constants.REAP_HEARTBEAT_INTERVAL)
+        if (tickSpan.TotalSeconds > Game.ActiveConfiguration.Constants.ReapHeartbeatInterval ||
+            byteSpan.TotalSeconds > Game.ActiveConfiguration.Constants.ReapHeartbeatInterval)
         {
             // DON'T FEAR THE REAPER
             GameLog.InfoFormat("cid {0}: heartbeat expired", ConnectionId);
@@ -572,8 +572,6 @@ public class Client
                             else if (packet.Opcode == 0x06)
                                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.TriggerRefresh,
                                     ConnectionId));
-                            else
-                                GameLog.Warning($"{this.RemoteAddress}: throttled for {packet.Opcode}");
                         }
                     }
                     catch (Exception e)
@@ -594,7 +592,7 @@ public class Client
 
     public void SendCallback(IAsyncResult ar)
     {
-        var state = (ClientState) ar.AsyncState;
+        var state = (ClientState)ar.AsyncState;
         Client client;
         GameLog.DebugFormat(
             $"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
@@ -615,7 +613,7 @@ public class Client
             {
                 GameLog.ErrorFormat("cid {0}: disconnected");
                 client.Disconnect();
-                throw new SocketException((int) errorCode);
+                throw new SocketException((int)errorCode);
             }
         }
         catch (SocketException e)
@@ -692,10 +690,10 @@ public class Client
 
         var x03 = new ServerPacket(0x03);
         x03.Write(addressBytes);
-        x03.WriteUInt16((ushort) redirect.Destination.Port);
-        x03.WriteByte((byte) (redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
+        x03.WriteUInt16((ushort)redirect.Destination.Port);
+        x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
         x03.WriteByte(redirect.EncryptionSeed);
-        x03.WriteByte((byte) redirect.EncryptionKey.Length);
+        x03.WriteByte((byte)redirect.EncryptionKey.Length);
         x03.Write(redirect.EncryptionKey);
         x03.WriteString8(redirect.Name);
         x03.WriteUInt32(redirect.Id);

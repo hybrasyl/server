@@ -24,7 +24,7 @@ public class TextDialog : InputDialog
             BottomCaption);
         var dialogPacket = GenerateBasePacket(invocation);
         dialogPacket.WriteString8(TopCaption);
-        dialogPacket.WriteByte((byte) InputLength);
+        dialogPacket.WriteByte((byte)InputLength);
         dialogPacket.WriteString8(BottomCaption);
         invocation.Target.Enqueue(dialogPacket);
         RunCallback(invocation);

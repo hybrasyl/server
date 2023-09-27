@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using Hybrasyl.Dialogs;
+﻿using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using MoonSharp.Interpreter;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Scripting;
 
@@ -18,18 +18,18 @@ public class HybrasylInteractable : IStateStorable
 
     public void RegisterDialogSequence(HybrasylDialogSequence wrapped)
     {
-        wrapped.Sequence.Id = (uint) (Sequences.Count + 1);
+        wrapped.Sequence.Id = (uint)(Sequences.Count + 1);
         Sequences.Add(wrapped.Sequence);
         Index.Add(wrapped.Sequence.Name, wrapped.Sequence);
     }
 
     public void SetItemSprite(ushort sprite)
     {
-        Sprite = (ushort) (0x8000 + sprite);
+        Sprite = (ushort)(0x8000 + sprite);
     }
 
     public void SetCreatureSprite(ushort sprite)
     {
-        Sprite = (ushort) (0x4000 + sprite);
+        Sprite = (ushort)(0x4000 + sprite);
     }
 }

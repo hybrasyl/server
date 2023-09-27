@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using Hybrasyl.Dialogs;
+﻿using Hybrasyl.Dialogs;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
 using Script = Hybrasyl.Scripting.Script;
 
 namespace Hybrasyl.Casting;

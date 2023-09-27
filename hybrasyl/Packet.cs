@@ -20,12 +20,8 @@
  */
 
 using System;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
 
 namespace Hybrasyl;
 
@@ -321,8 +317,8 @@ public abstract class Packet
         var shouldEncrypt = ShouldEncrypt ? 5 : 4;
         var buffer = new byte[Data.Length + shouldEncrypt];
         buffer[0] = 0xAA;
-        buffer[1] = (byte) ((buffer.Length - 3) / 256);
-        buffer[2] = (byte) (buffer.Length - 3);
+        buffer[1] = (byte)((buffer.Length - 3) / 256);
+        buffer[2] = (byte)(buffer.Length - 3);
         buffer[3] = Opcode;
         buffer[4] = Ordinal;
 
@@ -534,7 +530,7 @@ public class ClientPacket : Packet
         if (_position + 1 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (sbyte) Data[_position++];
+        return (sbyte)Data[_position++];
     }
 
     public bool ReadBoolean()
@@ -550,7 +546,7 @@ public class ClientPacket : Packet
         if (_position + 2 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (short) ((Data[_position++] << 8) | Data[_position++]);
+        return (short)((Data[_position++] << 8) | Data[_position++]);
     }
 
     public ushort ReadUInt16()
@@ -558,7 +554,7 @@ public class ClientPacket : Packet
         if (_position + 2 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (ushort) ((Data[_position++] << 8) | Data[_position++]);
+        return (ushort)((Data[_position++] << 8) | Data[_position++]);
     }
 
     public int ReadInt32()
@@ -574,7 +570,7 @@ public class ClientPacket : Packet
         if (_position + 4 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (uint) ((Data[_position++] << 24) | (Data[_position++] << 16) | (Data[_position++] << 8) |
+        return (uint)((Data[_position++] << 24) | (Data[_position++] << 16) | (Data[_position++] << 8) |
                        Data[_position++]);
     }
 
@@ -618,45 +614,45 @@ public class ClientPacket : Packet
     {
         ushort crc = 0;
         for (var i = 0; i < Data.Length - 6; i++)
-            crc = (ushort) (Data[6 + i] ^ (ushort) (crc << 8) ^ DialogCrcTable[crc >> 8]);
-        Data[0] = (byte) Random.Shared.Next();
-        Data[1] = (byte) Random.Shared.Next();
-        Data[2] = (byte) ((Data.Length - 4) / 256);
-        Data[3] = (byte) ((Data.Length - 4) % 256);
-        Data[4] = (byte) (crc / 256);
-        Data[5] = (byte) (crc % 256);
+            crc = (ushort)(Data[6 + i] ^ (ushort)(crc << 8) ^ DialogCrcTable[crc >> 8]);
+        Data[0] = (byte)Random.Shared.Next();
+        Data[1] = (byte)Random.Shared.Next();
+        Data[2] = (byte)((Data.Length - 4) / 256);
+        Data[3] = (byte)((Data.Length - 4) % 256);
+        Data[4] = (byte)(crc / 256);
+        Data[5] = (byte)(crc % 256);
     }
 
     public void EncryptDialog()
     {
         var length = (Data[2] << 8) | Data[3];
-        var xPrime = (byte) (Data[0] - 0x2D);
-        var x = (byte) (Data[1] ^ xPrime);
-        var y = (byte) (x + 0x72);
-        var z = (byte) (x + 0x28);
+        var xPrime = (byte)(Data[0] - 0x2D);
+        var x = (byte)(Data[1] ^ xPrime);
+        var y = (byte)(x + 0x72);
+        var z = (byte)(x + 0x28);
         Data[2] ^= y;
-        Data[3] ^= (byte) ((y + 1) % 256);
-        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte) ((z + i) % 256);
+        Data[3] ^= (byte)((y + 1) % 256);
+        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
 
     public void DecryptDialog()
     {
-        var xPrime = (byte) (Data[0] - 0x2D);
-        var x = (byte) (Data[1] ^ xPrime);
-        var y = (byte) (x + 0x72);
-        var z = (byte) (x + 0x28);
+        var xPrime = (byte)(Data[0] - 0x2D);
+        var x = (byte)(Data[1] ^ xPrime);
+        var y = (byte)(x + 0x72);
+        var z = (byte)(x + 0x28);
         Data[2] ^= y;
-        Data[3] ^= (byte) ((y + 1) % 256);
+        Data[3] ^= (byte)((y + 1) % 256);
         var length = (Data[2] << 8) | Data[3];
-        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte) ((z + i) % 256);
+        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
 
     public void Decrypt(Client client)
     {
         var length = Data.Length - 3;
 
-        var bRand = (ushort) (((Data[length + 2] << 8) | Data[length]) ^ 0x7470);
-        var sRand = (byte) (Data[length + 1] ^ 0x23);
+        var bRand = (ushort)(((Data[length + 2] << 8) | Data[length]) ^ 0x7470);
+        var sRand = (byte)(Data[length + 1] ^ 0x23);
 
         var key = UseDefaultKey ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
 
@@ -768,50 +764,50 @@ public class ServerPacket : Packet
     public void WriteSByte(sbyte value)
     {
         if (_position + 1 > Data.Length) Array.Resize(ref Data, _position + 1);
-        Data[_position++] = (byte) value;
+        Data[_position++] = (byte)value;
     }
 
     public void WriteBoolean(bool value)
     {
         if (_position + 1 > Data.Length) Array.Resize(ref Data, _position + 1);
-        Data[_position++] = (byte) (value ? 1 : 0);
+        Data[_position++] = (byte)(value ? 1 : 0);
     }
 
     public void WriteInt16(short value)
     {
         if (_position + 2 > Data.Length) Array.Resize(ref Data, _position + 2);
-        Data[_position++] = (byte) (value >> 8);
-        Data[_position++] = (byte) value;
+        Data[_position++] = (byte)(value >> 8);
+        Data[_position++] = (byte)value;
     }
 
     public void WriteUInt16(ushort value)
     {
         if (_position + 2 > Data.Length) Array.Resize(ref Data, _position + 2);
-        Data[_position++] = (byte) (value >> 8);
-        Data[_position++] = (byte) value;
+        Data[_position++] = (byte)(value >> 8);
+        Data[_position++] = (byte)value;
     }
 
     public void WriteInt32(int value)
     {
         if (_position + 4 > Data.Length) Array.Resize(ref Data, _position + 4);
-        Data[_position++] = (byte) (value >> 24);
-        Data[_position++] = (byte) (value >> 16);
-        Data[_position++] = (byte) (value >> 8);
-        Data[_position++] = (byte) value;
+        Data[_position++] = (byte)(value >> 24);
+        Data[_position++] = (byte)(value >> 16);
+        Data[_position++] = (byte)(value >> 8);
+        Data[_position++] = (byte)value;
     }
 
     public void WriteUInt32(uint value)
     {
         if (_position + 4 > Data.Length) Array.Resize(ref Data, _position + 4);
-        Data[_position++] = (byte) (value >> 24);
-        Data[_position++] = (byte) (value >> 16);
-        Data[_position++] = (byte) (value >> 8);
-        Data[_position++] = (byte) value;
+        Data[_position++] = (byte)(value >> 24);
+        Data[_position++] = (byte)(value >> 16);
+        Data[_position++] = (byte)(value >> 8);
+        Data[_position++] = (byte)value;
     }
 
     public void WriteStringWithLength(string value)
     {
-        WriteByte((byte) value.Length);
+        WriteByte((byte)value.Length);
         var buffer = Encoding.ASCII.GetBytes(value);
         if (_position + buffer.Length > Data.Length) Array.Resize(ref Data, _position + buffer.Length);
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
@@ -831,7 +827,7 @@ public class ServerPacket : Packet
         value = value ?? string.Empty;
         var buffer = Encoding.ASCII.GetBytes(value);
         if (_position + 1 + buffer.Length > Data.Length) Array.Resize(ref Data, _position + 1 + buffer.Length);
-        Data[_position++] = (byte) buffer.Length;
+        Data[_position++] = (byte)buffer.Length;
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
@@ -840,8 +836,8 @@ public class ServerPacket : Packet
     {
         var buffer = Encoding.ASCII.GetBytes(value);
         if (_position + 2 + buffer.Length > Data.Length) Array.Resize(ref Data, _position + 2 + buffer.Length);
-        Data[_position++] = (byte) (buffer.Length >> 8);
-        Data[_position++] = (byte) buffer.Length;
+        Data[_position++] = (byte)(buffer.Length >> 8);
+        Data[_position++] = (byte)buffer.Length;
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
     }
@@ -870,9 +866,9 @@ public class ServerPacket : Packet
         var length = Data.Length - 3;
 
         //var bRand = (ushort)(rand.Next() % 65277 + 256);
-        var bRand = (ushort) (Random.Shared.Next(65277) + 256);
+        var bRand = (ushort)(Random.Shared.Next(65277) + 256);
         //var sRand = (byte)(rand.Next() % 155 + 100);
-        var sRand = (byte) (Random.Shared.Next(155) + 100);
+        var sRand = (byte)(Random.Shared.Next(155) + 100);
 
         byte[] key;
         switch (EncryptMethod)
@@ -897,9 +893,9 @@ public class ServerPacket : Packet
                 Data[i] ^= SaltTable[client.EncryptionSeed][Ordinal];
         }
 
-        Data[length] = (byte) ((bRand % 256) ^ 0x74);
-        Data[length + 1] = (byte) (sRand ^ 0x24);
-        Data[length + 2] = (byte) (((bRand >> 8) % 256) ^ 0x64);
+        Data[length] = (byte)((bRand % 256) ^ 0x74);
+        Data[length + 1] = (byte)(sRand ^ 0x24);
+        Data[length + 2] = (byte)(((bRand >> 8) % 256) ^ 0x64);
     }
 
     public ServerPacket Clone()

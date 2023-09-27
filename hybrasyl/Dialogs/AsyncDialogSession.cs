@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using Hybrasyl.Enums;
+﻿using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
+using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Dialogs;
 
@@ -154,7 +154,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         // be on the same map and within ASYNC_DIALOG_DISTANCE of each other.
         //
         if ((!RequireLocal || Source.Location.Map.Id == Target.Location.Map.Id) &&
-            Source.Distance(Target) <= Constants.ASYNC_DIALOG_DISTANCE) return true;
+            Source.Distance(Target) <= Game.ActiveConfiguration.Constants.PlayerAsyncDialogDistance) return true;
         InvokerError("You need to be closer to do that.");
         return false;
         // all checks passed, do the thing

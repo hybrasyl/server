@@ -19,10 +19,10 @@
  * 
  */
 
-using System;
-using System.Timers;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using System;
+using System.Timers;
 
 namespace Hybrasyl.Jobs;
 
@@ -32,7 +32,7 @@ namespace Hybrasyl.Jobs;
 /// </summary>
 public static class HeartbeatReaperJob
 {
-    public static readonly int Interval = Constants.REAP_HEARTBEAT_INTERVAL;
+    public static readonly int Interval = Game.ActiveConfiguration.Constants.ReapHeartbeatInterval;
 
     public static void Execute(object obj, ElapsedEventArgs args)
     {

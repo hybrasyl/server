@@ -19,12 +19,12 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using Hybrasyl.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Scripting;
 
@@ -34,13 +34,17 @@ public class ScriptProcessor
     {
         World = new HybrasylWorld(world);
         // Register UserData types for MoonScript
+        // NB registering assemblies is required for RegisterType of
+        // any type in that assembly to work correctly
         UserData.RegisterAssembly(typeof(Game).Assembly);
+        UserData.RegisterAssembly(typeof(ElementType).Assembly);
         UserData.RegisterType<Gender>();
         UserData.RegisterType<LegendIcon>();
         UserData.RegisterType<LegendColor>();
         UserData.RegisterType<LegendMark>();
         UserData.RegisterType<DateTime>();
         UserData.RegisterType<TimeSpan>();
+        UserData.RegisterType<ElementType>();
         _scripts = new Dictionary<string, List<Script>>();
     }
 
@@ -63,8 +67,8 @@ public class ScriptProcessor
     {
         script = null;
         if (TryGetScriptInstances(scriptName, out var s))
-            // Note that a request for RiOnA.lua == Riona == riona as long as
-            // riona exists
+        // Note that a request for RiOnA.lua == Riona == riona as long as
+        // riona exists
         {
             script = s[0].Clone();
             return true;

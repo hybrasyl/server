@@ -19,10 +19,6 @@
  * 
  */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
@@ -30,6 +26,10 @@ using Hybrasyl.Threading;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl;
 
@@ -74,7 +74,7 @@ public class Exchange
     {
         errorMessage = string.Empty;
         var locationCheck = source.Map == target.Map && source.IsInViewport(target) &&
-                            target.IsInViewport(source) && target.Distance(source) <= Constants.EXCHANGE_DISTANCE;
+                            target.IsInViewport(source) && target.Distance(source) <= Game.ActiveConfiguration.Constants.PlayerExchangeDistance;
 
         var flagCheck = source.Condition.NoFlags && target.Condition.NoFlags;
 
@@ -208,7 +208,7 @@ public class Exchange
         // Now add the ItemObject to the active exchange and make sure we update weight
         if (giver == _source)
         {
-            var exchangeSlot = (byte) _sourceItems.Count;
+            var exchangeSlot = (byte)_sourceItems.Count;
             _sourceItems.AddItem(toAdd);
             _source.SendExchangeUpdate(toAdd, exchangeSlot);
             _target.SendExchangeUpdate(toAdd, exchangeSlot, false);
@@ -217,7 +217,7 @@ public class Exchange
 
         if (giver == _target)
         {
-            var exchangeSlot = (byte) _targetItems.Count;
+            var exchangeSlot = (byte)_targetItems.Count;
             _targetItems.AddItem(toAdd);
             _target.SendExchangeUpdate(toAdd, exchangeSlot);
             _source.SendExchangeUpdate(toAdd, exchangeSlot, false);
@@ -385,11 +385,11 @@ public class Vault : IStateStorable
 
     [JsonProperty] public ushort ItemLimit { get; private set; }
 
-    [JsonProperty] public ushort CurrentItemCount => (ushort) Items.Count;
+    [JsonProperty] public ushort CurrentItemCount => (ushort)Items.Count;
 
     public bool CanDepositGold => CurrentGold != GoldLimit;
     public uint RemainingGold => GoldLimit - CurrentGold;
-    public ushort RemainingItems => (ushort) (ItemLimit - CurrentItemCount);
+    public ushort RemainingItems => (ushort)(ItemLimit - CurrentItemCount);
     public bool IsFull => CurrentItemCount == ItemLimit;
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
@@ -498,7 +498,8 @@ public class GuildVault : Vault
 
     [JsonProperty]
     public List<Guid>
-        AuthorizedViewerGuids { get; private set; } //authorized to see what is stored, but cannot withdraw
+        AuthorizedViewerGuids
+    { get; private set; } //authorized to see what is stored, but cannot withdraw
 
     [JsonProperty]
     public List<Guid> AuthorizedWithdrawalGuids { get; private set; } //authorized to withdraw,  up to limit
@@ -592,7 +593,7 @@ public class ParcelStore : IStateStorable
         {
             if (Items.Count == 0) return;
             var parcel = Items.First();
-            if (receiver.AddItem(parcel.Item, (ushort) parcel.Quantity))
+            if (receiver.AddItem(parcel.Item, (ushort)parcel.Quantity))
             {
                 receiver.SendSystemMessage($"Your package from {parcel.Sender} has been delivered.");
                 Items.RemoveAt(0);
@@ -646,7 +647,7 @@ public class EquipmentConverter : JsonConverter
 {
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
-        var equip = (Equipment) value;
+        var equip = (Equipment)value;
         var output = new Dictionary<byte, object>();
         for (byte i = 1; i <= equip.Size; i++)
         {
@@ -703,7 +704,7 @@ public class InventoryConverter : JsonConverter
 {
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
-        var equip = (Inventory) value;
+        var equip = (Inventory)value;
         var output = new Dictionary<byte, object>();
         for (byte i = 1; i <= equip.Size; i++)
         {
@@ -806,6 +807,8 @@ public class Inventory : IEnumerable<ItemObject>
     public virtual bool IsFull => Count == Size;
 
     public int EmptySlots => Size - Count;
+
+    public virtual bool IsEmpty => Count == 0;
 
     public ItemObject this[byte slot]
     {
@@ -964,7 +967,8 @@ public class Inventory : IEnumerable<ItemObject>
         return Items.First(predicate: x => x.Value == null).Key;
     }
 
-    public byte SlotOfId(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
+    public byte SlotOfId(string id) =>
+        ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Slot : byte.MinValue;
 
     public byte SlotOfName(string name) =>
         (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Slot)
@@ -1092,6 +1096,9 @@ public class Equipment : Inventory
     public bool RingEquipped => LRing != null || RRing != null;
     public bool GauntletEquipped => LGauntlet != null || RGauntlet != null;
 
+
+    public ItemObject this[EquipmentSlot slot] => this[(byte) slot];
+    
     public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
     {
         var returnList = new List<Tuple<ushort, byte>>();
@@ -1101,27 +1108,27 @@ public class Equipment : Inventory
             {
                 // Work around a very weird edge case in the client
                 case ItemSlots.Foot:
-                    returnList.Add(Items[(byte) ItemSlots.FirstAcc] == null
+                    returnList.Add(Items[(byte)ItemSlots.FirstAcc] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.FirstAcc].EquipSprite),
+                        : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte)ItemSlots.FirstAcc].EquipSprite),
                             Items[
-                                (byte) ItemSlots.FirstAcc].Color));
+                                (byte)ItemSlots.FirstAcc].Color));
                     break;
                 case ItemSlots.FirstAcc:
-                    returnList.Add(Items[(byte) ItemSlots.Foot] == null
+                    returnList.Add(Items[(byte)ItemSlots.Foot] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite), Items[
-                            (byte) ItemSlots.Foot].Color));
+                        : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte)ItemSlots.Foot].EquipSprite), Items[
+                            (byte)ItemSlots.Foot].Color));
                     break;
                 case ItemSlots.None:
                 case ItemSlots.Ring:
                 case ItemSlots.Gauntlet:
                     break;
                 default:
-                    returnList.Add(Items[(byte) slot] == null
+                    returnList.Add(Items[(byte)slot] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) slot].EquipSprite),
-                            Items[(byte) slot].Color));
+                        : new Tuple<ushort, byte>((ushort)(0x8000 + Items[(byte)slot].EquipSprite),
+                            Items[(byte)slot].Color));
                     break;
             }
 
@@ -1130,41 +1137,41 @@ public class Equipment : Inventory
 
     #region Equipment Properties
 
-    public ItemObject Weapon => Items[(byte) ItemSlots.Weapon];
+    public ItemObject Weapon => Items[(byte)ItemSlots.Weapon];
 
-    public ItemObject Armor => Items[(byte) ItemSlots.Armor];
+    public ItemObject Armor => Items[(byte)ItemSlots.Armor];
 
-    public ItemObject Shield => Items[(byte) ItemSlots.Shield];
+    public ItemObject Shield => Items[(byte)ItemSlots.Shield];
 
-    public ItemObject Helmet => Items[(byte) ItemSlots.Helmet];
+    public ItemObject Helmet => Items[(byte)ItemSlots.Helmet];
 
-    public ItemObject Earring => Items[(byte) ItemSlots.Earring];
+    public ItemObject Earring => Items[(byte)ItemSlots.Earring];
 
-    public ItemObject Necklace => Items[(byte) ItemSlots.Necklace];
+    public ItemObject Necklace => Items[(byte)ItemSlots.Necklace];
 
-    public ItemObject LRing => Items[(byte) ItemSlots.LHand];
+    public ItemObject LRing => Items[(byte)ItemSlots.LHand];
 
-    public ItemObject RRing => Items[(byte) ItemSlots.RHand];
+    public ItemObject RRing => Items[(byte)ItemSlots.RHand];
 
-    public ItemObject LGauntlet => Items[(byte) ItemSlots.LArm];
+    public ItemObject LGauntlet => Items[(byte)ItemSlots.LArm];
 
-    public ItemObject RGauntlet => Items[(byte) ItemSlots.RArm];
+    public ItemObject RGauntlet => Items[(byte)ItemSlots.RArm];
 
-    public ItemObject Belt => Items[(byte) ItemSlots.Waist];
+    public ItemObject Belt => Items[(byte)ItemSlots.Waist];
 
-    public ItemObject Greaves => Items[(byte) ItemSlots.Leg];
+    public ItemObject Greaves => Items[(byte)ItemSlots.Leg];
 
-    public ItemObject Boots => Items[(byte) ItemSlots.Foot];
+    public ItemObject Boots => Items[(byte)ItemSlots.Foot];
 
-    public ItemObject FirstAcc => Items[(byte) ItemSlots.FirstAcc];
+    public ItemObject FirstAcc => Items[(byte)ItemSlots.FirstAcc];
 
-    public ItemObject Overcoat => Items[(byte) ItemSlots.Trousers];
+    public ItemObject Overcoat => Items[(byte)ItemSlots.Trousers];
 
-    public ItemObject DisplayHelm => Items[(byte) ItemSlots.Coat];
+    public ItemObject DisplayHelm => Items[(byte)ItemSlots.Coat];
 
-    public ItemObject SecondAcc => Items[(byte) ItemSlots.SecondAcc];
+    public ItemObject SecondAcc => Items[(byte)ItemSlots.SecondAcc];
 
-    public ItemObject ThirdAcc => Items[(byte) ItemSlots.ThirdAcc];
+    public ItemObject ThirdAcc => Items[(byte)ItemSlots.ThirdAcc];
 
     #endregion Equipment Properties
 }

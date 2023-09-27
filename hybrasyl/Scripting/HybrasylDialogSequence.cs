@@ -94,7 +94,7 @@ public class HybrasylDialogSequence
     /// <param name="displaySprite">Integer representing the creature display sprite in the client datfiles.</param>
     public void SetNpcDisplaySprite(int displaySprite)
     {
-        Sequence.Sprite = (ushort) (0x4000 + displaySprite);
+        Sequence.Sprite = (ushort)(0x4000 + displaySprite);
     }
 
     /// <summary>
@@ -104,7 +104,7 @@ public class HybrasylDialogSequence
     /// <param name="displaySprite">Integer representing the item display sprite in the client datfiles.</param>
     public void SetItemDisplaySprite(int displaySprite)
     {
-        Sequence.Sprite = (ushort) (0x8000 + displaySprite);
+        Sequence.Sprite = (ushort)(0x8000 + displaySprite);
     }
 
     /// <summary>

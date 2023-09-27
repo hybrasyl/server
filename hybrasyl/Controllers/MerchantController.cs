@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using Hybrasyl.ChatCommands;
+﻿using Hybrasyl.ChatCommands;
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using App.Metrics.Counter;
 
 namespace Hybrasyl.Controllers;
 
@@ -42,7 +43,7 @@ public class MerchantController
             if (attr == null) continue;
             var regex = new Regex(attr.Trigger, RegexOptions.IgnoreCase);
             var job = MerchantJob.None;
-            var action = (Action<MerchantControllerRequest>) Delegate.CreateDelegate(
+            var action = (Action<MerchantControllerRequest>)Delegate.CreateDelegate(
                 typeof(Action<MerchantControllerRequest>), this, method, false);
             var jobAttr = method.GetCustomAttribute<MerchantRequiredJob>();
             if (jobAttr != null)
@@ -123,7 +124,7 @@ public class MerchantController
                 var removed = 0;
                 foreach (var slot in user.Inventory.GetSlotsByName(request.Match["target"].Value))
                 {
-                    coins += (uint) Math.Round(user.Inventory[slot].Value * user.Inventory[slot].Count *
+                    coins += (uint)Math.Round(user.Inventory[slot].Value * user.Inventory[slot].Count *
                                                Game.ActiveConfiguration.Constants.MerchantBuybackPercentage);
                     removed += user.Inventory[slot].Count;
                     user.RemoveItem(slot);
@@ -151,7 +152,7 @@ public class MerchantController
                     {
                         user.Inventory.TryRemoveQuantity(item.Id, out var removed, qty);
                         actuallyRemoved.AddRange(removed);
-                        coins += (uint) (removed.Sum(selector: x => x.Quantity) * item.Properties.Physical.Value);
+                        coins += (uint)(removed.Sum(selector: x => x.Quantity) * item.Properties.Physical.Value);
                     }
 
                     if (actuallyRemoved.Count > 0)
@@ -184,8 +185,14 @@ public class MerchantController
             // Only support "buy all my <category>"
             foreach (var slot in user.Inventory.GetSlotsByCategory(request.Match["target"].Value))
             {
-                coins += (uint) (user.Inventory[slot].Value * user.Inventory[slot].Count);
+                coins += (uint)(user.Inventory[slot].Value * user.Inventory[slot].Count);
                 user.RemoveItem(slot);
+            }
+
+            if (coins == 0)
+            {
+                Merchant.Say("You don't seem to have any of those.");
+                return;
             }
 
             Merchant.Say($"Certainly. That will be {Pluralize(coins)}, {user.Name}.");
@@ -216,7 +223,7 @@ public class MerchantController
 
             item.Durability = item.MaximumDurability;
             user.Stats.Gold -= item.RepairCost;
-            repairTotal += (int) item.RepairCost;
+            repairTotal += (int)item.RepairCost;
         }
 
         foreach (var item in user.Equipment)
@@ -230,12 +237,12 @@ public class MerchantController
 
             item.Durability = item.MaximumDurability;
             user.Stats.Gold -= item.RepairCost;
-            repairTotal += (int) item.RepairCost;
+            repairTotal += (int)item.RepairCost;
         }
 
         if (repairTotal > 0)
         {
-            Merchant.Say($"I repaired it all for {Pluralize((uint) repairTotal)}.");
+            Merchant.Say($"I repaired it all for {Pluralize((uint)repairTotal)}.");
             user.SendInventory();
             user.SendEquipment();
             user.UpdateAttributes(StatUpdateFlags.Full);
@@ -318,7 +325,7 @@ public class MerchantController
 
         // Even if multiple results are returned, use the first one
         var first = slot.First();
-        var fee = (uint) Math.Round(first.obj.Value * 0.10, 0);
+        var fee = (uint)Math.Round(first.obj.Value * 0.10, 0);
 
         if (!first.obj.Depositable || first.obj.Bound)
         {

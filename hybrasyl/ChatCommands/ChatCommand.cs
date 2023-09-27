@@ -39,10 +39,10 @@ public abstract class ChatCommand
     public int ArgumentCount { get; }
 
     public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new()  { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
 
     public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
+    { Success = false, Message = ErrorMessage, MessageType = MessageType };
 
     public static ChatCommandResult Run(User user, params string[] args) => Success();
 }

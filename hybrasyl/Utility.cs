@@ -82,140 +82,6 @@ namespace Hybrasyl
         public const int World = 2;
     }
 
-    internal static class Constants
-    {
-        public const int VIEWPORT_SIZE = 24;
-        public const int HALF_VIEWPORT_SIZE = VIEWPORT_SIZE / 2;
-        public const byte MAXIMUM_BOOK = 90;
-        public const int MAXIMUM_DROP_DISTANCE = 2;
-        public const int PICKUP_DISTANCE = 2;
-        public const int EXCHANGE_DISTANCE = 5;
-        public const uint MAXIMUM_GOLD = 1000000000;
-        public const int VARIANT_ID_START = 100000;
-
-        public const int DEFAULT_LOG_LEVEL = LogLevels.DEBUG;
-
-        // Manhattan distance between the user performing an action (killing a monster, etc) and other
-        // users in the group in order to be eligible for sharing.
-        public const int GROUP_SHARING_DISTANCE = 20;
-
-        // Manhattan distance between two players required for an asynchronous dialog request
-        public const int ASYNC_DIALOG_DISTANCE = 10;
-
-        // This should be an ID of a map that will be used to store players in the event of lag / worldmap disconnects
-        public const ushort LAG_MAP = 1001;
-
-        // If a player logs in again before this time, they will be returned to their
-        // last known location as opposed to their nation's spawn point. This is in
-        // seconds.
-
-        public const int NATION_SPAWN_TIMEOUT = 10800; // 3 hours
-
-        // Death pile timeouts (how long someone has to wait until they can loot a death pile)
-
-        public const int DEATHPILE_GROUP_TIMEOUT = 0; // Group/self can pick up deathpile immediately
-        public const int DEATHPILE_RANDO_TIMEOUT = 900; // Randos can pick up death piles after 15 minutes
-
-        // Monster loot drop timeouts (how long someone has to wait until they can loot someone elses monster loot)
-        public const int MONSTER_LOOT_DROP_RANDO_TIMEOUT = 60; //Randos can pick up loot after 1 minute
-
-        // Monster tagging timeout
-        public const int MONSTER_TAGGING_TIMEOUT = 300;
-
-        // Heartbeat controls
-        // Every BYTE_HEARTBEAT_INTERVAL and TICK_HEARTBEAT_INTERVAL seconds, Hybrasyl sends 0x3B and 0x68 
-        // heartbeat packets to clients.
-        // The client expects to receive these and responds in kind (otherwise it will disconnect after a 
-        // certain period of time).
-        // Hybrasyl provides several jobs to handle these; two jobs to transmit the packets to clients, and
-        // a "Reaper Job" to disconnect clients that haven't responded to either of the heartbeats within REAP_HEARTBEAT_INTERVAL.
-        // The reaper job will run every REAP_HEARTBEAT_INTERVAL seconds to ensure that no connections are missed.
-
-        public const int BYTE_HEARTBEAT_INTERVAL = 60;
-        public const int TICK_HEARTBEAT_INTERVAL = 60;
-        public const int REAP_HEARTBEAT_INTERVAL = 5;
-
-        // Idle settings
-        // A client counts as idle after IDLE_TIME seconds without any packet receipt (except for heartbeat opcodes)
-        // The idle check job will run every IDLE_CHECK seconds
-
-        public const int IDLE_TIME = 60;
-        public const int IDLE_CHECK = 10;
-
-        // Dialog settings
-        // Dialog sequence IDs between 1 and DIALOG_SEQUENCE_SHARED are processed as 
-        // "shared" (globally available) sequences; sequence IDs between DIALOG_SEQUENCE_SHARED
-        // and DIALOG_SEQUENCE_PURSUITS are pursuits (main menu options); IDs above 
-        // DIALOG_SEQUENCE_PURSUITS are local to the object in question. 
-        // DIALOG_SEQUENCE_ASYNC -> Special ID - e.g. a *singular* ID - reserved for asynchronous dialogs 
-        // (these are effectively individual dialog  sessions that are managed by the server between two participants)
-        // DIALOG_SEQUENCE_HARDCODED -> dialogs reserved for internal (e.g. C#) implementations, such as merchant stores, etc
-        public const int DIALOG_SEQUENCE_SHARED = 5000;
-        public const int DIALOG_SEQUENCE_PURSUITS = 5100;
-        public const int DIALOG_SEQUENCE_ASYNC = 65000;
-        public const int DIALOG_SEQUENCE_HARDCODED = 65280;
-
-        public const int MESSAGE_RETURN_SIZE = 64;
-
-        // You must wait this long in seconds before sending another board message
-        public const int BOARD_SEND_MESSAGE_COOLDOWN = 60;
-
-        // You must wait this long in seconds before sending another mail message to the same recipient
-        public const int MAIL_MESSAGE_COOLDOWN = 60;
-        // Eventually most of these should be moved into a config file. For right now they're here.
-
-        public static int MAX_LEVEL = 99;
-        public static Regex PercentageRegex = new(@"(\+|\-){0,1}(\d{0,4})%", RegexOptions.Compiled);
-
-        public static Dictionary<string, int> CLASSES = new()
-        {
-            { "peasant", 0 },
-            { "warrior", 1 },
-            { "rogue", 2 },
-            { "wizard", 3 },
-            { "priest", 4 },
-            { "monk", 5 }
-        };
-
-        public static Dictionary<int, string> REVERSE_CLASSES = new()
-        {
-            { 0, "peasant" },
-            { 1, "warrior" },
-            { 2, "rogue" },
-            { 3, "wizard" },
-            { 4, "priest" },
-            { 5, "monk" }
-        };
-    }
-
-    public static class LevelCircles
-    {
-        public const int CIRCLE_1 = 11;
-        public const int CIRCLE_2 = 41;
-        public const int CIRCLE_3 = 71;
-        public const int CIRCLE_4 = 90;
-    }
-
-    // TODO: move to xml
-    internal static class StatLimitConstants
-    {
-        public static long MIN_STAT = 1; // str, int, wis, con, dex
-        public static long MAX_STAT = 255;
-        public static long MIN_BASE_HPMP = 1;
-        public static long MAX_BASE_HPMP = uint.MaxValue;
-
-        public static double MIN_DMG = -16.0;
-        public static double MAX_DMG = 16.0;
-        public static double MIN_HIT = -16.0;
-        public static double MAX_HIT = 16.0;
-        public static long MIN_AC = -90;
-        public static long MAX_AC = 100;
-        public static double MIN_MR = -16.0;
-        public static double MAX_MR = 16.0;
-        public static double MIN_REGEN = -16.0;
-        public static double MAX_REGEN = 16.0;
-    }
-
     internal static class DialogTypes
     {
         public const int FUNCTION_DIALOG = -1;
@@ -388,7 +254,7 @@ namespace Hybrasyl
             {
                 var attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
                 if (attributes.Length > 0)
-                    return resolveFunc((TAttr) attributes[0]);
+                    return resolveFunc((TAttr)attributes[0]);
                 return defaultResult;
             }
         }

@@ -1,0 +1,92 @@
+---
+name: Hybrasyl Server Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        type: choice
+        description: 'Environment to receive the deploy'
+        required: true
+        default: 'qa'
+        options:
+          - qa
+          - staging
+      ref:
+        type: string
+        required: true
+        default: 'main'
+        description: 'The branch, commit or tag to deploy'
+      debug:
+        type: boolean
+        required: true
+        default: false
+        description: 'Whether or not to build a debug build'
+
+jobs:
+  build-and-deploy:
+    if: github.repository == 'hybrasyl/server'
+    runs-on: ubuntu-latest
+    environment: deploy
+    container:
+      image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
+
+    strategy:
+      matrix:
+        dotnet-version: ['7.0.x']
+   
+    steps:    
+      - name: Check out server
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
+          path: server
+      - name: Install host pubkeys
+        run: >
+          mkdir -p /root/.ssh/ && touch /root/.ssh/known_hosts && 
+          cp $GITHUB_WORKSPACE/server/contrib/build/host_pubkeys /root/.ssh/known_hosts 
+      - uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.HYB_DEPLOY_KEY }}
+      - name: generate short sha
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+      - name: Install nuget dependencies
+        run: cd $GITHUB_WORKSPACE/server && dotnet restore
+      - name: Publish Linux
+        run: >
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64
+      - name: Stop server
+        run: >
+          ssh hybrasyl@${{ inputs.env }}.hybrasyl.com 'sudo systemctl stop hybrasyl' 
+      - name: Copy to target environment
+        run: >
+          rsync -avz --delete ${GITHUB_WORKSPACE}/server/hybrasyl/bin/Release/net7.0/ubuntu.18.04-x64/publish/
+          hybrasyl@${{ inputs.env }}.hybrasyl.com:/srv/hybrasyl/
+      - name: Restart server
+        run: >
+          ssh hybrasyl@${{ inputs.env }}.hybrasyl.com 'sudo systemctl start hybrasyl'
+      - name: Notify discord
+        run: >
+          /usr/local/bin/discord.sh
+          --webhook-url "${{ secrets.HYB_DEV_WEBHOOK }}"
+          --username "Hybrasyl GitHub Actions" 
+          --title "Deploy to ${{ inputs.env}}: success"
+          --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
+          --color "0x00FF00"
+          --url "https://releases.hybrasyl.com"
+          --footer "Hybrasyl GitHub Actions"
+          --timestamp
+        shell: bash
+      - name: Notify discord of failure
+        if: ${{ failure() }}
+        run: >
+          /usr/local/bin/discord.sh
+          --webhook-url "${{ secrets.HYB_DEV_WEBHOOK }}"
+          --username "Hybrasyl GitHub Actions"
+          --title "Deploy to ${{ inputs.env }}: failed"
+          --description "Commit: hybrasyl ${SHORT_SHA}\nRequested by: ${GITHUB_ACTOR}"
+          --color "0xFF0000"
+          --url "https://releases.hybrasyl.com"
+          --footer "Hybrasyl GitHub Actions"
+          --timestamp
+        shell: bash

@@ -5,7 +5,7 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hybrasyl", "hybrasyl\Hybrasyl.csproj", "{62750A08-502D-41E2-A08F-177D45161D07}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HybrasylTests", "HybrasylTests\HybrasylTests.csproj", "{45C74D2B-55A0-4D16-B147-E362BBAB78E1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hybrasyl.Tests", "Hybrasyl.Tests\Hybrasyl.Tests.csproj", "{45C74D2B-55A0-4D16-B147-E362BBAB78E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

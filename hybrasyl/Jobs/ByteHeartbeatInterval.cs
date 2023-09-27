@@ -26,7 +26,7 @@ namespace Hybrasyl.Jobs;
 
 public static class ByteHeartbeatJob
 {
-    public static readonly int Interval = Constants.BYTE_HEARTBEAT_INTERVAL;
+    public static readonly int Interval = Game.ActiveConfiguration.Constants.ByteHeartbeatInterval;
 
     public static void Execute(object obj, ElapsedEventArgs args)
     {

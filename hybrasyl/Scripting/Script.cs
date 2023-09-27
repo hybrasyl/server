@@ -19,16 +19,16 @@
  * 
  */
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Serilog;
+using System;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Path = System.IO.Path;
 using Reactor = Hybrasyl.Objects.Reactor;
 
@@ -130,7 +130,7 @@ public class Script
     {
         if (obj == null)
             return DynValue.NewNil();
-        
+
 
         return obj switch
         {
@@ -226,6 +226,7 @@ public class Script
         Compiled.Globals["Gender"] = UserData.CreateStatic<Gender>();
         Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
         Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
+        Compiled.Globals["Element"] = UserData.CreateStatic(typeof(Element));
         Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
         Compiled.Globals["utility"] = typeof(HybrasylUtility);
         Compiled.Globals.Set("world", UserData.Create(Processor.World));

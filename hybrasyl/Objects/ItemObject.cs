@@ -19,15 +19,15 @@
  * 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using Hybrasyl.Threading;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -118,7 +118,7 @@ public class ItemObject : VisibleObject, IInteractable
         get
         {
             if (MaximumDurability != 0)
-                return Durability == 0 ? Value : (uint) (Durability / MaximumDurability * Value);
+                return Durability == 0 ? Value : (uint)(Durability / MaximumDurability * Value);
             return 0;
         }
     }
@@ -155,7 +155,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     public bool HideBoots => Template.Properties.Appearance.HideBoots;
 
-    public byte AssailSound => Template.Properties?.Use?.Sound?.Id ?? 0;
+    public byte AssailSound => Template.Properties?.Use?.Sound?.Id ?? 1;
     public List<Proc> Procs => Template.Properties.Procs;
 
     public bool Enchantable => Template.Properties.Flags.HasFlag(ItemFlags.Enchantable);
@@ -180,8 +180,9 @@ public class ItemObject : VisibleObject, IInteractable
     public bool Consumable => Template.Properties.Flags.HasFlag(ItemFlags.Consumable);
 
     public bool Undamageable => Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
-    public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
 
+    public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
+    
     public bool IsVariant => Template.IsVariant;
 
     public Item ParentItem => Template.ParentItem;
@@ -206,7 +207,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     public uint DisplayDurability => Convert.ToUInt32(Math.Round(Durability));
 
-    public new string Name => Template.Name;
+    public override string Name => Template.Name;
 
     public new ushort Sprite => Template.Properties.Appearance.Sprite;
 
@@ -282,7 +283,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a shield while holding a two-handed weapon
 
-        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon != null &&
+        if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null &&
             userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHand)
         {
             message = World.GetLocalString("item_equip_shield_2h");
@@ -291,7 +292,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a two-handed weapon while holding a shield
 
-        if (EquipmentSlot == (byte) ItemSlots.Weapon &&
+        if (EquipmentSlot == (byte)ItemSlots.Weapon &&
             (WeaponType == WeaponType.TwoHand || WeaponType == WeaponType.Staff) &&
             userobj.Equipment.Shield != null)
         {
@@ -320,7 +321,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
-                    (userobj.Equipment[(byte) restriction.Slot] != null)
+                    (userobj.Equipment[(byte)restriction.Slot] != null)
                 )
                 {
                     message = restrictionMessage;
@@ -332,7 +333,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
-                    (userobj.Equipment[(byte) restriction.Slot] == null)
+                    (userobj.Equipment[(byte)restriction.Slot] == null)
                 )
                 {
                     message = restrictionMessage;
@@ -354,11 +355,11 @@ public class ItemObject : VisibleObject, IInteractable
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
                 if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring &&
-                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftHand) ||
-                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightHand ||
+                     EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.LeftHand) ||
+                    EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.RightHand ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
-                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftArm) ||
-                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightArm || EquipmentSlot == (byte) restriction.Slot)
+                     EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.LeftArm) ||
+                    EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.RightArm || EquipmentSlot == (byte)restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -369,7 +370,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
                     userobj.Equipment.RRing != null || (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
                                                         userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte) restriction.Slot)
+                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte)restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -455,16 +456,17 @@ public class ItemObject : VisibleObject, IInteractable
                 if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
                 {
                     var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
+                    var tick = add.Tick == 0 ? applyStatus.Tick : add.Tick;
                     var overlap = trigger.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
                     if (overlap.Any())
                     {
-                            trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
+                        trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
                     }
                     else
                     {
                         GameLog.UserActivityInfo(
                             $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
-                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, -1,
+                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, tick,
                             add.Intensity));
                     }
                 }
@@ -475,7 +477,7 @@ public class ItemObject : VisibleObject, IInteractable
                 }
 
             }
-
+            
             foreach (var remove in Use.Statuses.Remove)
             {
 

@@ -19,7 +19,6 @@
  * 
  */
 
-using Hybrasyl.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.ChatCommands;
@@ -38,7 +37,7 @@ internal class GroupCommand : ChatCommand
         if (!newMember.Grouping)
             return Fail($"{args[0]} is not accepting group invites.");
         var response = new ServerPacket(0x63);
-        response.WriteByte((byte) GroupServerPacketType.Ask);
+        response.WriteByte((byte)GroupServerPacketType.Ask);
         response.WriteString8(user.Name);
         response.WriteByte(0);
         response.WriteByte(0);
