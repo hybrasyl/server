@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]  
+  workflow_dispatch:
 
 jobs:
   build:
@@ -47,6 +48,12 @@ jobs:
         with:
           fail_ci_if_error: true
           verbose: true
+      - name: Build docker image
+        run: docker build -t hybrasyl-server .
+      - name: tag image
+        run: docker tag $(docker images | grep hybrasyl | awk '{ print $3; }' | head -1) ghcr.io/hybrasyl/server:latest
+      - name: upload to ghcr
+        run: docker push ghcr.io/hybrasyl/server:latest
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
