@@ -17,6 +17,10 @@ on:
       - main
       - develop
 
+permissions:
+  packages: write
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,7 +28,6 @@ jobs:
     if: github.repository == 'hybrasyl/server'
     container:
       image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
-
     strategy:
       matrix:
         dotnet-version: ['7.0.x']
@@ -112,12 +115,10 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
-      - name: Build docker image
-        run: docker build -t hybrasyl-server .
-      - name: tag image
-        run: docker tag $(docker images | grep hybrasyl | awk '{ print $3; }' | head -1) ghcr.io/hybrasyl/server:latest
-      - name: upload to ghcr
-        run: docker push ghcr.io/hybrasyl/server:latest
+      - name: Upload to GHCR
+        uses: KuhlTime/ghcr-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Notify discord
         run: >
           /usr/local/bin/discord.sh
