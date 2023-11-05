@@ -495,21 +495,33 @@ public class HybrasylWorldObject : IScriptable
     }
 
     /// <summary>
-    ///     Teleport the player to an x,y coordinate location on the specified map.
+    ///     Teleport the object to an x,y coordinate location on the specified map.
     /// </summary>
     /// <param name="location">The map name</param>
     /// <param name="x">X coordinate target</param>
     /// <param name="y">Y coordinate target</param>
     public void Teleport(string location, int x, int y)
     {
+        if (Obj is not VisibleObject vo) return;
+
         if (string.IsNullOrEmpty(location))
         {
             GameLog.ScriptingError(
-                "Teleport: {user} - location name (first argument) was null or empty - aborting for safety", User.Name);
+                "Teleport: {user} - location name (first argument) was null or empty - aborting for safety", vo.Name);
             return;
         }
 
-        if (Obj is not VisibleObject vo) return;
         vo.Teleport(location, (byte)x, (byte)y);
+    }
+
+    /// <summary>
+    /// Teleport the object to an x,y coordinate location on its current map.
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    public void TeleportToCoords(int x, int y)
+    {
+        if (Obj is not VisibleObject vo) return;
+        vo.Teleport(vo.Map.Id, (byte)x, (byte)y);
     }
 }

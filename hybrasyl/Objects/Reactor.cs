@@ -54,13 +54,14 @@ public class Reactor : VisibleObject, IPursuitable
         ScriptName = scriptName;
         Blocking = blocking;
         CreatedAt = DateTime.Now;
+        Expiration = DateTime.MaxValue;
         if (expiration <= 0) return;
         Expiration = CreatedAt.AddSeconds(expiration);
         Task.Run(function: OnExpiration);
     }
 
     public DateTime CreatedAt { get; set; }
-    public DateTime Expiration { get; set; }
+    public DateTime Expiration { get; set; } 
     public VisibleObject Origin { get; set; }
     public Guid CreatedBy { get; set; }
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
@@ -144,7 +145,7 @@ public class Reactor : VisibleObject, IPursuitable
     }
 
     public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
-        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster));
+        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
     
 
     public virtual void OnEntry(VisibleObject obj)

@@ -12,6 +12,7 @@ public class HybrasylMonster : HybrasylWorldObject
         World = new HybrasylWorld(monster.World);
         Map = new HybrasylMap(monster.Map);
     }
+    
 
     internal Monster Monster => WorldObject as Monster;
 
