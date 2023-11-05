@@ -6,7 +6,7 @@
 
 FROM mcr.microsoft.com/dotnet/runtime:7.0
 
-COPY /hybrasyl/bin/Release/net6.0/linux-x64 /App
+COPY /hybrasyl/bin/Release/net7.0/linux-x64 /App
 
 ENTRYPOINT ["dotnet", "/App/Hybrasyl.dll"]
 

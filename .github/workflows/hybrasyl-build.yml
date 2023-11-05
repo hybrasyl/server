@@ -2,7 +2,6 @@
 name: Hybrasyl packaging and testing
 
 on:
-  workflow_dispatch:
   push:
     paths-ignore:
       - 'contrib/**'
@@ -12,13 +11,15 @@ on:
       - main
       - develop
   pull_request:
-    paths-ignore:
-      - 'contrib/**'
-      - '**.md'
-      - '.github/**'
+    branches: [ main ]  
+  workflow_dispatch:
     branches:
       - main
       - develop
+
+permissions:
+  packages: write
+  contents: read
 
 jobs:
   build:
@@ -27,7 +28,6 @@ jobs:
     if: github.repository == 'hybrasyl/server'
     container:
       image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
-
     strategy:
       matrix:
         dotnet-version: ['7.0.x']
@@ -115,6 +115,10 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
+      - name: Upload to GHCR
+        uses: KuhlTime/ghcr-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Notify discord
         run: >
           /usr/local/bin/discord.sh
