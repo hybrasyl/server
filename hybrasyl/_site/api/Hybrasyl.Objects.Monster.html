@@ -1,0 +1,2376 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class Monster
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class Monster
+   ">
+    <meta name="generator" content="docfx 2.58.9.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Hybrasyl.Objects.Monster">
+  
+  
+  <h1 id="Hybrasyl_Objects_Monster" data-uid="Hybrasyl.Objects.Monster" class="text-break">Class Monster
+  </h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a></div>
+    <div class="level2"><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></div>
+    <div class="level3"><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></div>
+    <div class="level4"><span class="xref">Monster</span></div>
+  </div>
+  <div classs="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="C3.IQuadStorable.html">IQuadStorable</a></div>
+    <div><span class="xref">ICloneable</span></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Stats">Creature.Stats</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Condition">Creature.Condition</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature__currentStatuses">Creature._currentStatuses</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Statuses">Creature.Statuses</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_CurrentStatusInfo">Creature.CurrentStatusInfo</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Gold">Creature.Gold</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Inventory">Creature.Inventory</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Equipment">Creature.Equipment</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_OnClick_Hybrasyl_Objects_User_">Creature.OnClick(User)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetDirectionalTarget_Hybrasyl_Xml_Direction_">Creature.GetDirectionalTarget(Direction)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetDirectionalTargets_Hybrasyl_Xml_Direction_System_Int32_">Creature.GetDirectionalTargets(Direction, Int32)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetFacingTargets_System_Int32_">Creature.GetFacingTargets(Int32)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetTargets_Hybrasyl_Xml_Castable_Hybrasyl_Objects_Creature_">Creature.GetTargets(Castable, Creature)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_LastHitTime">Creature.LastHitTime</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_FirstHitter">Creature.FirstHitter</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_LastHitter">Creature.LastHitter</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_AbsoluteImmortal">Creature.AbsoluteImmortal</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_PhysicalImmortal">Creature.PhysicalImmortal</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_MagicalImmortal">Creature.MagicalImmortal</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_ApplyStatus_Hybrasyl_ICreatureStatus_System_Boolean_">Creature.ApplyStatus(ICreatureStatus, Boolean)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_RemoveStatus_System_UInt16_System_Boolean_">Creature.RemoveStatus(UInt16, Boolean)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_TryGetStatus_System_String_Hybrasyl_ICreatureStatus__">Creature.TryGetStatus(String, ICreatureStatus)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_RemoveAllStatuses">Creature.RemoveAllStatuses()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_ProcessStatusTicks">Creature.ProcessStatusTicks()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_ActiveStatusCount">Creature.ActiveStatusCount</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_UseCastable_Hybrasyl_Xml_Castable_Hybrasyl_Objects_Creature_System_Boolean_">Creature.UseCastable(Castable, Creature, Boolean)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_SendAnimation_Hybrasyl_ServerPacket_">Creature.SendAnimation(ServerPacket)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_SendCastLine_Hybrasyl_ServerPacket_">Creature.SendCastLine(ServerPacket)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_UpdateAttributes_Hybrasyl_Enums_StatUpdateFlags_">Creature.UpdateAttributes(StatUpdateFlags)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Walk_Hybrasyl_Xml_Direction_">Creature.Walk(Direction)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Turn_Hybrasyl_Xml_Direction_">Creature.Turn(Direction)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Motion_System_Byte_System_Int16_">Creature.Motion(Byte, Int16)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Heal_System_Double_Hybrasyl_Objects_Creature_">Creature.Heal(Double, Creature)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_RegenerateMp_System_Double_Hybrasyl_Objects_Creature_">Creature.RegenerateMp(Double, Creature)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Damage_System_Double_Hybrasyl_Xml_ElementType_Hybrasyl_Xml_DamageType_Hybrasyl_Xml_DamageFlags_Hybrasyl_Objects_Creature_System_Boolean_">Creature.Damage(Double, ElementType, DamageType, DamageFlags, Creature, Boolean)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_Refresh">Creature.Refresh()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_SetCookie_System_String_System_String_">Creature.SetCookie(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_SetSessionCookie_System_String_System_String_">Creature.SetSessionCookie(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetCookies">Creature.GetCookies()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetSessionCookies">Creature.GetSessionCookies()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetCookie_System_String_">Creature.GetCookie(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_GetSessionCookie_System_String_">Creature.GetSessionCookie(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_HasCookie_System_String_">Creature.HasCookie(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_HasSessionCookie_System_String_">Creature.HasSessionCookie(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_DeleteCookie_System_String_">Creature.DeleteCookie(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_DeleteSessionCookie_System_String_">Creature.DeleteSessionCookie(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject__random">VisibleObject._random</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Location">VisibleObject.Location</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Map">VisibleObject.Map</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Direction">VisibleObject.Direction</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_X">VisibleObject.X</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Y">VisibleObject.Y</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Sprite">VisibleObject.Sprite</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Portrait">VisibleObject.Portrait</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_DisplayText">VisibleObject.DisplayText</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_AllowDead">VisibleObject.AllowDead</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_DeathPileOwner">VisibleObject.DeathPileOwner</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ItemDropAllowedLooters">VisibleObject.ItemDropAllowedLooters</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ItemDropTime">VisibleObject.ItemDropTime</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ItemDropType">VisibleObject.ItemDropType</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_viewportUsers">VisibleObject.viewportUsers</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_CanBeLooted_System_String_System_String__">VisibleObject.CanBeLooted(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetBoundingBox">VisibleObject.GetBoundingBox()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetViewport">VisibleObject.GetViewport()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetShoutViewport">VisibleObject.GetShoutViewport()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Show">VisibleObject.Show()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Hide">VisibleObject.Hide()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_HideFrom_Hybrasyl_Objects_VisibleObject_">VisibleObject.HideFrom(VisibleObject)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Teleport_System_UInt16_System_Byte_System_Byte_">VisibleObject.Teleport(UInt16, Byte, Byte)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Teleport_System_String_System_Byte_System_Byte_">VisibleObject.Teleport(String, Byte, Byte)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_SendMapInfo">VisibleObject.SendMapInfo()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_SendLocation">VisibleObject.SendLocation()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Say_System_String_System_String_">VisibleObject.Say(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Shout_System_String_System_String_">VisibleObject.Shout(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Effect_System_Int16_System_Int16_System_UInt16_System_Int16_">VisibleObject.Effect(Int16, Int16, UInt16, Int16)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Effect_System_UInt16_System_Int16_">VisibleObject.Effect(UInt16, Int16)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_PlaySound_System_Byte_">VisibleObject.PlaySound(Byte)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetIntentDirection_Hybrasyl_Xml_IntentDirection_">VisibleObject.GetIntentDirection(IntentDirection)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_DisplayPursuits_Hybrasyl_Objects_User_">VisibleObject.DisplayPursuits(User)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Rect">WorldObject.Rect</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_HasMoved">WorldObject.HasMoved</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Id">WorldObject.Id</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Guid">WorldObject.Guid</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Name">WorldObject.Name</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Script">WorldObject.Script</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_World">WorldObject.World</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_DialogSprite">WorldObject.DialogSprite</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_SetEphemeral_System_String_System_Object_">WorldObject.SetEphemeral(String, Object)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_GetEphemeralValues">WorldObject.GetEphemeralValues()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_GetEphemeral_System_String_">WorldObject.GetEphemeral(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_ClearEphemeral_System_String_">WorldObject.ClearEphemeral(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_TryGetEphemeral_System_String_System_Object__">WorldObject.TryGetEphemeral(String, Object)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_SendId">WorldObject.SendId()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Distance_Hybrasyl_Objects_WorldObject_">WorldObject.Distance(WorldObject)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_ResetPursuits">WorldObject.ResetPursuits()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_AddPursuit_Hybrasyl_Dialogs_DialogSequence_">WorldObject.AddPursuit(DialogSequence)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_RegisterDialogSequence_Hybrasyl_Dialogs_DialogSequence_">WorldObject.RegisterDialogSequence(DialogSequence)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Pursuits">WorldObject.Pursuits</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_DialogSequences">WorldObject.DialogSequences</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_SequenceCatalog">WorldObject.SequenceCatalog</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Hybrasyl.Objects.html">Hybrasyl.Objects</a></h6>
+  <h6><strong>Assembly</strong>: Hybrasyl.dll</h6>
+  <h5 id="Hybrasyl_Objects_Monster_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class Monster : Creature, IQuadStorable, ICloneable</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster__ctor_Hybrasyl_Xml_Creature_Hybrasyl_Xml_SpawnFlags_System_Byte_System_Int32_Hybrasyl_Loot_Hybrasyl_Xml_CreatureBehaviorSet_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.%23ctor(Hybrasyl.Xml.Creature%2CHybrasyl.Xml.SpawnFlags%2CSystem.Byte%2CSystem.Int32%2CHybrasyl.Loot%2CHybrasyl.Xml.CreatureBehaviorSet)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L445">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster__ctor_" data-uid="Hybrasyl.Objects.Monster.#ctor*"></a>
+  <h4 id="Hybrasyl_Objects_Monster__ctor_Hybrasyl_Xml_Creature_Hybrasyl_Xml_SpawnFlags_System_Byte_System_Int32_Hybrasyl_Loot_Hybrasyl_Xml_CreatureBehaviorSet_" data-uid="Hybrasyl.Objects.Monster.#ctor(Hybrasyl.Xml.Creature,Hybrasyl.Xml.SpawnFlags,System.Byte,System.Int32,Hybrasyl.Loot,Hybrasyl.Xml.CreatureBehaviorSet)">Monster(Creature, SpawnFlags, Byte, Int32, Loot, CreatureBehaviorSet)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Monster(Creature creature, SpawnFlags flags, byte level, int map, Loot loot = null, CreatureBehaviorSet behaviorsetOverride = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Creature</span></td>
+        <td><span class="parametername">creature</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.SpawnFlags</span></td>
+        <td><span class="parametername">flags</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td><span class="parametername">level</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">map</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Loot.html">Loot</a></td>
+        <td><span class="parametername">loot</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.CreatureBehaviorSet</span></td>
+        <td><span class="parametername">behaviorsetOverride</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="fields">Fields
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_ActionDelay.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.ActionDelay%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L73">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_ActionDelay" data-uid="Hybrasyl.Objects.Monster.ActionDelay">ActionDelay</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int ActionDelay</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Active.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Active%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L89">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_Active" data-uid="Hybrasyl.Objects.Monster.Active">Active</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Active</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_BehaviorSet.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.BehaviorSet%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L63">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_BehaviorSet" data-uid="Hybrasyl.Objects.Monster.BehaviorSet">BehaviorSet</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CreatureBehaviorSet BehaviorSet</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.CreatureBehaviorSet</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_CurrentPath.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.CurrentPath%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L69">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_CurrentPath" data-uid="Hybrasyl.Objects.Monster.CurrentPath">CurrentPath</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Tile CurrentPath</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Tile.html">Tile</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Destination.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Destination%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L67">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_Destination" data-uid="Hybrasyl.Objects.Monster.Destination">Destination</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public (int X, int Y) Destination</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.ValueTuple</span>&lt;<span class="xref">System.Int32</span>, <span class="xref">System.Int32</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_HasCastNearDeath.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.HasCastNearDeath%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L87">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_HasCastNearDeath" data-uid="Hybrasyl.Objects.Monster.HasCastNearDeath">HasCastNearDeath</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HasCastNearDeath</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_SpawnFlags.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.SpawnFlags%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L65">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Objects_Monster_SpawnFlags" data-uid="Hybrasyl.Objects.Monster.SpawnFlags">SpawnFlags</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SpawnFlags SpawnFlags</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.SpawnFlags</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AiDisabled.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AiDisabled%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L80">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AiDisabled_" data-uid="Hybrasyl.Objects.Monster.AiDisabled*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AiDisabled" data-uid="Hybrasyl.Objects.Monster.AiDisabled">AiDisabled</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool AiDisabled { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_CanCast.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.CanCast%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L92">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_CanCast_" data-uid="Hybrasyl.Objects.Monster.CanCast*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_CanCast" data-uid="Hybrasyl.Objects.Monster.CanCast">CanCast</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool CanCast { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_DeathDisabled.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.DeathDisabled%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L78">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_DeathDisabled_" data-uid="Hybrasyl.Objects.Monster.DeathDisabled*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_DeathDisabled" data-uid="Hybrasyl.Objects.Monster.DeathDisabled">DeathDisabled</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool DeathDisabled { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_DeathProcessed.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.DeathProcessed%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L81">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_DeathProcessed_" data-uid="Hybrasyl.Objects.Monster.DeathProcessed*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_DeathProcessed" data-uid="Hybrasyl.Objects.Monster.DeathProcessed">DeathProcessed</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool DeathProcessed { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_IsHostile.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.IsHostile%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L76">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_IsHostile_" data-uid="Hybrasyl.Objects.Monster.IsHostile*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_IsHostile" data-uid="Hybrasyl.Objects.Monster.IsHostile">IsHostile</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsHostile { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_LastAction.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.LastAction%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L75">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_LastAction_" data-uid="Hybrasyl.Objects.Monster.LastAction*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_LastAction" data-uid="Hybrasyl.Objects.Monster.LastAction">LastAction</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public DateTime LastAction { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">DateTime</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_LastSkillUsed.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.LastSkillUsed%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L61">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_LastSkillUsed_" data-uid="Hybrasyl.Objects.Monster.LastSkillUsed*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_LastSkillUsed" data-uid="Hybrasyl.Objects.Monster.LastSkillUsed">LastSkillUsed</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public BookSlot LastSkillUsed { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.BookSlot.html">BookSlot</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_LastSpellUsed.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.LastSpellUsed%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L60">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_LastSpellUsed_" data-uid="Hybrasyl.Objects.Monster.LastSpellUsed*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_LastSpellUsed" data-uid="Hybrasyl.Objects.Monster.LastSpellUsed">LastSpellUsed</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public BookSlot LastSpellUsed { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.BookSlot.html">BookSlot</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_LootableGold.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.LootableGold%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L304">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_LootableGold_" data-uid="Hybrasyl.Objects.Monster.LootableGold*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_LootableGold" data-uid="Hybrasyl.Objects.Monster.LootableGold">LootableGold</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint LootableGold { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_LootableItems.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.LootableItems%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L306">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_LootableItems_" data-uid="Hybrasyl.Objects.Monster.LootableItems*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_LootableItems" data-uid="Hybrasyl.Objects.Monster.LootableItems">LootableItems</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public List&lt;string&gt; LootableItems { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">List</span>&lt;<span class="xref">System.String</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_LootableXP.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.LootableXP%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L298">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_LootableXP_" data-uid="Hybrasyl.Objects.Monster.LootableXP*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_LootableXP" data-uid="Hybrasyl.Objects.Monster.LootableXP">LootableXP</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint LootableXP { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_MovementDisabled.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.MovementDisabled%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L79">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_MovementDisabled_" data-uid="Hybrasyl.Objects.Monster.MovementDisabled*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_MovementDisabled" data-uid="Hybrasyl.Objects.Monster.MovementDisabled">MovementDisabled</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool MovementDisabled { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_ScriptExists.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.ScriptExists%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L83">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_ScriptExists_" data-uid="Hybrasyl.Objects.Monster.ScriptExists*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_ScriptExists" data-uid="Hybrasyl.Objects.Monster.ScriptExists">ScriptExists</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool ScriptExists { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_ShouldWander.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.ShouldWander%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L77">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_ShouldWander_" data-uid="Hybrasyl.Objects.Monster.ShouldWander*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_ShouldWander" data-uid="Hybrasyl.Objects.Monster.ShouldWander">ShouldWander</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool ShouldWander { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Skills.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Skills%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L58">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Skills_" data-uid="Hybrasyl.Objects.Monster.Skills*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Skills" data-uid="Hybrasyl.Objects.Monster.Skills">Skills</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;string, BookSlot&gt; Skills { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Dictionary</span>&lt;<span class="xref">System.String</span>, <a class="xref" href="Hybrasyl.BookSlot.html">BookSlot</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Spells.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Spells%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L57">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Spells_" data-uid="Hybrasyl.Objects.Monster.Spells*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Spells" data-uid="Hybrasyl.Objects.Monster.Spells">Spells</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;string, BookSlot&gt; Spells { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Dictionary</span>&lt;<span class="xref">System.String</span>, <a class="xref" href="Hybrasyl.BookSlot.html">BookSlot</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Target.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Target%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L494">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Target_" data-uid="Hybrasyl.Objects.Monster.Target*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Target" data-uid="Hybrasyl.Objects.Monster.Target">Target</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Creature Target { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_ThreatInfo.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.ThreatInfo%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L85">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_ThreatInfo_" data-uid="Hybrasyl.Objects.Monster.ThreatInfo*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_ThreatInfo" data-uid="Hybrasyl.Objects.Monster.ThreatInfo">ThreatInfo</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ThreatInfo ThreatInfo { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.ThreatInfo.html">ThreatInfo</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AllocateStats.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AllocateStats%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L334">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AllocateStats_" data-uid="Hybrasyl.Objects.Monster.AllocateStats*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AllocateStats" data-uid="Hybrasyl.Objects.Monster.AllocateStats">AllocateStats()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void AllocateStats()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AoiDeparture_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AoiDeparture(Hybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L1088">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AoiDeparture_" data-uid="Hybrasyl.Objects.Monster.AoiDeparture*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AoiDeparture_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Objects.Monster.AoiDeparture(Hybrasyl.Objects.VisibleObject)">AoiDeparture(VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void AoiDeparture(VisibleObject obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_AoiDeparture_Hybrasyl_Objects_VisibleObject_">VisibleObject.AoiDeparture(VisibleObject)</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AoiEntry_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AoiEntry(Hybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L1112">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AoiEntry_" data-uid="Hybrasyl.Objects.Monster.AoiEntry*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AoiEntry_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Objects.Monster.AoiEntry(Hybrasyl.Objects.VisibleObject)">AoiEntry(VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void AoiEntry(VisibleObject obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_AoiEntry_Hybrasyl_Objects_VisibleObject_">VisibleObject.AoiEntry(VisibleObject)</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AssailAttack_Hybrasyl_Xml_Direction_Hybrasyl_Objects_Creature_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AssailAttack(Hybrasyl.Xml.Direction%2CHybrasyl.Objects.Creature)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L683">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AssailAttack_" data-uid="Hybrasyl.Objects.Monster.AssailAttack*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AssailAttack_Hybrasyl_Xml_Direction_Hybrasyl_Objects_Creature_" data-uid="Hybrasyl.Objects.Monster.AssailAttack(Hybrasyl.Xml.Direction,Hybrasyl.Objects.Creature)">AssailAttack(Direction, Creature)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void AssailAttack(Direction direction, Creature target = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Direction</span></td>
+        <td><span class="parametername">direction</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">target</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AStarGetDirection.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AStarGetDirection%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L785">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AStarGetDirection_" data-uid="Hybrasyl.Objects.Monster.AStarGetDirection*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AStarGetDirection" data-uid="Hybrasyl.Objects.Monster.AStarGetDirection">AStarGetDirection()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Direction AStarGetDirection()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Direction</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AStarPathClear.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AStarPathClear%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L808">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AStarPathClear_" data-uid="Hybrasyl.Objects.Monster.AStarPathClear*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AStarPathClear" data-uid="Hybrasyl.Objects.Monster.AStarPathClear">AStarPathClear()</h4>
+  <div class="markdown level1 summary"><p>Verify that the next two steps of our path can be used.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool AStarPathClear()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td><p>Boolean indicating whether the immediate path is clear or not.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_AStarPathFind_System_Int32_System_Int32_System_Int32_System_Int32_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.AStarPathFind(System.Int32%2CSystem.Int32%2CSystem.Int32%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L824">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_AStarPathFind_" data-uid="Hybrasyl.Objects.Monster.AStarPathFind*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_AStarPathFind_System_Int32_System_Int32_System_Int32_System_Int32_" data-uid="Hybrasyl.Objects.Monster.AStarPathFind(System.Int32,System.Int32,System.Int32,System.Int32)">AStarPathFind(Int32, Int32, Int32, Int32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Tile AStarPathFind(int x1, int y1, int x2, int y2)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">x1</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">y1</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">x2</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">y2</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Tile.html">Tile</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Attack.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Attack%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L916">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Attack_" data-uid="Hybrasyl.Objects.Monster.Attack*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Attack" data-uid="Hybrasyl.Objects.Monster.Attack">Attack()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Attack()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Awaken.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Awaken%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L736">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Awaken_" data-uid="Hybrasyl.Objects.Monster.Awaken*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Awaken" data-uid="Hybrasyl.Objects.Monster.Awaken">Awaken()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Awaken()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_CalculateVariance_System_Byte_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.CalculateVariance(System.Byte)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L268">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_CalculateVariance_" data-uid="Hybrasyl.Objects.Monster.CalculateVariance*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_CalculateVariance_System_Byte_" data-uid="Hybrasyl.Objects.Monster.CalculateVariance(System.Byte)">CalculateVariance(Byte)</h4>
+  <div class="markdown level1 summary"><p>Calculates a sanity-checked stat using a spawn's variance value.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte CalculateVariance(byte stat)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td><span class="parametername">stat</span></td>
+        <td><p>byte stat to be modified</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td><p>new byte stat, +/- variance</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_CalculateVariance_System_UInt32_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.CalculateVariance(System.UInt32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L284">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_CalculateVariance_" data-uid="Hybrasyl.Objects.Monster.CalculateVariance*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_CalculateVariance_System_UInt32_" data-uid="Hybrasyl.Objects.Monster.CalculateVariance(System.UInt32)">CalculateVariance(UInt32)</h4>
+  <div class="markdown level1 summary"><p>Calculates a sanity-checked stat using a spawn's variance value.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint CalculateVariance(uint stat)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td><span class="parametername">stat</span></td>
+        <td><p>uint stat to be modified</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td><p>new uint stat, +/- variance</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Cast_Hybrasyl_BookSlot_Hybrasyl_Objects_Creature_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Cast(Hybrasyl.BookSlot%2CHybrasyl.Objects.Creature)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L907">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Cast_" data-uid="Hybrasyl.Objects.Monster.Cast*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Cast_Hybrasyl_BookSlot_Hybrasyl_Objects_Creature_" data-uid="Hybrasyl.Objects.Monster.Cast(Hybrasyl.BookSlot,Hybrasyl.Objects.Creature)">Cast(BookSlot, Creature)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Cast(BookSlot slot, Creature target)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.BookSlot.html">BookSlot</a></td>
+        <td><span class="parametername">slot</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">target</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_CheckFacing_Hybrasyl_Xml_Direction_Hybrasyl_Objects_Creature_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.CheckFacing(Hybrasyl.Xml.Direction%2CHybrasyl.Objects.Creature)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L513">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_CheckFacing_" data-uid="Hybrasyl.Objects.Monster.CheckFacing*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_CheckFacing_Hybrasyl_Xml_Direction_Hybrasyl_Objects_Creature_" data-uid="Hybrasyl.Objects.Monster.CheckFacing(Hybrasyl.Xml.Direction,Hybrasyl.Objects.Creature)">CheckFacing(Direction, Creature)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool CheckFacing(Direction direction, Creature target)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Direction</span></td>
+        <td><span class="parametername">direction</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">target</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Clone.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Clone%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L748">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Clone_" data-uid="Hybrasyl.Objects.Monster.Clone*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Clone" data-uid="Hybrasyl.Objects.Monster.Clone">Clone()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public object Clone()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetHashCode.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L508">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetHashCode_" data-uid="Hybrasyl.Objects.Monster.GetHashCode*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetHashCode" data-uid="Hybrasyl.Objects.Monster.GetHashCode">GetHashCode()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override int GetHashCode()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetNextDefenseCastable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetNextDefenseCastable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L566">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetNextDefenseCastable_" data-uid="Hybrasyl.Objects.Monster.GetNextDefenseCastable*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetNextDefenseCastable" data-uid="Hybrasyl.Objects.Monster.GetNextDefenseCastable">GetNextDefenseCastable()</h4>
+  <div class="markdown level1 summary"><p>Get the next defensive castable to be used, if it exists.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public NextCastingAction GetNextDefenseCastable()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.NextCastingAction.html">NextCastingAction</a></td>
+        <td><p>NextCastingAction indicating what castable category or castable to be used.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetNextNearDeathCastable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetNextNearDeathCastable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L572">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetNextNearDeathCastable_" data-uid="Hybrasyl.Objects.Monster.GetNextNearDeathCastable*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetNextNearDeathCastable" data-uid="Hybrasyl.Objects.Monster.GetNextNearDeathCastable">GetNextNearDeathCastable()</h4>
+  <div class="markdown level1 summary"><p>Get the next near death castable to be used, if it exists.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public NextCastingAction GetNextNearDeathCastable()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.NextCastingAction.html">NextCastingAction</a></td>
+        <td><p>NextCastingAction indicating what castable category or castable to be used.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetNextOffenseCastable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetNextOffenseCastable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L560">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetNextOffenseCastable_" data-uid="Hybrasyl.Objects.Monster.GetNextOffenseCastable*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetNextOffenseCastable" data-uid="Hybrasyl.Objects.Monster.GetNextOffenseCastable">GetNextOffenseCastable()</h4>
+  <div class="markdown level1 summary"><p>Get the next offensive castable to be used, if it exists.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public NextCastingAction GetNextOffenseCastable()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.NextCastingAction.html">NextCastingAction</a></td>
+        <td><p>NextCastingAction indicating what castable category or castable to be used.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetNextOnDeathCastable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetNextOnDeathCastable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L578">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetNextOnDeathCastable_" data-uid="Hybrasyl.Objects.Monster.GetNextOnDeathCastable*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetNextOnDeathCastable" data-uid="Hybrasyl.Objects.Monster.GetNextOnDeathCastable">GetNextOnDeathCastable()</h4>
+  <div class="markdown level1 summary"><p>Get the next offensive castable to be used, if it exists.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public NextCastingAction GetNextOnDeathCastable()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.NextCastingAction.html">NextCastingAction</a></td>
+        <td><p>NextCastingAction indicating what castable category or castable to be used.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetNextSkill.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetNextSkill%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L584">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetNextSkill_" data-uid="Hybrasyl.Objects.Monster.GetNextSkill*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetNextSkill" data-uid="Hybrasyl.Objects.Monster.GetNextSkill">GetNextSkill()</h4>
+  <div class="markdown level1 summary"><p>Get the next assail skill to be used, if it exists.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public NextCastingAction GetNextSkill()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.NextCastingAction.html">NextCastingAction</a></td>
+        <td><p>NextCastingAction indicating what castable GLIROcategory or castable to be used.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetTarget_Hybrasyl_Xml_CreatureAttackPriority_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetTarget(Hybrasyl.Xml.CreatureAttackPriority)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L1132">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetTarget_" data-uid="Hybrasyl.Objects.Monster.GetTarget*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetTarget_Hybrasyl_Xml_CreatureAttackPriority_" data-uid="Hybrasyl.Objects.Monster.GetTarget(Hybrasyl.Xml.CreatureAttackPriority)">GetTarget(CreatureAttackPriority)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Creature GetTarget(CreatureAttackPriority priority)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.CreatureAttackPriority</span></td>
+        <td><span class="parametername">priority</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_GetWalkableTiles_System_Int32_System_Int32_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.GetWalkableTiles(System.Int32%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L753">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_GetWalkableTiles_" data-uid="Hybrasyl.Objects.Monster.GetWalkableTiles*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_GetWalkableTiles_System_Int32_System_Int32_" data-uid="Hybrasyl.Objects.Monster.GetWalkableTiles(System.Int32,System.Int32)">GetWalkableTiles(Int32, Int32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public List&lt;Tile&gt; GetWalkableTiles(int x, int y)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">x</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">y</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">List</span>&lt;<a class="xref" href="Hybrasyl.Objects.Tile.html">Tile</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_IsIdle.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.IsIdle%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L731">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_IsIdle_" data-uid="Hybrasyl.Objects.Monster.IsIdle*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_IsIdle" data-uid="Hybrasyl.Objects.Monster.IsIdle">IsIdle()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsIdle()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_MakeHostile.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.MakeHostile%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L214">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_MakeHostile_" data-uid="Hybrasyl.Objects.Monster.MakeHostile*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_MakeHostile" data-uid="Hybrasyl.Objects.Monster.MakeHostile">MakeHostile()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void MakeHostile()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_NextAction.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.NextAction%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L939">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_NextAction_" data-uid="Hybrasyl.Objects.Monster.NextAction*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_NextAction" data-uid="Hybrasyl.Objects.Monster.NextAction">NextAction()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void NextAction()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_OnDamage_Hybrasyl_Objects_Creature_System_UInt32_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.OnDamage(Hybrasyl.Objects.Creature%2CSystem.UInt32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L220">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_OnDamage_" data-uid="Hybrasyl.Objects.Monster.OnDamage*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_OnDamage_Hybrasyl_Objects_Creature_System_UInt32_" data-uid="Hybrasyl.Objects.Monster.OnDamage(Hybrasyl.Objects.Creature,System.UInt32)">OnDamage(Creature, UInt32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void OnDamage(Creature attacker, uint damage)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">attacker</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td><span class="parametername">damage</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnDamage_Hybrasyl_Objects_Creature_System_UInt32_">VisibleObject.OnDamage(Creature, UInt32)</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_OnDeath.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.OnDeath%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L94">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_OnDeath_" data-uid="Hybrasyl.Objects.Monster.OnDeath*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_OnDeath" data-uid="Hybrasyl.Objects.Monster.OnDeath">OnDeath()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void OnDeath()</code></pre>
+  </div>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnDeath">VisibleObject.OnDeath()</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_OnHeal_Hybrasyl_Objects_Creature_System_UInt32_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.OnHeal(Hybrasyl.Objects.Creature%2CSystem.UInt32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L251">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_OnHeal_" data-uid="Hybrasyl.Objects.Monster.OnHeal*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_OnHeal_Hybrasyl_Objects_Creature_System_UInt32_" data-uid="Hybrasyl.Objects.Monster.OnHeal(Hybrasyl.Objects.Creature,System.UInt32)">OnHeal(Creature, UInt32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void OnHeal(Creature healer, uint heal)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">healer</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td><span class="parametername">heal</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnHeal_Hybrasyl_Objects_Creature_System_UInt32_">VisibleObject.OnHeal(Creature, UInt32)</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_OnHear_Hybrasyl_Objects_VisibleObject_System_String_System_Boolean_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.OnHear(Hybrasyl.Objects.VisibleObject%2CSystem.String%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L195">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_OnHear_" data-uid="Hybrasyl.Objects.Monster.OnHear*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_OnHear_Hybrasyl_Objects_VisibleObject_System_String_System_Boolean_" data-uid="Hybrasyl.Objects.Monster.OnHear(Hybrasyl.Objects.VisibleObject,System.String,System.Boolean)">OnHear(VisibleObject, String, Boolean)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void OnHear(VisibleObject speaker, string text, bool shout = false)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">speaker</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td><span class="parametername">shout</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnHear_Hybrasyl_Objects_VisibleObject_System_String_System_Boolean_">VisibleObject.OnHear(VisibleObject, String, Boolean)</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Relation_System_Int32_System_Int32_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Relation(System.Int32%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L894">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Relation_" data-uid="Hybrasyl.Objects.Monster.Relation*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Relation_System_Int32_System_Int32_" data-uid="Hybrasyl.Objects.Monster.Relation(System.Int32,System.Int32)">Relation(Int32, Int32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Direction Relation(int x1, int y1)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">x1</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">y1</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Direction</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_ShowTo_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.ShowTo(Hybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L724">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_ShowTo_" data-uid="Hybrasyl.Objects.Monster.ShowTo*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_ShowTo_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Objects.Monster.ShowTo(Hybrasyl.Objects.VisibleObject)">ShowTo(VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void ShowTo(VisibleObject obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.Creature.html#Hybrasyl_Objects_Creature_ShowTo_Hybrasyl_Objects_VisibleObject_">Creature.ShowTo(VisibleObject)</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_SimpleAttack_Hybrasyl_Objects_Creature_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.SimpleAttack(Hybrasyl.Objects.Creature)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L718">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_SimpleAttack_" data-uid="Hybrasyl.Objects.Monster.SimpleAttack*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_SimpleAttack_Hybrasyl_Objects_Creature_" data-uid="Hybrasyl.Objects.Monster.SimpleAttack(Hybrasyl.Objects.Creature)">SimpleAttack(Creature)</h4>
+  <div class="markdown level1 summary"><p>A simple attack by a monster (equivalent of straight assail).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SimpleAttack(Creature target)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">target</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster_Sleep.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster.Sleep%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L742">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_Monster_Sleep_" data-uid="Hybrasyl.Objects.Monster.Sleep*"></a>
+  <h4 id="Hybrasyl_Objects_Monster_Sleep" data-uid="Hybrasyl.Objects.Monster.Sleep">Sleep()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Sleep()</code></pre>
+  </div>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="C3.IQuadStorable.html">IQuadStorable</a>
+  </div>
+  <div>
+      <span class="xref">ICloneable</span>
+  </div>
+  <h3 id="extensionmethods">Extension Methods</h3>
+  <div>
+      <a class="xref" href="Hybrasyl.Utility.TypeExtensions.html#Hybrasyl_Utility_TypeExtensions_IsInteger_System_Object_">TypeExtensions.IsInteger(Object)</a>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_Monster.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.Monster%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/Monster.cs/#L45" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

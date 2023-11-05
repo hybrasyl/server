@@ -116,7 +116,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
       - name: Upload to GHCR
-        uses: KuhlTime/ghcr-action@v1
+        uses: KuhlTime/ghcr-action@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Notify discord

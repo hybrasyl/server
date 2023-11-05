@@ -1,0 +1,2590 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class World
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class World
+   ">
+    <meta name="generator" content="docfx 2.58.9.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Hybrasyl.World">
+  
+  
+  <h1 id="Hybrasyl_World" data-uid="Hybrasyl.World" class="text-break">Class World
+  </h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><a class="xref" href="Hybrasyl.Server.html">Server</a></div>
+    <div class="level2"><span class="xref">World</span></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_Port">Server.Port</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_Listener">Server.Listener</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_PacketHandlers">Server.PacketHandlers</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_Throttles">Server.Throttles</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_ControlMessageHandlers">Server.ControlMessageHandlers</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_ExpectedConnections">Server.ExpectedConnections</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_StopToken">Server.StopToken</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_Active">Server.Active</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_AllDone">Server.AllDone</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_Clients">Server.Clients</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_ProcessOutbound">Server.ProcessOutbound()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_RegisterPacketThrottle_Hybrasyl_IPacketThrottle_">Server.RegisterPacketThrottle(IPacketThrottle)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_PacketThrottleCheck_Hybrasyl_Client_Hybrasyl_ClientPacket_">Server.PacketThrottleCheck(Client, ClientPacket)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_StartListening">Server.StartListening()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_AcceptConnection_IAsyncResult_">Server.AcceptConnection(IAsyncResult)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_ReadCallback_IAsyncResult_">Server.ReadCallback(IAsyncResult)</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Hybrasyl.html">Hybrasyl</a></h6>
+  <h6><strong>Assembly</strong>: Hybrasyl.dll</h6>
+  <h5 id="Hybrasyl_World_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class World : Server</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World__ctor_System_Int32_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.%23ctor(System.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L211">View Source</a>
+  </span>
+  <a id="Hybrasyl_World__ctor_" data-uid="Hybrasyl.World.#ctor*"></a>
+  <h4 id="Hybrasyl_World__ctor_System_Int32_" data-uid="Hybrasyl.World.#ctor(System.Int32)">World(Int32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public World(int port)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">port</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World__ctor_System_Int32_Hybrasyl_Xml_DataStore_System_String_System_Boolean_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.%23ctor(System.Int32%2CHybrasyl.Xml.DataStore%2CSystem.String%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L216">View Source</a>
+  </span>
+  <a id="Hybrasyl_World__ctor_" data-uid="Hybrasyl.World.#ctor*"></a>
+  <h4 id="Hybrasyl_World__ctor_System_Int32_Hybrasyl_Xml_DataStore_System_String_System_Boolean_" data-uid="Hybrasyl.World.#ctor(System.Int32,Hybrasyl.Xml.DataStore,System.String,System.Boolean)">World(Int32, DataStore, String, Boolean)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public World(int port, DataStore store, string dataDir, bool adminEnabled = false)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">port</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.DataStore</span></td>
+        <td><span class="parametername">store</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">dataDir</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td><span class="parametername">adminEnabled</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="fields">Fields
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ActiveStatuses.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ActiveStatuses%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L172">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_World_ActiveStatuses" data-uid="Hybrasyl.World.ActiveStatuses">ActiveStatuses</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public HashSet&lt;Creature&gt; ActiveStatuses</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">HashSet</span>&lt;<a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CommandHandler.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CommandHandler%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L132">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_World_CommandHandler" data-uid="Hybrasyl.World.CommandHandler">CommandHandler</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static ChatCommandHandler CommandHandler</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.ChatCommands.ChatCommandHandler.html">ChatCommandHandler</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ControlMessageQueue.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ControlMessageQueue%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L117">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_World_ControlMessageQueue" data-uid="Hybrasyl.World.ControlMessageQueue">ControlMessageQueue</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static BlockingCollection&lt;HybrasylMessage&gt; ControlMessageQueue</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">BlockingCollection</span>&lt;<a class="xref" href="Hybrasyl.HybrasylMessage.html">HybrasylMessage</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_DataDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.DataDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L138">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_World_DataDirectory" data-uid="Hybrasyl.World.DataDirectory">DataDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public readonly string DataDirectory</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_MessageQueue.md&amp;value=---%0Auid%3A%20Hybrasyl.World.MessageQueue%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L116">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_World_MessageQueue" data-uid="Hybrasyl.World.MessageQueue">MessageQueue</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static BlockingCollection&lt;HybrasylMessage&gt; MessageQueue</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">BlockingCollection</span>&lt;<a class="xref" href="Hybrasyl.HybrasylMessage.html">HybrasylMessage</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ActiveAsyncDialogs.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ActiveAsyncDialogs%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L119">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ActiveAsyncDialogs_" data-uid="Hybrasyl.World.ActiveAsyncDialogs*"></a>
+  <h4 id="Hybrasyl_World_ActiveAsyncDialogs" data-uid="Hybrasyl.World.ActiveAsyncDialogs">ActiveAsyncDialogs</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ConcurrentDictionary&lt;Tuple&lt;UInt32, UInt32&gt;, AsyncDialogRequest&gt; ActiveAsyncDialogs { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ConcurrentDictionary</span>&lt;<span class="xref">Tuple</span>&lt;<span class="xref">UInt32</span>, <span class="xref">UInt32</span>&gt;, <a class="xref" href="Hybrasyl.Dialogs.AsyncDialogRequest.html">AsyncDialogRequest</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ActiveUsers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ActiveUsers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1503">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ActiveUsers_" data-uid="Hybrasyl.World.ActiveUsers*"></a>
+  <h4 id="Hybrasyl_World_ActiveUsers" data-uid="Hybrasyl.World.ActiveUsers">ActiveUsers</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IEnumerable&lt;User&gt; ActiveUsers { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">IEnumerable</span>&lt;<a class="xref" href="Hybrasyl.Objects.User.html">User</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_BehaviorSetDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.BehaviorSetDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L156">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_BehaviorSetDirectory_" data-uid="Hybrasyl.World.BehaviorSetDirectory*"></a>
+  <h4 id="Hybrasyl_World_BehaviorSetDirectory" data-uid="Hybrasyl.World.BehaviorSetDirectory">BehaviorSetDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string BehaviorSetDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CastableDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CastableDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L145">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_CastableDirectory_" data-uid="Hybrasyl.World.CastableDirectory*"></a>
+  <h4 id="Hybrasyl_World_CastableDirectory" data-uid="Hybrasyl.World.CastableDirectory">CastableDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string CastableDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CreatureDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CreatureDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L158">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_CreatureDirectory_" data-uid="Hybrasyl.World.CreatureDirectory*"></a>
+  <h4 id="Hybrasyl_World_CreatureDirectory" data-uid="Hybrasyl.World.CreatureDirectory">CreatureDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string CreatureDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_DatastoreConnection.md&amp;value=---%0Auid%3A%20Hybrasyl.World.DatastoreConnection%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L130">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_DatastoreConnection_" data-uid="Hybrasyl.World.DatastoreConnection*"></a>
+  <h4 id="Hybrasyl_World_DatastoreConnection" data-uid="Hybrasyl.World.DatastoreConnection">DatastoreConnection</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static ConnectionMultiplexer DatastoreConnection { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">ConnectionMultiplexer</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_DebugEnabled.md&amp;value=---%0Auid%3A%20Hybrasyl.World.DebugEnabled%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L134">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_DebugEnabled_" data-uid="Hybrasyl.World.DebugEnabled*"></a>
+  <h4 id="Hybrasyl_World_DebugEnabled" data-uid="Hybrasyl.World.DebugEnabled">DebugEnabled</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool DebugEnabled { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_DefaultNation.md&amp;value=---%0Auid%3A%20Hybrasyl.World.DefaultNation%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L99">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_DefaultNation_" data-uid="Hybrasyl.World.DefaultNation*"></a>
+  <h4 id="Hybrasyl_World_DefaultNation" data-uid="Hybrasyl.World.DefaultNation">DefaultNation</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Nation DefaultNation { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Nation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ElementDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ElementDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L169">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ElementDirectory_" data-uid="Hybrasyl.World.ElementDirectory*"></a>
+  <h4 id="Hybrasyl_World_ElementDirectory" data-uid="Hybrasyl.World.ElementDirectory">ElementDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ElementDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_GlobalSequences.md&amp;value=---%0Auid%3A%20Hybrasyl.World.GlobalSequences%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L108">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_GlobalSequences_" data-uid="Hybrasyl.World.GlobalSequences*"></a>
+  <h4 id="Hybrasyl_World_GlobalSequences" data-uid="Hybrasyl.World.GlobalSequences">GlobalSequences</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public MultiIndexDictionary&lt;uint, string, DialogSequence&gt; GlobalSequences { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Utility.MultiIndexDictionary-3.html">MultiIndexDictionary</a>&lt;<span class="xref">System.UInt32</span>, <span class="xref">System.String</span>, <a class="xref" href="Hybrasyl.Dialogs.DialogSequence.html">DialogSequence</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ItemCatalog.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ItemCatalog%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L111">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ItemCatalog_" data-uid="Hybrasyl.World.ItemCatalog*"></a>
+  <h4 id="Hybrasyl_World_ItemCatalog" data-uid="Hybrasyl.World.ItemCatalog">ItemCatalog</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;Tuple&lt;Gender, string&gt;, Item&gt; ItemCatalog { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Dictionary</span>&lt;<span class="xref">Tuple</span>&lt;<span class="xref">Hybrasyl.Xml.Gender</span>, <span class="xref">System.String</span>&gt;, <span class="xref">Hybrasyl.Xml.Item</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ItemDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ItemDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L148">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ItemDirectory_" data-uid="Hybrasyl.World.ItemDirectory*"></a>
+  <h4 id="Hybrasyl_World_ItemDirectory" data-uid="Hybrasyl.World.ItemDirectory">ItemDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ItemDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ItemVariantDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ItemVariantDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L164">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ItemVariantDirectory_" data-uid="Hybrasyl.World.ItemVariantDirectory*"></a>
+  <h4 id="Hybrasyl_World_ItemVariantDirectory" data-uid="Hybrasyl.World.ItemVariantDirectory">ItemVariantDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ItemVariantDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_LocalizationDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.LocalizationDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L168">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_LocalizationDirectory_" data-uid="Hybrasyl.World.LocalizationDirectory*"></a>
+  <h4 id="Hybrasyl_World_LocalizationDirectory" data-uid="Hybrasyl.World.LocalizationDirectory">LocalizationDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string LocalizationDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Login.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Login%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L124">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Login_" data-uid="Hybrasyl.World.Login*"></a>
+  <h4 id="Hybrasyl_World_Login" data-uid="Hybrasyl.World.Login">Login</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Login Login { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Login.html">Login</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_LootSetDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.LootSetDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L162">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_LootSetDirectory_" data-uid="Hybrasyl.World.LootSetDirectory*"></a>
+  <h4 id="Hybrasyl_World_LootSetDirectory" data-uid="Hybrasyl.World.LootSetDirectory">LootSetDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string LootSetDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_MapDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.MapDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L152">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_MapDirectory_" data-uid="Hybrasyl.World.MapDirectory*"></a>
+  <h4 id="Hybrasyl_World_MapDirectory" data-uid="Hybrasyl.World.MapDirectory">MapDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string MapDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_MapFileDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.MapFileDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L141">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_MapFileDirectory_" data-uid="Hybrasyl.World.MapFileDirectory*"></a>
+  <h4 id="Hybrasyl_World_MapFileDirectory" data-uid="Hybrasyl.World.MapFileDirectory">MapFileDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string MapFileDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_NationDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.NationDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L150">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_NationDirectory_" data-uid="Hybrasyl.World.NationDirectory*"></a>
+  <h4 id="Hybrasyl_World_NationDirectory" data-uid="Hybrasyl.World.NationDirectory">NationDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string NationDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_NpcsDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.NpcsDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L166">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_NpcsDirectory_" data-uid="Hybrasyl.World.NpcsDirectory*"></a>
+  <h4 id="Hybrasyl_World_NpcsDirectory" data-uid="Hybrasyl.World.NpcsDirectory">NpcsDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string NpcsDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Objects.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Objects%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L93">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Objects_" data-uid="Hybrasyl.World.Objects*"></a>
+  <h4 id="Hybrasyl_World_Objects" data-uid="Hybrasyl.World.Objects">Objects</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;uint, WorldObject&gt; Objects { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Dictionary</span>&lt;<span class="xref">System.UInt32</span>, <a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Portraits.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Portraits%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L95">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Portraits_" data-uid="Hybrasyl.World.Portraits*"></a>
+  <h4 id="Hybrasyl_World_Portraits" data-uid="Hybrasyl.World.Portraits">Portraits</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;string, string&gt; Portraits { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Dictionary</span>&lt;<span class="xref">System.String</span>, <span class="xref">System.String</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ScriptDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ScriptDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L143">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ScriptDirectory_" data-uid="Hybrasyl.World.ScriptDirectory*"></a>
+  <h4 id="Hybrasyl_World_ScriptDirectory" data-uid="Hybrasyl.World.ScriptDirectory">ScriptDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ScriptDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ScriptProcessor.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ScriptProcessor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L114">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ScriptProcessor_" data-uid="Hybrasyl.World.ScriptProcessor*"></a>
+  <h4 id="Hybrasyl_World_ScriptProcessor" data-uid="Hybrasyl.World.ScriptProcessor">ScriptProcessor</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ScriptProcessor ScriptProcessor { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Scripting.ScriptProcessor.html">ScriptProcessor</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_SpawnGroupDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.SpawnGroupDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L160">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_SpawnGroupDirectory_" data-uid="Hybrasyl.World.SpawnGroupDirectory*"></a>
+  <h4 id="Hybrasyl_World_SpawnGroupDirectory" data-uid="Hybrasyl.World.SpawnGroupDirectory">SpawnGroupDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string SpawnGroupDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StartDate.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StartDate%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L92">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StartDate_" data-uid="Hybrasyl.World.StartDate*"></a>
+  <h4 id="Hybrasyl_World_StartDate" data-uid="Hybrasyl.World.StartDate">StartDate</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static DateTime StartDate { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">DateTime</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StatusDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StatusDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L146">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StatusDirectory_" data-uid="Hybrasyl.World.StatusDirectory*"></a>
+  <h4 id="Hybrasyl_World_StatusDirectory" data-uid="Hybrasyl.World.StatusDirectory">StatusDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string StatusDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Strings.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Strings%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L96">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Strings_" data-uid="Hybrasyl.World.Strings*"></a>
+  <h4 id="Hybrasyl_World_Strings" data-uid="Hybrasyl.World.Strings">Strings</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LocalizedStringGroup Strings { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.LocalizedStringGroup</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_WorldData.md&amp;value=---%0Auid%3A%20Hybrasyl.World.WorldData%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L97">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_WorldData_" data-uid="Hybrasyl.World.WorldData*"></a>
+  <h4 id="Hybrasyl_World_WorldData" data-uid="Hybrasyl.World.WorldData">WorldData</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public WorldDataStore WorldData { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.WorldDataStore.html">WorldDataStore</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_WorldMapDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.WorldMapDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L154">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_WorldMapDirectory_" data-uid="Hybrasyl.World.WorldMapDirectory*"></a>
+  <h4 id="Hybrasyl_World_WorldMapDirectory" data-uid="Hybrasyl.World.WorldMapDirectory">WorldMapDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string WorldMapDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_XmlDirectory.md&amp;value=---%0Auid%3A%20Hybrasyl.World.XmlDirectory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L139">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_XmlDirectory_" data-uid="Hybrasyl.World.XmlDirectory*"></a>
+  <h4 id="Hybrasyl_World_XmlDirectory" data-uid="Hybrasyl.World.XmlDirectory">XmlDirectory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string XmlDirectory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_AddUser_Hybrasyl_Objects_User_System_Int64_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.AddUser(Hybrasyl.Objects.User%2CSystem.Int64)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1493">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_AddUser_" data-uid="Hybrasyl.World.AddUser*"></a>
+  <h4 id="Hybrasyl_World_AddUser_Hybrasyl_Objects_User_System_Int64_" data-uid="Hybrasyl.World.AddUser(Hybrasyl.Objects.User,System.Int64)">AddUser(User, Int64)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void AddUser(User userobj, long connectionId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">userobj</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int64</span></td>
+        <td><span class="parametername">connectionId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CheckDataMigrations.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CheckDataMigrations%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L255">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_CheckDataMigrations_" data-uid="Hybrasyl.World.CheckDataMigrations*"></a>
+  <h4 id="Hybrasyl_World_CheckDataMigrations" data-uid="Hybrasyl.World.CheckDataMigrations">CheckDataMigrations()</h4>
+  <div class="markdown level1 summary"><p>Check to see if Redis migrations are run for the current data set.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool CheckDataMigrations()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CompileScripts.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CompileScripts%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1232">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_CompileScripts_" data-uid="Hybrasyl.World.CompileScripts*"></a>
+  <h4 id="Hybrasyl_World_CompileScripts" data-uid="Hybrasyl.World.CompileScripts">CompileScripts()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void CompileScripts()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ControlQueueConsumer.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ControlQueueConsumer%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4226">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ControlQueueConsumer_" data-uid="Hybrasyl.World.ControlQueueConsumer*"></a>
+  <h4 id="Hybrasyl_World_ControlQueueConsumer" data-uid="Hybrasyl.World.ControlQueueConsumer">ControlQueueConsumer()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ControlQueueConsumer()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CreateItem_Hybrasyl_Xml_Item_System_Int32_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CreateItem(Hybrasyl.Xml.Item%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4071">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_CreateItem_" data-uid="Hybrasyl.World.CreateItem*"></a>
+  <h4 id="Hybrasyl_World_CreateItem_Hybrasyl_Xml_Item_System_Int32_" data-uid="Hybrasyl.World.CreateItem(Hybrasyl.Xml.Item,System.Int32)">CreateItem(Item, Int32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ItemObject CreateItem(Item item, int quantity = 1)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td><span class="parametername">item</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">quantity</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.ItemObject.html">ItemObject</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_CreateItem_System_String_System_Int32_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.CreateItem(System.String%2CSystem.Int32)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4060">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_CreateItem_" data-uid="Hybrasyl.World.CreateItem*"></a>
+  <h4 id="Hybrasyl_World_CreateItem_System_String_System_Int32_" data-uid="Hybrasyl.World.CreateItem(System.String,System.Int32)">CreateItem(String, Int32)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ItemObject CreateItem(string id, int quantity = 1)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">id</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">quantity</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.ItemObject.html">ItemObject</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_DeleteUser_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.DeleteUser(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1486">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_DeleteUser_" data-uid="Hybrasyl.World.DeleteUser*"></a>
+  <h4 id="Hybrasyl_World_DeleteUser_System_String_" data-uid="Hybrasyl.World.DeleteUser(System.String)">DeleteUser(String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void DeleteUser(string username)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">username</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_EnqueueStatusCheck_Hybrasyl_Objects_Creature_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.EnqueueStatusCheck(Hybrasyl.Objects.Creature)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L295">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_EnqueueStatusCheck_" data-uid="Hybrasyl.World.EnqueueStatusCheck*"></a>
+  <h4 id="Hybrasyl_World_EnqueueStatusCheck_Hybrasyl_Objects_Creature_" data-uid="Hybrasyl.World.EnqueueStatusCheck(Hybrasyl.Objects.Creature)">EnqueueStatusCheck(Creature)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void EnqueueStatusCheck(Creature obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_GetLocalString_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.GetLocalString(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L361">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_GetLocalString_" data-uid="Hybrasyl.World.GetLocalString*"></a>
+  <h4 id="Hybrasyl_World_GetLocalString_System_String_" data-uid="Hybrasyl.World.GetLocalString(System.String)">GetLocalString(String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string GetLocalString(string key)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">key</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_GetXmlFile_System_String_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.GetXmlFile(System.String%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L363">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_GetXmlFile_" data-uid="Hybrasyl.World.GetXmlFile*"></a>
+  <h4 id="Hybrasyl_World_GetXmlFile_System_String_System_String_" data-uid="Hybrasyl.World.GetXmlFile(System.String,System.String)">GetXmlFile(String, String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string GetXmlFile(string type, string name)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">type</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_GetXmlFiles_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.GetXmlFiles(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L424">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_GetXmlFiles_" data-uid="Hybrasyl.World.GetXmlFiles*"></a>
+  <h4 id="Hybrasyl_World_GetXmlFiles_System_String_" data-uid="Hybrasyl.World.GetXmlFiles(System.String)">GetXmlFiles(String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static string[] GetXmlFiles(string Path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">Path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_InitWorld.md&amp;value=---%0Auid%3A%20Hybrasyl.World.InitWorld%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L261">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_InitWorld_" data-uid="Hybrasyl.World.InitWorld*"></a>
+  <h4 id="Hybrasyl_World_InitWorld" data-uid="Hybrasyl.World.InitWorld">InitWorld()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool InitWorld()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Insert_Hybrasyl_Objects_WorldObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Insert(Hybrasyl.Objects.WorldObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4024">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Insert_" data-uid="Hybrasyl.World.Insert*"></a>
+  <h4 id="Hybrasyl_World_Insert_Hybrasyl_Objects_WorldObject_" data-uid="Hybrasyl.World.Insert(Hybrasyl.Objects.WorldObject)">Insert(WorldObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Insert(WorldObject obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_LoadData.md&amp;value=---%0Auid%3A%20Hybrasyl.World.LoadData%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L450">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_LoadData_" data-uid="Hybrasyl.World.LoadData*"></a>
+  <h4 id="Hybrasyl_World_LoadData" data-uid="Hybrasyl.World.LoadData">LoadData()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool LoadData()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_LoadPlugins.md&amp;value=---%0Auid%3A%20Hybrasyl.World.LoadPlugins%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L322">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_LoadPlugins_" data-uid="Hybrasyl.World.LoadPlugins*"></a>
+  <h4 id="Hybrasyl_World_LoadPlugins" data-uid="Hybrasyl.World.LoadPlugins">LoadPlugins()</h4>
+  <div class="markdown level1 summary"><p>Load all messaging plugins, based on server config.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void LoadPlugins()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_PlayerExists_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.PlayerExists(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L312">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_PlayerExists_" data-uid="Hybrasyl.World.PlayerExists*"></a>
+  <h4 id="Hybrasyl_World_PlayerExists_System_String_" data-uid="Hybrasyl.World.PlayerExists(System.String)">PlayerExists(String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool PlayerExists(string name)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_RegisterWorldThrottles.md&amp;value=---%0Auid%3A%20Hybrasyl.World.RegisterWorldThrottles%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L178">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_RegisterWorldThrottles_" data-uid="Hybrasyl.World.RegisterWorldThrottles*"></a>
+  <h4 id="Hybrasyl_World_RegisterWorldThrottles" data-uid="Hybrasyl.World.RegisterWorldThrottles">RegisterWorldThrottles()</h4>
+  <div class="markdown level1 summary"><p>Register world throttles. This should eventually use XML configuration; for now it simply
+registers our hardcoded throttle values.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void RegisterWorldThrottles()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Remove_Hybrasyl_Objects_WorldObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Remove(Hybrasyl.Objects.WorldObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4047">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Remove_" data-uid="Hybrasyl.World.Remove*"></a>
+  <h4 id="Hybrasyl_World_Remove_Hybrasyl_Objects_WorldObject_" data-uid="Hybrasyl.World.Remove(Hybrasyl.Objects.WorldObject)">Remove(WorldObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Remove(WorldObject obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_RemoveStatusCheck_Hybrasyl_Objects_Creature_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.RemoveStatusCheck(Hybrasyl.Objects.Creature)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L298">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_RemoveStatusCheck_" data-uid="Hybrasyl.World.RemoveStatusCheck*"></a>
+  <h4 id="Hybrasyl_World_RemoveStatusCheck_Hybrasyl_Objects_Creature_" data-uid="Hybrasyl.World.RemoveStatusCheck(Hybrasyl.Objects.Creature)">RemoveStatusCheck(Creature)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void RemoveStatusCheck(Creature obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.Creature.html">Creature</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ResolveMessagingPlugin_Hybrasyl_Xml_MessageType_Hybrasyl_Plugins_Message_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ResolveMessagingPlugin(Hybrasyl.Xml.MessageType%2CHybrasyl.Plugins.Message)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1256">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ResolveMessagingPlugin_" data-uid="Hybrasyl.World.ResolveMessagingPlugin*"></a>
+  <h4 id="Hybrasyl_World_ResolveMessagingPlugin_Hybrasyl_Xml_MessageType_Hybrasyl_Plugins_Message_" data-uid="Hybrasyl.World.ResolveMessagingPlugin(Hybrasyl.Xml.MessageType,Hybrasyl.Plugins.Message)">ResolveMessagingPlugin(MessageType, Message)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IMessageHandler ResolveMessagingPlugin(MessageType type, Message message)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.MessageType</span></td>
+        <td><span class="parametername">type</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Plugins.Message.html">Message</a></td>
+        <td><span class="parametername">message</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Plugins.IMessageHandler.html">IMessageHandler</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ResolveVariant_Hybrasyl_Xml_Item_Hybrasyl_Xml_Variant_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ResolveVariant(Hybrasyl.Xml.Item%2CHybrasyl.Xml.Variant%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L781">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ResolveVariant_" data-uid="Hybrasyl.World.ResolveVariant*"></a>
+  <h4 id="Hybrasyl_World_ResolveVariant_Hybrasyl_Xml_Item_Hybrasyl_Xml_Variant_System_String_" data-uid="Hybrasyl.World.ResolveVariant(Hybrasyl.Xml.Item,Hybrasyl.Xml.Variant,System.String)">ResolveVariant(Item, Variant, String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Item ResolveVariant(Item item, Variant variant, string variantGroup)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td><span class="parametername">item</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Variant</span></td>
+        <td><span class="parametername">variant</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">variantGroup</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_SetControlMessageHandlers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.SetControlMessageHandlers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1272">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_SetControlMessageHandlers_" data-uid="Hybrasyl.World.SetControlMessageHandlers*"></a>
+  <h4 id="Hybrasyl_World_SetControlMessageHandlers" data-uid="Hybrasyl.World.SetControlMessageHandlers">SetControlMessageHandlers()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetControlMessageHandlers()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_SetMerchantMenuHandlers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.SetMerchantMenuHandlers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1340">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_SetMerchantMenuHandlers_" data-uid="Hybrasyl.World.SetMerchantMenuHandlers*"></a>
+  <h4 id="Hybrasyl_World_SetMerchantMenuHandlers" data-uid="Hybrasyl.World.SetMerchantMenuHandlers">SetMerchantMenuHandlers()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetMerchantMenuHandlers()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_SetPacketHandlers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.SetPacketHandlers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1292">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_SetPacketHandlers_" data-uid="Hybrasyl.World.SetPacketHandlers*"></a>
+  <h4 id="Hybrasyl_World_SetPacketHandlers" data-uid="Hybrasyl.World.SetPacketHandlers">SetPacketHandlers()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetPacketHandlers()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_Shutdown.md&amp;value=---%0Auid%3A%20Hybrasyl.World.Shutdown%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1535">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_Shutdown_" data-uid="Hybrasyl.World.Shutdown*"></a>
+  <h4 id="Hybrasyl_World_Shutdown" data-uid="Hybrasyl.World.Shutdown">Shutdown()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void Shutdown()</code></pre>
+  </div>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Server.html#Hybrasyl_Server_Shutdown">Server.Shutdown()</a></div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StartControlConsumers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StartControlConsumers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4278">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StartControlConsumers_" data-uid="Hybrasyl.World.StartControlConsumers*"></a>
+  <h4 id="Hybrasyl_World_StartControlConsumers" data-uid="Hybrasyl.World.StartControlConsumers">StartControlConsumers()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void StartControlConsumers()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StartQueueConsumer.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StartQueueConsumer%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4268">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StartQueueConsumer_" data-uid="Hybrasyl.World.StartQueueConsumer*"></a>
+  <h4 id="Hybrasyl_World_StartQueueConsumer" data-uid="Hybrasyl.World.StartQueueConsumer">StartQueueConsumer()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void StartQueueConsumer()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StartTimers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StartTimers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4300">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StartTimers_" data-uid="Hybrasyl.World.StartTimers*"></a>
+  <h4 id="Hybrasyl_World_StartTimers" data-uid="Hybrasyl.World.StartTimers">StartTimers()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void StartTimers()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StopControlConsumers.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StopControlConsumers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4293">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StopControlConsumers_" data-uid="Hybrasyl.World.StopControlConsumers*"></a>
+  <h4 id="Hybrasyl_World_StopControlConsumers" data-uid="Hybrasyl.World.StopControlConsumers">StopControlConsumers()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void StopControlConsumers()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_StopQueueConsumer.md&amp;value=---%0Auid%3A%20Hybrasyl.World.StopQueueConsumer%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4287">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_StopQueueConsumer_" data-uid="Hybrasyl.World.StopQueueConsumer*"></a>
+  <h4 id="Hybrasyl_World_StopQueueConsumer" data-uid="Hybrasyl.World.StopQueueConsumer">StopQueueConsumer()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void StopQueueConsumer()</code></pre>
+  </div>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_ToggleDebug.md&amp;value=---%0Auid%3A%20Hybrasyl.World.ToggleDebug%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L242">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_ToggleDebug_" data-uid="Hybrasyl.World.ToggleDebug*"></a>
+  <h4 id="Hybrasyl_World_ToggleDebug" data-uid="Hybrasyl.World.ToggleDebug">ToggleDebug()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool ToggleDebug()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_TryAsyncDialog_Hybrasyl_Objects_VisibleObject_Hybrasyl_Objects_User_Hybrasyl_Dialogs_DialogSequence_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.TryAsyncDialog(Hybrasyl.Objects.VisibleObject%2CHybrasyl.Objects.User%2CHybrasyl.Dialogs.DialogSequence)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1513">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_TryAsyncDialog_" data-uid="Hybrasyl.World.TryAsyncDialog*"></a>
+  <h4 id="Hybrasyl_World_TryAsyncDialog_Hybrasyl_Objects_VisibleObject_Hybrasyl_Objects_User_Hybrasyl_Dialogs_DialogSequence_" data-uid="Hybrasyl.World.TryAsyncDialog(Hybrasyl.Objects.VisibleObject,Hybrasyl.Objects.User,Hybrasyl.Dialogs.DialogSequence)">TryAsyncDialog(VisibleObject, User, DialogSequence)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool TryAsyncDialog(VisibleObject invoker, User invokee, DialogSequence startSequence)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">invoker</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">invokee</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Dialogs.DialogSequence.html">DialogSequence</a></td>
+        <td><span class="parametername">startSequence</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_TryGetActiveUser_System_String_Hybrasyl_Objects_User__.md&amp;value=---%0Auid%3A%20Hybrasyl.World.TryGetActiveUser(System.String%2CHybrasyl.Objects.User%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1499">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_TryGetActiveUser_" data-uid="Hybrasyl.World.TryGetActiveUser*"></a>
+  <h4 id="Hybrasyl_World_TryGetActiveUser_System_String_Hybrasyl_Objects_User__" data-uid="Hybrasyl.World.TryGetActiveUser(System.String,Hybrasyl.Objects.User@)">TryGetActiveUser(String, out User)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool TryGetActiveUser(string name, out User user)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">user</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_TryGetActiveUserById_System_Int64_Hybrasyl_Objects_User__.md&amp;value=---%0Auid%3A%20Hybrasyl.World.TryGetActiveUserById(System.Int64%2CHybrasyl.Objects.User%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1501">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_TryGetActiveUserById_" data-uid="Hybrasyl.World.TryGetActiveUserById*"></a>
+  <h4 id="Hybrasyl_World_TryGetActiveUserById_System_Int64_Hybrasyl_Objects_User__" data-uid="Hybrasyl.World.TryGetActiveUserById(System.Int64,Hybrasyl.Objects.User@)">TryGetActiveUserById(Int64, out User)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool TryGetActiveUserById(long connectionId, out User user)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int64</span></td>
+        <td><span class="parametername">connectionId</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">user</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_TryGetItemTemplate_System_String_Hybrasyl_Xml_Gender_Hybrasyl_Xml_Item__.md&amp;value=---%0Auid%3A%20Hybrasyl.World.TryGetItemTemplate(System.String%2CHybrasyl.Xml.Gender%2CHybrasyl.Xml.Item%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4080">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_TryGetItemTemplate_" data-uid="Hybrasyl.World.TryGetItemTemplate*"></a>
+  <h4 id="Hybrasyl_World_TryGetItemTemplate_System_String_Hybrasyl_Xml_Gender_Hybrasyl_Xml_Item__" data-uid="Hybrasyl.World.TryGetItemTemplate(System.String,Hybrasyl.Xml.Gender,Hybrasyl.Xml.Item@)">TryGetItemTemplate(String, Gender, out Item)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool TryGetItemTemplate(string name, Gender itemGender, out Item item)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Gender</span></td>
+        <td><span class="parametername">itemGender</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td><span class="parametername">item</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_TryGetItemTemplate_System_String_Hybrasyl_Xml_Item__.md&amp;value=---%0Auid%3A%20Hybrasyl.World.TryGetItemTemplate(System.String%2CHybrasyl.Xml.Item%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L4086">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_TryGetItemTemplate_" data-uid="Hybrasyl.World.TryGetItemTemplate*"></a>
+  <h4 id="Hybrasyl_World_TryGetItemTemplate_System_String_Hybrasyl_Xml_Item__" data-uid="Hybrasyl.World.TryGetItemTemplate(System.String,Hybrasyl.Xml.Item@)">TryGetItemTemplate(String, out Item)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool TryGetItemTemplate(string name, out Item item)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td><span class="parametername">item</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World_UserConnected_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.World.UserConnected(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L1505">View Source</a>
+  </span>
+  <a id="Hybrasyl_World_UserConnected_" data-uid="Hybrasyl.World.UserConnected*"></a>
+  <h4 id="Hybrasyl_World_UserConnected_System_String_" data-uid="Hybrasyl.World.UserConnected(System.String)">UserConnected(String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool UserConnected(string name)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">name</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="extensionmethods">Extension Methods</h3>
+  <div>
+      <a class="xref" href="Hybrasyl.Utility.TypeExtensions.html#Hybrasyl_Utility_TypeExtensions_IsInteger_System_Object_">TypeExtensions.IsInteger(Object)</a>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_World.md&amp;value=---%0Auid%3A%20Hybrasyl.World%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/World.cs/#L85" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

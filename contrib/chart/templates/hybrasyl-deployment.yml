@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "hybrasyl.name" . }}
+    helm.sh/chart: {{ include "hybrasyl.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "hybrasyl.name" . }}
+  template:
+    spec:
+      serviceAccount: hybrasyl-pod-server-access
+    - name: {{ .Chart.Name }}
+      image: {{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      env:
+        - name: HYBRASYL_ENV
+          value: "{{ .Values.hybrasyl.env }}"
+      volumeMounts:
+        - name: hybrasyl-config
+          mountPath: /etc/hybrasyl-config
+          readOnly: true
+      ports:
+        - name: login
+          containerPort: 2610
+          protocol: TCP
+        - name: lobby
+          containerPort: 2611
+          protocol: TC
+        - name: world
+          containerPort: 2612
+          protocol: TCP
+      livenessProbe:
+        tcpSocket:
+          port: 2610
+        initialDelaySeconds: 30
+        periodSeconds: 5
+      readinessProbe:
+        tcpSocket:
+          port: 2612
+        initialDelaySeconds: 30
+        periodSeconds: 5

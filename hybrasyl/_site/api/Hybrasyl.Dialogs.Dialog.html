@@ -1,0 +1,694 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class Dialog
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class Dialog
+   ">
+    <meta name="generator" content="docfx 2.58.9.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Hybrasyl.Dialogs.Dialog">
+  
+  
+  <h1 id="Hybrasyl_Dialogs_Dialog" data-uid="Hybrasyl.Dialogs.Dialog" class="text-break">Class Dialog
+  </h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">Dialog</span></div>
+      <div class="level2"><a class="xref" href="Hybrasyl.Dialogs.FunctionDialog.html">FunctionDialog</a></div>
+      <div class="level2"><a class="xref" href="Hybrasyl.Dialogs.InputDialog.html">InputDialog</a></div>
+      <div class="level2"><a class="xref" href="Hybrasyl.Dialogs.JumpDialog.html">JumpDialog</a></div>
+      <div class="level2"><a class="xref" href="Hybrasyl.Dialogs.SimpleDialog.html">SimpleDialog</a></div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Hybrasyl.Dialogs.html">Hybrasyl.Dialogs</a></h6>
+  <h6><strong>Assembly</strong>: Hybrasyl.dll</h6>
+  <h5 id="Hybrasyl_Dialogs_Dialog_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class Dialog : object</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog__ctor_System_Int32_System_String_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.%23ctor(System.Int32%2CSystem.String%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L300">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog__ctor_" data-uid="Hybrasyl.Dialogs.Dialog.#ctor*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog__ctor_System_Int32_System_String_System_String_" data-uid="Hybrasyl.Dialogs.Dialog.#ctor(System.Int32,System.String,System.String)">Dialog(Int32, String, String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dialog(int dialogType, string displayText = null, string callbackFunction = &quot;&quot;)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">dialogType</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">displayText</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">callbackFunction</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="fields">Fields
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_DialogType.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.DialogType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L201">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Dialogs_Dialog_DialogType" data-uid="Hybrasyl.Dialogs.Dialog.DialogType">DialogType</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected ushort DialogType</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_Index.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.Index%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L203">View Source</a>
+  </span>
+  <h4 id="Hybrasyl_Dialogs_Dialog_Index" data-uid="Hybrasyl.Dialogs.Dialog.Index">Index</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Index</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_CallbackExpression.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.CallbackExpression%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L205">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_CallbackExpression_" data-uid="Hybrasyl.Dialogs.Dialog.CallbackExpression*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_CallbackExpression" data-uid="Hybrasyl.Dialogs.Dialog.CallbackExpression">CallbackExpression</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string CallbackExpression { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_Sequence.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.Sequence%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L202">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_Sequence_" data-uid="Hybrasyl.Dialogs.Dialog.Sequence*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_Sequence" data-uid="Hybrasyl.Dialogs.Dialog.Sequence">Sequence</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public DialogSequence Sequence { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Dialogs.DialogSequence.html">DialogSequence</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_Sprite.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.Sprite%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L286">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_Sprite_" data-uid="Hybrasyl.Dialogs.Dialog.Sprite*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_Sprite" data-uid="Hybrasyl.Dialogs.Dialog.Sprite">Sprite</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort Sprite { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_AssociateWithSequence_Hybrasyl_Dialogs_DialogSequence_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.AssociateWithSequence(Hybrasyl.Dialogs.DialogSequence)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L421">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_AssociateWithSequence_" data-uid="Hybrasyl.Dialogs.Dialog.AssociateWithSequence*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_AssociateWithSequence_Hybrasyl_Dialogs_DialogSequence_" data-uid="Hybrasyl.Dialogs.Dialog.AssociateWithSequence(Hybrasyl.Dialogs.DialogSequence)">AssociateWithSequence(DialogSequence)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void AssociateWithSequence(DialogSequence dialogSequence)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Dialogs.DialogSequence.html">DialogSequence</a></td>
+        <td><span class="parametername">dialogSequence</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_EvaluateDisplayText_Hybrasyl_Objects_User_Hybrasyl_Objects_WorldObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.EvaluateDisplayText(Hybrasyl.Objects.User%2CHybrasyl.Objects.WorldObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L236">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_EvaluateDisplayText_" data-uid="Hybrasyl.Dialogs.Dialog.EvaluateDisplayText*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_EvaluateDisplayText_Hybrasyl_Objects_User_Hybrasyl_Objects_WorldObject_" data-uid="Hybrasyl.Dialogs.Dialog.EvaluateDisplayText(Hybrasyl.Objects.User,Hybrasyl.Objects.WorldObject)">EvaluateDisplayText(User, WorldObject)</h4>
+  <div class="markdown level1 summary"><p>Using the sequence associate or an override, evaluate the display text and replace
+{{foo}} tokens (dialog template variables) with values from the ephemeral store.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string EvaluateDisplayText(User target, WorldObject AssociateOverride = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">target</span></td>
+        <td><p>The user who is receiving the dialog</p>
+</td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a></td>
+        <td><span class="parametername">AssociateOverride</span></td>
+        <td><p>The associate override, if any, to use as a source for token data</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><p>An evaluated string</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_GenerateBasePacket_Hybrasyl_Objects_User_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.GenerateBasePacket(Hybrasyl.Objects.User%2CHybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L357">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_GenerateBasePacket_" data-uid="Hybrasyl.Dialogs.Dialog.GenerateBasePacket*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_GenerateBasePacket_Hybrasyl_Objects_User_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Dialogs.Dialog.GenerateBasePacket(Hybrasyl.Objects.User,Hybrasyl.Objects.VisibleObject)">GenerateBasePacket(User, VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ServerPacket GenerateBasePacket(User invoker, VisibleObject invokee)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">invoker</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">invokee</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.ServerPacket.html">ServerPacket</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_GetScript_Hybrasyl_Objects_WorldObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.GetScript(Hybrasyl.Objects.WorldObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L216">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_GetScript_" data-uid="Hybrasyl.Dialogs.Dialog.GetScript*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_GetScript_Hybrasyl_Objects_WorldObject_" data-uid="Hybrasyl.Dialogs.Dialog.GetScript(Hybrasyl.Objects.WorldObject)">GetScript(WorldObject)</h4>
+  <div class="markdown level1 summary"><p>Gets the script responsible for handling events. This can be either an associate (e.g. an NPC),
+an override, or a global script (set by a dialog's sequence).
+Associate override first, then associate, and lastly, a global script.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected Script GetScript(WorldObject AssociateOverride = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a></td>
+        <td><span class="parametername">AssociateOverride</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Scripting.Script.html">Script</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_HasNextDialog.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.HasNextDialog%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L348">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_HasNextDialog_" data-uid="Hybrasyl.Dialogs.Dialog.HasNextDialog*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_HasNextDialog" data-uid="Hybrasyl.Dialogs.Dialog.HasNextDialog">HasNextDialog()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HasNextDialog()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_HasPrevDialog.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.HasPrevDialog%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L336">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_HasPrevDialog_" data-uid="Hybrasyl.Dialogs.Dialog.HasPrevDialog*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_HasPrevDialog" data-uid="Hybrasyl.Dialogs.Dialog.HasPrevDialog">HasPrevDialog()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HasPrevDialog()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_RunCallback_Hybrasyl_Objects_User_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.RunCallback(Hybrasyl.Objects.User%2CHybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L317">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_RunCallback_" data-uid="Hybrasyl.Dialogs.Dialog.RunCallback*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_RunCallback_Hybrasyl_Objects_User_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Dialogs.Dialog.RunCallback(Hybrasyl.Objects.User,Hybrasyl.Objects.VisibleObject)">RunCallback(User, VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void RunCallback(User target, VisibleObject associateOverride = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">target</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">associateOverride</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_SetCallbackHandler_System_String_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.SetCallbackHandler(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L312">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_SetCallbackHandler_" data-uid="Hybrasyl.Dialogs.Dialog.SetCallbackHandler*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_SetCallbackHandler_System_String_" data-uid="Hybrasyl.Dialogs.Dialog.SetCallbackHandler(System.String)">SetCallbackHandler(String)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetCallbackHandler(string callback)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">callback</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog_ShowTo_Hybrasyl_Objects_User_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog.ShowTo(Hybrasyl.Objects.User%2CHybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L426">View Source</a>
+  </span>
+  <a id="Hybrasyl_Dialogs_Dialog_ShowTo_" data-uid="Hybrasyl.Dialogs.Dialog.ShowTo*"></a>
+  <h4 id="Hybrasyl_Dialogs_Dialog_ShowTo_Hybrasyl_Objects_User_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Dialogs.Dialog.ShowTo(Hybrasyl.Objects.User,Hybrasyl.Objects.VisibleObject)">ShowTo(User, VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual void ShowTo(User invoker, VisibleObject invokee)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">invoker</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">invokee</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="extensionmethods">Extension Methods</h3>
+  <div>
+      <a class="xref" href="Hybrasyl.Utility.TypeExtensions.html#Hybrasyl_Utility_TypeExtensions_IsInteger_System_Object_">TypeExtensions.IsInteger(Object)</a>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Dialogs_Dialog.md&amp;value=---%0Auid%3A%20Hybrasyl.Dialogs.Dialog%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Dialogs.cs/#L195" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
