@@ -60,6 +60,7 @@ public class HybrasylWorldObject : IScriptable
     public string Name => WorldObject.Name;
     public string Type => Obj.GetType().Name;
 
+
     /// <summary>
     ///     The current X coordinate location of the object.
     /// </summary>

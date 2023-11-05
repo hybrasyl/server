@@ -20,10 +20,6 @@
  * 
  */
 
-using App.Metrics;
-using App.Metrics.Gauge;
-using App.Metrics.Meter;
-using App.Metrics.Timer;
 using Hybrasyl.Casting;
 using Hybrasyl.ChatCommands;
 using Hybrasyl.Dialogs;
@@ -58,6 +54,7 @@ using Message = Hybrasyl.Plugins.Message;
 using Reactor = Hybrasyl.Objects.Reactor;
 using Script = Hybrasyl.Scripting.Script;
 using Timer = System.Timers.Timer;
+using User = Hybrasyl.Objects.User;
 
 namespace Hybrasyl;
 
@@ -175,28 +172,6 @@ public partial class World : Server
 
     public IEnumerable<User> ActiveUsers => WorldState.Values<User>();
 
-    #region Metrics
-    public Dictionary<byte, TimerOptions> PacketHandlerMetrics { get; set; } = new();
-    public Dictionary<ControlOpcode, TimerOptions> ControlMessageMetrics { get; set; } = new();
-
-    public MeterOptions ExceptionMeter => new MeterOptions
-    {
-        Name = "Exception Rate",
-        MeasurementUnit = Unit.Errors
-    };
-
-    public GaugeOptions QueueDepth => new GaugeOptions
-    {
-        Name = "Queue Depth (Opcodes)",
-        MeasurementUnit = Unit.Requests
-    };
-
-    public GaugeOptions ControlQueueDepth => new GaugeOptions
-    {
-        Name = "Queue Depth (Control Messages)",
-        MeasurementUnit = Unit.Requests
-    };
-    #endregion
 
     /// <summary>
     ///     Register world throttles. This should eventually use XML configuration; for now it simply
@@ -963,7 +938,7 @@ public partial class World : Server
             {
                 var clientMessage = (HybrasylClientMessage)message;
                 var handler = WorldPacketHandlers[clientMessage.Packet.Opcode];
-                var timerOptions = PacketHandlerMetrics[clientMessage.Packet.Opcode];
+                var watch = Stopwatch.StartNew();
 
                 try
                 {
@@ -1038,19 +1013,13 @@ public partial class World : Server
                             user.CancelCasting();
 
                         // Last but not least, invoke the handler
-                        var watch = Stopwatch.StartNew();
                         WorldPacketHandlers[clientMessage.Packet.Opcode].Invoke(user, clientMessage.Packet);
                         watch.Stop();
-                        if (timerOptions != null)
-                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     else if (clientMessage.Packet.Opcode == 0x10) // Handle special case of join world
                     {
-                        var watch = Stopwatch.StartNew();
                         WorldPacketHandlers[0x10].Invoke(clientMessage.ConnectionId, clientMessage.Packet);
                         watch.Stop();
-                        if (timerOptions != null)
-                            Game.MetricsStore.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
                     }
                     else
                     {
@@ -1059,12 +1028,12 @@ public partial class World : Server
                             "Connection ID {0}: received packet, but seems to be dead connection?",
                             clientMessage.ConnectionId);
                     }
+
+
                 }
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore.Measure.Meter.Mark(ExceptionMeter,
-                        $"0x{clientMessage.Packet.Opcode}");
                     GameLog.Error(e, "{Opcode}: Unhandled exception encountered in packet handler!",
                         clientMessage.Packet.Opcode);
                 }
@@ -1097,14 +1066,11 @@ public partial class World : Server
                     var watch = Stopwatch.StartNew();
                     ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                     watch.Stop();
-                    if (ControlMessageMetrics.TryGetValue(hcm.Opcode, out var timerOptions))
-                        Game.MetricsStore?.Measure.Timer.Time(timerOptions, watch.ElapsedMilliseconds);
 
                 }
                 catch (Exception e)
                 {
                     Game.ReportException(e);
-                    Game.MetricsStore?.Measure.Meter.Mark(ExceptionMeter, $"cm_{hcm.Opcode}");
                     GameLog.Error("Exception encountered in control message handler: {exception}", e);
                 }
         }
@@ -1196,14 +1162,6 @@ public partial class World : Server
             var attr = method.GetCustomAttributes<HybrasylMessageHandler>().FirstOrDefault();
             if (attr == null) continue;
             ControlMessageHandlers[attr.Opcode] = (ControlMessageHandler)Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
-            // Add metrics timers
-            ControlMessageMetrics[attr.Opcode] = new TimerOptions
-            {
-                Name = method.Name,
-                MeasurementUnit = Unit.Requests,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Milliseconds
-            };
         }
         GameLog.Info("Control message handlers registered");
     }
@@ -1218,13 +1176,6 @@ public partial class World : Server
             if (attr == null) continue;
             WorldPacketHandlers[attr.Opcode] =
                 (WorldPacketHandler)Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
-            PacketHandlerMetrics[attr.Opcode] = new TimerOptions
-            {
-                Name = method.Name,
-                MeasurementUnit = Unit.Requests,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Milliseconds
-            };
         }
         GameLog.Info("Packet handlers registered");
     }

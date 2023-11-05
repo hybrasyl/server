@@ -19,14 +19,12 @@
  * 
  */
 
-using App.Metrics;
 using Grpc.Core;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using HybrasylGrpc;
 using Newtonsoft.Json.Linq;
-using Sentry;
 using Serilog;
 using Serilog.Core;
 using System;
@@ -44,6 +42,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hybrasyl.Internals;
 using Hybrasyl.Objects;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 
 namespace Hybrasyl;
 
@@ -76,6 +76,9 @@ public static class Game
     public static int ShutdownTimeRemaining = -1;
     public static bool ShutdownComplete;
 
+    public static readonly ActivitySource ActivitySource = new("erisco.hybrasyl.server");
+    public static TracerProvider TracerProvider;
+    
     public static readonly Dictionary<ushort, ushort> ClosedDoorSprites = new()
     {
         { 1994, 1997 }, { 2000, 2003 }, { 2163, 2164 }, { 2165, 2196 }, { 2197, 2198 }, { 2227, 2228 },
@@ -154,8 +157,6 @@ public static class Game
     public static IDisposable Sentry { get; private set; }
     public static bool SentryEnabled { get; private set; }
 
-    public static IMetricsRoot MetricsStore { get; private set; }
-
     public static ServerConfig ActiveConfiguration { get; set; }
     public static string WorldDataDirectory { get; set; }
     public static string DataDirectory { get; set; }
@@ -200,8 +201,7 @@ public static class Game
 
     public static void ReportException(Exception e)
     {
-        if (SentryEnabled)
-            Task.Run(function: () => SentrySdk.CaptureException(e));
+        return;
     }
 
     public static void CurrentDomain_ProcessExit(object sender, EventArgs e)
@@ -284,6 +284,13 @@ public static class Game
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
 
+
+        // Initialize OTel
+
+        
+        using var activity = ActivitySource.StartActivity("Startup");
+
+        activity.SetTag("host",Dns.GetHostName());
         // Gather our directories from env vars / command line switches
 
         var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
@@ -343,6 +350,7 @@ public static class Game
         }
         catch (FileNotFoundException ex)
         {
+            activity.SetStatus(ActivityStatusCode.Error);
             Log.Fatal($"An XML directory (world data) was not found at {manager.RootPath}.");
             Log.Fatal("This may be the first time you've run the server. If so, please take a look");
             Log.Fatal("at the server documentation at github.com/hybrasyl/server.");
@@ -357,6 +365,7 @@ public static class Game
         }
         catch (Exception ex)
         {
+            activity.SetStatus(ActivityStatusCode.Error);
             Log.Fatal($"World data could not be loaded: {ex}");
             Log.Fatal(
                 "Hybrasyl cannot start without a working world data directory, so it will automatically close in 10 seconds.");
@@ -366,6 +375,7 @@ public static class Game
         if (manager.Count<ServerConfig>() == 0)
         {
             var loadResult = manager.GetLoadResult<ServerConfig>();
+            activity.SetStatus(ActivityStatusCode.Error);
 
             Log.Fatal("A server configuration file was not found or could not be loaded.");
             Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
@@ -404,6 +414,7 @@ public static class Game
                 Log.Fatal($"{error.Key}: {error.Value}");
             }
 
+            activity.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
                 "Hybrasyl cannot start without localizations, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -413,6 +424,8 @@ public static class Game
 
         if (!manager.TryGetValue(ActiveConfigurationName, out ServerConfig activeConfiguration))
         {
+            activity.SetStatus(ActivityStatusCode.Error);
+
             Log.Fatal(
                 $"You specified a server configuration name of {ActiveConfigurationName}, but there are no configurations with that name.");
             Log.Fatal(
@@ -437,8 +450,7 @@ public static class Game
                 "Hybrasyl cannot start without a properly set locale, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
 
-            return;
-        }
+            return; }
 
         Log.Information($"Configuration file: {activeConfiguration.Filename} ({activeConfiguration.Name}) loaded");
         activeConfiguration.InitializeClientSettings();
@@ -449,6 +461,15 @@ public static class Game
         // Configure logging 
         GameLog.Initialize(LogDirectory, activeConfiguration.Logging);
 
+        // Configure OTel forwarder, if set
+
+        var providerBuilder = Sdk.CreateTracerProviderBuilder()
+            .AddSource("erisco.hybrasyl.server")
+            .AddConsoleExporter().AddOtlpExporter(opt =>
+            {
+                opt.Endpoint = new Uri(activeConfiguration.ApiEndpoints.Sentry.Url);
+            });
+ 
         // We don't want any of NCalc's garbage 
         Trace.Listeners.RemoveAt(0);
 
@@ -462,54 +483,7 @@ public static class Game
         // Set up metrics collection
         // TODO: make configurable
         var env = Environment.GetEnvironmentVariable("HYB_ENV");
-
-        var builder = new MetricsBuilder().Configuration.Configure(
-            setupAction: options =>
-            {
-                options.DefaultContextLabel = "Hybrasyl";
-                options.GlobalTags.Add("Environment", env ?? "dev");
-                options.Enabled = true;
-                options.ReportingEnabled = true;
-            });
-
-        if (activeConfiguration.ApiEndpoints?.MetricsEndpoint != null)
-            MetricsStore = builder.Report.ToHostedMetrics(
-                setupAction: io =>
-                {
-                    io.HostedMetrics.BaseUri = new Uri(activeConfiguration.ApiEndpoints.MetricsEndpoint.Url);
-                    io.HostedMetrics.ApiKey = activeConfiguration.ApiEndpoints.MetricsEndpoint.ApiKey;
-                    io.HttpPolicy.BackoffPeriod = TimeSpan.FromSeconds(15);
-                    io.HttpPolicy.FailuresBeforeBackoff = 5;
-                    io.HttpPolicy.Timeout = TimeSpan.FromSeconds(10);
-                    io.FlushInterval = TimeSpan.FromSeconds(20);
-                }).Build();
-        else
-            MetricsStore = builder.Build();
-
-        try
-        {
-            if (!string.IsNullOrEmpty(activeConfiguration.ApiEndpoints?.Sentry?.Url ?? null))
-            {
-                Sentry = SentrySdk.Init(configureOptions: i =>
-                    {
-                        i.Dsn = activeConfiguration.ApiEndpoints.Sentry.Url;
-                        i.Environment = env ?? "dev";
-                    }
-                );
-                SentryEnabled = true;
-                Log.Information("Sentry: exception reporting enabled");
-            }
-            else
-            {
-                Log.Information("Sentry: exception reporting disabled");
-                SentryEnabled = false;
-            }
-        }
-        catch (Exception e)
-        {
-            Log.Warning("Sentry: exception reporting disabled, unknown error: {e}", e);
-            SentryEnabled = false;
-        }
+        activity.SetTag("environment", env);
 
         LoadCollisions();
 
@@ -541,6 +515,7 @@ public static class Game
 
         if (!World.InitWorld())
         {
+            activity.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
                 "Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
             Console.ReadKey();
@@ -620,6 +595,7 @@ public static class Game
         _loginThread.Start();
         _worldThread.Start();
         _controlThread.Start();
+        activity.SetStatus(ActivityStatusCode.Ok);
 
         while (!World.WorldState.Ready)
             Thread.Sleep(1000);

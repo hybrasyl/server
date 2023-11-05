@@ -35,6 +35,7 @@ public class Reactor : VisibleObject, IPursuitable
     public bool Blocking;
     public string Description;
     public string ScriptName;
+    public CreatureSnapshot Caster;
 
     public Reactor(Xml.Objects.Reactor reactor)
     {
@@ -142,6 +143,10 @@ public class Reactor : VisibleObject, IPursuitable
             Script.ExecuteFunction("OnSpawn");
     }
 
+    public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
+        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster));
+    
+
     public virtual void OnEntry(VisibleObject obj)
     {
         if (Expired) return;
@@ -153,8 +158,7 @@ public class Reactor : VisibleObject, IPursuitable
         }
 
         if (!Ready) return;
-        var wef = Script.ExecuteFunction("OnEntry",
-            ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        var wef = Script.ExecuteFunction("OnEntry", GetBaseEnvironment(obj));
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -162,14 +166,14 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiEntry(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 
     public virtual void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
-            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+            Script.ExecuteFunction("OnLeave", GetBaseEnvironment(obj));
         if (obj is User user)
             user.LastAssociate = null;
     }
@@ -179,14 +183,14 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiDeparture(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        Script.ExecuteFunction("AoiDeparture", GetBaseEnvironment(obj));
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
         if (!Ready) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this);
+        var env = GetBaseEnvironment(obj);
         env.Add("item", dropped);
         Script.ExecuteFunction("OnDrop", env);
     }
@@ -195,14 +199,14 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         if (!Ready) return;
-        Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        Script.ExecuteFunction("OnMove", GetBaseEnvironment(obj));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
     {
         if (Expired) return;
         if (!Ready) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this);
+        var env = GetBaseEnvironment(obj);
         env.Add("item", taken);
         Script.ExecuteFunction("OnTake", env);
     }

@@ -54,6 +54,13 @@ public class Creature : VisibleObject
         SessionCookies = new Dictionary<string, string>();
     }
 
+    public CreatureSnapshot GetSnapshot()
+    {
+        var stats = JsonConvert.SerializeObject(Stats);
+        var statInfo = JsonConvert.DeserializeObject<StatInfo>(stats);
+        return new CreatureSnapshot { Name = Name, Parent = Guid, Stats = statInfo };
+    }
+
     [JsonProperty(Order = 2)] public StatInfo Stats { get; set; }
     [JsonProperty(Order = 3)] public ConditionInfo Condition { get; set; }
 

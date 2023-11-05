@@ -62,6 +62,7 @@ public class User : Creature
         LastAssociate = null;
     }
 
+
     public User(Guid serverGuid, long connectionId, string playername = "")
     {
         ServerGuid = serverGuid;
