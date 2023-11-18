@@ -1,0 +1,3090 @@
+{
+  "homepages": [],
+  "source_base_path": "/Users/baughj/personal/server/hybrasyl",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/C3.IQuadStorable.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/C3.IQuadStorable.html",
+          "hash": "I9fFzigjq7Bz0R8zsrU1H1k/b7Mseyz/5BJjXw16LmI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/C3.QuadTree-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/C3.QuadTree-1.html",
+          "hash": "C0pEP88i1baEa2xDER7XjrGYkvB5ZVbBvhdX4Wtwob4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/C3.QuadTreeNode-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/C3.QuadTreeNode-1.html",
+          "hash": "XxoAVT3OCOlmqw1jMix08rTc0MPqKdTx+tNOCdrFkm4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/C3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/C3.html",
+          "hash": "6patnsSBNS7at4vpQII/3I48M5KvGoZa8ozvz11ZnPg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Adler32.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Adler32.html",
+          "hash": "BLXuwqKijMy+MVUcS7l6OrVx2lNGE3AR3IzB//Wcj4s="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.AuthInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.AuthInfo.html",
+          "hash": "/zqlMz233RyxduVf444EX3RZ5QEJ/hAkamY3hRi8J58="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Book.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Book.html",
+          "hash": "fLo9Wgi2/3i5AtdG3AC2SCHsZ1o5PJGhY22jEBkrpvU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.BookConverter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.BookConverter.html",
+          "hash": "7mueS/e7VfEKEgzh0iP3Y5BD0ppRxNtdNzTmC+7uWH8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.BookSlot.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.BookSlot.html",
+          "hash": "oM/lHJ50KdIOQyxg4L+U+dlzwRX0epOPKKUAxuCKHd4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.CastCost.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.CastCost.html",
+          "hash": "6t84K1Yrwl8+t56h4sCpDW5dNDJnIn7QEI+vNlNXyCI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.CastableFilter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.CastableFilter.html",
+          "hash": "lSsgMGXace42M3RFogPQMnwbJSyzvBOLE9Bsz40SZwo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ChatCommands.ChatCommand.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ChatCommands.ChatCommand.html",
+          "hash": "XB0DrBbHylJffp5w3a5INSbFATvScBWhknCq/1HBmIE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ChatCommands.ChatCommandHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ChatCommands.ChatCommandHandler.html",
+          "hash": "tbl0LlNZIifSnm6IiYnPTCHsOZtU6O2V0rKaGKzZEr4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ChatCommands.ChatCommandResult.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ChatCommands.ChatCommandResult.html",
+          "hash": "DJLwn8ZkbdxHldlNgLYwChbn0K6jDFz0K7QdEgcj+gM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ChatCommands.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ChatCommands.html",
+          "hash": "S7SPnmrZ5LdiHL4F9+6c7o9qR9AHPfmQJjKoSYeO318="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Client.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Client.html",
+          "hash": "vWJMt/Fnbb0WDOrIufTZe/AxN/av1xHvNfUcoT/AxeA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ClientPacket.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ClientPacket.html",
+          "hash": "kmusBA18VF+7LTpfXAOBuigH4Gva8j3wUyQBYdnNwFE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ClientState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ClientState.html",
+          "hash": "v2Rwqpn9S0k0SuOpUryInokL3uu5Fdr7pmH3y/jF9Ho="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ClientTrigger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ClientTrigger.html",
+          "hash": "RN37Mu5LMrAncEMEsJBikXPWTuuhTGXu3BX/uW4ukoc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.CompiledMetafile.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.CompiledMetafile.html",
+          "hash": "yEITv8x+QROUaVJC/632ytQgi2otx0mNGkokNuI0Leg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ControlMessageHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ControlMessageHandler.html",
+          "hash": "XFSO2SL9NLty8/qMntYebkP/LAsqKFvqJ5C+mnV9u4g="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Crc16.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Crc16.html",
+          "hash": "hoL25ip6D8LeUwPKK090oLmw5/5Ftlhs8dTf9KzESis="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Crc32.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Crc32.html",
+          "hash": "EmQwS4zcBRPB65UMkmL75q3VDUAam8nKd1egBJKqcL8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.CreatureStatus.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.CreatureStatus.html",
+          "hash": "ChE3recLua40PFhFH3L3kpNubgc+gK9imHJBZVEI++I="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Crypto.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Crypto.html",
+          "hash": "dz7Aj/sKjFqI3+mD75TjcIxbbfHq/qFduwO2Jgvfwcw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.DamageOutput.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.DamageOutput.html",
+          "hash": "P7rkT//Kv5ijrDiApUYmp7cGEuo+0DAedsXyAvXrOEg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.AsyncDialogRequest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.AsyncDialogRequest.html",
+          "hash": "KqUKAQkSt1O4dCMDBDruXmgOQr1/GJAOBtUPkW9qXsg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.Dialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.Dialog.html",
+          "hash": "SzKOTNTwxHa1kUh3rd81/dC4sPVUy2kMcsSrrg4LNv0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.DialogOption.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.DialogOption.html",
+          "hash": "moN9SQo2KYaaEmEkWGmCBaoK8uVPkLcyewRnzt/Li3A="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.DialogSequence.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.DialogSequence.html",
+          "hash": "RwDcgsRG8sWowY9rqOrHXqwcACLj3ap5hORmEG7Z5Xg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.DialogState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.DialogState.html",
+          "hash": "T5mFBcYPhn7Mn9tSUTc6med3wvUBlv3/QDHi0hLKliI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.FunctionDialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.FunctionDialog.html",
+          "hash": "XnYkuko45++XoctN4w9jW/Za1onokV9zfyHZW1DNJxc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.InputDialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.InputDialog.html",
+          "hash": "FN8k2FvYtRjPUcmbQE1b1FJULw3OGqJFkcWYLxLE2Ac="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.JumpDialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.JumpDialog.html",
+          "hash": "L5zkVCCP7AB3QmuztVxcvbF6eOTE9RrZMC+HVWitN88="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.OptionsDialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.OptionsDialog.html",
+          "hash": "FaDH4cTSJOIYSkTvSyIg0loUew4gVm3fHUMdAw6i2NU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.SimpleDialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.SimpleDialog.html",
+          "hash": "VNA1bj8KiOPEZgIbJqyJzWAVcoCwqxQija2qRZOzZuY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Dialogs.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Dialogs.html",
+          "hash": "Q3TmhaAHWpX52/BYEXumWxRE3Vl6jfM69iXeCSt6qVA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.EncryptMethod.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.EncryptMethod.html",
+          "hash": "s2JYmN86cnPsRjxmjaP+Y8EHtkkT7d9QGhGC/pjh6u0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.EnumerableExtension.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.EnumerableExtension.html",
+          "hash": "22e3FuqigP0TPeK4RDe5YOXzcip67CQd6cYcYhzOCXc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.CleanupType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.CleanupType.html",
+          "hash": "70dvccPtqCmpM+5DrzCt/3ajh4cKG3N4YQO24slJPz4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.EnumUtil.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.EnumUtil.html",
+          "hash": "duZF4GQn2qnblJ+sawKOW3Qyzhgj35ShIKdDR6sG6fM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.ItemDropType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.ItemDropType.html",
+          "hash": "Rxy8BYwyuJ1dyAW8DCZyzCC7JCe6mfXgCf1XxsqKmtE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.ItemObjectType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.ItemObjectType.html",
+          "hash": "zjAC+yrDCsEqiuF0zTm8tOddgA/Pd9U7GlOYNeo8c+g="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.ItemSlots.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.ItemSlots.html",
+          "hash": "Q9cN3Qb79ntF5I4N8TTK3vRQSLQvLATwNor6GcswowM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.LanternSize.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.LanternSize.html",
+          "hash": "Jm77tJZ4WQYrR4z+9hLIxi6QGoGlXtAoLfjEXNZ/a3Q="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.LegendColor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.LegendColor.html",
+          "hash": "Z3vAZeUvCIgNWCha5HC8qYLfSgshk5OPSFqdwfpk0SQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.LegendIcon.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.LegendIcon.html",
+          "hash": "Uec8Gs2zd8E3be1q687EbQsMZ3AZhAp3dciqFL7ov2c="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.LogType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.LogType.html",
+          "hash": "JUAgUl40urnp9oJLCxf1S0Ci7M4mF29bsffx4j5yVYU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.MonsterType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.MonsterType.html",
+          "hash": "t1wlKKgKb7vGQ0G5Y05oB0Biip9WbS6wB1j3FSgHXXY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.NameDisplayStyle.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.NameDisplayStyle.html",
+          "hash": "lWj0dxpKqZ3h/p5fx9KVdK9w2b86fYKZglG+TbWuRpM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.PaperType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.PaperType.html",
+          "hash": "wK2tQ0CbIKe+bCbwneKySoKZlMz+IaR4ZSLrlNPDJIY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.PlayerFlags.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.PlayerFlags.html",
+          "hash": "37UM08mz/RzceC2uq6pMW9XfgA5/vMlpWPVTfiMsqMg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.PrivateMessageType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.PrivateMessageType.html",
+          "hash": "m4HJLT96H4uX5jk7h/zE/nMg0StkFkRBF58O4RXSvHE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.PublicMessageType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.PublicMessageType.html",
+          "hash": "/Dx6yu5QJtc3zcEqkViIsCT2ekomJ9fsimwVuey5lfs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.RestPosition.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.RestPosition.html",
+          "hash": "in0qQppyesCk22TOCjufnWB5V+gYAuojugpLQlNM7mM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.SkinColor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.SkinColor.html",
+          "hash": "PUspauCj3aQ1RMiajgJJA74AmI6UyTSG5veUEel8PS8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.SpawnCastType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.SpawnCastType.html",
+          "hash": "YZJYZwVZm4ZzEhuDwE76408aegGh39snVhrxqdgZSyU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.StatUpdateFlags.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.StatUpdateFlags.html",
+          "hash": "mtWX3iJhNJ8GuRTWSSeg9sPuzEWfl5WmX6JyP3x+/FU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.StatusBarColor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.StatusBarColor.html",
+          "hash": "tGZ6TnYcA4uu7YSeq5vVSfFiSehxyAtj40e7trSbJxk="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.TextColor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.TextColor.html",
+          "hash": "LlNUrvRPMtW6dkIcB7DwOlPyffCTVoAMJ0WyaGmzRe0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.ThrottleResult.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.ThrottleResult.html",
+          "hash": "fKGq0H9zESvluG5QCFAnW/XMuSTyUfR7W4sD7qW2DCI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.UserStatus.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.UserStatus.html",
+          "hash": "gLq6XVwzw9xtSc2QT697qnTyLMqGRYrHQ3o4V/v8lGc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Enums.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Enums.html",
+          "hash": "o0f9AoPxjvB2H7cG0RimmLrAwU/UIp7vphtMeamgz34="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Equipment.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Equipment.html",
+          "hash": "Ga+Rx0hd/r4tUMfr96dcgxr33C/Nj3mcF5Xy0+6gjwM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.EquipmentConverter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.EquipmentConverter.html",
+          "hash": "Fz+TozmMp7u+yRSRsxJm3TJ8bSQfH6BNPIKR0porxAg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Exchange.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Exchange.html",
+          "hash": "2WspmU8EsSJMintp6tY5Z+fKjJHoTz4rqNenHupdf/c="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Extensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Extensions.html",
+          "hash": "JKHLguWng5BSreiTxsSO/R9JrlZqectzTlaoOeOL+0I="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.FormulaEvaluation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.FormulaEvaluation.html",
+          "hash": "7eQDARjy3pL6ybAfEyuPtgYsiDvkwNxYl5FDj3mJ5+U="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Game.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Game.html",
+          "hash": "opLkXTxCP5boNzSC2CXAR2663R7p5A9DS0OvDQ7raKs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GameLog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GameLog.html",
+          "hash": "qQsQGHG9KHAayAf5+XpuB0FgD85v80X8ECbABO50304="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GenericPacketThrottle.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GenericPacketThrottle.html",
+          "hash": "EczxQwer8r4YHfdvhR2NrtB04srAVVirFjSoXda4oA0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GlobalConnectionManifest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GlobalConnectionManifest.html",
+          "hash": "826W/oAhbQc5o6aEJuXYMlL725QUTL0X1EmrjtT/Sc8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GuidReference.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GuidReference.html",
+          "hash": "EXY2jeMEcN0TAigzlmx++FtzLC/vo0nRJd7wcPtV+wQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Guild.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Guild.html",
+          "hash": "ZTomSCWjmOslqIHNXl/0xDZtRApINOlHdcP8NJumArw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GuildCharter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GuildCharter.html",
+          "hash": "hhCZwlxVLyBuDObYoFpeMa7wkY5UvMU62zLwQypRBRo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GuildMember.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GuildMember.html",
+          "hash": "DGfOnqbyCAwRuNlb4GuWOXdeOBRVILD9j2kb9/6XxI4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GuildRank.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GuildRank.html",
+          "hash": "VT9wXjaUeV/+jIKcXQYFhHTDXWOj0yopItKM+3rPDPE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.GuildVault.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.GuildVault.html",
+          "hash": "pb5HUL95ObQKvjH8qzm/rsHARqVMAApiyA8B1AioFVE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.HybrasylClientMessage.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.HybrasylClientMessage.html",
+          "hash": "BXK3vVMogkVmP8P4qKCXNqEFYfZnAzJ4DAghQ/QckOk="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.HybrasylControlMessage.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.HybrasylControlMessage.html",
+          "hash": "BcoHT5KC+9OC8mvkxNwyOSSiFirBmdj1lveDjCRH9Fs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.HybrasylMessage.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.HybrasylMessage.html",
+          "hash": "G1awsv4/TqS3UrbsLzOTmGJqn0yRnDWAdm3ZoAz3jCc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.HybrasylMetricsRegistry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.HybrasylMetricsRegistry.html",
+          "hash": "AXJx1vrNbOLZWfpAErg9CLCeR/YBkLDq08U/dwgPWc4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.HybrasylTime.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.HybrasylTime.html",
+          "hash": "UGtLgoNkY8dNiNgl+chuZDB5qv9ekdY3i1NhTrVGa+E="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IClientTrigger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IClientTrigger.html",
+          "hash": "hTLlPC7zks/18I824O3K0VvIyr1IpekPrVBp7x5kjsU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ICreatureStatus.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ICreatureStatus.html",
+          "hash": "fPsOcTCd3n0Y8eMt+BYUxhgKqVk+KnteCQjaFFp2zR0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IPacketThrottle.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IPacketThrottle.html",
+          "hash": "N47YQMWS38kN/CR8JB+8U44h9cGEAu+8HA7OC/BJZd0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IPacketThrottleData.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IPacketThrottleData.html",
+          "hash": "udlMra6k0yy6uiJJ9i+H3kVPs+VbJFc+KxJkvASUa4Q="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IThrottle.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IThrottle.html",
+          "hash": "XqfITTynQ9AvLi9xoQUjojisKxEjWSVC2FLzQpadjLs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IThrottleData.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IThrottleData.html",
+          "hash": "KCyOLVjNUtIf55pZWvG/Q8iVOhcmPBC/mj7FldyFMBo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IThrottleTrigger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IThrottleTrigger.html",
+          "hash": "oAmagjf+UPsZCXlkopgJVSnC5CkHA36UbO3Oh1fAi+8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.IntegerExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.IntegerExtensions.html",
+          "hash": "RFsrct+dNcBbgRSOJdEiYZoMshFmQHWjpOyDvu3l/VU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Inventory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Inventory.html",
+          "hash": "n1cqLWoIYnsBKOJ8swMMlb28Lrwr6og0NUGizkHRza8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.InventoryConverter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.InventoryConverter.html",
+          "hash": "9OYmR+LQuCjjZAMAYLch611Zypnc7DfFSgBCFolm0Hg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.InventorySlot.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.InventorySlot.html",
+          "hash": "q8hScxe+1D/5UecN6aKXGBwl/ItPL3XLpaJl0TFHMDk="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.AutoSnoreJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.AutoSnoreJob.html",
+          "hash": "ujASHdkb/PqIbKHxkVemRukkLhgjXtTvV3zSCUOnGWg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.ByteHeartbeatJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.ByteHeartbeatJob.html",
+          "hash": "qqFphGzKLuNvWWkDTSue0nHxag5ZZdrTun6UM1QOifI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.CheckpointerJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.CheckpointerJob.html",
+          "hash": "9KTQ9NGcy+nsSnFKDz7kY/gxnJQhZeTHQo1y93T4qYI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.HeartbeatReaperJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.HeartbeatReaperJob.html",
+          "hash": "9XpmZypJbQlUQcSx03Ocwx/o7vb2VRrY/1ID+Wkqq60="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.IdleDetectionJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.IdleDetectionJob.html",
+          "hash": "9rF7fFtNIdW3CkymYzbCtakhf9cXGn26uX82N6lxwDY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.MailboxCleanupJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.MailboxCleanupJob.html",
+          "hash": "jpmQbhu1ggLG6axN7JLg7lzokbeiVvAMHTIkGMYD0VQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.MerchantInventoryRefreshJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.MerchantInventoryRefreshJob.html",
+          "hash": "nDQKVV7zDBDfEv0eJ2dBxZ1UEAMccS5Oh6LWulT10EM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.MetricsJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.MetricsJob.html",
+          "hash": "C30kaFpVpuy9SuQu3H9oLGDIaMlVmC0l9V6tzhpKNRQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.RegenerationJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.RegenerationJob.html",
+          "hash": "rbqnZeKehaYzcl0pdcMfYFLlUpnxyy3H9AWXsTfCLP8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.ShutdownJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.ShutdownJob.html",
+          "hash": "3TtLN5Q+LVu2POUQtg+ZEwgArT94RwWpriPGsraNdLA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.StatusTickJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.StatusTickJob.html",
+          "hash": "BzuiQEgaCbFAqFvHEiU26lsc2hYVEuPh0iAJTc/cHlg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.TickHeartbeatJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.TickHeartbeatJob.html",
+          "hash": "1UgZcSwewBwg0j0XO2pJiIm6x6R7WrNrMsumxRNlAJM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Jobs.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Jobs.html",
+          "hash": "Qjz70c9nInJpWkHuhohOZsBHQS/rRi6FD45e87p5KAI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Legend.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Legend.html",
+          "hash": "xhaP/VOuDr9kveWeS6JcWCJJblBS7VOYy1OjygBQk/M="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.LegendMark.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.LegendMark.html",
+          "hash": "mYm2n3Z3xoxtCIBjg2NTDfnEyl1edlJuTzDyvJDFB0M="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.LevelCircles.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.LevelCircles.html",
+          "hash": "ZsLjAmsZiy6KBSkCJnRBZrLBxFzO46G1RGwnWgbQ46k="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Lobby.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Lobby.html",
+          "hash": "GUxBxffH8Doj3t4fnHAKR7MPlPlyKwyQRP9wUU82Q5I="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.LobbyPacketHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.LobbyPacketHandler.html",
+          "hash": "gTS09qqni7TTvziAaoOJXl56o7wZDHcI4d9FkCUlIWA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Login.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Login.html",
+          "hash": "oQK2dfl4oKykWrTtEGDymLI1TRcEO3dA/BnS7esBwLs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.LoginPacketHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.LoginPacketHandler.html",
+          "hash": "GVEtLxtskBgIxu2lvTjlilXRyHvplR9M9ZFuIsRg+6E="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Loot.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Loot.html",
+          "hash": "ZufjattMuXAEOxFCJosHI4B14ytB2Yf3XJ2FiwncJcc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.LootBox.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.LootBox.html",
+          "hash": "9LObpAqKFjN3VkLGP6/qi5OAaw5hjY8uBmQNKMXxZsg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.LootRecursionError.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.LootRecursionError.html",
+          "hash": "EZJ2/PFtJsJ1g+N+5Tt3tbapGty/Rbs6VKqGvmChch8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Map.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Map.html",
+          "hash": "vPdM5Lnt1zqpdY5w8W0ZJOb5Utadir6RsCLR78Ggo1s="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.MapPoint.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.MapPoint.html",
+          "hash": "OSUEZLR9L5rxDUHaGp/KWzQwcO04Ql9CdOIyrqDu+6I="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.Board.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.Board.html",
+          "hash": "xCXR80EZi8jfm3yFV3+O5Cj9bGw1Gcb/tC/FVH9F/RM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.BoardAccessLevel.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.BoardAccessLevel.html",
+          "hash": "F+i37j6DDSfYFoZCdEr80xqssq2wf+EK6QS+/reOYUg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.BoardResponseType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.BoardResponseType.html",
+          "hash": "vcK8q8aBrUHIMJfLMVNFQCk9zq+J3HZ+VfY+ZWnl+eU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.Mailbox.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.Mailbox.html",
+          "hash": "iMH82kmY7FAl+a6N/j50OT4eJjHv8hNceqwBygwNr9Y="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.Message.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.Message.html",
+          "hash": "Db5WP04ZjdYM2iBSmVKz/I0EOIDtKHBf4+Yu7Spyexg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.MessageInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.MessageInfo.html",
+          "hash": "cTXGwJ3E767C/ueLbFivun4U0aE3lLw4MP7fCMDGOzM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.MessageStore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.MessageStore.html",
+          "hash": "rCVWhJh4cie12Z78At285x+yGOK+ApkVlCp94sfSkSw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.MessageStoreLocked.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.MessageStoreLocked.html",
+          "hash": "aRjYHcAZ5HW75uemrvXtHt1YPgQfEd9StX0Ufl8TjMQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.SentMail.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.SentMail.html",
+          "hash": "xlBxkwfiRFXw3SBmYkSp59AWtpEFO8FEsPoLbFgeHX8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Messaging.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Messaging.html",
+          "hash": "hHCuZhW8sccyQgxZuClMzixK8J5ejYr88gYXL6+QmzM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Metafile.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Metafile.html",
+          "hash": "rwtt3irHGQ4vWyv3c/qswrPJUBnWOjMbDF684Z5LUnk="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.MetafileNode.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.MetafileNode.html",
+          "hash": "J7PQ5DOkBW3JqkKf/8KjhpL55FJ1qhdX/uytf+pEpAI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Moneygram.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Moneygram.html",
+          "hash": "tBsKHMCpnbMlzqZXlQb68/II+I1ZPyV3zfd60HsbLb0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.ConditionInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.ConditionInfo.html",
+          "hash": "sOzaDHWykhxFFxdYw2AVyhj8S+mA+zNxSz7P7mTS1hw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Creature.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Creature.html",
+          "hash": "I7zbp5/5m9Rc1s6pbZtBeloxK1rRHyWlbu3on5oggiU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.CreatureTemplate.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.CreatureTemplate.html",
+          "hash": "SdcmOg44aAYmRn3B+bjsKVJH2ll8AEcnsWa2Pcn4Prw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Door.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Door.html",
+          "hash": "x+Mh8VkAsbtbkanEiBFKFsNyT6gTIZS9/uCrPaVroPU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Gold.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Gold.html",
+          "hash": "Cwe/8s350ivfROc7J3pzguE09AQ5TQdi3pysTUfldqE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.ItemObject.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.ItemObject.html",
+          "hash": "ULEWADBiWmZ7ADdZh3GYYBIH2y6eVeqN+VJMxSz1Gzw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.KillRecord.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.KillRecord.html",
+          "hash": "hx7BP6vN0TloBkSSZJWy3PVX9FIn1Opwp9TDtmpbrf4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.LocationInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.LocationInfo.html",
+          "hash": "QlLv0R+CgV3AFu+aPQqNZkkz6BUYyCFiWwPhCB6blKI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Merchant.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Merchant.html",
+          "hash": "vHEjDUnw6WRQwzcN7FfpUH30OBg89KHw6H2E1aO39MI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantDialogObjectType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantDialogObjectType.html",
+          "hash": "6vAV1eApZ8s2iTKfmxwBxUfPkDIwRbcETOw9AIeWlq0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantDialogOption.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantDialogOption.html",
+          "hash": "z9d7ACs46fDL5+NxH73o6otDPGFmBSLzZjBVSkBQ3jo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantDialogType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantDialogType.html",
+          "hash": "cUT/GYJ7T/+jJkWRpUr9idl9+oNGHHjrUX+LNkezLUw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantInput.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantInput.html",
+          "hash": "6N09OIwVFt7EOEeySzbVvGGLrfidjtDGWqYqz7iWoKU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantInputWithArgument.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantInputWithArgument.html",
+          "hash": "3xDrNpFYWzrfpNKTLyIs0/6cV/c01xkGcgTRzOiFViA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantInventoryItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantInventoryItem.html",
+          "hash": "kZO+v9V7ZOd0zjhsVxwA71QpEHd6V4VYujgvbx0mRyQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantJob.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantJob.html",
+          "hash": "cOQ+4IxfCw+mMlaZTs2Z0U4zv1H8guLndddUhNTFtCc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantMenuHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantMenuHandler.html",
+          "hash": "ZarbA4eAeeU5MlGi4cH9Rm5Ns0tXpn8JPorD6Kft5Ns="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantMenuHandlerDelegate.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantMenuHandlerDelegate.html",
+          "hash": "w3AHN0qsqpzeApkgUudL3HC/We4lR2UotVdpqND25To="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantMenuItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantMenuItem.html",
+          "hash": "rd1sHSBxhY3it6eF+bza7vSIBfRHL7h3LEtwFEywxVY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantOptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantOptions.html",
+          "hash": "xHQMM00e9b2UgcGyBV+ffi31LJdHNME7SaGxGXHtOK8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantOptionsWithArgument.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantOptionsWithArgument.html",
+          "hash": "tCrquAK8a5E0zCLiG8+5eDtS6FLjXQqtqg+RBwgEdpQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantShopItem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantShopItem.html",
+          "hash": "UTmEerWQ/yMJ5wH5SbqO+Xq5UhkzyTU38qngOtJ0fiE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantShopItems.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantShopItems.html",
+          "hash": "wbPk/GsftCNrMSZWHQNPzmTE3Ex4QuZOVR891tsL1fE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantSkill.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantSkill.html",
+          "hash": "SIJ+D3Zq+bQp+D+H2EbQcgv8GqKCEZnRLdHh9vrngdw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantSkills.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantSkills.html",
+          "hash": "sIiPl09O0vNQulUYEvwcAF0zRk4KZcUh19+IOwbFNv4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantSpell.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantSpell.html",
+          "hash": "+Dz1Odb52iyNqTn1LAtQg2u1CwZ4pTeAQeWK8UPMX2s="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MerchantSpells.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MerchantSpells.html",
+          "hash": "qtzdQSnoQwfDgcsjfgPK0B7K5HNay4F4lktcpXZVN6M="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.MobAction.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.MobAction.html",
+          "hash": "GAMhZ9NZh8Js5+IZEEGDhJK68FBWtycs4kSdvdUKNBk="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Monster.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Monster.html",
+          "hash": "CbTt0U4yPh+Tzv/NTR/8DAvyUAUYBsGWLq/ocdYYA9c="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.NextCastingAction.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.NextCastingAction.html",
+          "hash": "CYz3btJCe9UAzZhuY4F6aVhBIrwDkYssUxHWcMUMEXs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Reactor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Reactor.html",
+          "hash": "lHy4uWtB2L/adoY2GbsNhsmq+tj18afLraWZXBC9DPg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Signpost.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Signpost.html",
+          "hash": "SM6REUi7an9o8+eLmetm5coPfWG30ANwS7FAgpmFmTc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.StatInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.StatInfo.html",
+          "hash": "/hsF/zE7I1zJlUz1OI39I6fP0Ejexlu9d+0Sxn6l3NA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.ThreatEntry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.ThreatEntry.html",
+          "hash": "YQ6TjyHmxj92CTL7wNweR4oRWYPxvrjhYZD+8GP6DSM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.ThreatInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.ThreatInfo.html",
+          "hash": "louQUwOXWJQDSe9pT7KdZGSNOw3HQlaPaooX4RrdCN4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.Tile.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.Tile.html",
+          "hash": "QZAqlIJG22oRiSAcApEcQaatCBcgsqSByInSW0VUjmE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.User.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.User.html",
+          "hash": "isQ5RisxEM0vCWNvpGKDINSL6Hov769CQwqYuslczto="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.UserInventoryItems.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.UserInventoryItems.html",
+          "hash": "difQgah104FeFVCVCYBaPybMBIcEl1QFdmr+UsP1AhM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.UserSkillBook.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.UserSkillBook.html",
+          "hash": "78IiOcfgohUYgvLqGAX5OUtWYZmR2tjVL29CzmaLnGo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.UserSpellBook.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.UserSpellBook.html",
+          "hash": "BdDfdEAgAwIBtFa4NbWFyLGrCUHNQ0VhSjLtDfTxocg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.VisibleObject.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.VisibleObject.html",
+          "hash": "YlqlEB29tBEqZKGajpBwZV8k7JQz0ERitataJq9Wt4s="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.WorldObject.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.WorldObject.html",
+          "hash": "Gi8UwjYW/LIj78w/2L/iKjIlr9b2pe6U1C9wb0ECXK8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Objects.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Objects.html",
+          "hash": "QjxgRCNYQekVutiu+CCBU3sCerzw1OasYekMYM7kWNw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Packet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Packet.html",
+          "hash": "1BaEPIyXFh7tg2WpFtJnWrlxDWdDI00j9i1SZdIR1iQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.PacketSeekOrigin.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.PacketSeekOrigin.html",
+          "hash": "d8p23DIoqgcWS7txY5d3R/97298G9EOtCZQFDqktafw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.PacketThrottleData.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.PacketThrottleData.html",
+          "hash": "/94hd0p7Jixl+l3gG+E8egN0JWvkYsYibJAxt2jyhQs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Parcel.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Parcel.html",
+          "hash": "2jYa9465cr9fIErV78uAzTSOAQNxdMbRmH6qmG15ybk="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ParcelStore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ParcelStore.html",
+          "hash": "Y1y+drWqXCunJhgqIyIzGCxRkznfDUDabK/nTxkjNro="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.BugReporter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.BugReporter.html",
+          "hash": "4dxxaeeafUfH72QHKgfI7+ofLi81YftTgNTg0mjYB9c="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.FeedbackReporter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.FeedbackReporter.html",
+          "hash": "w1JjrPm2SwnlPZkQph3mg9x+ZByZe2MqSY+4PAcxj7o="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.Hybrasyl.Plugins.EventTranscriber.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.Hybrasyl.Plugins.EventTranscriber.html",
+          "hash": "vAy9P4XL67YxzLnIW7zjpGn7NAnaQd/lIJ+lDQZrLu0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.Hybrasyl.Plugins.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.Hybrasyl.Plugins.html",
+          "hash": "Fz8SesCBGmetT2s4YF4iVzFOj0MjX99nQtXBz2DqRzU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.IHandlerConfiguration.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.IHandlerConfiguration.html",
+          "hash": "kgsqz5H3RYq0J4U9DcXBHMUOCBOU5V2MO84tFptA84U="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.IMessageHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.IMessageHandler.html",
+          "hash": "e3cSX6mxkltJzfrQOFhh6FG2sPJboz1D84GKzwRrzAo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.IMessagePluginResponse.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.IMessagePluginResponse.html",
+          "hash": "GWgeqrw0WzqbhKL0lLYo6ZxuDfNXtMiTvQLYCcAdQTY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.IPluginResponse.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.IPluginResponse.html",
+          "hash": "e2iiJz8nbztrgYy97s2DKsP7O78at50R/sKelh8WS3g="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.IProcessingMessageHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.IProcessingMessageHandler.html",
+          "hash": "AtxWxF2o9/IcjsBoTzu+BDoQMiJ9RjpaFH6STthlpZo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.Message.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.Message.html",
+          "hash": "x8Nql8hXhoblmE221VYtU5T6Jy16DCydpDhcNlwUf0o="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.MessagePlugin.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.MessagePlugin.html",
+          "hash": "Jdb4NwbA1BLeInUpSV/bwTh2+8pduG8Mb9HgGGixhJg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.MessagePluginResponse.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.MessagePluginResponse.html",
+          "hash": "lDoAt9lYb1uzTYkdBpFJs6PZCX6GsPqhAiImqxiIeFo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Plugins.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Plugins.html",
+          "hash": "vRAsxtUXQSFxsRKyYgbSUkRKCdxxK5XzYSsv30PEM08="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Point.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Point.html",
+          "hash": "pF1GGXrSmcsLoPi7IMCXJmzIoCp7VESarqiO+2A8bQE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Prohibited.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Prohibited.html",
+          "hash": "+Kjt7dAQqXwqVIPV8GEqES0Rdu5M12DUvZxIxD+0r8k="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.RandomExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.RandomExtensions.html",
+          "hash": "CFlC8nFYXF0wtXfYYrUdgO2ModWinHA68JFYl6MatOo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Redirect.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Redirect.html",
+          "hash": "SyxIwQRTMo8aaTfBlkr4yL1N9gAXrf6Y8mgxxNN6JOg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.RedisType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.RedisType.html",
+          "hash": "THookq7faNyT44AnzJSZBpyuUlRV5GzkbWnVSzjFhFo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Required.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Required.html",
+          "hash": "JMA3b+2+yGxya8M+4vf4FPMG7AD09CXUu2Gp8z6JAm0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.SampleStackExchangeRedisExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.SampleStackExchangeRedisExtensions.html",
+          "hash": "igrwRIkLl1IZYIx6mCf3UykrPUNnT2eVXWxGCWTIF+U="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylDialog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylDialog.html",
+          "hash": "R75MhdR7vlQL+JZhiyjTV0UwkN2tV8lFovrvhrvE8JU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylDialogOptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylDialogOptions.html",
+          "hash": "DGafui7BGlQ/7vj9qJtW+nAjNc62OCRzNBhDOMmkeC0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylDialogSequence.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylDialogSequence.html",
+          "hash": "91lT0pbEUG6YP3OOILEVDt9ZQflYwEEUVDdvUS7zMOU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylMap.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylMap.html",
+          "hash": "a8irj+D9ovfl4yVUMkeYQUGmGg2nDptIxw8wYTfMDtc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylMonster.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylMonster.html",
+          "hash": "4PnSoGhc9mM7RBC1RDO74APTYN7QWUSJCwlTgbthgQc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylReactor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylReactor.html",
+          "hash": "beBbgiU6gyL0RM4ZbxVqmTSdZpfynhwBAiCGWrHudt4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylSpawn.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylSpawn.html",
+          "hash": "zUur62Law80df4qRgt3biMT8iIs6i8Ld5kPCGE4d5z0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylUser.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylUser.html",
+          "hash": "so7mnW5FjtlyEoLHep+flhx8/+ETCBsZMoETIX/wEQ0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylUtility.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylUtility.html",
+          "hash": "sQIKabZ3wKo2JkyMhHELdC37ToHm5D5S9uPfqGpBs5c="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylWorld.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylWorld.html",
+          "hash": "DN3ZqpyKFNP8yusGhmOdCMro8VEBYk3fX0VXLon1xnE="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.HybrasylWorldObject.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.HybrasylWorldObject.html",
+          "hash": "BLt68PBQ/7lFdWhenECddhxMs0mDqOZFJzgjIA3AlGc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.LuaException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.LuaException.html",
+          "hash": "4r7HgeprP9J3DJVXY+MT/F9oIUE/ARqn210RvqskeP0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.Script.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.Script.html",
+          "hash": "hWa1IpqLpnchSoPCJrEtYyo0EHzymlF86Bhv2qUrMdY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.ScriptLogger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.ScriptLogger.html",
+          "hash": "/fN2FSQyzh2Q/Xr5i4G7oPODgfniRpFXw4D6UpuKTJM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.ScriptProcessor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.ScriptProcessor.html",
+          "hash": "O06mb4iFHTpvAqZvvFyZZ4GBWBqCVMSbHDE0nkF1z7A="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Scripting.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Scripting.html",
+          "hash": "fkgOIRYmkaJ+JTTW6A87jg8gc+6jd2LQxPDNX89IZ6s="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Seed.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Seed.html",
+          "hash": "N81pvHMaowKiipcZ2ra07Vp1jrWvPTyHmYBfpNTWUew="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Server.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Server.html",
+          "hash": "UB9/yq8ekvPiYtzP8InHCo+Z9SYOwoYTKhwwQtLk6eo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ServerPacket.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ServerPacket.html",
+          "hash": "Yy9pMUSuh5R113LrfjERQt2B/vthWw8Bv4acNOYhnOw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ServerToken.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ServerToken.html",
+          "hash": "o3zEvt1aBu7jFxAtZPYt4XL9+Onx/zjGNuYxN+OJDC4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.SimpleStatusEffect.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.SimpleStatusEffect.html",
+          "hash": "NgYLdm5FQOZ+HCQK8e4NcS1qSc6rEtrjxnbAAGau/oY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.SkillBook.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.SkillBook.html",
+          "hash": "y2Eudzd9Td0HzOXmWDHENx1LJWnA7L47AaLaKyPCp6c="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.SocialEvent.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.SocialEvent.html",
+          "hash": "LqFThK0HMAljJjMbHhw0aR2XfFGfgPsWkkExpAka0kM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.SocialEventType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.SocialEventType.html",
+          "hash": "vY3jEw/743OOrtBEswIQEs8xy+1BzqASQjNBTeWV6B8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.SpellBook.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.SpellBook.html",
+          "hash": "jkOXuoyptUeXvMXBGzLrAaCMso4JHaGDEFBb0zbkSX0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.StatusInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.StatusInfo.html",
+          "hash": "lhH4NaqUrAgMXTIoMVUMCD04WrOUHYUgxxOpOt5GcQ8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Threading.Lockable-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Threading.Lockable-1.html",
+          "hash": "VS+GHq9W3mkJtJd+uY016oh271/BIuzxadjIqccE0P8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Threading.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Threading.html",
+          "hash": "7fqJKvuZmrYXfyZpc4n87VS9tlcELbQ0jwoQ/T/aBzI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Throttle.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Throttle.html",
+          "hash": "hg6lK84umTgbz5siLkV9nrA9MYXA+Uem+7LF7GX+ry8="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ThrottleInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ThrottleInfo.html",
+          "hash": "1TEOIMWkKGjZdy+XgpLjJ2Lu7NU6gRnDymYHl6JSORg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.UserGroup.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.UserGroup.html",
+          "hash": "wqeOJGLDg2cry3ji5MhH3zRbdg+vUlDH9V01N/SLV2Y="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.UserState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.UserState.html",
+          "hash": "QS+gJBepAfxrexWAH4HXiE7PYpMhwxkLTKB3ySI3LPQ="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Utility.AssemblyInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Utility.AssemblyInfo.html",
+          "hash": "MxkF1PhYZNUI3KCD2+GQDzPPPNKj/zFsb3OW/eJlWLg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Utility.MultiIndexDictionary-3.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Utility.MultiIndexDictionary-3.html",
+          "hash": "nKbDvAPFijHcimfx2H8Jl8th8PllJhTQLZYj4Pk0HDc="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Utility.PrettyPrinter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Utility.PrettyPrinter.html",
+          "hash": "PezhpZTgmRzrvAJlamSs+jQxgttEvCgksC8DagOgZ7A="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Utility.StringExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Utility.StringExtensions.html",
+          "hash": "uX8QVRgj9dEFpM0I4B5zW0/NU93aH+5M+uwc0E0kqcA="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Utility.TypeExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Utility.TypeExtensions.html",
+          "hash": "OuElhEqxo05HWbxDy+rRAypYXZ73kRcXF6HHPauepag="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Utility.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Utility.html",
+          "hash": "Wb36/N8WOO/7nDRfvGAz49DIHR29Yna08ovkaTdEwjo="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Vault.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Vault.html",
+          "hash": "byRJJxGvxY6MyblPW13/CVu9aEvwKh+oCsZLX9K/zyw="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.Warp.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.Warp.html",
+          "hash": "6XjjJYzQoe0BHPNQk79Np2ac+vabDx53nn5pdGYkB34="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.WarpType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.WarpType.html",
+          "hash": "7aEG06jrd1tNjOVDuTkfLXW1tV53BUIsHzIpkxY64K4="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.World.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.World.html",
+          "hash": "jQCBKLtfs/O4wvhx4dd+uUQamvD9Gs6rivPLIjxG6Zs="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.WorldDataStore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.WorldDataStore.html",
+          "hash": "/CJrMZhQ1gBCBsSSq4MlWR6uOB/kHDfFVFUaQOwkShU="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.WorldMap.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.WorldMap.html",
+          "hash": "zGHgBBYBg7ypQn3HfIiuAmGv6tOip73ynIxeP36Dt6s="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.WorldPacketHandler.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.WorldPacketHandler.html",
+          "hash": "MxdYpYaGBeF3FUP3BEJfLjBZzu5cj8ZTQWg1EEBB7Hg="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.ZlibCompression.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.ZlibCompression.html",
+          "hash": "Mlwif0GxIwATRzrHWfQeaoxk7O6vrPz1eRtJcJ5AVlY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Hybrasyl.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Hybrasyl.html",
+          "hash": "+6aReglrIe69Ah1rzRN+Es4TCa/poV/1u4F8KH2RrBY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "api/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "api/index.html",
+          "hash": "kvGX+46wSLHg8KQSRiXGlawbrkrDxz2q0UmJ5TW7hFY="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html",
+          "hash": "OM7Y5w4bifRYcgasnYFopo8xEbawJOtJr3G0hzNun6g="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/intro.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/intro.html",
+          "hash": "mLAZyJ/2T5ejxAK51ZCg5rrlYE+CKS6yjGeu6PWnGjM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "articles/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "articles/toc.html",
+          "hash": "BlPxk5mtl2kgfcZUgkEguqiSAR/EUyUTT4EdebwkQvs="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html",
+          "hash": "7FqcmFDT2UYbhOz7cJt0WSaN3hIp2u4ZiOiWlmkhIR0="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html",
+          "hash": "WSuRrYiGwKKMbtdG9z8W9fXmLoCyTnGg9AxbPKLXm2Y="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    }
+  ],
+  "incremental_info": [
+    {
+      "status": {
+        "can_incremental": true,
+        "incrementalPhase": "build",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {
+        "ConceptualDocumentProcessor": {
+          "can_incremental": true,
+          "incrementalPhase": "build",
+          "total_file_count": 3,
+          "skipped_file_count": 3
+        },
+        "ManagedReferenceDocumentProcessor": {
+          "can_incremental": true,
+          "incrementalPhase": "build",
+          "total_file_count": 247,
+          "skipped_file_count": 247
+        },
+        "TocDocumentProcessor": {
+          "can_incremental": false,
+          "details": "Processor TocDocumentProcessor cannot support incremental build because the processor doesn't implement ISupportIncrementalDocumentProcessor interface.",
+          "incrementalPhase": "build",
+          "total_file_count": 0,
+          "skipped_file_count": 0
+        }
+      }
+    },
+    {
+      "status": {
+        "can_incremental": true,
+        "details": "Can support incremental post processing.",
+        "incrementalPhase": "postProcessing",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {}
+    }
+  ],
+  "version_info": {},
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+version: 0.9.3
+
+server_image: public.ecr.aws/hybrasyl/server:latest
+hybrasyl_env: staging
+

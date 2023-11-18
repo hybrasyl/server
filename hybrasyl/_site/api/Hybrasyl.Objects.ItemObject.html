@@ -1,0 +1,2487 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class ItemObject
+   </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class ItemObject
+   ">
+    <meta name="generator" content="docfx 2.58.9.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Hybrasyl.Objects.ItemObject">
+  
+  
+  <h1 id="Hybrasyl_Objects_ItemObject" data-uid="Hybrasyl.Objects.ItemObject" class="text-break">Class ItemObject
+  </h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><a class="xref" href="Hybrasyl.Objects.WorldObject.html">WorldObject</a></div>
+    <div class="level2"><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></div>
+    <div class="level3"><span class="xref">ItemObject</span></div>
+  </div>
+  <div classs="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="C3.IQuadStorable.html">IQuadStorable</a></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject__random">VisibleObject._random</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Location">VisibleObject.Location</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Map">VisibleObject.Map</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Direction">VisibleObject.Direction</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_X">VisibleObject.X</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Y">VisibleObject.Y</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Portrait">VisibleObject.Portrait</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_DisplayText">VisibleObject.DisplayText</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_AllowDead">VisibleObject.AllowDead</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_DeathPileOwner">VisibleObject.DeathPileOwner</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ItemDropAllowedLooters">VisibleObject.ItemDropAllowedLooters</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ItemDropTime">VisibleObject.ItemDropTime</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ItemDropType">VisibleObject.ItemDropType</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_viewportUsers">VisibleObject.viewportUsers</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_AoiEntry_Hybrasyl_Objects_VisibleObject_">VisibleObject.AoiEntry(VisibleObject)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_AoiDeparture_Hybrasyl_Objects_VisibleObject_">VisibleObject.AoiDeparture(VisibleObject)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_CanBeLooted_System_String_System_String__">VisibleObject.CanBeLooted(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnClick_Hybrasyl_Objects_User_">VisibleObject.OnClick(User)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnDeath">VisibleObject.OnDeath()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnDamage_Hybrasyl_Objects_Creature_System_UInt32_">VisibleObject.OnDamage(Creature, UInt32)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnHeal_Hybrasyl_Objects_Creature_System_UInt32_">VisibleObject.OnHeal(Creature, UInt32)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_OnHear_Hybrasyl_Objects_VisibleObject_System_String_System_Boolean_">VisibleObject.OnHear(VisibleObject, String, Boolean)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetBoundingBox">VisibleObject.GetBoundingBox()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetViewport">VisibleObject.GetViewport()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetShoutViewport">VisibleObject.GetShoutViewport()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Show">VisibleObject.Show()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Hide">VisibleObject.Hide()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_HideFrom_Hybrasyl_Objects_VisibleObject_">VisibleObject.HideFrom(VisibleObject)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Teleport_System_UInt16_System_Byte_System_Byte_">VisibleObject.Teleport(UInt16, Byte, Byte)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Teleport_System_String_System_Byte_System_Byte_">VisibleObject.Teleport(String, Byte, Byte)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_SendMapInfo">VisibleObject.SendMapInfo()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_SendLocation">VisibleObject.SendLocation()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Say_System_String_System_String_">VisibleObject.Say(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Shout_System_String_System_String_">VisibleObject.Shout(String, String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Effect_System_Int16_System_Int16_System_UInt16_System_Int16_">VisibleObject.Effect(Int16, Int16, UInt16, Int16)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_Effect_System_UInt16_System_Int16_">VisibleObject.Effect(UInt16, Int16)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_PlaySound_System_Byte_">VisibleObject.PlaySound(Byte)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_GetIntentDirection_Hybrasyl_Xml_IntentDirection_">VisibleObject.GetIntentDirection(IntentDirection)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_DisplayPursuits_Hybrasyl_Objects_User_">VisibleObject.DisplayPursuits(User)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Rect">WorldObject.Rect</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_HasMoved">WorldObject.HasMoved</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Id">WorldObject.Id</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Script">WorldObject.Script</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_World">WorldObject.World</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_DialogSprite">WorldObject.DialogSprite</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_SetEphemeral_System_String_System_Object_">WorldObject.SetEphemeral(String, Object)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_GetEphemeralValues">WorldObject.GetEphemeralValues()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_GetEphemeral_System_String_">WorldObject.GetEphemeral(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_ClearEphemeral_System_String_">WorldObject.ClearEphemeral(String)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_TryGetEphemeral_System_String_System_Object__">WorldObject.TryGetEphemeral(String, Object)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_SendId">WorldObject.SendId()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Distance_Hybrasyl_Objects_WorldObject_">WorldObject.Distance(WorldObject)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_ResetPursuits">WorldObject.ResetPursuits()</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_AddPursuit_Hybrasyl_Dialogs_DialogSequence_">WorldObject.AddPursuit(DialogSequence)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_RegisterDialogSequence_Hybrasyl_Dialogs_DialogSequence_">WorldObject.RegisterDialogSequence(DialogSequence)</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_Pursuits">WorldObject.Pursuits</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_DialogSequences">WorldObject.DialogSequences</a>
+    </div>
+    <div>
+      <a class="xref" href="Hybrasyl.Objects.WorldObject.html#Hybrasyl_Objects_WorldObject_SequenceCatalog">WorldObject.SequenceCatalog</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Hybrasyl.Objects.html">Hybrasyl.Objects</a></h6>
+  <h6><strong>Assembly</strong>: Hybrasyl.dll</h6>
+  <h5 id="Hybrasyl_Objects_ItemObject_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class ItemObject : VisibleObject, IQuadStorable</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject__ctor_Hybrasyl_Objects_ItemObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.%23ctor(Hybrasyl.Objects.ItemObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L413">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject__ctor_" data-uid="Hybrasyl.Objects.ItemObject.#ctor*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject__ctor_Hybrasyl_Objects_ItemObject_" data-uid="Hybrasyl.Objects.ItemObject.#ctor(Hybrasyl.Objects.ItemObject)">ItemObject(ItemObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ItemObject(ItemObject previousItemObject)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.ItemObject.html">ItemObject</a></td>
+        <td><span class="parametername">previousItemObject</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject__ctor_Hybrasyl_Xml_Item_Hybrasyl_World_Guid_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.%23ctor(Hybrasyl.Xml.Item%2CHybrasyl.World%2CGuid)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L401">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject__ctor_" data-uid="Hybrasyl.Objects.ItemObject.#ctor*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject__ctor_Hybrasyl_Xml_Item_Hybrasyl_World_Guid_" data-uid="Hybrasyl.Objects.ItemObject.#ctor(Hybrasyl.Xml.Item,Hybrasyl.World,Guid)">ItemObject(Item, World, Guid)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ItemObject(Item template, World world = null, Guid guid = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td><span class="parametername">template</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.World.html">World</a></td>
+        <td><span class="parametername">world</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Guid</span></td>
+        <td><span class="parametername">guid</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject__ctor_System_String_Hybrasyl_World_Guid_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.%23ctor(System.String%2CHybrasyl.World%2CGuid)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L392">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject__ctor_" data-uid="Hybrasyl.Objects.ItemObject.#ctor*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject__ctor_System_String_Hybrasyl_World_Guid_" data-uid="Hybrasyl.Objects.ItemObject.#ctor(System.String,Hybrasyl.World,Guid)">ItemObject(String, World, Guid)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ItemObject(string id, World world, Guid guid = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">id</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.World.html">World</a></td>
+        <td><span class="parametername">world</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">Guid</span></td>
+        <td><span class="parametername">guid</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BodyStyle.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BodyStyle%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L277">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BodyStyle_" data-uid="Hybrasyl.Objects.ItemObject.BodyStyle*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BodyStyle" data-uid="Hybrasyl.Objects.ItemObject.BodyStyle">BodyStyle</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte BodyStyle { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusAc.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusAc%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L271">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusAc_" data-uid="Hybrasyl.Objects.ItemObject.BonusAc*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusAc" data-uid="Hybrasyl.Objects.ItemObject.BonusAc">BonusAc</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusAc { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusCon.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusCon%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L267">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusCon_" data-uid="Hybrasyl.Objects.ItemObject.BonusCon*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusCon" data-uid="Hybrasyl.Objects.ItemObject.BonusCon">BonusCon</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusCon { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusDex.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusDex%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L268">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusDex_" data-uid="Hybrasyl.Objects.ItemObject.BonusDex*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusDex" data-uid="Hybrasyl.Objects.ItemObject.BonusDex">BonusDex</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusDex { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusDmg.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusDmg%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L269">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusDmg_" data-uid="Hybrasyl.Objects.ItemObject.BonusDmg*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusDmg" data-uid="Hybrasyl.Objects.ItemObject.BonusDmg">BonusDmg</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusDmg { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusHit.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusHit%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L270">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusHit_" data-uid="Hybrasyl.Objects.ItemObject.BonusHit*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusHit" data-uid="Hybrasyl.Objects.ItemObject.BonusHit">BonusHit</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusHit { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusHp.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusHp%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L262">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusHp_" data-uid="Hybrasyl.Objects.ItemObject.BonusHp*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusHp" data-uid="Hybrasyl.Objects.ItemObject.BonusHp">BonusHp</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int BonusHp { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusInt.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusInt%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L265">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusInt_" data-uid="Hybrasyl.Objects.ItemObject.BonusInt*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusInt" data-uid="Hybrasyl.Objects.ItemObject.BonusInt">BonusInt</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusInt { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusMp.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusMp%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L263">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusMp_" data-uid="Hybrasyl.Objects.ItemObject.BonusMp*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusMp" data-uid="Hybrasyl.Objects.ItemObject.BonusMp">BonusMp</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int BonusMp { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusMr.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusMr%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L272">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusMr_" data-uid="Hybrasyl.Objects.ItemObject.BonusMr*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusMr" data-uid="Hybrasyl.Objects.ItemObject.BonusMr">BonusMr</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusMr { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusRegen.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusRegen%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L273">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusRegen_" data-uid="Hybrasyl.Objects.ItemObject.BonusRegen*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusRegen" data-uid="Hybrasyl.Objects.ItemObject.BonusRegen">BonusRegen</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusRegen { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusStr.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusStr%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L264">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusStr_" data-uid="Hybrasyl.Objects.ItemObject.BonusStr*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusStr" data-uid="Hybrasyl.Objects.ItemObject.BonusStr">BonusStr</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusStr { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_BonusWis.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.BonusWis%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L266">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_BonusWis_" data-uid="Hybrasyl.Objects.ItemObject.BonusWis*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_BonusWis" data-uid="Hybrasyl.Objects.ItemObject.BonusWis">BonusWis</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte BonusWis { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_CastModifiers.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.CastModifiers%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L245">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_CastModifiers_" data-uid="Hybrasyl.Objects.ItemObject.CastModifiers*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_CastModifiers" data-uid="Hybrasyl.Objects.ItemObject.CastModifiers">CastModifiers</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public List&lt;CastModifier&gt; CastModifiers { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">List</span>&lt;<span class="xref">Hybrasyl.Xml.CastModifier</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Categories.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Categories%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L275">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Categories_" data-uid="Hybrasyl.Objects.ItemObject.Categories*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Categories" data-uid="Hybrasyl.Objects.ItemObject.Categories">Categories</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public List&lt;string&gt; Categories { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">List</span>&lt;<span class="xref">System.String</span>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Class.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Class%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L259">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Class_" data-uid="Hybrasyl.Objects.ItemObject.Class*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Class" data-uid="Hybrasyl.Objects.ItemObject.Class">Class</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Class Class { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Class</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Color.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Color%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L274">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Color_" data-uid="Hybrasyl.Objects.ItemObject.Color*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Color" data-uid="Hybrasyl.Objects.ItemObject.Color">Color</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte Color { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Consecratable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Consecratable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L294">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Consecratable_" data-uid="Hybrasyl.Objects.ItemObject.Consecratable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Consecratable" data-uid="Hybrasyl.Objects.ItemObject.Consecratable">Consecratable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Consecratable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Consumable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Consumable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L310">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Consumable_" data-uid="Hybrasyl.Objects.ItemObject.Consumable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Consumable" data-uid="Hybrasyl.Objects.ItemObject.Consumable">Consumable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Consumable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Count.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Count%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L321">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Count_" data-uid="Hybrasyl.Objects.ItemObject.Count*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Count" data-uid="Hybrasyl.Objects.ItemObject.Count">Count</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Count { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_CurrentVariant.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.CurrentVariant%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L318">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_CurrentVariant_" data-uid="Hybrasyl.Objects.ItemObject.CurrentVariant*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_CurrentVariant" data-uid="Hybrasyl.Objects.ItemObject.CurrentVariant">CurrentVariant</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Variant CurrentVariant { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Variant</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_DisplayDurability.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.DisplayDurability%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L335">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_DisplayDurability_" data-uid="Hybrasyl.Objects.ItemObject.DisplayDurability*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_DisplayDurability" data-uid="Hybrasyl.Objects.ItemObject.DisplayDurability">DisplayDurability</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint DisplayDurability { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_DisplaySprite.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.DisplaySprite%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L285">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_DisplaySprite_" data-uid="Hybrasyl.Objects.ItemObject.DisplaySprite*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_DisplaySprite" data-uid="Hybrasyl.Objects.ItemObject.DisplaySprite">DisplaySprite</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort DisplaySprite { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Durability.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Durability%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L329">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Durability_" data-uid="Hybrasyl.Objects.ItemObject.Durability*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Durability" data-uid="Hybrasyl.Objects.ItemObject.Durability">Durability</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public double Durability { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Double</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Element.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Element%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L279">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Element_" data-uid="Hybrasyl.Objects.ItemObject.Element*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Element" data-uid="Hybrasyl.Objects.ItemObject.Element">Element</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ElementType Element { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.ElementType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Enchantable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Enchantable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L292">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Enchantable_" data-uid="Hybrasyl.Objects.ItemObject.Enchantable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Enchantable" data-uid="Hybrasyl.Objects.ItemObject.Enchantable">Enchantable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Enchantable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_EquipmentSlot.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.EquipmentSlot%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L239">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_EquipmentSlot_" data-uid="Hybrasyl.Objects.ItemObject.EquipmentSlot*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_EquipmentSlot" data-uid="Hybrasyl.Objects.ItemObject.EquipmentSlot">EquipmentSlot</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte EquipmentSlot { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_EquipSprite.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.EquipSprite%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L224">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_EquipSprite_" data-uid="Hybrasyl.Objects.ItemObject.EquipSprite*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_EquipSprite" data-uid="Hybrasyl.Objects.ItemObject.EquipSprite">EquipSprite</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort EquipSprite { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Exchangeable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Exchangeable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L300">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Exchangeable_" data-uid="Hybrasyl.Objects.ItemObject.Exchangeable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Exchangeable" data-uid="Hybrasyl.Objects.ItemObject.Exchangeable">Exchangeable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Exchangeable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Gender.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Gender%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L260">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Gender_" data-uid="Hybrasyl.Objects.ItemObject.Gender*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Gender" data-uid="Hybrasyl.Objects.ItemObject.Gender">Gender</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Gender Gender { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Gender</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Guid.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Guid%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L35">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Guid_" data-uid="Hybrasyl.Objects.ItemObject.Guid*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Guid" data-uid="Hybrasyl.Objects.ItemObject.Guid">Guid</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Guid Guid { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Guid</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_HideBoots.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.HideBoots%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L288">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_HideBoots_" data-uid="Hybrasyl.Objects.ItemObject.HideBoots*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_HideBoots" data-uid="Hybrasyl.Objects.ItemObject.HideBoots">HideBoots</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HideBoots { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Identified.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Identified%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L252">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Identified_" data-uid="Hybrasyl.Objects.ItemObject.Identified*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Identified" data-uid="Hybrasyl.Objects.ItemObject.Identified">Identified</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Identified { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_IsVariant.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.IsVariant%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L314">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_IsVariant_" data-uid="Hybrasyl.Objects.ItemObject.IsVariant*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_IsVariant" data-uid="Hybrasyl.Objects.ItemObject.IsVariant">IsVariant</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsVariant { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_ItemObjectType.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.ItemObjectType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L226">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_ItemObjectType_" data-uid="Hybrasyl.Objects.ItemObject.ItemObjectType*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_ItemObjectType" data-uid="Hybrasyl.Objects.ItemObject.ItemObjectType">ItemObjectType</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ItemObjectType ItemObjectType { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Enums.ItemObjectType.html">ItemObjectType</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MasterOnly.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MasterOnly%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L302">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MasterOnly_" data-uid="Hybrasyl.Objects.ItemObject.MasterOnly*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MasterOnly" data-uid="Hybrasyl.Objects.ItemObject.MasterOnly">MasterOnly</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool MasterOnly { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MaxAbility.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MaxAbility%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L257">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MaxAbility_" data-uid="Hybrasyl.Objects.ItemObject.MaxAbility*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MaxAbility" data-uid="Hybrasyl.Objects.ItemObject.MaxAbility">MaxAbility</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte MaxAbility { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MaximumDurability.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MaximumDurability%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L247">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MaximumDurability_" data-uid="Hybrasyl.Objects.ItemObject.MaximumDurability*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MaximumDurability" data-uid="Hybrasyl.Objects.ItemObject.MaximumDurability">MaximumDurability</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint MaximumDurability { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MaximumStack.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MaximumStack%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L242">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MaximumStack_" data-uid="Hybrasyl.Objects.ItemObject.MaximumStack*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MaximumStack" data-uid="Hybrasyl.Objects.ItemObject.MaximumStack">MaximumStack</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int MaximumStack { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MaxLDamage.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MaxLDamage%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L282">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MaxLDamage_" data-uid="Hybrasyl.Objects.ItemObject.MaxLDamage*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MaxLDamage" data-uid="Hybrasyl.Objects.ItemObject.MaxLDamage">MaxLDamage</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort MaxLDamage { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MaxLevel.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MaxLevel%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L256">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MaxLevel_" data-uid="Hybrasyl.Objects.ItemObject.MaxLevel*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MaxLevel" data-uid="Hybrasyl.Objects.ItemObject.MaxLevel">MaxLevel</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte MaxLevel { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MaxSDamage.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MaxSDamage%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L284">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MaxSDamage_" data-uid="Hybrasyl.Objects.ItemObject.MaxSDamage*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MaxSDamage" data-uid="Hybrasyl.Objects.ItemObject.MaxSDamage">MaxSDamage</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort MaxSDamage { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MinAbility.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MinAbility%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L255">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MinAbility_" data-uid="Hybrasyl.Objects.ItemObject.MinAbility*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MinAbility" data-uid="Hybrasyl.Objects.ItemObject.MinAbility">MinAbility</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte MinAbility { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MinLDamage.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MinLDamage%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L281">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MinLDamage_" data-uid="Hybrasyl.Objects.ItemObject.MinLDamage*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MinLDamage" data-uid="Hybrasyl.Objects.ItemObject.MinLDamage">MinLDamage</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort MinLDamage { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MinLevel.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MinLevel%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L254">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MinLevel_" data-uid="Hybrasyl.Objects.ItemObject.MinLevel*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MinLevel" data-uid="Hybrasyl.Objects.ItemObject.MinLevel">MinLevel</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte MinLevel { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_MinSDamage.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.MinSDamage%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L283">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_MinSDamage_" data-uid="Hybrasyl.Objects.ItemObject.MinSDamage*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_MinSDamage" data-uid="Hybrasyl.Objects.ItemObject.MinSDamage">MinSDamage</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort MinSDamage { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Name.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Name%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L217">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Name_" data-uid="Hybrasyl.Objects.ItemObject.Name*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Name" data-uid="Hybrasyl.Objects.ItemObject.Name">Name</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Name { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_ParentItem.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.ParentItem%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L316">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_ParentItem_" data-uid="Hybrasyl.Objects.ItemObject.ParentItem*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_ParentItem" data-uid="Hybrasyl.Objects.ItemObject.ParentItem">ParentItem</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Item ParentItem { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Item</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Perishable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Perishable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L304">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Perishable_" data-uid="Hybrasyl.Objects.ItemObject.Perishable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Perishable" data-uid="Hybrasyl.Objects.ItemObject.Perishable">Perishable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Perishable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Regen.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Regen%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L290">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Regen_" data-uid="Hybrasyl.Objects.ItemObject.Regen*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Regen" data-uid="Hybrasyl.Objects.ItemObject.Regen">Regen</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sbyte Regen { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.SByte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_SlotName.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.SlotName%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L240">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_SlotName_" data-uid="Hybrasyl.Objects.ItemObject.SlotName*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_SlotName" data-uid="Hybrasyl.Objects.ItemObject.SlotName">SlotName</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string SlotName { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Smithable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Smithable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L298">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Smithable_" data-uid="Hybrasyl.Objects.ItemObject.Smithable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Smithable" data-uid="Hybrasyl.Objects.ItemObject.Smithable">Smithable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Smithable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Sprite.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Sprite%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L219">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Sprite_" data-uid="Hybrasyl.Objects.ItemObject.Sprite*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Sprite" data-uid="Hybrasyl.Objects.ItemObject.Sprite">Sprite</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ushort Sprite { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt16</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Stackable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Stackable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L243">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Stackable_" data-uid="Hybrasyl.Objects.ItemObject.Stackable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Stackable" data-uid="Hybrasyl.Objects.ItemObject.Stackable">Stackable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Stackable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Tailorable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Tailorable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L296">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Tailorable_" data-uid="Hybrasyl.Objects.ItemObject.Tailorable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Tailorable" data-uid="Hybrasyl.Objects.ItemObject.Tailorable">Tailorable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Tailorable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_TemplateId.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.TemplateId%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L34">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_TemplateId_" data-uid="Hybrasyl.Objects.ItemObject.TemplateId*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_TemplateId" data-uid="Hybrasyl.Objects.ItemObject.TemplateId">TemplateId</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string TemplateId { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Undamageable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Undamageable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L312">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Undamageable_" data-uid="Hybrasyl.Objects.ItemObject.Undamageable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Undamageable" data-uid="Hybrasyl.Objects.ItemObject.Undamageable">Undamageable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Undamageable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_UniqueEquipped.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.UniqueEquipped%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L308">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_UniqueEquipped_" data-uid="Hybrasyl.Objects.ItemObject.UniqueEquipped*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_UniqueEquipped" data-uid="Hybrasyl.Objects.ItemObject.UniqueEquipped">UniqueEquipped</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool UniqueEquipped { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_UniqueInventory.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.UniqueInventory%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L306">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_UniqueInventory_" data-uid="Hybrasyl.Objects.ItemObject.UniqueInventory*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_UniqueInventory" data-uid="Hybrasyl.Objects.ItemObject.UniqueInventory">UniqueInventory</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool UniqueInventory { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Usable.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Usable%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L221">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Usable_" data-uid="Hybrasyl.Objects.ItemObject.Usable*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Usable" data-uid="Hybrasyl.Objects.ItemObject.Usable">Usable</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Usable { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Use.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Use%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L222">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Use_" data-uid="Hybrasyl.Objects.ItemObject.Use*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Use" data-uid="Hybrasyl.Objects.ItemObject.Use">Use</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Use Use { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.Use</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Value.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Value%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L287">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Value_" data-uid="Hybrasyl.Objects.ItemObject.Value*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Value" data-uid="Hybrasyl.Objects.ItemObject.Value">Value</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint Value { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.UInt32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_WeaponType.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.WeaponType%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L238">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_WeaponType_" data-uid="Hybrasyl.Objects.ItemObject.WeaponType*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_WeaponType" data-uid="Hybrasyl.Objects.ItemObject.WeaponType">WeaponType</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public WeaponType WeaponType { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">Hybrasyl.Xml.WeaponType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Weight.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Weight%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L241">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Weight_" data-uid="Hybrasyl.Objects.ItemObject.Weight*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Weight" data-uid="Hybrasyl.Objects.ItemObject.Weight">Weight</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Weight { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_CheckRequirements_Hybrasyl_Objects_User_System_String__.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.CheckRequirements(Hybrasyl.Objects.User%2CSystem.String%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L45">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_CheckRequirements_" data-uid="Hybrasyl.Objects.ItemObject.CheckRequirements*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_CheckRequirements_Hybrasyl_Objects_User_System_String__" data-uid="Hybrasyl.Objects.ItemObject.CheckRequirements(Hybrasyl.Objects.User,System.String@)">CheckRequirements(User, out String)</h4>
+  <div class="markdown level1 summary"><p>Check to see if a specified user can equip an ItemObject. Returns a boolean indicating whether
+the ItemObject can be equipped and if not, sets the message reference to contain an appropriate
+message to be sent to the user.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool CheckRequirements(User userobj, out string message)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">userobj</span></td>
+        <td><p>User object to check for meeting this ItemObject's requirements.</p>
+</td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><span class="parametername">message</span></td>
+        <td><p>A reference that will be used in the case of failure to set an appropriate error message.</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_Invoke_Hybrasyl_Objects_User_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.Invoke(Hybrasyl.Objects.User)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L337">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_Invoke_" data-uid="Hybrasyl.Objects.ItemObject.Invoke*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_Invoke_Hybrasyl_Objects_User_" data-uid="Hybrasyl.Objects.ItemObject.Invoke(Hybrasyl.Objects.User)">Invoke(User)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Invoke(User trigger)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.User.html">User</a></td>
+        <td><span class="parametername">trigger</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
+    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject_ShowTo_Hybrasyl_Objects_VisibleObject_.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject.ShowTo(Hybrasyl.Objects.VisibleObject)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L424">View Source</a>
+  </span>
+  <a id="Hybrasyl_Objects_ItemObject_ShowTo_" data-uid="Hybrasyl.Objects.ItemObject.ShowTo*"></a>
+  <h4 id="Hybrasyl_Objects_ItemObject_ShowTo_Hybrasyl_Objects_VisibleObject_" data-uid="Hybrasyl.Objects.ItemObject.ShowTo(Hybrasyl.Objects.VisibleObject)">ShowTo(VisibleObject)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void ShowTo(VisibleObject obj)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Hybrasyl.Objects.VisibleObject.html">VisibleObject</a></td>
+        <td><span class="parametername">obj</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><a class="xref" href="Hybrasyl.Objects.VisibleObject.html#Hybrasyl_Objects_VisibleObject_ShowTo_Hybrasyl_Objects_VisibleObject_">VisibleObject.ShowTo(VisibleObject)</a></div>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="C3.IQuadStorable.html">IQuadStorable</a>
+  </div>
+  <h3 id="extensionmethods">Extension Methods</h3>
+  <div>
+      <a class="xref" href="Hybrasyl.Utility.TypeExtensions.html#Hybrasyl_Utility_TypeExtensions_IsInteger_System_Object_">TypeExtensions.IsInteger(Object)</a>
+  </div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/new/main/apiSpec/new?filename=Hybrasyl_Objects_ItemObject.md&amp;value=---%0Auid%3A%20Hybrasyl.Objects.ItemObject%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/hybrasyl/server/blob/main/hybrasyl/Objects/ItemObject.cs/#L32" class="contribution-link">View Source</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+            
+            <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
