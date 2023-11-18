@@ -2820,7 +2820,7 @@ public class User : Creature
         }
 
         //Check immunities
-        if (target is Monster m && (m.BehaviorSet?.Immunities?.Contains(castableXml.Name.ToLower()) ?? false))
+        if (target is Monster m && (m.BehaviorSet?.Immunities?.Exists(x => x.Value == castableXml.Name) ?? false))
         {
             SendSystemMessage($"{m.Name} is immune to {castableXml.Name}!");
             return false;

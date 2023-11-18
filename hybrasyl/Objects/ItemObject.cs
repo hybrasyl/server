@@ -481,7 +481,7 @@ public class ItemObject : VisibleObject, IInteractable
             foreach (var remove in Use.Statuses.Remove)
             {
 
-                if (World.WorldData.TryGetValue<Status>(remove.ToLower(), out var applyStatus))
+                if (World.WorldData.TryGetValue<Status>(remove.Value.ToLower(), out var applyStatus))
                 {
                     GameLog.UserActivityError(
                         $"Invoke: {trigger.Name} using {Name} - removing status {remove}");

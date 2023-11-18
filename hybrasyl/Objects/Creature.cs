@@ -439,7 +439,7 @@ public class Creature : VisibleObject
 
         // Check to see if creature is immune.
         // Only handle monster immunity for now
-        if (target is Monster monster && monster.Immunities.Contains(castableXml.Name) && this is User client)
+        if (target is Monster monster && monster.Immunities.Exists(x => x.Value == castableXml.Name) && this is User client)
         {
             client.SendSystemMessage($"{Name} cannot be harmed by {castableXml.Name}.");
             return false;
@@ -617,7 +617,7 @@ public class Creature : VisibleObject
                 }
 
             foreach (var status in castableXml.RemoveStatuses)
-                if (World.WorldData.TryGetValue<Status>(status.ToLower(), out var applyStatus))
+                if (World.WorldData.TryGetValue<Status>(status.Value.ToLower(), out var applyStatus))
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");

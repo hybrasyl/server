@@ -463,13 +463,17 @@ public static class Game
 
         // Configure OTel forwarder, if set
 
-        var providerBuilder = Sdk.CreateTracerProviderBuilder()
-            .AddSource("erisco.hybrasyl.server")
-            .AddConsoleExporter().AddOtlpExporter(opt =>
-            {
-                opt.Endpoint = new Uri(activeConfiguration.ApiEndpoints.Sentry.Url);
-            });
- 
+        if (activeConfiguration.ApiEndpoints?.TelemetryEndpoint != null)
+        {
+            // TODO : actually implement this
+            var providerBuilder = Sdk.CreateTracerProviderBuilder()
+                .AddSource("erisco.hybrasyl.server")
+                .AddConsoleExporter().AddOtlpExporter(opt =>
+                {
+                    opt.Endpoint = new Uri(activeConfiguration.ApiEndpoints.TelemetryEndpoint.Url);
+                });
+        }
+
         // We don't want any of NCalc's garbage 
         Trace.Listeners.RemoveAt(0);
 

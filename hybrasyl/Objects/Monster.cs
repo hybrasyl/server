@@ -63,7 +63,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public byte AssailSound;
 
-    public List<string> Immunities { get; set; }
+    public List<CreatureImmunity> Immunities { get; set; }
 
     public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
@@ -92,7 +92,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         Name = creature.Name;
         Sprite = creature.Sprite;
         AssailSound = creature.AssailSound;
-        Immunities = BehaviorSet?.Immunities ?? new List<string>();
+        Immunities = BehaviorSet?.Immunities ?? new List<CreatureImmunity>();
 
         // TODO: remove this and fix
         Stats.Level = level;
