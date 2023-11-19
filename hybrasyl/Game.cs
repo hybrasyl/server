@@ -290,7 +290,7 @@ public static class Game
         
         using var activity = ActivitySource.StartActivity("Startup");
 
-        activity.SetTag("host",Dns.GetHostName());
+        activity?.SetTag("host",Dns.GetHostName());
         // Gather our directories from env vars / command line switches
 
         var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
@@ -350,7 +350,7 @@ public static class Game
         }
         catch (FileNotFoundException ex)
         {
-            activity.SetStatus(ActivityStatusCode.Error);
+            activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal($"An XML directory (world data) was not found at {manager.RootPath}.");
             Log.Fatal("This may be the first time you've run the server. If so, please take a look");
             Log.Fatal("at the server documentation at github.com/hybrasyl/server.");
@@ -365,7 +365,7 @@ public static class Game
         }
         catch (Exception ex)
         {
-            activity.SetStatus(ActivityStatusCode.Error);
+            activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal($"World data could not be loaded: {ex}");
             Log.Fatal(
                 "Hybrasyl cannot start without a working world data directory, so it will automatically close in 10 seconds.");
@@ -375,7 +375,7 @@ public static class Game
         if (manager.Count<ServerConfig>() == 0)
         {
             var loadResult = manager.GetLoadResult<ServerConfig>();
-            activity.SetStatus(ActivityStatusCode.Error);
+            activity?.SetStatus(ActivityStatusCode.Error);
 
             Log.Fatal("A server configuration file was not found or could not be loaded.");
             Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
@@ -414,7 +414,7 @@ public static class Game
                 Log.Fatal($"{error.Key}: {error.Value}");
             }
 
-            activity.SetStatus(ActivityStatusCode.Error);
+            activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
                 "Hybrasyl cannot start without localizations, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -424,7 +424,7 @@ public static class Game
 
         if (!manager.TryGetValue(ActiveConfigurationName, out ServerConfig activeConfiguration))
         {
-            activity.SetStatus(ActivityStatusCode.Error);
+            activity?.SetStatus(ActivityStatusCode.Error);
 
             Log.Fatal(
                 $"You specified a server configuration name of {ActiveConfigurationName}, but there are no configurations with that name.");
@@ -487,7 +487,7 @@ public static class Game
         // Set up metrics collection
         // TODO: make configurable
         var env = Environment.GetEnvironmentVariable("HYB_ENV");
-        activity.SetTag("environment", env);
+        activity?.SetTag("environment", env);
 
         LoadCollisions();
 
@@ -519,7 +519,7 @@ public static class Game
 
         if (!World.InitWorld())
         {
-            activity.SetStatus(ActivityStatusCode.Error);
+            activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
                 "Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
             Console.ReadKey();
@@ -599,7 +599,7 @@ public static class Game
         _loginThread.Start();
         _worldThread.Start();
         _controlThread.Start();
-        activity.SetStatus(ActivityStatusCode.Ok);
+        activity?.SetStatus(ActivityStatusCode.Ok);
 
         while (!World.WorldState.Ready)
             Thread.Sleep(1000);
