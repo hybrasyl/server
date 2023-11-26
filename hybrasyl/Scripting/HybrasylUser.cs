@@ -332,6 +332,13 @@ public class HybrasylUser : HybrasylWorldObject
         return matches.Count() >= quantity;
     }
 
+    public int NumberKilled(string name, int since = 0)
+    {
+        var matches = User.RecentKills
+            .Where(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
+        return since > 0 ? matches.Count(x => x.Timestamp >= DateTimeOffset.FromUnixTimeSeconds(since).DateTime) : matches.Count();
+    }
+
     /// <summary>
     ///     Check to see whether the user has killed a quantity of a named monster, optionally in the last n minutes.
     /// </summary>
@@ -347,7 +354,7 @@ public class HybrasylUser : HybrasylWorldObject
         if (minutes > 0)
         {
             var ts = DateTime.Now.AddMinutes(minutes * -1);
-            matches = matches.Where(predicate: x => x.Timestamp >= ts);
+            matches = matches.Where(x => x.Timestamp >= ts);
         }
 
         return matches.Count() >= quantity;

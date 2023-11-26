@@ -30,7 +30,7 @@ jobs:
       image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
     strategy:
       matrix:
-        dotnet-version: ['7.0.x']
+        dotnet-version: ['8.0.x']
    
     steps:
       - name: start local redis 

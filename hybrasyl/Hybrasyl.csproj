@@ -8,7 +8,7 @@
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://www.hybrasyl.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hybrasyl/server</RepositoryUrl>
-    <Company>Project Hybrasyl</Company>
+    <Company>ERISCO LLC</Company>
     <Product>Hybrasyl Server</Product>
     <VersionPrefix>0.9.3.2</VersionPrefix>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>

@@ -923,6 +923,7 @@ public class Creature : VisibleObject
         }
 
         // handle elements
+
         if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoElement))
         {
             var elementTable = Game.World.WorldData.Get<ElementTable>("ElementTable");

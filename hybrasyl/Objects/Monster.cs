@@ -120,6 +120,84 @@ public class Monster : Creature, ICloneable, IEphemeral
     public DateTime CreationTime { get; set; }
     public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
 
+    public bool TryGetImmunity(ElementType element, out CreatureImmunity immunity)
+    { 
+        immunity = BehaviorSet?.Immunities?.FirstOrDefault(x =>
+            x.Type == CreatureImmunityType.Element
+            && x.Value == element.ToString());
+        return immunity != null;
+    }
+
+    public bool TryGetImmunity(Castable castable, out CreatureImmunity immunity)
+    {
+        immunity = BehaviorSet?.Immunities?.FirstOrDefault(x => x.Type == CreatureImmunityType.Castable);
+        return immunity != null;
+    }
+
+    public bool TryGetImmunityCategory(string category, bool isStatus, out CreatureImmunity immunity)
+    {
+        if (isStatus)
+        {
+            immunity = BehaviorSet?.Immunities?.FirstOrDefault(x => x.Type == CreatureImmunityType.StatusCategory &&
+                                                                    x.Value == category);
+            return immunity != null;
+        }
+
+        immunity = BehaviorSet?.Immunities?.FirstOrDefault(x => x.Type == CreatureImmunityType.CastableCategory);
+        return immunity != null;
+    }
+
+    private void SendImmunityMessage(CreatureImmunity immunity, Creature attacker = null)
+    {
+        if (immunity == null || string.IsNullOrWhiteSpace(immunity.Message)) return;
+
+        switch (immunity.MessageType)
+        {
+            case Xml.Objects.MessageType.Say:
+                Say(immunity.Message);
+                break;
+            case Xml.Objects.MessageType.Shout:
+                Shout(immunity.Message);
+                break;
+            case Xml.Objects.MessageType.Whisper:
+                if (attacker is User u)
+                    u.SendWhisper(Name,immunity.Message);
+                break;
+        }
+
+    }
+    public override void Damage(double damage, ElementType element = ElementType.None,
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
+        Creature attacker = null, Castable castable = null, bool onDeath = true)
+    {
+
+        CreatureImmunity immunity = null;
+        
+        if (element != ElementType.None && TryGetImmunity(element, out immunity))
+        {
+            // Elemental immunity: matching elemental spells do nothing, but physical damage just has elemental modifier removed
+            if (damageType == DamageType.Physical)
+            {
+                SendImmunityMessage(immunity, attacker);
+                base.Damage(damage, immunity != null ? ElementType.None : element, damageType, damageFlags, attacker,
+                    castable,
+                    onDeath);
+                return;
+            }
+        }
+
+        if (castable != null && TryGetImmunity(castable, out immunity))
+        {
+            SendImmunityMessage(immunity, attacker);
+            return;
+        }
+
+       // if (castable != null && TryGetImmunity())
+
+        if (immunity == null)
+            base.Damage(damage, element, damageType, damageFlags, attacker, castable, onDeath);
+    }
+
     public bool IsHostile(Creature hostile = null)
     {
         // Default to no aggressiveness in the absence of a <Hostility> tag or no <Player> tag;
