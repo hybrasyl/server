@@ -4,9 +4,9 @@
 # and not a viable production server.
 #
 
-FROM mcr.microsoft.com/dotnet/runtime:7.0
+FROM mcr.microsoft.com/dotnet/runtime:8.0
 
-COPY /hybrasyl/bin/Release/net7.0/linux-x64 /App
+COPY /hybrasyl/bin/Release/net8.0/linux-x64 /App
 
 ENTRYPOINT ["dotnet", "/App/Hybrasyl.dll"]
 
