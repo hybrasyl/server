@@ -1193,6 +1193,16 @@ public class Creature : VisibleObject
     /// <param name="status">The status to apply to the player.</param>
     public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
     {
+        // Check for immunities to status effects
+        if (this is Monster { BehaviorSet: not null } m)
+        {
+            if (m.BehaviorSet.ImmuneToStatus(status.Name, out var immunity) ||
+                m.BehaviorSet.ImmuneToStatusCategory(status.Info.Category, out immunity))
+            {
+                m.SendImmunityMessage(immunity);
+                return false;
+            }
+        }
         if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
         if (this is User && sendUpdates) (this as User).SendStatusUpdate(status);
 

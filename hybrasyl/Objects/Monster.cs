@@ -92,7 +92,6 @@ public class Monster : Creature, ICloneable, IEphemeral
         Name = creature.Name;
         Sprite = creature.Sprite;
         AssailSound = creature.AssailSound;
-        Immunities = BehaviorSet?.Immunities ?? new List<CreatureImmunity>();
 
         // TODO: remove this and fix
         Stats.Level = level;
@@ -147,7 +146,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         return immunity != null;
     }
 
-    private void SendImmunityMessage(CreatureImmunity immunity, Creature attacker = null)
+    public void SendImmunityMessage(CreatureImmunity immunity, Creature attacker = null)
     {
         if (immunity == null || string.IsNullOrWhiteSpace(immunity.Message)) return;
 
@@ -171,31 +170,34 @@ public class Monster : Creature, ICloneable, IEphemeral
         Creature attacker = null, Castable castable = null, bool onDeath = true)
     {
 
-        CreatureImmunity immunity = null;
-        
-        if (element != ElementType.None && TryGetImmunity(element, out immunity))
+        if (element != ElementType.None && BehaviorSet.ImmuneToElement(element, out var immunity))
         {
-            // Elemental immunity: matching elemental spells do nothing, but physical damage just has elemental modifier removed
-            if (damageType == DamageType.Physical)
+            switch (damageType)
             {
-                SendImmunityMessage(immunity, attacker);
-                base.Damage(damage, immunity != null ? ElementType.None : element, damageType, damageFlags, attacker,
-                    castable,
-                    onDeath);
-                return;
+                case DamageType.Physical:
+                    // Physical immunity to fire: you're hit by a flaming sword - you don't take
+                    // fire damage, but you still got hit by a sword (elemental modifier is removed)
+                    base.Damage(damage, ElementType.None, damageType, damageFlags, attacker,
+                        castable,
+                        onDeath);
+                    break;
+                case DamageType.Magical:
+                    // Magical immunity to fire: magic fire does no damage to you
+                    break;
+
             }
+            SendImmunityMessage(immunity, attacker);
+            return;
         }
 
-        if (castable != null && TryGetImmunity(castable, out immunity))
+        if (castable != null && (BehaviorSet.ImmuneToCastable(castable, out immunity) || 
+                 castable.Categories.Any(x => BehaviorSet.ImmuneToCastableCategory(x.Value, out immunity))))
         {
             SendImmunityMessage(immunity, attacker);
             return;
         }
 
-       // if (castable != null && TryGetImmunity())
-
-        if (immunity == null)
-            base.Damage(damage, element, damageType, damageFlags, attacker, castable, onDeath);
+        base.Damage(damage, element, damageType, damageFlags, attacker, castable, onDeath);
     }
 
     public bool IsHostile(Creature hostile = null)
