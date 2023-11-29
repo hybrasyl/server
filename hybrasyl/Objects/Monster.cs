@@ -63,8 +63,6 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public byte AssailSound;
 
-    public List<CreatureImmunity> Immunities { get; set; }
-
     public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
     {

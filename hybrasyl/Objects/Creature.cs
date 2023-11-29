@@ -437,14 +437,6 @@ public class Creature : VisibleObject
             return false;
         }
 
-        // Check to see if creature is immune.
-        // Only handle monster immunity for now
-        if (target is Monster monster && monster.Immunities.Exists(x => x.Value == castableXml.Name) && this is User client)
-        {
-            client.SendSystemMessage($"{Name} cannot be harmed by {castableXml.Name}.");
-            return false;
-        }
-
         ProcessProcs(ProcEventType.OnCast, castableXml, null);
         // Is this a pvpable spell? If so, is pvp enabled?
 
@@ -1204,7 +1196,7 @@ public class Creature : VisibleObject
             }
         }
         if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-        if (this is User && sendUpdates) (this as User).SendStatusUpdate(status);
+        if (this is User u && sendUpdates) u.SendStatusUpdate(status);
 
         status.OnStart(sendUpdates);
         if (sendUpdates)

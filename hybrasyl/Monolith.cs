@@ -316,9 +316,6 @@ internal class Monolith
                     if (spawn.Hostility != null)
                         baseMob.Hostility = spawn.Hostility;
 
-                    if (spawn.Immunities != null)
-                        baseMob.Immunities = spawn.Immunities;
-
                     if (spawn.Damage != null)
                     {
                         ushort minDmg = 0;
