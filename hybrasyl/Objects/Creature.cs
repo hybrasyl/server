@@ -514,7 +514,7 @@ public class Creature : VisibleObject
                 var actualY = (byte)(Y + reactor.RelativeY);
                 var reactorObj =
                     new Reactor(actualX, actualY, tar.Map, reactor.Script,
-                        reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking);
+                        reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking, this);
                 reactorObj.Sprite = reactor.Sprite;
                 reactorObj.CreatedBy = Guid;
                 reactorObj.Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
