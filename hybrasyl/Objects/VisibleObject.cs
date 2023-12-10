@@ -87,6 +87,8 @@ public class VisibleObject : WorldObject, IVisible
     public string DisplayText { get; set; }
     public virtual void ShowTo(IVisible target) { }
 
+    public SpokenEvent LastHeard { get; set; }
+
     public int Distance(IVisible target) => Point.Distance(this, target);
 
     public static Direction Opposite(Direction d)
@@ -157,9 +159,10 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void OnHear(SpokenEvent e)
     {
+        LastHeard = e;
         if (Script == null) return;
         var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
-            ("origin", this));
+            ("origin", this), ("source", e.Speaker));
 
         env.Add("event", e);
         Script.ExecuteFunction("OnHear", env);

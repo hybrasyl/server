@@ -136,9 +136,6 @@ internal class Monolith
             return;
         }
 
-        //    if (spawnGroup.Spawns.Count == 0)
-        //GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}: no spawns?");
-
         foreach (var spawn in spawnGroup.Spawns)
         {
 
@@ -241,11 +238,11 @@ internal class Monolith
                     var baseMob = new Monster(creature, spawn.Flags, (byte)baseLevel,
                         newSpawnLoot);
 
-                    if (baseMob.LootableXP == 0)
+                    if (baseMob.LootableXp == 0)
                         // If no XP defined, prepopulate based on defaults.
                         // TODO: another place a hardcoded formula should be elsewhere
                         // This is most simply expressed as "amount between mob level and last level times .7%"
-                        baseMob.LootableXP = Convert.ToUInt32((Math.Pow(baseMob.Stats.Level, 3) * 250 -
+                        baseMob.LootableXp = Convert.ToUInt32((Math.Pow(baseMob.Stats.Level, 3) * 250 -
                                                                Math.Pow(baseMob.Stats.Level - 1, 3) * 250) * 0.007);
                     // Is this a strong or weak mob?
                     if (spawn.Base.StrongChance > 0 || spawn.Base.WeakChance > 0)

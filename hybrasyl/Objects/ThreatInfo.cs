@@ -78,6 +78,7 @@ public class ThreatInfo
     public List<Creature> GetTargets(CreatureTargetPriority priority)
     {
         var ret = new List<Creature>();
+        if (OwnerObject == null) return ret;
         ThreatEntry entry;
         switch (priority)
         {
@@ -163,7 +164,6 @@ public class ThreatInfo
         if (!ThreatTableByCreature.TryGetValue(threat.Guid, out var entry)) return;
         ThreatTableByCreature.Remove(threat.Guid);
         ThreatTableByThreat.Remove(entry);
-        GameLog.Error($"{OwnerObject.Id}: Removed threat {threat.Id}");
     }
 
     public void RemoveAllThreats()

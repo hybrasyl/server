@@ -326,9 +326,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns></returns>
     public bool HasKilledSince(string name, int since, int quantity = 1)
     {
-        var matches = User.RecentKills.Where(predicate: x =>
-            string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
-        matches = matches.Where(predicate: x => x.Timestamp >= DateTimeOffset.FromUnixTimeSeconds(since).DateTime);
+        var matches = User.RecentKills.Where(z =>
+            string.Equals(z.Name, name, StringComparison.CurrentCultureIgnoreCase));
+        matches = matches.Where(y => y.Timestamp.ToUniversalTime() >= DateTimeOffset.FromUnixTimeSeconds(since).UtcDateTime);
         return matches.Count() >= quantity;
     }
 
@@ -336,7 +336,7 @@ public class HybrasylUser : HybrasylWorldObject
     {
         var matches = User.RecentKills
             .Where(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
-        return since > 0 ? matches.Count(x => x.Timestamp >= DateTimeOffset.FromUnixTimeSeconds(since).DateTime) : matches.Count();
+        return since > 0 ? matches.Count(x => x.Timestamp.ToUniversalTime() >= DateTimeOffset.FromUnixTimeSeconds(since).UtcDateTime) : matches.Count();
     }
 
     /// <summary>
@@ -351,13 +351,7 @@ public class HybrasylUser : HybrasylWorldObject
         var matches = User.RecentKills.Where(predicate: x =>
             string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
 
-        if (minutes > 0)
-        {
-            var ts = DateTime.Now.AddMinutes(minutes * -1);
-            matches = matches.Where(x => x.Timestamp >= ts);
-        }
-
-        return matches.Count() >= quantity;
+        return minutes > 0 ? matches.Count(x => x.Timestamp.ToUniversalTime() >= DateTime.UtcNow.AddMinutes(-minutes)) >= quantity : matches.Count() >= quantity;
     }
 
     /// <summary>

@@ -11,6 +11,8 @@ using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true, MaxParallelThreads = 1)]
+
 namespace Hybrasyl.Tests;
 
 public class HybrasylFixture : IDisposable
@@ -20,8 +22,8 @@ public class HybrasylFixture : IDisposable
     public HybrasylFixture(IMessageSink sink)
     {
         this.sink = sink;
-        Log.Logger = new LoggerConfiguration()
-            .WriteTo.TestOutput(sink)
+        Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
+            .WriteTo.Console().WriteTo.File("hybrasyl-tests-.log", rollingInterval: RollingInterval.Day).WriteTo.TestCorrelator()
             .CreateLogger();
         var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("Hybrasyl.Tests");
         Game.LoadCollisions();
@@ -167,7 +169,7 @@ public class HybrasylFixture : IDisposable
     public Item StackableTestItem { get; }
     public Dictionary<EquipmentSlot, Item> TestEquipment { get; } = new();
     public static byte InventorySize => 59;
-
+    
     public User TestUser { get; }
 
     public CreatureBehaviorSet TestSet { get; set; }

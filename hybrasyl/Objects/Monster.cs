@@ -279,7 +279,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public bool HasAssailSkills { get; set; }
 
-    public uint LootableXP
+    public uint LootableXp
     {
         get => Loot?.Xp ?? 0;
         set => Loot.Xp = value;
@@ -363,9 +363,9 @@ public class Monster : Creature, ICloneable, IEphemeral
                     hitter.TrackKill(Name, deadTime);
                 }
 
-                hitter.ShareExperience(LootableXP, Stats.Level);
+                hitter.ShareExperience(LootableXp, Stats.Level);
                 if (hitter.Stats.ExtraXp > 0)
-                    hitter.GiveExperience(LootableXP, true);
+                    hitter.GiveExperience(LootableXp, true);
 
                 var itemDropTime = DateTime.Now;
 
@@ -496,7 +496,7 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         Stats.BaseHp = (uint)(Stats.BaseHp * (1 + modifier));
         Stats.BaseMp = (uint)(Stats.BaseMp * (1 + modifier));
-        LootableXP = (uint)(LootableXP * (1 + modifier));
+        LootableXp = (uint)(LootableXp * (1 + modifier));
         if (Loot?.Gold > 0)
             Loot.Gold = (uint)(Loot.Gold * (1 + modifier));
         Stats.BaseOutboundDamageModifier = 1 + modifier;

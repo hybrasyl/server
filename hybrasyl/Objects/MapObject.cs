@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 
 namespace Hybrasyl.Objects;
@@ -130,12 +131,19 @@ public class MapObject : IStateStorable
         AllowSpeaking = true;
     }
 
+    /// <summary>
+    /// Remove all objects on a map except for NPCs. This function is only intended to be used by unit tests.
+    /// It is almost assuredly not what you want in a live environment.
+    /// </summary>
     public void Clear()
     {
-        Objects = new HashSet<VisibleObject>();
+        foreach (var obj in EntityTree.GetAllObjects().Where(obj => obj is not Merchant))
+        {
+            EntityTree.Remove(obj);
+            Objects.Remove(obj);
+        }   
         Users = new Dictionary<string, User>();
         Warps = new Dictionary<Tuple<byte, byte>, Warp>();
-        EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
         Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
     }
 

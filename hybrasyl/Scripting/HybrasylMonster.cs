@@ -69,7 +69,7 @@ public class HybrasylMonster : HybrasylWorldObject
             $"Level: {Monster.Stats.Level}  Health: {Monster.Stats.Hp}/{Monster.Stats.MaximumHp}  Mana: {Monster.Stats.Mp} / {Monster.Stats.MaximumMp}\n";
         s +=
             $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
-        s += $"Experience: {Monster.LootableXP}\n\n";
+        s += $"Experience: {Monster.LootableXp}\n\n";
         s += "Castables:\n";
 
         foreach (var rotation in Monster.CastableController)

@@ -429,6 +429,7 @@ public class User : Creature
 
     public override void OnHear(SpokenEvent e)
     {
+        LastHeard = e;
         if (e.Speaker != this)
             MessagesReceived.Add(e);
         var x0D = new ServerPacket(0x0D);
@@ -1211,7 +1212,7 @@ public class User : Creature
                 SendSkillUpdate(bookSlot, slot);
 
             bookSlot.Castable.LastCast = DateTime.Now;
-            Client.Enqueue(new ServerPacketStructures.Cooldown
+            Client?.Enqueue(new ServerPacketStructures.Cooldown
             {
                 Length = (uint) bookSlot.Castable.Cooldown,
                 Pane = 1,
@@ -2809,6 +2810,8 @@ public class User : Creature
             //do something. 
             return false;
 
+        // Check for target immunity 
+
         // Check casting costs
         if (castCost)
         {
@@ -2817,13 +2820,6 @@ public class User : Creature
                 SendSystemMessage(message);
                 return false;
             }
-        }
-
-        //Check immunities
-        if (target is Monster m && (m.BehaviorSet?.Immunities?.Exists(x => x.Value == castableXml.Name) ?? false))
-        {
-            SendSystemMessage($"{m.Name} is immune to {castableXml.Name}!");
-            return false;
         }
 
         if (evalRestrictions)
@@ -2885,7 +2881,7 @@ public class User : Creature
                 Condition.IsInvisible = false;
 
             var firstAssail = SkillBook.FirstOrDefault(x => x.Castable is { IsAssail: true });
-            var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
+            var soundId = (byte) (firstAssail != null ? firstAssail.Castable.Effects?.Sound?.Id ?? 1 : 1);
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);
             PlaySound(Equipment?.Weapon?.AssailSound ?? soundId);

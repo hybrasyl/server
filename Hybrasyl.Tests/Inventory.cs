@@ -5,8 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
-
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]

@@ -598,8 +598,19 @@ public class Creature : VisibleObject
                             continue;
                         }
                     }
-
-                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
+                    // Check immunities
+                    var apply = true;
+                    CreatureImmunity immunity = null;
+                    if (tar is Monster m && (castableXml.CategoryList.Any(x =>
+                            m.BehaviorSet.ImmuneToCastableCategory(x, out immunity)) ||
+                            m.BehaviorSet.ImmuneToStatus(applyStatus, out immunity) ||
+                            applyStatus.CategoryList.Any(x => m.BehaviorSet.ImmuneToStatusCategory(x, out immunity))))
+                    {
+                            m.SendImmunityMessage(immunity, this);
+                            apply = false;
+                    }
+                    if (apply)
+                       tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
                         status.Intensity));
                 }
                 else
