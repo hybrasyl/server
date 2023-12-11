@@ -45,7 +45,7 @@ public class Reactor : VisibleObject, IPursuitable
     }
 
     public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
-        bool blocking = true)
+        bool blocking = true, Creature caster = null)
     {
         X = x;
         Y = y;
@@ -55,6 +55,7 @@ public class Reactor : VisibleObject, IPursuitable
         Blocking = blocking;
         CreatedAt = DateTime.Now;
         Expiration = DateTime.MaxValue;
+        Caster = caster?.GetSnapshot();
         if (expiration <= 0) return;
         Expiration = CreatedAt.AddSeconds(expiration);
         Task.Run(function: OnExpiration);
@@ -147,7 +148,6 @@ public class Reactor : VisibleObject, IPursuitable
     public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
         ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
     
-
     public virtual void OnEntry(VisibleObject obj)
     {
         if (Expired) return;
