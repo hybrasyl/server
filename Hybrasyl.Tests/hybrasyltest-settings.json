@@ -1,5 +1,14 @@
 {
-  "WorldDataDirectory": "C:\\HybrasylWorld\\ceridwen\\xml",
-  "LogDirectory": "C:\\HybrasylWorld\\ceridwen\\logs",
-  "DataDirectory": "C:\\HybrasylWorld\\ceridwen"
+  "Directories": {
+    "Windows": {
+      "WorldDataDirectory": "C:\\HybrasylWorld\\ceridwen\\xml",
+      "LogDirectory": "C:\\HybrasylWorld\\ceridwen\\logs",
+      "DataDirectory": "C:\\HybrasylWorld\\ceridwen"
+    },
+    "Linux": {
+      "WorldDataDirectory": "/home/baughj/HybrasylWorld/ceridwen/xml",
+      "LogDirectory": "/home/baughj/HybrasylWorld/ceridwen/logs",
+      "DataDirectory": "/home/baughj/HybrasylWorld/ceridwen"
+    }
+  }
 }

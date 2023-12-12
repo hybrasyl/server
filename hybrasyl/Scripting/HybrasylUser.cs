@@ -348,10 +348,12 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns></returns>
     public bool HasKilled(string name, int quantity = 1, int minutes = 0)
     {
-        var matches = User.RecentKills.Where(predicate: x =>
+        var matches = User.RecentKills.Where(x =>
             string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
 
-        return minutes > 0 ? matches.Count(x => x.Timestamp.ToUniversalTime() >= DateTime.UtcNow.AddMinutes(-minutes)) >= quantity : matches.Count() >= quantity;
+        return minutes > 0 
+            ? matches.Count(x => x.Timestamp.ToUniversalTime() >= (DateTime.Now.ToUniversalTime() - TimeSpan.FromMinutes(minutes)).ToUniversalTime()) >= quantity 
+            : matches.Count() >= quantity;
     }
 
     /// <summary>

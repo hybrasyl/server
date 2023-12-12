@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Hybrasyl.Internals;
 using Xunit;
 using Xunit.Abstractions;
@@ -27,9 +28,19 @@ public class HybrasylFixture : IDisposable
             .CreateLogger();
         var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("Hybrasyl.Tests");
         Game.LoadCollisions();
-        Game.DataDirectory = Settings.HybrasylTests.JsonSettings.DataDirectory;
-        Game.WorldDataDirectory = Settings.HybrasylTests.JsonSettings.WorldDataDirectory;
-        Game.LogDirectory = Settings.HybrasylTests.JsonSettings.LogDirectory;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Game.DataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Windows"].DataDirectory;
+            Game.WorldDataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Windows"].WorldDataDirectory;
+            Game.LogDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Windows"].LogDirectory;
+        }
+        else
+        {
+            Game.DataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Linux"].DataDirectory;
+            Game.WorldDataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Linux"].WorldDataDirectory;
+            Game.LogDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Linux"].LogDirectory;
+        }
+
         var manager = new XmlDataManager(Game.WorldDataDirectory);
         manager.LoadData();
         var rHost = Environment.GetEnvironmentVariable("REDIS_HOST");

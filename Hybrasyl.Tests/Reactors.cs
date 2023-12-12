@@ -114,5 +114,19 @@ public class Reactor
         Assert.Equal((uint)475, bait.Stats.Hp);
     }
 
+    [Fact]
+    public void ReactorCasterSnapshot()
+    {
+        Fixture.TestUser.SkillBook.Clear();
+        Fixture.TestUser.SpellBook.Clear();
+        Fixture.ResetUserStats();
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 15, 15);
+        // Test trap formula for uses is 2 uses > 40, 1 use otherwise
+        Fixture.TestUser.Stats.Level = 39;
+
+        var trapTest = Game.World.WorldData.GetByIndex<Castable>("TestTrapSingle");
+
+    }
+
 
 }

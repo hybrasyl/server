@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
@@ -56,7 +57,7 @@ public class ScriptFunctions
         
         Assert.Equal((uint) 0, bait.Stats.Hp);
         // Wait for bee to be properly dead
-        Thread.Sleep(1);
+        Thread.Sleep(1000);
         Assert.True(bait.DeathProcessed);
 
         var scriptObject = new HybrasylUser(Fixture.TestUser);
@@ -127,7 +128,7 @@ public class ScriptFunctions
         
         Assert.Equal((uint) 0, bait.Stats.Hp);
         // Wait for bee to be properly dead
-        Thread.Sleep(1);
+        Thread.Sleep(1000);
         Assert.True(bait.DeathProcessed);
 
         var scriptObject = new HybrasylUser(Fixture.TestUser);
