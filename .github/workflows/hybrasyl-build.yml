@@ -48,9 +48,7 @@ jobs:
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: generate test config
         run: >
-          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/xml\",
-          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/logs\",
-          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}"
+          echo -e "{\n  \"Directories\": {\n    \"Linux\": {\n      \"WorldDataDirectory\": \"\$GITHUB_WORKSPACE\\/ceridwen\\/xml\",\n      \"LogDirectory\": \"\$GITHUB_WORKSPACE\\/ceridwen\\/logs\",\n      \"DataDirectory\": \"\$GITHUB_WORKSPACE\\/ceridwen\"\n    }\n  }\n}\n"
           > $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
         shell: bash
       - name: show config
