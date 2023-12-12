@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using System.Net.Http.Headers;
+using System.Threading;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using Xunit;
@@ -332,7 +334,6 @@ public class Monsters
     public void MonsterStatusCategoryImmunities()
     {
         Fixture.TestUser.LastHeard = null;
-
         Fixture.TestUser.Stats.BaseMp = 10000;
         Fixture.TestUser.Stats.Mp = 10000;
 
@@ -366,6 +367,8 @@ public class Monsters
         
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
+        Thread.Sleep(1000);
+
         var immunityTriggered =
             behaviorSet.Immunities.FirstOrDefault(x => x.Type == CreatureImmunityType.StatusCategory);
 
