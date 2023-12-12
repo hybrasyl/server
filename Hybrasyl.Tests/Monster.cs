@@ -331,6 +331,8 @@ public class Monsters
     [Fact]
     public void MonsterStatusCategoryImmunities()
     {
+        Fixture.TestUser.LastHeard = null;
+
         Fixture.TestUser.Stats.BaseMp = 10000;
         Fixture.TestUser.Stats.Mp = 10000;
 
