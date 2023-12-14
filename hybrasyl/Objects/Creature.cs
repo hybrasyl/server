@@ -1221,7 +1221,8 @@ public class Creature : VisibleObject
                 return false;
             }
         }
-        if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
+        if (!_currentStatuses.TryAdd(status.Icon, status)) 
+            return false;
         if (this is User u && sendUpdates) u.SendStatusUpdate(status);
 
         status.OnStart(sendUpdates);

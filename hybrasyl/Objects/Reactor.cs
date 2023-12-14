@@ -64,8 +64,8 @@ public class Reactor : VisibleObject, IPursuitable
         Description = description;
         VisibleToGroup = reactor.DisplayGroup;
         VisibleToOwner = reactor.DisplayOwner;
-        VisibleToCookies = reactor.DisplayCookie.Split(" ").ToList();
-        VisibleToStatuses = reactor.DisplayStatus.Split(" ").ToList();
+        VisibleToCookies = reactor.DisplayCookie?.Split(" ").ToList() ?? new List<string>();
+        VisibleToStatuses = reactor.DisplayStatus?.Split(" ").ToList() ?? new List<string>();
         Init();
     }
 
@@ -211,16 +211,14 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         base.AoiEntry(obj);
-        if (!Ready) return;
+        if (!Ready || Caster == null) return;
         var casterObj = Caster.GetUserObject();
         if (obj is User user)
         {
             if (VisibleToOwner && user.Name == Caster.Name)
                 ShowTo(obj);
             else if (VisibleToGroup && casterObj != null && (casterObj.Group?.Contains(user) ?? false))
-            {
                 ShowTo(obj);
-            }
             else if (VisibleToCookies.Any(x => user.HasCookie(x)))
                 ShowTo(obj);
             else if (user.Statuses.Any(x => VisibleToStatuses.Contains(x.Name)))

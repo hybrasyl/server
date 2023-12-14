@@ -4,6 +4,7 @@ using Hybrasyl.Xml.Objects;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Hybrasyl.Scripting;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -114,6 +115,35 @@ public class Status
         // Allow sufficient time for control message handler to process messages
         Thread.Sleep(50); 
         Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
+    }
+
+    [Fact]
+    public void ApplyStatusToUserFromScript()
+    {
+        var scriptUser = new HybrasylUser(Fixture.TestUser);
+        Assert.True(scriptUser.ApplyStatus("TestMinusStr",30));
+        Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo.Where(x =>x.Name == "TestMinusStr"));
+    }
+
+    [Fact]
+    public void ApplyStatusToMonsterFromScript()
+    {
+        var monster = new Monster(Game.World.WorldData.Get<Creature>("Honey Bee"), SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500
+            },
+            Name = "Bee Bait",
+            X = (byte)(Fixture.TestUser.X - 1),
+            Y = Fixture.TestUser.Y
+        };
+        var scriptMonster = new HybrasylMonster(monster);
+        Assert.True(scriptMonster.ApplyStatus("TestMinusStr",30));
+        Assert.NotEmpty(monster.CurrentStatusInfo.Where(x =>x.Name == "TestMinusStr"));
+
+
     }
 
 }

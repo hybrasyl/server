@@ -1,4 +1,5 @@
-﻿using Hybrasyl.Objects;
+﻿using System;
+using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 
@@ -100,5 +101,29 @@ public class HybrasylMonster : HybrasylWorldObject
         }
 
         return s;
+    }
+
+    /// <summary>
+    /// Apply a given status to a player.
+    /// </summary>
+    /// <param name="statusName">The name of the status</param>
+    /// <param name="duration">The duration of the status, if zero, use default </param>
+    /// <param name="tick">How often the tick should fire on the status (eg OnTick), if zero, use default</param>
+    /// <param name="intensity">The intensity of the status (damage modifier), defaults to 1.0</param>
+    /// <returns>boolean indicating whether or not the status was applied</returns>
+    public bool ApplyStatus(string statusName, int duration = 0, int tick = 0, double intensity = 1)
+    {
+
+        var status  = Game.World.WorldData.Get<Status>(statusName);
+        if  (status == null)
+        {
+            GameLog.ScriptingError("ApplyStatus: status {statusName} not found");
+            return false;
+        }
+
+        return Monster.ApplyStatus(new CreatureStatus(status, Monster,  null,  null,
+            duration == 0  ? status.Duration : duration,
+            tick == 0  ? status.Tick : tick,
+            intensity));
     }
 }
