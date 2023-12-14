@@ -220,8 +220,10 @@ public class MapObject : IStateStorable
         foreach (var reactorElement in newMap.Reactors)
         {
             var reactor = new Reactor(reactorElement.X, reactorElement.Y, this,
-                reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking);
-            reactor.AllowDead = reactorElement.AllowDead;
+                reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking)
+            {
+                AllowDead = reactorElement.AllowDead
+            };
             InsertReactor(reactor);
             GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
         }

@@ -5,15 +5,19 @@ using System.Text;
 using System.Threading.Tasks;
 using MoonSharp.Interpreter;
 
-namespace Hybrasyl.Objects
+namespace Hybrasyl.Objects;
+
+[MoonSharpUserData]
+public record CreatureSnapshot
 {
-    [MoonSharpUserData]
-    public record CreatureSnapshot
+    public required StatInfo Stats { get; init; }
+    public required string Name { get; init; }
+    public Guid Parent { get; init; }
+    public DateTime CreationDate { get; } = DateTime.Now;
+
+    public User GetUserObject()
     {
-        public required StatInfo Stats { get; init; }
-        public required string Name { get; init; }
-        public Guid Parent { get; init; }
-        public DateTime CreationDate { get; } = DateTime.Now;
+        return Game.World.WorldState.TryGetWorldObject(Parent, out User user) ? user : null;
     }
 
 }

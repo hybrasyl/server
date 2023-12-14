@@ -25,7 +25,9 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -37,11 +39,47 @@ public class Reactor : VisibleObject, IPursuitable
     public string ScriptName;
     public CreatureSnapshot Caster;
 
+    private bool VisibleToGroup;
+    private bool VisibleToOwner;
+    private List<string> VisibleToCookies;
+    private List<string> VisibleToStatuses;
+
     public Reactor(Xml.Objects.Reactor reactor)
     {
         X = reactor.X;
         Y = reactor.Y;
         DialogSequences = new List<DialogSequence>();
+    }
+
+    public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null, string description = null)
+    {
+        X = x;
+        Y = y;
+        Map = map;
+        ScriptName = reactor.Script;
+        Blocking = reactor.Blocking;
+        CreatedAt = DateTime.Now;
+        Expiration = CreatedAt.AddSeconds(reactor.Expiration);
+        Caster = caster?.GetSnapshot();
+        Description = description;
+        VisibleToGroup = reactor.DisplayGroup;
+        VisibleToOwner = reactor.DisplayOwner;
+        VisibleToCookies = reactor.DisplayCookie.Split(" ").ToList();
+        VisibleToStatuses = reactor.DisplayStatus.Split(" ").ToList();
+        Init();
+    }
+
+    public Reactor(Reactor reactor, MapObject map, int expiration = 0)
+    {
+        X = reactor.X;
+        Y = reactor.Y;
+        Map = map;
+        Script = reactor.Script;
+        ExpirationSeconds = expiration;
+        Description = reactor.Description;
+        Blocking = reactor.Blocking;
+        AllowDead = reactor.AllowDead;
+        Init();
     }
 
     public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
@@ -53,16 +91,23 @@ public class Reactor : VisibleObject, IPursuitable
         Description = description;
         ScriptName = scriptName;
         Blocking = blocking;
+        Caster = caster?.GetSnapshot();
+        ExpirationSeconds = expiration;
+        Init();
+    }
+
+    private void Init()
+    {
         CreatedAt = DateTime.Now;
         Expiration = DateTime.MaxValue;
-        Caster = caster?.GetSnapshot();
-        if (expiration <= 0) return;
-        Expiration = CreatedAt.AddSeconds(expiration);
+        if (ExpirationSeconds <= 0) return;
+        Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
         Task.Run(function: OnExpiration);
     }
 
     public DateTime CreatedAt { get; set; }
     public DateTime Expiration { get; set; } 
+    private int ExpirationSeconds { get; set; }
     public VisibleObject Origin { get; set; }
     public Guid CreatedBy { get; set; }
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
@@ -167,6 +212,21 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiEntry(obj);
         if (!Ready) return;
+        var casterObj = Caster.GetUserObject();
+        if (obj is User user)
+        {
+            if (VisibleToOwner && user.Name == Caster.Name)
+                ShowTo(obj);
+            else if (VisibleToGroup && casterObj != null && (casterObj.Group?.Contains(user) ?? false))
+            {
+                ShowTo(obj);
+            }
+            else if (VisibleToCookies.Any(x => user.HasCookie(x)))
+                ShowTo(obj);
+            else if (user.Statuses.Any(x => VisibleToStatuses.Contains(x.Name)))
+                ShowTo(obj);
+        }
+
         Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 

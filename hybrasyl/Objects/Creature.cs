@@ -513,12 +513,13 @@ public class Creature : VisibleObject
                 var actualX = (byte)(X + reactor.RelativeX);
                 var actualY = (byte)(Y + reactor.RelativeY);
                 var reactorObj =
-                    new Reactor(actualX, actualY, tar.Map, reactor.Script,
-                        reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking, this);
-                reactorObj.Sprite = reactor.Sprite;
-                reactorObj.CreatedBy = Guid;
-                reactorObj.Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
-                    new FormulaEvaluation { Castable = castableXml, Source = this }));
+                    new Reactor(actualX, actualY, tar.Map, reactor, this, $"{Name}'s {castableXml.Name}")
+                        {
+                            Sprite = reactor.Sprite,
+                            CreatedBy = Guid,
+                            Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
+                                new FormulaEvaluation { Castable = castableXml, Source = this }))
+                        };
                 // Don't insert a reactor with no uses into the world
                 if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
@@ -620,7 +621,20 @@ public class Creature : VisibleObject
                 }
 
             foreach (var status in castableXml.RemoveStatuses)
-                if (World.WorldData.TryGetValue<Status>(status.Value.ToLower(), out var applyStatus))
+            {
+                if (status.IsCategory)
+                {
+                    for (var x = 0; x <= status.Quantity; x++)
+                    {
+                        var toRemove = tar.Statuses.FirstOrDefault(x => string.Equals(x.Category, status.Value,
+                            StringComparison.CurrentCultureIgnoreCase));
+                        if (toRemove == null) break;
+                        tar.RemoveStatus(toRemove.Icon);
+                        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
+                    }
+
+                }
+                else if (World.WorldData.TryGetValue<Status>(status.Value.ToLower(), out var applyStatus))
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
@@ -631,6 +645,7 @@ public class Creature : VisibleObject
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - failed to remove status {status}, does not exist!");
                 }
+            }
         }
 
         // Now flood away

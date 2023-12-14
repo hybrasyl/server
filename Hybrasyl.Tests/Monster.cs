@@ -20,7 +20,7 @@ public class Monsters
     public HybrasylFixture Fixture { get; set; }
 
     [Fact]
-    public void MonsterLearnCastables()
+    public void MonsterLearnCastables() 
     {
         Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
             "Gabbaghoul test monster not found");
@@ -376,10 +376,12 @@ public class Monsters
         Assert.NotNull(immunityTriggered);
         Assert.Equal((byte) beforeStr, bait.Stats.Str);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
+
         if (immunityTriggered.MessageType == Xml.Objects.MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
         else
             Assert.False(Fixture.TestUser.LastHeard.Shout);
+
         Assert.Empty(bait.Statuses);
     }
 }
