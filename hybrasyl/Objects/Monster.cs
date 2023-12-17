@@ -104,9 +104,17 @@ public class Monster : Creature, ICloneable, IEphemeral
         ThreatInfo = new ThreatInfo(Guid);
         DeathProcessed = false;
         AllocateStats();
+        if (BehaviorSet == null) return;
+        if (BehaviorSet.StatModifiers != null)
+        {
+            var toApply = NumberCruncher.CalculateStatBonus(this, BehaviorSet.StatModifiers);
+            Stats.Apply(toApply);
+        }
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-        if (BehaviorSet?.Behavior?.SetCookies == null) return;
+
+        if (BehaviorSet.Behavior?.SetCookies == null) return;
+
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }

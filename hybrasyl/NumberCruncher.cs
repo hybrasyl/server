@@ -283,6 +283,75 @@ internal static class NumberCruncher
         return cost;
     }
 
+    public static StatInfo CalculateStatBonus(Creature source, StatModifiers bonus)
+    {
+        if (bonus == null)
+            return new StatInfo();
+
+        var modifiers = new StatInfo()
+        {
+            BaseStr = (long)_evalFormula(bonus.BaseStr, null, source),
+            BaseInt = (long)_evalFormula(bonus.BaseInt, null, source),
+            BaseWis = (long)_evalFormula(bonus.BaseWis, null, source),
+            BaseCon = (long)_evalFormula(bonus.BaseCon, null, source),
+            BaseDex = (long)_evalFormula(bonus.BaseDex, null, source),
+            BaseHp = (long)_evalFormula(bonus.BaseHp, null, source),
+            BaseMp = (long)_evalFormula(bonus.BaseMp, null, source),
+            BaseHit = _evalFormula(bonus.BaseHit, null, source),
+            BaseDmg = _evalFormula(bonus.BaseDmg, null, source),
+            BaseAc = (long)_evalFormula(bonus.BaseAc, null, source),
+            BaseRegen = _evalFormula(bonus.BaseRegen, null, source),
+            BaseMr = _evalFormula(bonus.BaseMr, null, source),
+            BaseCrit = _evalFormula(bonus.BaseCrit, null, source),
+            BaseMagicCrit = _evalFormula(bonus.BaseMagicCrit, null, source),
+            BaseInboundDamageToMp = _evalFormula(bonus.BaseInboundDamageToMp, null, source),
+            BaseExtraFaith = _evalFormula(bonus.BaseExtraFaith, null, source),
+            BaseInboundDamageModifier = _evalFormula(bonus.BaseInboundDamageModifier, null, source),
+            BaseOutboundDamageModifier = _evalFormula(bonus.BaseOutboundDamageModifier, null, source),
+            BaseInboundHealModifier = _evalFormula(bonus.BaseInboundHealModifier, null, source),
+            BaseOutboundHealModifier = _evalFormula(bonus.BaseOutboundHealModifier, null, source),
+            BaseReflectMagical = _evalFormula(bonus.BaseReflectMagical, null, source),
+            BaseReflectPhysical = _evalFormula(bonus.BaseReflectPhysical, null, source),
+            BaseExtraGold = _evalFormula(bonus.BaseExtraGold, null, source),
+            BaseDodge = _evalFormula(bonus.BaseDodge, null, source),
+            BaseMagicDodge = _evalFormula(bonus.BaseMagicDodge, null, source),
+            BaseExtraXp = _evalFormula(bonus.BaseExtraXp, null, source),
+            BaseExtraItemFind = _evalFormula(bonus.BaseExtraItemFind, null, source),
+            BaseLifeSteal = _evalFormula(bonus.BaseLifeSteal, null, source),
+            BaseManaSteal = _evalFormula(bonus.BaseManaSteal, null, source),
+            BonusStr = (long)_evalFormula(bonus.BonusStr, null, source),
+            BonusInt = (long)_evalFormula(bonus.BonusInt, null, source),
+            BonusWis = (long)_evalFormula(bonus.BonusWis, null, source),
+            BonusCon = (long)_evalFormula(bonus.BonusCon, null, source),
+            BonusDex = (long)_evalFormula(bonus.BonusDex, null, source),
+            BonusHp = (long)_evalFormula(bonus.BonusHp, null, source),
+            BonusMp = (long)_evalFormula(bonus.BonusMp, null, source),
+            BonusHit = _evalFormula(bonus.BonusHit, null, source),
+            BonusDmg = _evalFormula(bonus.BonusDmg, null, source),
+            BonusAc = (long)_evalFormula(bonus.BonusAc, null, source),
+            BonusRegen = _evalFormula(bonus.BonusRegen, null, source),
+            BonusMr = _evalFormula(bonus.BonusMr, null, source),
+            BonusCrit = _evalFormula(bonus.BonusCrit, null, source),
+            BonusMagicCrit = _evalFormula(bonus.BonusMagicCrit, null, source),
+            BonusInboundDamageModifier = _evalFormula(bonus.BonusInboundDamageModifier, null, source),
+            BonusOutboundDamageModifier = _evalFormula(bonus.BonusOutboundDamageModifier, null, source),
+            BonusInboundHealModifier = _evalFormula(bonus.BonusInboundHealModifier, null, source),
+            BonusOutboundHealModifier = _evalFormula(bonus.BonusOutboundHealModifier, null, source),
+            BonusReflectMagical = _evalFormula(bonus.BonusReflectMagical, null, source),
+            BonusReflectPhysical = _evalFormula(bonus.BonusReflectPhysical, null, source),
+            BonusExtraGold = _evalFormula(bonus.BonusExtraGold, null, source),
+            BonusDodge = _evalFormula(bonus.BonusDodge, null, source),
+            BonusMagicDodge = _evalFormula(bonus.BonusMagicDodge, null, source),
+            BonusExtraXp = _evalFormula(bonus.BonusExtraXp, null, source),
+            BonusExtraItemFind = _evalFormula(bonus.BonusExtraItemFind, null, source),
+            BonusLifeSteal = _evalFormula(bonus.BonusLifeSteal, null, source),
+            BonusManaSteal = _evalFormula(bonus.BonusManaSteal, null, source),
+            BonusInboundDamageToMp = _evalFormula(bonus.BonusInboundDamageToMp, null, source),
+            BonusExtraFaith = _evalFormula(bonus.BonusExtraFaith, null, source),
+        };
+        return modifiers;
+    }
+
     public static StatInfo CalculateItemModifiers(ItemObject item, Creature source, StatModifiers effect = null)
     {
         if (effect == null)

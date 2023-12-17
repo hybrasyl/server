@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading;
+using Discord.Rest;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using Xunit;
@@ -383,5 +384,54 @@ public class Monsters
             Assert.False(Fixture.TestUser.LastHeard.Shout);
 
         Assert.Empty(bait.Statuses);
+    }
+
+    [Fact]
+    public void MonsterWithStaticStats()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabba");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Name = "Gabbaghoul Test",
+        };
+
+        Assert.True(bait.Stats.BaseHp > 100000);
+        Assert.True(bait.Stats.BaseMp > 100000);
+        Assert.True(bait.Stats.BaseStr > 100);
+
+    }
+
+    [Fact]
+
+    public void MonsterWithDynamicStats()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabbaDynamic");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99, null, behaviorSet)
+        {
+            Name = "Gabbaghoul Test",
+        };
+
+        // Gabba now has its base hp from leveling, and its buff defined in the behaviorset
+        Assert.True(bait.Stats.BaseHp >= bait.Stats.Str * 200);
+        Assert.True(bait.Stats.BaseMp >= bait.Stats.Int * 200);
+
     }
 }
