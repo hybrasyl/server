@@ -353,7 +353,14 @@ public class CreatureStatus : ICreatureStatus
         var dmg = new DamageOutput();
         if (effect == null) return (heal, dmg);
         if (effect.Heal != null) heal = NumberCruncher.CalculateHeal(castable, effect, Target, source, Name);
-        if (effect.Damage != null) dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
+        if (effect.Damage != null)
+        {
+            dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
+            // If the tick itself defines an element, use it, along with the damage type
+            if (effect.Damage.Element != Element.None)
+                dmg.Element = effect.Damage.Element;
+            dmg.Type = effect.Damage.Type;
+        }
         return (heal, dmg);
     }
 
