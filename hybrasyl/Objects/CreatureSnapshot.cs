@@ -20,4 +20,6 @@ public record CreatureSnapshot
         return Game.World.WorldState.TryGetWorldObject(Parent, out User user) ? user : null;
     }
 
+    public bool IsPlayer => GetUserObject() != null;
+
 }
