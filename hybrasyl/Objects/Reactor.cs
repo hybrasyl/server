@@ -60,6 +60,7 @@ public class Reactor : VisibleObject, IPursuitable
         Blocking = reactor.Blocking;
         CreatedAt = DateTime.Now;
         Expiration = CreatedAt.AddSeconds(reactor.Expiration);
+        ExpirationSeconds = reactor.Expiration;
         Caster = caster?.GetSnapshot();
         Description = description;
         VisibleToGroup = reactor.DisplayGroup;
