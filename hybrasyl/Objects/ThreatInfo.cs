@@ -6,14 +6,9 @@ using System.Linq;
 
 namespace Hybrasyl.Objects;
 
-public class ThreatEntry : IComparable
+public class ThreatEntry(Guid id) : IComparable
 {
-    public ThreatEntry(Guid id)
-    {
-        Target = id;
-    }
-
-    public Guid Target { get; set; }
+    public Guid Target { get; set; } = id;
     public Creature TargetObject => Game.World.WorldState.GetWorldObject<Creature>(Target);
     public uint Threat { get; set; }
     public bool IsHealer => TotalHeals > 0;
@@ -41,16 +36,9 @@ public class ThreatEntry : IComparable
 }
 
 [MoonSharpUserData]
-public class ThreatInfo
+public class ThreatInfo(Guid id)
 {
-    public ThreatInfo(Guid id)
-    {
-        ThreatTableByCreature = new Dictionary<Guid, ThreatEntry>();
-        ThreatTableByThreat = new SortedDictionary<ThreatEntry, Guid>();
-        Owner = id;
-    }
-
-    public Guid Owner { get; set; }
+    public Guid Owner { get; set; } = id;
     public Creature OwnerObject => Game.World.WorldState.GetWorldObject<Creature>(Owner);
 
     public Creature HighestThreat => ThreatTableByThreat.Count == 0
@@ -60,8 +48,9 @@ public class ThreatInfo
     public ThreatEntry HighestThreatEntry => ThreatTableByThreat.First().Key;
 
     public int Count => ThreatTableByCreature.Count;
-    public Dictionary<Guid, ThreatEntry> ThreatTableByCreature { get; }
-    public SortedDictionary<ThreatEntry, Guid> ThreatTableByThreat { get; }
+    public Dictionary<Guid, ThreatEntry> ThreatTableByCreature { get; } = new();
+    public SortedDictionary<ThreatEntry, Guid> ThreatTableByThreat { get; } = new();
+    public Creature LastCaster { get; set; }
 
     public uint this[Creature threat]
     {

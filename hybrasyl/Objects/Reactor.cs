@@ -134,10 +134,25 @@ public class Reactor : VisibleObject, IPursuitable
     public virtual List<DialogSequence> DialogSequences { get; set; } = new();
     public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
+    public bool VisibleTo(IVisible obj)
+    {
+        if (Expired) return false;
+        if (obj is not User user) return false;
+        var casterObj = Caster?.GetUserObject();
+        if (casterObj == null) return false;
+        if (VisibleToOwner && user.Name == Caster.Name) return true;
+        if (VisibleToGroup && casterObj != null && (casterObj.Group?.Contains(user) ?? false)) return true;
+        if (VisibleToCookies.Any(x => user.HasCookie(x))) return true;
+        if (user.Statuses.Any(x => VisibleToStatuses.Contains(x.Name))) return true;
+
+        return false;
+    }
+
     public override void ShowTo(IVisible obj)
     {
-        if (Expired) return;
+        if (!VisibleTo(obj)) return;
         if (obj is not User user) return;
+
         // TODO: improve, this isn't sufficient to work with Say/Shout currently
         var p = new ServerPacket(0x07);
         p.WriteUInt16(1);
@@ -215,17 +230,7 @@ public class Reactor : VisibleObject, IPursuitable
         if (!Ready || Caster == null) return;
         var casterObj = Caster.GetUserObject();
         if (obj is User user)
-        {
-            if (VisibleToOwner && user.Name == Caster.Name)
-                ShowTo(obj);
-            else if (VisibleToGroup && casterObj != null && (casterObj.Group?.Contains(user) ?? false))
-                ShowTo(obj);
-            else if (VisibleToCookies.Any(x => user.HasCookie(x)))
-                ShowTo(obj);
-            else if (user.Statuses.Any(x => VisibleToStatuses.Contains(x.Name)))
-                ShowTo(obj);
-        }
-
+            ShowTo(user);
         Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 

@@ -22,6 +22,7 @@
 using Hybrasyl.Enums;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
+using StackExchange.Redis;
 
 namespace Hybrasyl.Objects;
 
@@ -231,6 +232,42 @@ public class ConditionInfo
                 Conditions &= ~CreatureCondition.Invulnerable;
             else
                 Conditions |= CreatureCondition.Invulnerable;
+        }
+    }
+
+    public bool Feared
+    {
+        get => Conditions.HasFlag(CreatureCondition.Fear);
+        set
+        {
+            if (value == false)
+                Conditions &= ~CreatureCondition.Fear;
+            else
+                Conditions |= CreatureCondition.Fear;
+        }
+    }
+
+    public bool Disarmed
+    {
+        get => Conditions.HasFlag(CreatureCondition.Disarm);
+        set
+        {
+            if (value == false)
+                Conditions &= ~CreatureCondition.Disarm;
+            else
+                Conditions |= CreatureCondition.Disarm;
+        }
+    }
+
+    public bool Charmed
+    {
+        get => Conditions.HasFlag(CreatureCondition.Charm);
+        set
+        {
+            if (value == false)
+                Conditions &= ~CreatureCondition.Charm;
+            else
+                Conditions |= CreatureCondition.Charm;
         }
     }
 

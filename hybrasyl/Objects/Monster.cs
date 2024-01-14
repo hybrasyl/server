@@ -29,6 +29,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.ChatCommands;
 
 namespace Hybrasyl.Objects;
 
@@ -37,7 +38,8 @@ public enum MobAction
     Attack,
     Move,
     Idle,
-    Death
+    Death,
+    Flee
 }
 
 public class Monster : Creature, ICloneable, IEphemeral
@@ -872,6 +874,12 @@ public class Monster : Creature, ICloneable, IEphemeral
             return;
         }
 
+        if (Condition.Feared)
+        {
+            _actionQueue.Enqueue(MobAction.Flee);
+            return;
+        }
+
         if (ThreatInfo.HighestThreat != null)
         {
             if (Distance(ThreatInfo.HighestThreat) == 1)
@@ -898,6 +906,21 @@ public class Monster : Creature, ICloneable, IEphemeral
             GameLog.SpawnDebug($"ActionQueue: {action}");
             switch (action)
             {
+                case MobAction.Flee: 
+                    // Run awaaaay!
+                    var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? Target;
+                    if (fleeFrom == null)
+                    {
+                        var dir = Relation(fleeFrom.X, fleeFrom.Y);
+                        if (Direction == Opposite(dir))
+                            Walk(dir);
+                        else
+                        {
+                            Turn(dir);
+                            Walk(dir);
+                        }
+                    }
+                    break;
                 case MobAction.Attack:
                     var next = CastableController.GetNextCastable();
                     if (next is null)
