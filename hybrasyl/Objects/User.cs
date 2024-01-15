@@ -2850,6 +2850,7 @@ public class User : Creature
             if (target != null && target.GetType() != typeof(Merchant))
             {
                 UseSkill(SkillBook.SlotOf(c.Castable.Name));
+                LastTarget = target;
                 animation = true;
             }
 

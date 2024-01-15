@@ -69,6 +69,16 @@ public class ThreatInfo(Guid id)
         var ret = new List<Creature>();
         if (OwnerObject == null) return ret;
         ThreatEntry entry;
+        if (OwnerObject.Condition.Charmed)
+        {
+            // Generate target list: for every creature in threat table, last target of that creature; if nothing found, use monsters in viewport
+            ret.AddRange(ThreatTableByCreature.Values.Where(x => x.TargetObject is User { LastTarget: not null })
+                .Select(y => y.TargetObject).ToList());
+            if (ret.Count == 0)
+                ret.AddRange(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList());
+            return ret;
+        }
+
         switch (priority)
         {
             case CreatureTargetPriority.HighThreat:

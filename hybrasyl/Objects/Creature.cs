@@ -91,6 +91,8 @@ public class Creature : VisibleObject
         set => _mLastHitter = value?.Id ?? 0;
     }
 
+    public Creature LastTarget { get; set; }
+
     public bool AbsoluteImmortal { get; set; }
     public bool PhysicalImmortal { get; set; }
     public bool MagicalImmortal { get; set; }
@@ -646,6 +648,8 @@ public class Creature : VisibleObject
                         $"UseCastable: {Name} casting {castableXml.Name} - failed to remove status {status}, does not exist!");
                 }
             }
+
+            LastTarget = tar;
         }
 
         // Now flood away
