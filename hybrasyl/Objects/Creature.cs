@@ -1227,7 +1227,15 @@ public class Creature : VisibleObject
         }
         if (!_currentStatuses.TryAdd(status.Icon, status)) 
             return false;
-        if (this is User u && sendUpdates) u.SendStatusUpdate(status);
+        if (this is User u)
+        {
+            if (sendUpdates)
+                u.SendStatusUpdate(status);
+
+            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                    reactor.ShowTo(this);
+        }
 
         status.OnStart(sendUpdates);
         if (sendUpdates)
@@ -1268,6 +1276,12 @@ public class Creature : VisibleObject
         if (!_currentStatuses.TryRemove(icon, out status)) return false;
         _removeStatus(status, onEnd);
         UpdateAttributes(StatUpdateFlags.Full);
+        if (this is User u)
+        {
+            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                    reactor.AoiDeparture(this);
+        }
         return true;
     }
 

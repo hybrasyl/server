@@ -39,10 +39,10 @@ public class Reactor : VisibleObject, IPursuitable
     public string ScriptName;
     public CreatureSnapshot Caster;
 
-    private bool VisibleToGroup;
-    private bool VisibleToOwner;
-    private List<string> VisibleToCookies;
-    private List<string> VisibleToStatuses;
+    public bool VisibleToGroup;
+    public bool VisibleToOwner;
+    public List<string> VisibleToCookies;
+    public List<string> VisibleToStatuses;
 
     public Reactor(Xml.Objects.Reactor reactor)
     {
@@ -143,7 +143,7 @@ public class Reactor : VisibleObject, IPursuitable
         if (VisibleToOwner && user.Name == Caster.Name) return true;
         if (VisibleToGroup && casterObj != null && (casterObj.Group?.Contains(user) ?? false)) return true;
         if (VisibleToCookies.Any(x => user.HasCookie(x))) return true;
-        if (user.Statuses.Any(x => VisibleToStatuses.Contains(x.Name))) return true;
+        if (user.CurrentStatusInfo.Any(x => VisibleToStatuses.Contains(x.Name))) return true;
 
         return false;
     }
@@ -249,6 +249,13 @@ public class Reactor : VisibleObject, IPursuitable
         base.AoiDeparture(obj);
         if (!Ready) return;
         Script.ExecuteFunction("AoiDeparture", GetBaseEnvironment(obj));
+        if (obj is User u)
+        {
+            var removePacket = new ServerPacket(0x0E);
+            removePacket.WriteUInt32(Id);
+            u.Enqueue(removePacket);
+        }
+
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)

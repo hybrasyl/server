@@ -251,6 +251,7 @@ public class MapObject : IStateStorable
 
     public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).OfType<Creature>().ToList();
 
+
     public bool IsCreatureAt(int x1, int y1)
     {
         return GetTileContents(x1, y1).Any(predicate: x => x is Creature);
