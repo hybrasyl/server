@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Serilog;
 
 namespace Hybrasyl.Casting;
 
@@ -31,6 +32,7 @@ public class Rotation : IList<RotationEntry>
     public bool Active { get; set; } = true;
 
     public RotationEntry LastCastable { get; set; }
+
     public RotationEntry CurrentCastable => Castables[CurrentIndex];
 
     public RotationEntry NextCastable

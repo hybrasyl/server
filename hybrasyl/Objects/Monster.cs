@@ -173,6 +173,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         }
 
     }
+
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
         Creature attacker = null, Castable castable = null, bool onDeath = true)
@@ -912,16 +913,18 @@ public class Monster : Creature, ICloneable, IEphemeral
                 case MobAction.Flee: 
                     // Run awaaaay!
                     var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? Target;
-                    if (fleeFrom == null)
+                    if (fleeFrom != null)
                     {
                         var dir = Relation(fleeFrom.X, fleeFrom.Y);
-                        if (Direction == Opposite(dir))
-                            Walk(dir);
-                        else
-                        {
-                            Turn(dir);
-                            Walk(dir);
-                        }
+                        if (Direction != Opposite(dir))
+                            Turn(Opposite(dir));
+                        if (Walk(Direction))
+                            return;
+                        // Something is blocking our path, can we move to either side?
+                        var sides = GetClearSides();
+                        if (sides.Count == 0)
+                            return; // cower in fear, we can't move anywhere
+                        Walk(sides.PickRandom());
                     }
                     break;
                 case MobAction.Attack:
@@ -983,7 +986,7 @@ public class Monster : Creature, ICloneable, IEphemeral
                     }
                 case MobAction.Move:
                 {
-                    var target = ThreatInfo.GetTargets(nextCastable.CurrentPriority).FirstOrDefault();
+                    var target = ThreatInfo.GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker).FirstOrDefault();
 
                     if (target == null)
                     {

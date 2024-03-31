@@ -70,6 +70,8 @@ public class HybrasylUser : HybrasylWorldObject
 
     public override bool IsPlayer => true;
 
+    public bool IsPrivileged => User.AuthInfo.IsPrivileged;
+
     /// <summary>
     ///     The gender of the player. For Darkages purpose, this will evaluate to Male or Female.
     /// </summary>

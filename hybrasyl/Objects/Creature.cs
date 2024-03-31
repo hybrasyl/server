@@ -30,6 +30,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 
 namespace Hybrasyl.Objects;
 
@@ -148,6 +149,58 @@ public class Creature : VisibleObject
         if (invoker.AuthInfo.IsPrivileged)
             ret += $" ({Id})";
         invoker.SendSystemMessage(ret);
+    }
+
+    public List<Direction> GetClearSides()
+    {
+        var sides = new List<Direction>();
+        if (Direction is Direction.North or Direction.South)
+        {
+            // Consider West, East
+            if (GetDirectionalTarget(Direction.West) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.West)))
+                sides.Add(Direction.West);
+            if (GetDirectionalTarget(Direction.East) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.East)))
+                sides.Add(Direction.East);
+        }
+
+        if (Direction is Direction.East or Direction.West)
+        {
+            // consider North, South
+            if (GetDirectionalTarget(Direction.North) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.North)))
+                sides.Add(Direction.North);
+            if (GetDirectionalTarget(Direction.South) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.South)))
+                sides.Add(Direction.South);
+        }
+        return sides;
+    }
+
+    public (byte x, byte y) GetCoordinatesInDirection(Direction direction)
+    {
+        var a = (int) X;
+        var b = (int) Y;
+
+        switch (direction)
+        {
+            case Direction.East:
+                a = X + 1;
+                b = Y;
+                break;
+            case Direction.West:
+                a = X - 1;
+                b = Y;
+                break;
+            case Xml.Objects.Direction.North:
+                a = X;
+                b = Y - 1;
+                break;
+            case Xml.Objects.Direction.South:
+                a = X;
+                b = Y + 1;
+                break;
+        }
+
+        return ((byte) Math.Clamp(a, byte.MinValue, byte.MaxValue), (byte) Math.Clamp(b, byte.MinValue, byte.MaxValue));
+
     }
 
     public Creature GetDirectionalTarget(Direction direction)

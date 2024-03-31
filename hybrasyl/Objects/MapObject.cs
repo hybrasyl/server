@@ -62,6 +62,7 @@ public class MapObject : IStateStorable
 
     public bool IsWall(int x, int y) => IsWall((byte)x, (byte)y);
     public bool IsWall(byte x, byte y) => Collisions.Contains((x, y));
+    public bool IsWall((byte x, byte y) coordinate) => IsWall(coordinate.x, coordinate.y);
 
     public void ToggleCollisions(byte x, byte y)
     {
