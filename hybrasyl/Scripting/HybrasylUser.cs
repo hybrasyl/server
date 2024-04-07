@@ -128,7 +128,7 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
-    ///     Removes a spel from the user's spellbook
+    ///     Removes a spell from the user's spellbook
     /// </summary>
     /// <param name="name">Spell to be removed</param>
     /// <returns>boolean indicating success</returns>
@@ -148,14 +148,14 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Get a list of objects in the viewport of the player. This represents all visible objects (items, players,
     ///     creatures) contained in the client's viewport (the drawable map area).
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A list of <see cref="HybrasylWorldObject"/> objects in the player's viewport.</returns>
     public List<HybrasylWorldObject> GetViewportObjects() => new();
 
     /// <summary>
     ///     Get a list of players in the viewport of the player. This represents only players contained in the client's
     ///     viewport (the drawable map area).
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A list of <see cref="HybrasylUser"/> objects in the player's viewport.</returns>
     public List<HybrasylUser> GetViewportPlayers() => new();
 
     /// <summary>
@@ -171,7 +171,7 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Get the player, if any, that the current player is facing ("looking at").
     /// </summary>
     /// <returns>
-    ///     HybrasylUser object for the player facing this player, or nil, if the player isn't directly facing another
+    ///     <see cref="HybrasylUser"/> object for the player facing this player, or nil, if the player isn't directly facing another
     ///     player.
     /// </returns>
     public HybrasylUser GetFacingUser()
@@ -183,27 +183,48 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Get the objects a player is facing (for instance, items on the ground in front of the player)
     /// </summary>
-    /// <param name="distance"></param>
-    /// <returns>A list of HybrasylWorldObjects that the player is facing.</returns>
+    /// <param name="distance">Maximum distance to consider in front of the user.</param>
+    /// <returns>A list of <see cref="HybrasylWorldObject"/> objects facing the player.</returns>
     public List<HybrasylWorldObject> GetFacingObjects(int distance = 1)
     {
         return User.GetFacingObjects(distance).Select(selector: item => new HybrasylWorldObject(item)).ToList();
     }
 
     /// <summary>
-    ///     Get the monster that the placer is facing.
+    ///     Get the monster that the player is facing.
     /// </summary>
-    /// <returns>A HybrasylMonster object.</returns>
+    /// <returns>A <see cref="HybrasylMonster"/> object.</returns>
     public HybrasylMonster GetFacingMonster()
     {
-        var facing = (Monster) User.GetFacingObjects().Where(predicate: X => X is Monster).FirstOrDefault();
+        var facing = (Monster) User.GetFacingObjects().FirstOrDefault(x => x is Monster);
         return facing != null ? new HybrasylMonster(facing) : null;
+    }
+
+    /// <summary>
+    /// Get a list of monsters facing the user.
+    /// </summary>#2 
+    /// <param name="distance">The maximum distance to consider from the user.</param>
+    /// <returns>A list of <see cref="HybrasylMonster"/> objects facing the user.</returns>
+    public List<HybrasylMonster> GetFacingMonsters(int distance = 1)
+    {
+        return User.GetFacingObjects(distance).Where(x => x is Monster).Cast<Monster>().Select(y => new HybrasylMonster(y)).ToList();
+    }
+
+    /// <summary>
+    /// Get a list of players facing the user.
+    /// </summary>#2 
+    /// <param name="distance">The maximum distance to consider from the user.</param>
+    /// <returns>A list of <see cref="HybrasylUser"/> objects facing the user.</returns>
+    public List<HybrasylUser> GetFacingUsers(int distance = 1)
+    {
+        return User.GetFacingObjects(distance).Where(x => x is User).Cast<User>().Select(y => new HybrasylUser(y))
+            .ToList();
     }
 
     /// <summary>
     ///     Set the users facing direction.
     /// </summary>
-    /// <param name="direction"></param>
+    /// <param name="direction">A cardinal direction (north, south, east, west).</param>
     public void ChangeDirection(string direction)
     {
         Enum.TryParse(typeof(Direction), direction, out var result);
@@ -312,7 +333,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Generate a list of reactors in the current user's viewport.
     /// </summary>
-    /// <returns>List of HybrasylReactors in the viewport</returns>
+    /// <returns>List of <see cref="HybrasylReactor"/> objects in the player's viewport.</returns>
     public List<HybrasylReactor> GetReactorsInViewport()
     {
         return User.Map.EntityTree.GetObjects(User.GetViewport()).Where(predicate: x => x is Reactor)
@@ -325,7 +346,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="name">The name of the monster to check</param>
     /// <param name="since">Specify that the kills should have occurred after the given Unix timestamp.</param>
     /// <param name="quantity">Specify that a certain number of kills should have occurred.</param>
-    /// <returns></returns>
+    /// <returns>Boolean indicating whether the specified requirements have been met.</returns>
     public bool HasKilledSince(string name, int since, int quantity = 1)
     {
         var matches = User.RecentKills.Where(z =>
@@ -335,6 +356,12 @@ public class HybrasylUser : HybrasylWorldObject
         return matches.Count() >= quantity;
     }
 
+    /// <summary>
+    /// Return the number of named monsters the player has killed since a specific timestamp.
+    /// </summary>
+    /// <param name="name">The name of the monster to check</param>
+    /// <param name="since">Specify that the kills should have occurred after the given Unix timestamp.</param>
+    /// <returns>Number of named monsters killed.</returns>
     public int NumberKilled(string name, int since = 0)
     {
         var matches = User.RecentKills
@@ -348,9 +375,9 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Check to see whether the user has killed a quantity of a named monster, optionally in the last n minutes.
     /// </summary>
     /// <param name="name">The name of the monster to check</param>
-    /// <param name="minutes">The number of minutes to limit the check. 0 is default and means no limit.</param>
     /// <param name="quantity">Specify that a certain number of kills should have occurred. Default is 1.</param>
-    /// <returns></returns>
+    /// <param name="minutes">The number of minutes to limit the check. 0 is default and means no limit.</param>
+    /// <returns>Boolean indicating whether or not the specified requirements were met.</returns>
     public bool HasKilled(string name, int quantity = 1, int minutes = 0)
     {
         var matches = User.RecentKills.Where(x =>
@@ -366,15 +393,15 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Return the player's entire legend.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A <see cref="Legend"/> object representing the player's legend. </returns>
     public Legend GetLegend() => User.Legend;
 
     /// <summary>
     ///     Add a legend mark with the specified icon, color, text, and prefix to a player's legend, which will default to
     ///     being issued now (current in-game time).
     /// </summary>
-    /// <param name="icon">The icon to be used for the mark (heart, sword, etc)</param>
-    /// <param name="color">The color the mark will be rendered in (blue, yellow, orange, etc)</param>
+    /// <param name="icon">A <see cref="LegendIcon"/> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
+    /// <param name="color">A <see cref="LegendColor"/> indicating the color the mark will be rendered in (blue, yellow, orange, etc)</param>
     /// <param name="text">The actual text of the legend mark.</param>
     /// <param name="prefix">
     ///     An invisible key (stored in the beginning of the mark) that can be used to refer to the mark
@@ -390,7 +417,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </param>
     /// <param name="displaySeason">Whether or not to display the season of a mark (e.g. Fall, Summer)</param>
     /// <param name="displayTimestamp">Whether or not to display the in-game time of a mark (e.g. Hybrasyl 5)</param>
-    /// <returns></returns>
+    /// <returns>Boolean indicating success or failure.</returns>
     public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix = default,
         bool isPublic = true,
         int quantity = 0, bool displaySeason = true, bool displayTimestamp = true) =>
@@ -400,23 +427,23 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Add a legend mark with the specified icon, color, text, timestamp and prefix to a player's legend.
     /// </summary>
-    /// <param name="icon">The icon to be used for the mark (heart, sword, etc)</param>
-    /// <param name="color">The color the mark will be rendered in (blue, yellow, orange, etc)</param>
+    /// <param name="icon">A <see cref="LegendIcon"/> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
+    /// <param name="color">A <see cref="LegendColor"/> indicating the color the mark will be rendered in (blue, yellow, orange, etc)</param>
     /// <param name="text">The actual text of the legend mark.</param>
     /// <param name="timestamp">The in-game time the legend was awarded.</param>
     /// <param name="prefix">
     ///     An invisible key (stored in the beginning of the mark) that can be used to refer to the mark
     ///     later.
     /// </param>
-    /// <returns></returns>
+    /// <returns>Boolean indicating success or failure.</returns>
     public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, HybrasylTime timestamp, string prefix) =>
         User.Legend.AddMark(icon, color, text, timestamp.TerranDateTime, prefix);
 
     /// <summary>
     ///     Add a legend mark to a player's legend.
     /// </summary>
-    /// <param name="icon">The icon to be used for the mark (heart, sword, etc)</param>
-    /// <param name="color">The color the mark will be rendered in (blue, yellow, orange, etc)</param>
+    /// <param name="icon">A <see cref="LegendIcon"/> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
+    /// <param name="color">A <see cref="LegendColor"/> indicating the color the mark will be rendered in (blue, yellow, orange, etc)</param>
     /// <param name="text">The actual text of the legend mark.</param>
     /// <param name="timestamp">The Terran time the legend was awarded.</param>
     /// <param name="prefix">
@@ -433,7 +460,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </param>
     /// <param name="displaySeason">Whether or not to display the season of a mark (e.g. Fall, Summer)</param>
     /// <param name="displayTimestamp">Whether or not to display the in-game time of a mark (e.g. Hybrasyl 5)</param>
-    /// <returns></returns>
+    /// <returns>Boolean indicating success or failure.</returns>
     public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
         string prefix = default,
         bool isPublic = true, int quantity = 0, bool displaySeason = true, bool displayTimestamp = true)
@@ -525,10 +552,7 @@ public class HybrasylUser : HybrasylWorldObject
 
         try
         {
-            if (value.GetType() == typeof(string))
-                User.SetSessionCookie(cookieName, value);
-            else
-                User.SetSessionCookie(cookieName, value.ToString());
+            User.SetSessionCookie(cookieName, value is string ? (string) value : (string) value.ToString());
             GameLog.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
         }
         catch (Exception e)
