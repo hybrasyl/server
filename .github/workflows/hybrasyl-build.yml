@@ -63,7 +63,9 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4.2.0
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           fail_ci_if_error: true
           verbose: true
