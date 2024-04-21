@@ -68,6 +68,7 @@ public class Reactor : VisibleObject, IPursuitable
         VisibleToOwner = reactor.DisplayOwner;
         VisibleToCookies = reactor.DisplayCookie?.Split(" ").ToList() ?? new List<string>();
         VisibleToStatuses = reactor.DisplayStatus?.Split(" ").ToList() ?? new List<string>();
+        InvisibleToCookies = new List<string>();
         Init();
     }
 
