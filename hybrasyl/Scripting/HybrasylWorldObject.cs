@@ -504,6 +504,7 @@ public class HybrasylWorldObject : IScriptable
     {
         if (Obj is not VisibleObject vo) return;
 
+
         if (string.IsNullOrEmpty(location))
         {
             GameLog.ScriptingError(

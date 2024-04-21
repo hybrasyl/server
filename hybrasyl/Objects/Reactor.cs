@@ -42,6 +42,7 @@ public class Reactor : VisibleObject, IPursuitable
     public bool VisibleToGroup;
     public bool VisibleToOwner;
     public List<string> VisibleToCookies;
+    public List<string> InvisibleToCookies;
     public List<string> VisibleToStatuses;
 
     public Reactor(Xml.Objects.Reactor reactor)
@@ -139,12 +140,12 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return false;
         if (obj is not User user) return false;
         var casterObj = Caster?.GetUserObject();
+        if (VisibleToCookies.Any(user.HasCookie)) return true; 
+        if (InvisibleToCookies.Any(user.HasCookie)) return false;
+        if (user.CurrentStatusInfo.Any(x => VisibleToStatuses.Contains(x.Name))) return true;
         if (casterObj == null) return false;
         if (VisibleToOwner && user.Name == Caster.Name) return true;
         if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;
-        if (VisibleToCookies.Any(x => user.HasCookie(x))) return true;
-        if (user.CurrentStatusInfo.Any(x => VisibleToStatuses.Contains(x.Name))) return true;
-
         return false;
     }
 
@@ -227,8 +228,7 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         base.AoiEntry(obj);
-        if (!Ready || Caster == null) return;
-        var casterObj = Caster.GetUserObject();
+        if (!Ready) return;
         if (obj is User user)
             ShowTo(user);
         Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
@@ -255,7 +255,6 @@ public class Reactor : VisibleObject, IPursuitable
             removePacket.WriteUInt32(Id);
             u.Enqueue(removePacket);
         }
-
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
