@@ -24,6 +24,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Linq;
+using Hybrasyl.Utility;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -306,11 +307,12 @@ internal class ClassCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        var cls = args[0].ToLower();
-        var classId = Game.ActiveConfiguration.GetClassId(args[0].ToLower());
+        var cls = args[0].ToLower().Capitalize();
+
+        var classId = Game.ActiveConfiguration.GetClassId(cls);
         if (classId == 254) return Fail("I know nothing about that class");
         user.Class = (Class) classId;
-        return Success($"Class changed to {args[0]}");
+        return Success($"Class changed to {cls}");
 
     }
 }

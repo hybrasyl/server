@@ -445,7 +445,7 @@ public class HybrasylWorldObject : IScriptable
     {
         if (Obj is not VisibleObject vo) return;
         if (!global && Obj is User u)
-            u.SendEffect(u.Id, effect, speed);
+            u.SendEffect(vo.X, vo.Y, effect, speed);
         else
             vo.Effect(effect, speed);
     }
@@ -467,7 +467,7 @@ public class HybrasylWorldObject : IScriptable
         if (Obj is not VisibleObject vo) return;
 
         if (!global && Obj is User u)
-                u.SendEffect(x, y, effect, speed);
+            u.SendEffect(x, y, effect, speed);
         else
             vo.Effect(x, y, effect, speed);
     }

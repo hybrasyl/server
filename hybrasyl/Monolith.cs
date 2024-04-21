@@ -28,7 +28,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Hybrasyl.Xml.Interfaces;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 

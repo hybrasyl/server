@@ -25,6 +25,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Hybrasyl.ChatCommands;
+using Hybrasyl.Dialogs;
 
 namespace Hybrasyl
 {
@@ -317,15 +319,8 @@ namespace Hybrasyl
             public static bool Contains(this string source, string toCheck, StringComparison comparision) =>
                 source?.IndexOf(toCheck, comparision) >= 0;
 
-            public static string Capitalize(this string s)
-            {
-                if (string.IsNullOrEmpty(s))
-                    return string.Empty;
-
-                var a = s.ToCharArray();
-                a[0] = char.ToUpper(a[0]);
-                return new string(a);
-            }
+            public static string Capitalize(this string s) =>
+                 string.IsNullOrEmpty(s) ? string.Empty : string.Concat(s[0].ToString().ToUpper(), s.AsSpan(1));
 
             public static string Normalize(string key) => Regex.Replace(key.ToLower(), @"\s+", "");
         }
