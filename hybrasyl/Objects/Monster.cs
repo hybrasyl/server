@@ -30,6 +30,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.ChatCommands;
+using Serilog;
 
 namespace Hybrasyl.Objects;
 
@@ -287,7 +288,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             _active = value;
         }
     }
-
+    
     public bool HasAssailSkills { get; set; }
 
     public uint LootableXp
@@ -351,6 +352,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             DeathProcessed = true;
             _actionQueue.Clear();
 
+            // TODO: implement death for charmed monsters
             if (!(LastHitter is User hitter))
             {
                 Map.Remove(this);
@@ -928,38 +930,44 @@ public class Monster : Creature, ICloneable, IEphemeral
                     }
                     break;
                 case MobAction.Attack:
-                    if (nextCastable is null)
-                    {
-                        Attack();
-                        return;
-                    }
 
                     targets = ThreatInfo.GetTargets(nextCastable.CurrentPriority);
-                    if (targets.Count == 0)
+
+                    if (targets == null && Target == null)
                     {
                         GameLog.SpawnDebug(
-                            $"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {nextCastable.CurrentPriority}");
+                            $"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {nextCastable.CurrentPriority} and no current target");
                         return;
                     }
 
-                    if (targets.Count != 0 && nextCastable.Slot.Castable.IsAssail)
+                    // If the monster is charmed and it doesn't already have a target, the target is a user, or the target is dead (or in the process of getting dead)
+                    // get a new target. If it is not charmed, our castable determines targeting priority and we take the first target.
+                    if ((Condition.Charmed && (Target is null or User || Target.Stats.Hp <=0)) || !Condition.Charmed)
+                        Target = targets.First();
+
+                    if (nextCastable == null || nextCastable.Slot.Castable.IsAssail)
                     {
-                        var target = targets.First();
-                        if (Distance(target) > 1)
+                        if (Condition.Disarmed)
+                        {
+                            // Disarmed means we can't use assails, so we mark them as having been used so the next rotation entry can hit
+                            nextCastable.Slot.LastCast = DateTime.Now;
+                            nextCastable.Slot.UseCount++;
+                            return;
+                        }
+
+                        if (Distance(Target) > 1)
                         {
                             _actionQueue.Enqueue(MobAction.Move);
                         }
+                        else
+                            Cast(nextCastable.Slot, Target);
 
-                        if (!CheckFacing(Direction, targets.First()))
-                            Turn(Relation(targets.First().X, targets.First().Y));
+                        if (!CheckFacing(Direction, Target))
+                            Turn(Relation(Target.X, Target.Y));
                         return;
                     }
 
-                    foreach (var target in targets)
-                    {
-                        Cast(nextCastable.Slot, target);
-                        LastTarget = target;
-                    }
+                    Cast(nextCastable.Slot, Target);
 
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
@@ -994,7 +1002,6 @@ public class Monster : Creature, ICloneable, IEphemeral
                         return;
                     }
 
-                    LastTarget = target;
                     if (Condition.MovementAllowed)
                     {
                         if (CurrentPath == null || !AStarPathClear())

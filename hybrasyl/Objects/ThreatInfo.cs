@@ -3,6 +3,8 @@ using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Atn;
 
 namespace Hybrasyl.Objects;
 
@@ -69,14 +71,35 @@ public class ThreatInfo(Guid id)
         var ret = new List<Creature>();
         if (OwnerObject == null) return ret;
         ThreatEntry entry;
+        var monstersInViewport = OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList();
         if (OwnerObject.Condition.Charmed)
         {
-            // Generate target list: for every creature in threat table, last target of that creature; if nothing found, use monsters in viewport
-            ret.AddRange(ThreatTableByCreature.Values.Where(x => x.TargetObject is User { LastTarget: not null })
-                .Select(y => y.TargetObject).ToList());
-            if (ret.Count == 0)
-                ret.AddRange(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList());
-            return ret;
+            switch (OwnerObject.LastTarget)
+            {
+                // If our immediate target is grouped, add every monster they've collectively targeted to our target list.
+                case User { Group: not null } u1:
+                    ret.AddRange(u1.Group.Members.Where(x=> x.LastTarget != null).Select(y => y.LastTarget));
+                    break;
+                // If we are already targeting a monster, continue to target it
+                case Monster:
+                    ret.Add(OwnerObject.LastTarget);
+                    break;
+                // Add everything targeting the last player to use a spell on this monster
+                default:
+                {
+                    if (LastCaster is User u2)
+                    {
+                        ret.AddRange(monstersInViewport.Where(x => x.ThreatInfo.ContainsThreat(LastCaster)));
+                    }
+                    break;
+                }
+            }
+            // If we still have no targets, or our (singular) target is dead, add every monster in the viewport.
+            if (ret.Count == 0 || (ret.Count == 1 && ret.First().Stats.Hp <= 0))
+                ret.AddRange(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>());
+            // Order by distance, take closest first, make sure to not target ourselves
+            return ret.OrderBy(x => x.Distance(OwnerObject)).Where(x => x.Guid != Owner).ToList();
+
         }
 
         switch (priority)
@@ -88,28 +111,22 @@ public class ThreatInfo(Guid id)
                 ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
                 break;
             case CreatureTargetPriority.Attacker:
-                entry = ThreatTableByThreat.Keys.OrderByDescending(keySelector: x => x.SecondsSinceLastMelee)
-                    .FirstOrDefault();
+                entry = ThreatTableByThreat.Keys.MaxBy(keySelector: x => x.SecondsSinceLastMelee);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
             case CreatureTargetPriority.AttackingCaster:
-                entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsCaster)
-                    .OrderByDescending(keySelector: x => x.SecondsSinceLastNonHealCast)
-                    .FirstOrDefault();
+                entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsCaster).MaxBy(keySelector: x => x.SecondsSinceLastNonHealCast);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
             case CreatureTargetPriority.AttackingGroup:
-                entry = ThreatTableByThreat.Keys.OrderByDescending(keySelector: x => x.SecondsSinceLastMelee)
-                    .FirstOrDefault();
+                entry = ThreatTableByThreat.Keys.MaxBy(keySelector: x => x.SecondsSinceLastMelee);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
             case CreatureTargetPriority.AttackingHealer:
-                entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsHealer)
-                    .OrderByDescending(keySelector: x => x.SecondsSinceLastHeal)
-                    .FirstOrDefault();
+                entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsHealer).MaxBy(keySelector: x => x.SecondsSinceLastHeal);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;

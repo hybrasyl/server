@@ -92,6 +92,7 @@ public class Creature : VisibleObject
     }
 
     public Creature LastTarget { get; set; }
+    public Creature CurrentTarget { get; set; }
 
     public bool AbsoluteImmortal { get; set; }
     public bool PhysicalImmortal { get; set; }
