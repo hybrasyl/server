@@ -41,9 +41,9 @@ public class Reactor : VisibleObject, IPursuitable
 
     public bool VisibleToGroup;
     public bool VisibleToOwner;
-    public List<string> VisibleToCookies;
-    public List<string> InvisibleToCookies;
-    public List<string> VisibleToStatuses;
+    public List<string> VisibleToCookies { get; set; } = new();
+    public List<string> InvisibleToCookies { get; set; } = new();
+    public List<string> VisibleToStatuses { get; set; } = new();
 
     public Reactor(Xml.Objects.Reactor reactor)
     {
@@ -68,7 +68,6 @@ public class Reactor : VisibleObject, IPursuitable
         VisibleToOwner = reactor.DisplayOwner;
         VisibleToCookies = reactor.DisplayCookie?.Split(" ").ToList() ?? new List<string>();
         VisibleToStatuses = reactor.DisplayStatus?.Split(" ").ToList() ?? new List<string>();
-        InvisibleToCookies = new List<string>();
         Init();
     }
 

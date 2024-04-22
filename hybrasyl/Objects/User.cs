@@ -1609,7 +1609,7 @@ public class User : Creature
         Enqueue(x2C);
     }
 
-    public void SendCooldown(BookSlot item)
+    public void SendCooldown(BookSlot item, bool clear=false)
     {
         if (item == null) return;
         var slot = item.Castable.IsSkill
@@ -1620,9 +1620,9 @@ public class User : Creature
 
         Client.Enqueue(new ServerPacketStructures.Cooldown
         {
-            Length = (uint) item.Castable.Cooldown,
+            Length = (uint) (clear ? 1 : item.Castable.Cooldown),
             Pane = 1,
-            Slot = (byte) slot
+            Slot = (byte) (slot + 1)
         }.Packet());
 
     }

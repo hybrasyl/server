@@ -1148,8 +1148,8 @@ public class HybrasylUser : HybrasylWorldObject
     /// Trigger or clear a cooldown for a specific spell or skill.
     /// </summary>
     /// <param name="name">The name of the spell or skill</param>
-    /// <param name="reset">Wheter or not to trigger or clear. True clears; false triggers.</param>
-    public void SetCooldown(string name, bool reset = false)
+    /// <param name="clear">Whether or not to trigger or clear. True clears; false triggers.</param>
+    public void SetCooldown(string name, bool clear = false)
     {
         var castable = User.SpellBook.IndexOf(name) == -1
             ? User.SkillBook.GetSlotByName(name)
@@ -1160,10 +1160,12 @@ public class HybrasylUser : HybrasylWorldObject
             return;
         }
 
-        if (reset)
+        if (clear)
             castable.ClearCooldown();
         else
             castable.TriggerCooldown();
+
+        User.SendCooldown(castable, clear);
     }
 
     /// <summary>
