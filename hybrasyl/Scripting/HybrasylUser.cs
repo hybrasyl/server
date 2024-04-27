@@ -45,6 +45,8 @@ public class HybrasylUser : HybrasylWorldObject
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
     public new string Guid => User.Guid.ToString();
+    public Direction Direction => User.Direction;
+
 
     /// <summary>
     ///     The item in the first inventory slot of the player.
@@ -219,6 +221,60 @@ public class HybrasylUser : HybrasylWorldObject
     {
         return User.GetFacingObjects(distance).Where(x => x is User).Cast<User>().Select(y => new HybrasylUser(y))
             .ToList();
+    }
+
+    /// <summary>
+    /// Return a list of monsters in a specified direction.
+    /// </summary>
+    /// <param name="direction">The <see cref="Direction"/> to examine.</param>
+    /// <param name="radius">The number of tiles to examine in the given direction.</param>
+    /// <returns></returns>
+    public List<HybrasylMonster> GetMonstersInDirection(Direction direction, int radius = 1) =>
+        User.GetDirectionalTargets(direction).Where(x => x is Monster).Cast<Monster>()
+            .Select(y => new HybrasylMonster(y)).ToList();
+
+    /// <summary>
+    /// Return a list of players in a specified direction.
+    /// </summary>
+    /// <param name="direction">The <see cref="Direction"/> to examine.</param>
+    /// <param name="radius">The number of tiles to examine in the given direction.</param>
+    /// <returns>List of <see cref="HybrasylPlayer"/>. </returns>
+    public List<HybrasylUser> GetUsersInDirection(Direction direction, int radius = 1) =>
+        User.GetDirectionalTargets(direction).Where(x => x is User).Cast<User>()
+            .Select(y => new HybrasylUser(y)).ToList();
+
+    /// <summary>
+    /// Get the coordinates of a tile in a specific direction and number of tiles away from current location.
+    /// </summary>
+    /// <param name="direction">The <see cref="Direction"/> to use.</param>
+    /// <param name="tiles">The number of tiles away from the current location in the specified direction.</param>
+    /// <returns>A <see cref="Coordinate"/> representing the X,Y of the calculated tile.</returns>
+    public Coordinate GetTileInDirection(Direction direction, int tiles = 1)
+    {
+        int x = X;
+        int y = Y;
+        switch (direction)
+        {
+            case Direction.North:
+                x = X;
+                y = Y - tiles;
+                break;
+            case Direction.South:
+                x = X;
+                y = Y + tiles;
+                break;
+            case Direction.West:
+                x = X - tiles;
+                y = Y;
+                break;
+            case Direction.East:
+                x = X + tiles;
+                y = Y;
+                break;
+        }
+
+        return Coordinate.FromInt(x, y);
+
     }
 
     /// <summary>

@@ -357,7 +357,7 @@ public class CreatureStatus : ICreatureStatus
         {
             dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
             // If the tick itself defines an element, use it, along with the damage type
-            if (effect.Damage.Element != Element.None)
+            if (effect.Damage.Element != ElementType.None)
                 dmg.Element = effect.Damage.Element;
             dmg.Type = effect.Damage.Type;
         }

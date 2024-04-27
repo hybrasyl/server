@@ -37,7 +37,6 @@ public class ScriptProcessor
         // NB registering assemblies is required for RegisterType of
         // any type in that assembly to work correctly
         UserData.RegisterAssembly(typeof(Game).Assembly);
-        UserData.RegisterAssembly(typeof(ElementType).Assembly);
         UserData.RegisterType<Gender>();
         UserData.RegisterType<LegendIcon>();
         UserData.RegisterType<LegendColor>();
@@ -45,6 +44,7 @@ public class ScriptProcessor
         UserData.RegisterType<DateTime>();
         UserData.RegisterType<TimeSpan>();
         UserData.RegisterType<ElementType>();
+        UserData.RegisterType<Direction>();
         _scripts = new Dictionary<string, List<Script>>();
     }
 

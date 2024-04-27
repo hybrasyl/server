@@ -26,11 +26,18 @@ using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Serilog;
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using MoonSharp.Interpreter.Compatibility;
 using Path = System.IO.Path;
 using Reactor = Hybrasyl.Objects.Reactor;
+using MoonSharp.Interpreter.Interop.UserDataRegistries;
+
+using MoonSharp.Interpreter.Compatibility.Frameworks;
+using MoonSharp.Interpreter.Interop;
 
 namespace Hybrasyl.Scripting;
 
@@ -223,10 +230,12 @@ public class Script
 
     public void SetGlobals()
     {
+
         Compiled.Globals["Gender"] = UserData.CreateStatic<Gender>();
         Compiled.Globals["LegendIcon"] = UserData.CreateStatic<LegendIcon>();
         Compiled.Globals["LegendColor"] = UserData.CreateStatic<LegendColor>();
-        Compiled.Globals["Element"] = UserData.CreateStatic(typeof(Element));
+        Compiled.Globals["Element"] = UserData.CreateStatic(typeof(ElementType));
+        Compiled.Globals["Direction"] = UserData.CreateStatic<Direction>();
         Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
         Compiled.Globals["utility"] = typeof(HybrasylUtility);
         Compiled.Globals.Set("world", UserData.Create(Processor.World));

@@ -14,9 +14,9 @@ public class HybrasylMonster : HybrasylWorldObject
         Map = new HybrasylMap(monster.Map);
     }
     
-
     internal Monster Monster => WorldObject as Monster;
 
+    public Direction Direction => Monster.Direction;
     internal HybrasylWorld World { get; set; }
     internal HybrasylMap Map { get; set; }
 

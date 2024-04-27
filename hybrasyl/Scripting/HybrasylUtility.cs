@@ -224,4 +224,40 @@ public static class HybrasylUtility
 
         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
     }
+
+    public static Direction DirectionFromString(string e)
+    {
+        return e.ToLower() switch
+        {
+            "east" => Direction.East,
+            "north" => Direction.North,
+            "south" => Direction.South,
+            "west" => Direction.West,
+            _ => Direction.North
+        };
+    }
+
+    public static Direction OppositeDirection(Direction d)
+    {
+        return d switch
+        {
+            Direction.West => Direction.East,
+            Direction.South => Direction.North,
+            Direction.North => Direction.South,
+            Direction.East => Direction.West,
+            _ => Direction.North,
+        };
+    }
+
+    public static Direction OppositeDirection(string d)
+    {
+        return d.ToLower() switch
+        {
+            "east" => Direction.West,
+            "north" => Direction.South,
+            "south" => Direction.North,
+            "west" => Direction.East,
+            _ => Direction.North
+        };
+    }
 }
