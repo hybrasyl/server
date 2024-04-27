@@ -39,6 +39,15 @@ public class MapObject : IStateStorable
 
         LoadMapFile();
         LoadXml(newMap);
+        for (byte x = 0; x <= X; x++)
+        {
+            for (byte y = 0; y <= Y; y++)
+            {
+                if (IsWall(x, y)) continue;
+                UsableTiles.Add((x, y));
+            }
+        }
+
     }
 
     public ushort Id { get; set; }
@@ -59,10 +68,26 @@ public class MapObject : IStateStorable
     public ushort Checksum { get; set; }
 
     private HashSet<(byte x, byte y)> Collisions { get; set; } = new();
+    private HashSet<(byte x, byte y)> UsableTiles { get; set; } = new();
 
     public bool IsWall(int x, int y) => IsWall((byte)x, (byte)y);
     public bool IsWall(byte x, byte y) => Collisions.Contains((x, y));
     public bool IsWall((byte x, byte y) coordinate) => IsWall(coordinate.x, coordinate.y);
+
+    public (int x, int y) FindEmptyTile()
+    {
+        var tiles = new HashSet<(byte x, byte y)>(UsableTiles);
+
+        do
+        {
+            var rand = Random.Shared.Next(0, tiles.Count);
+            var randTile = tiles.ElementAt(rand);
+            if (IsCreatureAt(randTile.x, randTile.y)) continue;
+            return (randTile.x, randTile.y);
+        } while (tiles.Count > 0);
+
+        return (-1, -1);
+    }
 
     public void ToggleCollisions(byte x, byte y)
     {
@@ -252,11 +277,8 @@ public class MapObject : IStateStorable
 
     public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).OfType<Creature>().ToList();
 
-
-    public bool IsCreatureAt(int x1, int y1)
-    {
-        return GetTileContents(x1, y1).Any(predicate: x => x is Creature);
-    }
+    public bool IsCreatureAt(int x1, int y1) =>
+         GetTileContents(x1, y1).Any(predicate: x => x is Creature);
 
     // TODO: remove World.Insert here
     public void InsertNpc(Merchant toInsert)

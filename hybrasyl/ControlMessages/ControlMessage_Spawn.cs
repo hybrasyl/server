@@ -1,4 +1,6 @@
-﻿using Hybrasyl.Enums;
+﻿using System;
+using System.Linq;
+using Hybrasyl.Enums;
 using Hybrasyl.Internals;
 using Hybrasyl.Objects;
 
@@ -6,15 +8,6 @@ namespace Hybrasyl;
 
 public partial class World : Server
 {
-    // TODO: don't pass maps here. that's bananas
-    [HybrasylMessageHandler(ControlOpcode.MonolithSpawn)]
-    private void ControlMessage_SpawnMonster(HybrasylControlMessage message)
-    {
-        var monster = (Monster)message.Arguments[0];
-        var map = (MapObject)message.Arguments[1];
-        map.InsertCreature(monster);
-    }
-
     [HybrasylMessageHandler(ControlOpcode.MonolithControl)]
     private void ControlMessage_MonolithControl(HybrasylControlMessage message)
     {

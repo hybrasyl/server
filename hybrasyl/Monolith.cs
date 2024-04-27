@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
+using Serilog;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 
@@ -137,11 +138,9 @@ internal class Monolith
 
         foreach (var spawn in spawnGroup.Spawns)
         {
-
             spawn.Status ??= new SpawnStatus();
             if (spawnmap.SpawnDebug)
                 GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: {spawn.Name} processing");
-            var monsters = spawnmap.Monsters;
 
             // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
             // previously had errors and was disabled - continue on
@@ -176,14 +175,18 @@ internal class Monolith
             // We take Coordinates into account here since we always want to have the number of
             // monsters expected from coordinate references.
 
-            var maxcount = Math.Max(Math.Min(20, spawnmap.X * spawnmap.Y / 30), spawn.Coordinates.Count);
+
+            var maxcount = spawn.Coordinates.Count > 0
+                ? spawn.Coordinates.Count
+                : Math.Min(20, spawnmap.X * spawnmap.Y / 30);
+
             var interval = 30;
             var maxPerInterval = maxcount / 5;
-            var baseLevel = 0;
+            int baseLevel;
 
             try
             {
-                if (!string.IsNullOrEmpty(spawn.Spec.MaxCount))
+                if (!string.IsNullOrEmpty(spawn.Spec.MaxCount) && spawn.Coordinates.Count == 0)
                     maxcount = (int)FormulaParser.Eval(spawn.Spec.MaxCount, formeval);
                 if (!string.IsNullOrEmpty(spawn.Spec.Interval))
                     interval = (int)FormulaParser.Eval(spawn.Spec.Interval, formeval);
@@ -206,10 +209,12 @@ internal class Monolith
                 continue;
             }
 
-            var currentCount = monsters.Where(predicate: x => x.Name == spawn.Name).ToList().Count();
+            var currentCount = spawnmap.Monsters.Where(predicate: x => x.Name == spawn.Name).ToList().Count();
 
             if (currentCount >= maxcount)
             {
+                    GameLog.SpawnFatal(
+                        $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
                 if (spawnmap.SpawnDebug)
                     GameLog.SpawnInfo(
                         $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
@@ -287,24 +292,30 @@ internal class Monolith
                     }
 
                     var mob = (Monster)baseMob.Clone();
-                    var xcoord = 0;
-                    var ycoord = 0;
+                    int xcoord;
+                    int ycoord;
 
-                    if (spawn.Coordinates.Any())
-                        foreach (var coord in spawn.Coordinates)
-                        {
-                            if (spawnmap.EntityTree.GetObjects(new Rectangle(coord.X, coord.Y, 1, 1))
-                                .Any(predicate: e => e is Objects.Creature)) 
-                                continue;
-                            xcoord = coord.X;
-                            ycoord = coord.Y;
-                        }
+                    if (spawn.Coordinates.Count != 0)
+                    {
+                        var coordinate =
+                            spawn.Coordinates.FirstOrDefault(coord => spawnmap.IsCreatureAt(coord.X, coord.Y) == false);
+                        if (coordinate == null)
+                            return;
+                        xcoord = coordinate.X;
+                        ycoord = coordinate.Y;
+                    }
                     else
-                        do
+                    {
+                        var tile = spawnmap.FindEmptyTile();
+                        if (tile == (-1,-1))
                         {
-                            xcoord = Random.Shared.Next(0, spawnmap.X);
-                            ycoord = Random.Shared.Next(0, spawnmap.Y);
-                        } while (spawnmap.IsWall(xcoord, ycoord));
+                            GameLog.SpawnFatal($"{spawnmap.Name}: {spawn.Name} - no empty tiles, aborting");
+                            return;
+                        }
+                        xcoord = (byte) tile.x;
+                        ycoord = (byte) tile.y;
+                    }
+
 
                     baseMob.X = (byte)xcoord;
                     baseMob.Y = (byte)ycoord;
@@ -350,8 +361,8 @@ internal class Monolith
 
                     if (spawn.Defense != null)
                     {
-                        sbyte Ac = 0;
-                        sbyte Mr = 0;
+                        sbyte Ac;
+                        sbyte Mr;
 
                         try
                         {
@@ -373,7 +384,8 @@ internal class Monolith
                     }
 
                     foreach (var cookie in spawn.SetCookies) baseMob.SetCookie(cookie.Name, cookie.Value);
-                    SpawnMonster(baseMob, spawnmap);
+
+                    spawnmap.InsertCreature(baseMob);
                 }
                 else
                 {
@@ -381,14 +393,6 @@ internal class Monolith
                 }
 
             spawn.Status.LastSpawnTime = DateTime.Now;
-        }
-    }
-
-    private static void SpawnMonster(Monster monster, MapObject map)
-    {
-        if (!World.ControlMessageQueue.IsCompleted)
-        {
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
         }
     }
 }
@@ -416,9 +420,8 @@ internal class MonolithControl
                     if (map.Users.Count == 0) continue;
 
                     foreach (var obj in map.Objects.Where(predicate: x => x is Monster).ToList())
-                        if (obj is Monster mob)
-                            if (mob.Active)
-                                Evaluate(mob, map);
+                        if (obj is Monster { Active: true } mob)
+                            Evaluate(mob, map);
                 }
             }
             catch (Exception e)
@@ -429,11 +432,9 @@ internal class MonolithControl
             Thread.Sleep(1000);
             x++;
             // Refresh our list every 15 seconds in case of XML reloading
-            if (x == 30)
-            {
-                _maps = Game.World.WorldState.Values<MapObject>().ToList();
-                x = 0;
-            }
+            if (x != 15) continue;
+            _maps = Game.World.WorldState.Values<MapObject>().ToList();
+            x = 0;
         }
     }
 

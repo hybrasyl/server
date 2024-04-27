@@ -931,6 +931,13 @@ public class Monster : Creature, ICloneable, IEphemeral
                     break;
                 case MobAction.Attack:
 
+                    if (nextCastable == null)
+                    {
+                        GameLog.SpawnError($"{Name} ({Map.Name}@{X},{Y}): nextCastable null?");
+                        Attack();
+                        return;
+                    }
+
                     targets = ThreatInfo.GetTargets(nextCastable.CurrentPriority);
 
                     if (targets == null && Target == null)
