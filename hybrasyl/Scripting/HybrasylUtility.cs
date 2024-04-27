@@ -195,7 +195,6 @@ public static class HybrasylUtility
         Title = title
     });
 
-    //public static bool RegisterQuest(QuestMetadata data) => Game.World.WorldState.RegisterQuest(data);
 
     public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level, bool aggro)
     {
@@ -225,9 +224,14 @@ public static class HybrasylUtility
         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
     }
 
-    public static Direction DirectionFromString(string e)
+    /// <summary>
+    /// Convert a string direction to a <see cref="Direction"/> (intended for usage from Lua)
+    /// </summary>
+    /// <param name="direction">The string to convert</param>
+    /// <returns>The appropriate <see cref="Direction"/> or North, if it could not be converted</returns>
+    public static Direction DirectionFromString(string direction)
     {
-        return e.ToLower() switch
+        return direction.ToLower() switch
         {
             "east" => Direction.East,
             "north" => Direction.North,
@@ -237,9 +241,14 @@ public static class HybrasylUtility
         };
     }
 
-    public static Direction OppositeDirection(Direction d)
+    /// <summary>
+    /// Given a <see cref="Direction"/>, return its opposite direction
+    /// </summary>
+    /// <param name="direction">The direction to convert</param>
+    /// <returns>The appropriate <see cref="Direction"/> or North, if it could not be converted</returns>
+    public static Direction OppositeDirection(Direction direction)
     {
-        return d switch
+        return direction switch
         {
             Direction.West => Direction.East,
             Direction.South => Direction.North,
@@ -249,9 +258,14 @@ public static class HybrasylUtility
         };
     }
 
-    public static Direction OppositeDirection(string d)
+    /// <summary>
+    /// Given a string direction, return its opposite <see cref="Direction"/>.
+    /// </summary>
+    /// <param name="direction">The direction to convert</param>
+    /// <returns>The appropriate <see cref="Direction"/> or North, if it could not be converted</returns>
+    public static Direction OppositeDirection(string direction)
     {
-        return d.ToLower() switch
+        return direction.ToLower() switch
         {
             "east" => Direction.West,
             "north" => Direction.South,
