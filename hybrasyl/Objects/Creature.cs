@@ -426,7 +426,7 @@ public class Creature : VisibleObject
                     {
                         Direction.North => new Rectangle(X - i + 1, Y - i, 2 * i - 1, 1),
                         Direction.South => new Rectangle(X - i + 1, Y + i, 2 * i - 1, 1),
-                        Direction.East => new Rectangle(X + i, Y - i + 1, 1, 2 * i - i),
+                        Direction.East => new Rectangle(X + i, Y - i + 1, 1, 2 * i - 1),
                         Direction.West => new Rectangle(X - i, Y - i + 1, 1, 2 * i - 1),
                         _ => throw new ArgumentOutOfRangeException(nameof(coneDirection)),
                     };
