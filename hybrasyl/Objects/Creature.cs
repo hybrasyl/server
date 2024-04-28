@@ -30,6 +30,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using Hybrasyl.Utility;
 
 namespace Hybrasyl.Objects;
 
@@ -411,6 +413,26 @@ public class Creature : VisibleObject
                     //GameLog.UserActivityInfo($"GetTarget: tile, intent {tile.Direction}, direction {origin.GetIntentDirection(tile.Direction)}, origin {origin.Name}");
                     possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
                 }
+
+            foreach (var tile in intent.Cone)
+            {
+                var radius = Math.Min(tile.Radius, Game.ActiveConfiguration.Constants.ViewportSize / 2);
+                if (radius == 0)
+                    continue;
+                var coneDirection = tile.Direction.Resolve(Direction);
+                for (var i = 1; i <= radius; i++)
+                {
+                    var rect = coneDirection switch
+                    {
+                        Direction.North => new Rectangle(X - i + 1, Y - i, 2 * i - 1, 1),
+                        Direction.South => new Rectangle(X - i + 1, Y + i, 2 * i - 1, 1),
+                        Direction.East => new Rectangle(X + i, Y - i + 1, 1, 2 * i - i),
+                        Direction.West => new Rectangle(X - i, Y - i + 1, 1, 2 * i - 1),
+                        _ => throw new ArgumentOutOfRangeException(nameof(coneDirection)),
+                    };
+                    possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(predicate: e => e is Creature));
+                }
+            }
 
             var possible = intent.MaxTargets > 0
                 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList()

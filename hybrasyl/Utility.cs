@@ -24,9 +24,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using Hybrasyl.ChatCommands;
-using Hybrasyl.Dialogs;
+
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl
 {
@@ -323,6 +324,52 @@ namespace Hybrasyl
                  string.IsNullOrEmpty(s) ? string.Empty : string.Concat(s[0].ToString().ToUpper(), s.AsSpan(1));
 
             public static string Normalize(string key) => Regex.Replace(key.ToLower(), @"\s+", "");
+        }
+
+        public static class DirectionExtensions
+        {
+            public static Direction Opposite(this Direction direction)
+            {
+                return direction switch
+                {
+                    Direction.North => Direction.South,
+                    Direction.South => Direction.North,
+                    Direction.East => Direction.West,
+                    Direction.West => Direction.East,
+                    _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+                };
+            }
+
+            public static Direction LeftOf(this Direction direction) => Opposite(RightOf(direction));
+
+            public static Direction RightOf(this Direction direction)
+            {
+                return direction switch
+                {
+                    Direction.North => Direction.East,
+                    Direction.South => Direction.West,
+                    Direction.East => Direction.South,
+                    Direction.West => Direction.North,
+                    _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+                };
+            }
+        }
+
+        public static class IntentDirectionExtensions
+        {
+            public static Direction Resolve(this IntentDirection intent, Direction direction) 
+            {
+                return intent switch
+                {
+                    IntentDirection.Front => direction,
+                    IntentDirection.Back => direction.Opposite(),
+                    IntentDirection.Left => direction.LeftOf(),
+                    IntentDirection.Right => direction.RightOf(),
+                    IntentDirection.None => direction,
+                    _ => throw new ArgumentOutOfRangeException(nameof(intent), intent, null),
+                };
+            }
+
         }
     } // end Namespace:Utility
 } // end Namespace: Hybrasyl
