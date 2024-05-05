@@ -2035,11 +2035,10 @@ public partial class World : Server
             user.Map.Remove(user);
             if (user.Grouped) user.Group.Remove(user);
             Remove(user);
-            user.SendRedirectAndLogoff(this, Game.Login, user.Name);
+            user.SendRedirect(this, Game.Login, user.Name, false);
             user.AuthInfo.CurrentState = UserState.Disconnected;
             user.Save(true);
             DeleteUser(user.Name);
-
 
             // Remove any active async dialog sessions
             // TODO: async fix
@@ -2049,7 +2048,8 @@ public partial class World : Server
             //        request.End();
             //}
 
-            GameLog.InfoFormat("{1} leaving world", user.Name);
+            GameLog.InfoFormat($"{user.Name} leaving world");
+
         }
     }
 
@@ -3603,7 +3603,7 @@ public partial class World : Server
         if (!user.IsHeartbeatValid(byteA, byteB))
         {
             GameLog.WarningFormat("{0}: byte heartbeat not valid, disconnecting", user.Name);
-            user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
+            user.SendRedirect(Game.World, Game.Login, user.Name);
         }
         else
         {
@@ -3793,7 +3793,7 @@ public partial class World : Server
         if (!user.IsHeartbeatValid(serverTick, clientTick))
         {
             GameLog.InfoFormat("{0}: tick heartbeat not valid, disconnecting", user.Name);
-            user.SendRedirectAndLogoff(Game.World, Game.Login, user.Name);
+            user.SendRedirect(Game.World, Game.Login, user.Name);
         }
         else
         {

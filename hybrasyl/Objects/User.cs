@@ -4957,11 +4957,10 @@ public class User : Creature
         Enqueue(x0A);
     }
 
-    public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 1200)
+    public void SendRedirect(World world, Login login, string name, bool logoff = true, int transmitDelay = 1200)
     {
-        GlobalConnectionManifest.DeregisterClient(Client);
         Client.Redirect(
-            new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true,
+            new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), logoff,
             transmitDelay);
     }
 

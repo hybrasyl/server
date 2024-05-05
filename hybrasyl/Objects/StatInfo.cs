@@ -1403,6 +1403,14 @@ public class StatInfo
 
     [FormulaVariable] public double InboundDamageToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
+    [FormulaVariable]
+    public double Shield
+    {
+        get => _shield;
+        set => _shield = value < 0 ? 0 : value;
+    }
+
+    private double _shield { get; set; }
 
     public ElementType BaseOffensiveElement
     {

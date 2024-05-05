@@ -1,6 +1,7 @@
 ﻿using Hybrasyl.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using MoonSharp.Interpreter.Interop;
 
 namespace Hybrasyl.Objects;
 
@@ -103,10 +104,26 @@ public record DamageEvent : StatChangeEvent
     // Was the damage actually applied or was the target immune?
     public bool Applied { get; set; } = true;
 
+    // How much of the damage was shielded, if any?
+    public uint Shielded { get; set; } = 0;
+
     public override string ToString()
     {
         var str =
-            $"Damage: {SourceName}: {SourceCastableName} on {TargetName} ({Element}, {Type})\n  [{(Applied ? "Applied" : "Immune")}] {Amount} dmg, ER {ElementalResisted}, EA {ElementalAugmented} MR {MagicResisted}, AC {ArmorReduction} Mod {ModifierDmg}";
+            $"Damage: {SourceName}: {SourceCastableName} on {TargetName} ({Element}, {Type})\n  [{(Applied ? "Applied" : "Immune")}] {Amount} dmg";
+
+        if (ElementalResisted > 0)
+            str += $" EResist {ElementalResisted}";
+        if (ElementalAugmented > 0)
+            str += $" EAug {ElementalAugmented}";
+        if (MagicResisted > 0)
+            str += $" MR {MagicResisted}";
+        if (ArmorReduction > 0)
+            str += $" AC {ArmorReduction}";
+        if (ModifierDmg > 0)
+            str += $" Mod {ModifierDmg}";
+        if (Shielded >0)
+            str += $" Shield {Shielded}";
         if (Crit || MagicCrit)
             str = $"CRIT {str}";
         return $"[combat] {str}";

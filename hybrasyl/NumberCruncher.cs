@@ -348,6 +348,7 @@ internal static class NumberCruncher
             BonusManaSteal = _evalFormula(bonus.BonusManaSteal, null, source),
             BonusInboundDamageToMp = _evalFormula(bonus.BonusInboundDamageToMp, null, source),
             BonusExtraFaith = _evalFormula(bonus.BonusExtraFaith, null, source),
+            Shield = _evalFormula(bonus.Shield, null, source)
         };
         return modifiers;
     }
@@ -480,6 +481,7 @@ internal static class NumberCruncher
             BonusExtraFaith = Modify(_evalFormula(effect.BonusExtraFaith, castable, target, source), intensity),
             BonusLifeSteal = Modify(_evalFormula(effect.BonusLifeSteal, castable, target, source), intensity),
             BonusManaSteal = Modify(_evalFormula(effect.BonusManaSteal, castable, target, source), intensity),
+            Shield = Modify(_evalFormula(effect.Shield, castable, target, source), intensity)
         };
 
         modifiers.ElementalModifiers.Apply(effect.ElementalModifiers);

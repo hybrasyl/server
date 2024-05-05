@@ -1124,6 +1124,22 @@ public class Creature : VisibleObject
         // Negative damage (possible with augments and resistances) 
         if (damage < 0) damage = 1;
 
+        // lastly, handle shield
+
+        if (Stats.Shield > 0)
+        {
+            if (Stats.Shield >= damage)
+            {
+                damage = 0;
+                Stats.Shield -= damage;
+            }
+            else
+            {
+                damage -= Stats.Shield;
+                Stats.Shield = 0;
+            }
+        }
+
         // Now, normalize damage for uint (max hp)
         var normalized = (uint)damage;
 

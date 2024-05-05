@@ -296,8 +296,8 @@ public abstract class Packet
 
     public abstract EncryptMethod EncryptMethod { get; }
 
-    public abstract bool ShouldEncrypt { get; }
-    public abstract bool UseDefaultKey { get; }
+    public bool ShouldEncrypt => EncryptMethod != EncryptMethod.None;
+    public bool UseDefaultKey => EncryptMethod == EncryptMethod.Normal;
 
     public string Hash()
     {
@@ -419,86 +419,37 @@ public class ClientPacket : Packet
         }
     }
 
-    public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10;
-
-    public override bool UseDefaultKey => Opcode == 0x02 || Opcode == 0x03 || Opcode == 0x04 || Opcode == 0x0B ||
-                                          Opcode == 0x26
-                                          || Opcode == 0x2D || Opcode == 0x3A || Opcode == 0x42 || Opcode == 0x43 ||
-                                          Opcode == 0x4B
-                                          || Opcode == 0x57 || Opcode == 0x62 || Opcode == 0x68 || Opcode == 0x71 ||
-                                          Opcode == 0x73
-                                          || Opcode == 0x7B;
-
-
-    public override EncryptMethod EncryptMethod
+  public override EncryptMethod EncryptMethod
     {
         get
         {
             var opcode = Opcode;
-            if (opcode <= 0x43)
+            switch (Opcode)
             {
-                if (opcode <= 0x10)
-                {
-                    switch (opcode)
-                    {
-                        case 0x00:
-                            break;
-                        case 0x01:
-                            return EncryptMethod.MD5Key;
-                        case 0x02:
-                        case 0x03:
-                        case 0x04:
-                            return EncryptMethod.Normal;
-                        default:
-                            if (opcode == 0x0A) return EncryptMethod.Normal;
-                            if (opcode != 0x10) return EncryptMethod.MD5Key;
-                            break;
-                    }
-                }
-                else if (opcode <= 0x2D)
-                {
-                    if (opcode != 0x26 && opcode != 0x2D) return EncryptMethod.MD5Key;
+                case 0x00:
+                case 0x10:
+                case 0x48:
+                    return EncryptMethod.None;
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x0B:
+                case 0x26:
+                case 0x2D:
+                case 0x3A:
+                case 0x42:
+                case 0x43:
+                case 0x4B:
+                case 0x57:
+                case 0x62:
+                case 0x68:
+                case 0x71:
+                case 0x73:
+                case 0x7B:
                     return EncryptMethod.Normal;
-                }
-                else
-                {
-                    if (opcode == 0x3A) return EncryptMethod.Normal;
-                    switch (opcode)
-                    {
-                        case 0x42:
-                        case 0x43:
-                            return EncryptMethod.Normal;
-                        default:
-                            return EncryptMethod.MD5Key;
-                    }
-                }
+                default:
+                    return EncryptMethod.MD5Key;
             }
-            else if (opcode <= 0x57)
-            {
-                if (opcode == 0x48) return EncryptMethod.None;
-                if (opcode != 0x4B && opcode != 0x57) return EncryptMethod.MD5Key;
-                return EncryptMethod.Normal;
-            }
-            else if (opcode <= 0x68)
-            {
-                if (opcode != 0x62 && opcode != 0x68) return EncryptMethod.MD5Key;
-                return EncryptMethod.Normal;
-            }
-            else
-            {
-                switch (opcode)
-                {
-                    case 0x71:
-                    case 0x73:
-                        return EncryptMethod.Normal;
-                    case 0x72:
-                        return EncryptMethod.MD5Key;
-                    default:
-                        return opcode != 0x7B ? EncryptMethod.MD5Key : EncryptMethod.Normal;
-                }
-            }
-
-            return EncryptMethod.None;
         }
     }
 
@@ -696,12 +647,6 @@ public class ServerPacket : Packet
             Array.Copy(buffer, 4, Data, 0, Data.Length);
         }
     }
-
-    public override bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x03 && Opcode != 0x7E; //&& Opcode != 0x0D;
-
-    public override bool UseDefaultKey => Opcode == 0x01 || Opcode == 0x02 || Opcode == 0x0A || Opcode == 0x56 ||
-                                          Opcode == 0x60
-                                          || Opcode == 0x62 || Opcode == 0x66; //(|| Opcode == 0x6F;)
 
     public override EncryptMethod EncryptMethod
     {
