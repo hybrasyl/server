@@ -419,11 +419,10 @@ public class ClientPacket : Packet
         }
     }
 
-  public override EncryptMethod EncryptMethod
+    public override EncryptMethod EncryptMethod
     {
         get
         {
-            var opcode = Opcode;
             switch (Opcode)
             {
                 case 0x00:
@@ -652,44 +651,25 @@ public class ServerPacket : Packet
     {
         get
         {
-            var opcode = Opcode;
-            if (opcode <= 0x56)
+            switch (Opcode)
             {
-                if (opcode <= 0x0A)
-                    switch (opcode)
-                    {
-                        case 0x00:
-                        case 0x03:
-                            break;
-                        case 0x01:
-                        case 0x02:
-                            return EncryptMethod.Normal;
-                        default:
-                            return opcode != 0x0A ? EncryptMethod.MD5Key : EncryptMethod.Normal;
-                    }
-                else if (opcode != 0x40) return opcode != 0x56 ? EncryptMethod.MD5Key : EncryptMethod.Normal;
+                case 0x00:
+                case 0x03:
+                case 0x40:
+                case 0x7E:
+                    return EncryptMethod.None;
+                case 0x01:
+                case 0x02:
+                case 0x0A:
+                case 0x56:
+                case 0x60:
+                case 0x62:
+                case 0x66:
+                case 0x6F:
+                    return EncryptMethod.Normal;
+                default:
+                    return EncryptMethod.MD5Key;
             }
-            else if (opcode <= 0x66)
-            {
-                switch (opcode)
-                {
-                    case 0x60:
-                    case 0x62:
-                        return EncryptMethod.Normal;
-                    case 0x63:
-                        return EncryptMethod.MD5Key;
-                    default:
-                        return opcode != 0x66 ? EncryptMethod.MD5Key : EncryptMethod.Normal;
-                }
-            }
-            else
-            {
-                if (opcode == 0x6F) return EncryptMethod.Normal;
-                if (opcode != 0x7E) return EncryptMethod.MD5Key;
-            }
-
-            //if (opcode == 0x1a) return EncryptMethod.Normal;
-            return EncryptMethod.None;
         }
     }
 
@@ -848,6 +828,4 @@ public class ServerPacket : Packet
         var f = ToArray();
         return new ServerPacket(f);
     }
-
-
 }
