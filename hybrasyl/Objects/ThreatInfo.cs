@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Atn;
+using Serilog;
 
 namespace Hybrasyl.Objects;
 
@@ -69,16 +70,21 @@ public class ThreatInfo(Guid id)
     public List<Creature> GetTargets(CreatureTargetPriority priority)
     {
         var ret = new List<Creature>();
-        if (OwnerObject == null) return ret;
+        if (OwnerObject == null) 
+            return ret;
         ThreatEntry entry;
         var monstersInViewport = OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList();
         if (OwnerObject.Condition.Charmed)
         {
             switch (OwnerObject.LastTarget)
             {
-                // If our immediate target is grouped, add every monster they've collectively targeted to our target list.
-                case User { Group: not null } u1:
-                    ret.AddRange(u1.Group.Members.Where(x=> x.LastTarget != null).Select(y => y.LastTarget));
+                // If our immediate target is grouped, add every monster they've collectively targeted to our target list,
+                // otherwise add their last target - but make sure not to add ourselves
+                case User u1:
+                    if (u1.Group != null)
+                        ret.AddRange(u1.Group.Members.Where(x=> x.LastTarget != null && x.LastTarget != OwnerObject));
+                    else if (u1.LastTarget != OwnerObject)
+                        ret.Add(u1.LastTarget);
                     break;
                 // If we are already targeting a monster, continue to target it
                 case Monster:
@@ -88,19 +94,19 @@ public class ThreatInfo(Guid id)
                 default:
                 {
                     if (LastCaster is User u2)
-                    {
                         ret.AddRange(monstersInViewport.Where(x => x.ThreatInfo.ContainsThreat(LastCaster)));
-                    }
                     break;
                 }
             }
             // If we still have no targets, or our (singular) target is dead, add every monster in the viewport.
             if (ret.Count == 0 || (ret.Count == 1 && ret.First().Stats.Hp <= 0))
-                ret.AddRange(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>());
+                ret.AddRange(monstersInViewport);
             // Order by distance, take closest first, make sure to not target ourselves
             return ret.OrderBy(x => x.Distance(OwnerObject)).Where(x => x.Guid != Owner).ToList();
-
         }
+
+        if (ThreatTableByThreat.Count == 0)
+            return ret;
 
         switch (priority)
         {

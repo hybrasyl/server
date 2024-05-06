@@ -350,69 +350,87 @@ public class Monster : Creature, ICloneable, IEphemeral
             DeathProcessed = true;
             _actionQueue.Clear();
 
-            // TODO: implement death for charmed monsters
-            if (!(LastHitter is User hitter))
+            User hitter = null;
+            switch (LastHitter)
             {
-                Map.Remove(this);
-                World.Remove(this);
-                GameLog.Error("OnDeath: lasthitter was null");
-                return; // Don't handle cases of MOB ON MOB COMBAT just yet
+                case Monster monster:
+                {
+                    if (Condition.Charmed)
+                    {
+                        var statuses = monster.CurrentStatuses.Values.Cast<CreatureStatus>().Where(x =>
+                            x.ConditionChanges != null && (x.ConditionChanges.Set & CreatureCondition.Charm) != 0).ToList();
+                        if (statuses.Count != 0)
+                        {
+                            hitter = statuses.First().Source as User;
+                        }
+                    }
+                    break;
+                }
+                case User:
+                    hitter = LastHitter as User;
+                    break;
             }
 
-            try
+            // hitter should now resolve either to someone who cast a charm on us, or the last player to damage us;
+            // if not, we skip loot + experience allowance
+
+            if (hitter != null)
             {
-                var deadTime = DateTime.Now;
-
-                if (hitter.Grouped)
+                try
                 {
-                    ItemDropAllowedLooters = hitter.Group.Members.Select(selector: user => user.Name).ToList();
-                    hitter.Group.Members.ForEach(action: x => x.TrackKill(Name, deadTime));
-                }
-                else
-                {
-                    ItemDropAllowedLooters.Add(hitter.Name);
-                    hitter.TrackKill(Name, deadTime);
-                }
+                    var deadTime = DateTime.Now;
 
-                hitter.ShareExperience(LootableXp, Stats.Level);
-                if (hitter.Stats.ExtraXp > 0)
-                    hitter.GiveExperience(LootableXp, true);
-
-                var itemDropTime = DateTime.Now;
-
-                if (LootableGold > 0)
-                {
-                    var goldObj = new Gold(hitter.CalculateGold(LootableGold))
+                    if (hitter.Grouped)
                     {
-                        ItemDropType = ItemDropType.MonsterLootPile,
-                        ItemDropAllowedLooters = ItemDropAllowedLooters,
-                        ItemDropTime = itemDropTime
-                    };
-                    World.Insert(goldObj);
-                    Map.Insert(goldObj, X, Y);
-                }
-
-                foreach (var itemname in LootableItems)
-                {
-                    var item = Game.World.CreateItem(itemname);
-                    if (item == null)
+                        ItemDropAllowedLooters = hitter.Group.Members.Select(selector: user => user.Name).ToList();
+                        hitter.Group.Members.ForEach(action: x => x.TrackKill(Name, deadTime));
+                    }
+                    else
                     {
-                        GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing",
-                            hitter.Name, Name, itemname);
-                        continue;
+                        ItemDropAllowedLooters.Add(hitter.Name);
+                        hitter.TrackKill(Name, deadTime);
                     }
 
-                    item.ItemDropType = ItemDropType.MonsterLootPile;
-                    item.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                    item.ItemDropTime = itemDropTime;
-                    World.Insert(item);
-                    Map.Insert(item, X, Y);
+                    hitter.ShareExperience(LootableXp, Stats.Level);
+                    if (hitter.Stats.ExtraXp > 0)
+                        hitter.GiveExperience(LootableXp, true);
+
+                    var itemDropTime = DateTime.Now;
+
+                    if (LootableGold > 0)
+                    {
+                        var goldObj = new Gold(hitter.CalculateGold(LootableGold))
+                        {
+                            ItemDropType = ItemDropType.MonsterLootPile,
+                            ItemDropAllowedLooters = ItemDropAllowedLooters,
+                            ItemDropTime = itemDropTime
+                        };
+                        World.Insert(goldObj);
+                        Map.Insert(goldObj, X, Y);
+                    }
+
+                    foreach (var itemname in LootableItems)
+                    {
+                        var item = Game.World.CreateItem(itemname);
+                        if (item == null)
+                        {
+                            GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing",
+                                hitter.Name, Name, itemname);
+                            continue;
+                        }
+
+                        item.ItemDropType = ItemDropType.MonsterLootPile;
+                        item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                        item.ItemDropTime = itemDropTime;
+                        World.Insert(item);
+                        Map.Insert(item, X, Y);
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
-                Game.ReportException(e);
+                catch (Exception e)
+                {
+                    GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
+                    Game.ReportException(e);
+                }
             }
 
             Game.World.RemoveStatusCheck(this);
@@ -854,6 +872,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
+        Target = target;
     }
 
     public void Attack()
@@ -863,6 +882,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             AssailAttack(Direction, ThreatInfo.HighestThreat);
         else
             Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
+        Target = Target;
     }
 
 
@@ -881,9 +901,11 @@ public class Monster : Creature, ICloneable, IEphemeral
             return;
         }
 
-        if (ThreatInfo.HighestThreat != null)
+        var target = Condition.Charmed ? Target : ThreatInfo.HighestThreat;
+
+        if (target != null)
         {
-            if (Distance(ThreatInfo.HighestThreat) == 1)
+            if (Distance(target) == 1)
             {
                 _actionQueue.Enqueue(MobAction.Attack);
             }
@@ -965,10 +987,13 @@ public class Monster : Creature, ICloneable, IEphemeral
                             _actionQueue.Enqueue(MobAction.Move);
                         }
                         else
-                            Cast(nextCastable.Slot, Target);
+                        {
+                            if (!CheckFacing(Direction, Target))
+                                Turn(Relation(Target.X, Target.Y));
 
-                        if (!CheckFacing(Direction, Target))
-                            Turn(Relation(Target.X, Target.Y));
+                            Cast(nextCastable.Slot, Target);
+                        }
+
                         return;
                     }
 
@@ -979,6 +1004,18 @@ public class Monster : Creature, ICloneable, IEphemeral
                     return;
                 case MobAction.Move when ShouldWander || Condition.Blinded:
                     {
+                        if (!Condition.Blinded)
+                        {
+                            var target = ThreatInfo
+                                .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
+                                .FirstOrDefault();
+                            if (target != null)
+                            {
+                                ShouldWander = false;
+                                return;
+                            }
+                        }
+
                         var rand = Random.Shared.NextDouble();
                         var dir = Random.Shared.Next(0, 4);
                         if (rand > 0.33)
@@ -1016,8 +1053,8 @@ public class Monster : Creature, ICloneable, IEphemeral
                             if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
                             if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
                             Target = target;
-                            CurrentPath = AStarPathFind(Target.Location.X,
-                                Target.Location.Y, X, Y);
+                            CurrentPath = AStarPathFind(target.Location.X,
+                                target.Location.Y, X, Y);
                         }
 
                         if (CurrentPath != null)
@@ -1103,7 +1140,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0) Active = true;
 
-                if (IsHostile(user) && ThreatInfo.HighestThreat == null)
+                if (IsHostile(user))
                 {
                     ThreatInfo.OnRangeEnter(user);
                     ShouldWander = false;

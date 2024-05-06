@@ -39,7 +39,7 @@ public class Creature : VisibleObject
 {
     private readonly object _lock = new();
 
-    protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+    protected ConcurrentDictionary<ushort, ICreatureStatus> CurrentStatuses;
 
     private uint _mLastHitter;
 
@@ -49,7 +49,7 @@ public class Creature : VisibleObject
         Equipment = new Equipment(18);
         Stats = new StatInfo();
         Condition = new ConditionInfo(this);
-        _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+        CurrentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         LastHitTime = DateTime.MinValue;
         Statuses = new List<StatusInfo>();
         Cookies = new Dictionary<string, string>();
@@ -68,7 +68,7 @@ public class Creature : VisibleObject
 
     [JsonProperty] public List<StatusInfo> Statuses { get; set; }
 
-    public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Count > 0 ? _currentStatuses.Values.Select(selector: e => e.Info).ToList() : new List<StatusInfo>();
+    public List<StatusInfo> CurrentStatusInfo => CurrentStatuses.Count > 0 ? CurrentStatuses.Values.Select(selector: e => e.Info).ToList() : new List<StatusInfo>();
 
     public uint Gold => Stats.Gold;
 
@@ -447,38 +447,53 @@ public class Creature : VisibleObject
 
             // Process intent flags
 
-            var this_id = Id;
-
-            if (this is Monster)
+            switch (this)
             {
                 // No hostile flag: remove players
-                if (intent.Flags.Contains(IntentFlags.Hostile)) finalTargets.AddRange(actualTargets.OfType<User>());
+                case Monster when Condition.Charmed:
+                {
+                    if (intent.Flags.Contains(IntentFlags.Hostile))
+                        finalTargets.AddRange(actualTargets.OfType<Monster>());
 
-                // No friendly flag: remove monsters
-                if (intent.Flags.Contains(IntentFlags.Friendly)) finalTargets.AddRange(actualTargets.OfType<Monster>());
+                    // No friendly flag, or not charmed - remove monsters
+                    if (intent.Flags.Contains(IntentFlags.Friendly))
+                        finalTargets.AddRange(actualTargets.OfType<User>());
+                    break;
+                }
                 // Group / pvp: n/a
-            }
-            else if (this is User userobj)
-            {
-                // No PVP flag: remove PVP flagged players
-                // No hostile flag: remove monsters
-                // No friendly flag: remove non-PVP flagged players
-                // No group flag: remove group members
-                if (intent.Flags.Contains(IntentFlags.Hostile)) finalTargets.AddRange(actualTargets.OfType<Monster>());
+                case Monster:
+                {
+                    if (intent.Flags.Contains(IntentFlags.Hostile))
+                        finalTargets.AddRange(actualTargets.OfType<User>());
 
-                if (intent.Flags.Contains(IntentFlags.Friendly))
-                    finalTargets.AddRange(actualTargets.OfType<User>()
-                        .Where(predicate: e => e.Condition.PvpEnabled == false && e.Id != Id));
+                    // No friendly flag, or not charmed - remove monsters
+                    if (intent.Flags.Contains(IntentFlags.Friendly))
+                        finalTargets.AddRange(actualTargets.OfType<Monster>());
+                    break;
+                }
+                case User userobj:
+                {
+                    // No PVP flag: remove PVP flagged players
+                    // No hostile flag: remove monsters
+                    // No friendly flag: remove non-PVP flagged players
+                    // No group flag: remove group members
+                    if (intent.Flags.Contains(IntentFlags.Hostile)) finalTargets.AddRange(actualTargets.OfType<Monster>());
 
-                if (intent.Flags.Contains(IntentFlags.Pvp))
-                    finalTargets.AddRange(actualTargets.OfType<User>()
-                        .Where(predicate: e => e.Condition.PvpEnabled && e.Id != Id));
-
-                if (intent.Flags.Contains(IntentFlags.Group))
-                    // Remove group members
-                    if (userobj.Group != null)
+                    if (intent.Flags.Contains(IntentFlags.Friendly))
                         finalTargets.AddRange(actualTargets.OfType<User>()
-                            .Where(predicate: e => userobj.Group.Contains(e)));
+                            .Where(predicate: e => e.Condition.PvpEnabled == false && e.Id != Id));
+
+                    if (intent.Flags.Contains(IntentFlags.Pvp))
+                        finalTargets.AddRange(actualTargets.OfType<User>()
+                            .Where(predicate: e => e.Condition.PvpEnabled && e.Id != Id));
+
+                    if (intent.Flags.Contains(IntentFlags.Group))
+                        // Remove group members
+                        if (userobj.Group != null)
+                            finalTargets.AddRange(actualTargets.OfType<User>()
+                                .Where(predicate: e => userobj.Group.Contains(e)));
+                    break;
+                }
             }
 
             // No Self flag: remove self 
@@ -625,6 +640,8 @@ public class Creature : VisibleObject
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, castableXml, false);
+                if (tar is Monster m)
+                    m.ThreatInfo.LastCaster = this;
                 ProcessProcs(ProcEventType.OnHit, castableXml, tar);
 
                 if (tar is User u && !castableXml.IsAssail)
@@ -687,9 +704,10 @@ public class Creature : VisibleObject
                             m.SendImmunityMessage(immunity, this);
                             apply = false;
                     }
+
                     if (apply)
-                       tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
-                        status.Intensity));
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
+                            status.Intensity));
                 }
                 else
                 {
@@ -1316,7 +1334,7 @@ public class Creature : VisibleObject
                 return false;
             }
         }
-        if (!_currentStatuses.TryAdd(status.Icon, status)) 
+        if (!CurrentStatuses.TryAdd(status.Icon, status)) 
             return false;
         if (this is User u)
         {
@@ -1327,6 +1345,9 @@ public class Creature : VisibleObject
                 if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
                     reactor.ShowTo(this);
         }
+
+        if (this is Monster m2)
+            m2.ThreatInfo.LastCaster = status.Source;
 
         status.OnStart(sendUpdates);
         if (sendUpdates)
@@ -1364,7 +1385,7 @@ public class Creature : VisibleObject
     public bool RemoveStatus(ushort icon, bool onEnd = true)
     {
         ICreatureStatus status;
-        if (!_currentStatuses.TryRemove(icon, out status)) return false;
+        if (!CurrentStatuses.TryRemove(icon, out status)) return false;
         _removeStatus(status, onEnd);
         UpdateAttributes(StatUpdateFlags.Full);
         if (this is User u)
@@ -1378,7 +1399,7 @@ public class Creature : VisibleObject
 
     public bool TryGetStatus(string name, out ICreatureStatus status)
     {
-        status = _currentStatuses.Values.FirstOrDefault(predicate: s => s.Name == name);
+        status = CurrentStatuses.Values.FirstOrDefault(predicate: s => s.Name == name);
         return status != null;
     }
 
@@ -1387,12 +1408,12 @@ public class Creature : VisibleObject
     /// </summary>
     public void RemoveAllStatuses()
     {
-        lock (_currentStatuses)
+        lock (CurrentStatuses)
         {
-            foreach (var status in _currentStatuses.Values) _removeStatus(status, false);
+            foreach (var status in CurrentStatuses.Values) _removeStatus(status, false);
 
-            _currentStatuses.Clear();
-            GameLog.Debug($"Current status count is {_currentStatuses.Count}");
+            CurrentStatuses.Clear();
+            GameLog.Debug($"Current status count is {CurrentStatuses.Count}");
         }
     }
 
@@ -1401,7 +1422,7 @@ public class Creature : VisibleObject
     /// </summary>
     public void ProcessStatusTicks()
     {
-        foreach (var kvp in _currentStatuses)
+        foreach (var kvp in CurrentStatuses)
         {
             GameLog.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
 
@@ -1423,7 +1444,7 @@ public class Creature : VisibleObject
         }
     }
 
-    public int ActiveStatusCount => _currentStatuses.Count;
+    public int ActiveStatusCount => CurrentStatuses.Count;
 
     #endregion
 }

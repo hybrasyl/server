@@ -682,7 +682,7 @@ public class User : Creature
         ClientSettings = new Dictionary<byte, bool>();
         Group = null;
         Flags = new Dictionary<string, bool>();
-        _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+        CurrentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         RecentKills = new List<KillRecord>();
         MessagesReceived = new List<SpokenEvent>();
 
@@ -5259,9 +5259,9 @@ public class User : Creature
     [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
 
     public List<string> UseCastRestrictions =>
-        _currentStatuses.SelectMany(selector: e => e.Value.UseCastRestrictions).ToList();
+        CurrentStatuses.SelectMany(selector: e => e.Value.UseCastRestrictions).ToList();
 
-    public List<string> ReceiveCastRestrictions => _currentStatuses
+    public List<string> ReceiveCastRestrictions => CurrentStatuses
         .SelectMany(selector: e => e.Value.ReceiveCastRestrictions).ToList();
 
     private Nation _nation;
