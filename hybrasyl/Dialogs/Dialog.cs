@@ -1,13 +1,31 @@
-﻿using Hybrasyl.Casting;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using Hybrasyl.Casting;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using Serilog;
-using System;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace Hybrasyl.Dialogs;
 
@@ -21,7 +39,7 @@ public class Dialog
 
     public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
     {
-        DialogType = (ushort)dialogType;
+        DialogType = (ushort) dialogType;
         _displayText = displayText;
         CallbackExpression = callbackFunction;
         _regex = new Regex(_tokenRegex, RegexOptions.Compiled);
@@ -128,17 +146,17 @@ public class Dialog
         DialogObjectType objType = 0;
 
         var dialogPacket = new ServerPacket(0x30);
-        dialogPacket.WriteByte((byte)DialogType);
+        dialogPacket.WriteByte((byte) DialogType);
 
         switch (invocation.Origin)
         {
             case Creature creature:
-                sprite = (ushort)(0x4000 + creature.Sprite);
+                sprite = (ushort) (0x4000 + creature.Sprite);
                 objType = DialogObjectType.Creature;
                 break;
             case ItemObject itemObject:
                 objType = DialogObjectType.ItemObject;
-                sprite = (ushort)(0x8000 + itemObject.Sprite);
+                sprite = (ushort) (0x8000 + itemObject.Sprite);
                 color = itemObject.Color;
                 break;
             case Reactor r:
@@ -158,7 +176,7 @@ public class Dialog
         if (sprite == 0)
             sprite = Sprite > 0 ? Sprite : Sequence?.Sprite ?? invocation.Target.DialogState.Associate.DialogSprite;
 
-        dialogPacket.WriteByte((byte)objType);
+        dialogPacket.WriteByte((byte) objType);
         dialogPacket.WriteUInt32(invocation.Origin.Id);
         dialogPacket.WriteByte(0); // Unknown value
         GameLog.Info("Sprite is {Sprite}", sprite);
@@ -169,8 +187,8 @@ public class Dialog
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
         Log.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
-        dialogPacket.WriteUInt16((ushort)Sequence.Id);
-        dialogPacket.WriteUInt16((ushort)Index);
+        dialogPacket.WriteUInt16((ushort) Sequence.Id);
+        dialogPacket.WriteUInt16((ushort) Index);
 
         dialogPacket.WriteBoolean(HasPrevDialog());
         dialogPacket.WriteBoolean(HasNextDialog());

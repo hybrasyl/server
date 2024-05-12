@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
@@ -252,7 +249,6 @@ internal static class NumberCruncher
     /// <returns></returns>
     public static CastCost CalculateCastCost(Castable castable, Creature target, Creature source)
     {
-
         if (castable == null) return new CastCost { Mp = 0 };
         var cost = new CastCost();
 
@@ -288,7 +284,7 @@ internal static class NumberCruncher
         if (bonus == null)
             return new StatInfo();
 
-        var modifiers = new StatInfo()
+        var modifiers = new StatInfo
         {
             BaseStr = (long)_evalFormula(bonus.BaseStr, null, source),
             BaseInt = (long)_evalFormula(bonus.BaseInt, null, source),
@@ -404,7 +400,7 @@ internal static class NumberCruncher
             BonusDodge = _evalFormula(effect.BonusDodge, item, source),
             BonusMagicDodge = _evalFormula(effect.BonusMagicDodge, item, source),
             BonusDmg = _evalFormula(effect.BonusDmg, item, source),
-            BonusHit = _evalFormula(effect.BonusHit, item, source),         
+            BonusHit = _evalFormula(effect.BonusHit, item, source),
             BonusAc = (long)_evalFormula(effect.BonusAc, item, source),
             BonusMr = _evalFormula(effect.BonusMr, item, source),
             BonusRegen = _evalFormula(effect.BonusRegen, item, source),

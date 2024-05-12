@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Interfaces;
 using Hybrasyl.Messaging;
@@ -32,14 +29,12 @@ using System.Security.Cryptography;
 
 namespace Hybrasyl;
 
-
 public enum CastableFilter
 {
     SkillsOnly,
     SpellsOnly,
     SkillsAndSpells
 }
-
 
 public class WorldStateStore
 {
@@ -69,6 +64,8 @@ public class WorldStateStore
     public bool Ready { get; set; } = false;
 
     private HashSet<Type> RedisTypes { get; }
+
+    public List<QuestMetadata> QuestMetadata => _questDataStore.Values.ToList();
 
     /// <summary>
     ///     Normalize keys by converting to lowercase and removing whitespace (this means that
@@ -126,8 +123,11 @@ public class WorldStateStore
         return true;
     }
 
-    public bool RemoveWorldObject<T>(Guid guid) where T : WorldObject, IStateStorable => _indexByGuid.Remove(guid, out _);
-    public bool SetWorldObject<T>(Guid guid, T obj) where T : WorldObject, IStateStorable => _indexByGuid.TryAdd(guid, obj);
+    public bool RemoveWorldObject<T>(Guid guid) where T : WorldObject, IStateStorable =>
+        _indexByGuid.Remove(guid, out _);
+
+    public bool SetWorldObject<T>(Guid guid, T obj) where T : WorldObject, IStateStorable =>
+        _indexByGuid.TryAdd(guid, obj);
 
     /// <summary>
     ///     Return the first of any known type (e.g. first map, first NPC, etc)
@@ -200,8 +200,9 @@ public class WorldStateStore
     /// <param name="value">The actual object to be stored</param>
     /// <param name="index">The index key for the object</param>
     /// <returns>Boolean indicating success</returns>
-    public bool SetWithIndex<T>(dynamic key, T value, dynamic index) where T : IStateStorable => GetSubStore<T>().TryAdd(Sanitize(key), value) &&
-                                                                        GetSubIndex<T>().TryAdd(Sanitize(index), value);
+    public bool SetWithIndex<T>(dynamic key, T value, dynamic index) where T : IStateStorable =>
+        GetSubStore<T>().TryAdd(Sanitize(key), value) &&
+        GetSubIndex<T>().TryAdd(Sanitize(index), value);
 
     /// <summary>
     ///     Returns all the objects contained in the datastore of the specified type's substore.
@@ -237,7 +238,8 @@ public class WorldStateStore
     /// </summary>
     /// <typeparam name="T">The type to return</typeparam>
     /// <returns>IDictionary of objects of the specified type.</returns>
-    public IDictionary<string, T> GetDictionary<T>() where T : IStateStorable => (IDictionary<string, T>)_dataStore[typeof(T)];
+    public IDictionary<string, T> GetDictionary<T>() where T : IStateStorable =>
+        (IDictionary<string, T>)_dataStore[typeof(T)];
 
     /// <summary>
     ///     Remove an object from the datastore.
@@ -245,9 +247,11 @@ public class WorldStateStore
     /// <typeparam name="T">The type of the object to remove</typeparam>
     /// <param name="key">The key corresponding to the object to be removed</param>
     /// <returns></returns>
-    public bool Remove<T>(dynamic key) where T : IStateStorable => GetSubStore<T>().TryRemove(Sanitize(key), out dynamic _);
+    public bool Remove<T>(dynamic key) where T : IStateStorable =>
+        GetSubStore<T>().TryRemove(Sanitize(key), out dynamic _);
 
-    public bool RemoveIndex<T>(dynamic index) where T : IStateStorable => GetSubIndex<T>().TryRemove(Sanitize(index), out dynamic _);
+    public bool RemoveIndex<T>(dynamic index) where T : IStateStorable =>
+        GetSubIndex<T>().TryRemove(Sanitize(index), out dynamic _);
 
     // Convenience finder functions below for various non-generic types.
     // This can probably be further genericized, moving forward.
@@ -300,7 +304,8 @@ public class WorldStateStore
         return true;
     }
 
-    public T GetOrCreate<T>(GuidReference reference) where T : IStateStorable => GetOrCreateByGuid<T>(reference.UserGuid, reference.UserName);
+    public T GetOrCreate<T>(GuidReference reference) where T : IStateStorable =>
+        GetOrCreateByGuid<T>(reference.UserGuid, reference.UserName);
 
     public T GetOrCreateByGuid<T>(Guid guid, string index = "") where T : IStateStorable
     {
@@ -403,7 +408,4 @@ public class WorldStateStore
     }
 
     public bool RegisterQuest(QuestMetadata data) => _questDataStore.TryAdd(data.Id, data);
-
-    public List<QuestMetadata> QuestMetadata => _questDataStore.Values.ToList();
-
 }

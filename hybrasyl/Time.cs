@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Humanizer;
 using Hybrasyl.Xml.Objects;
@@ -93,7 +90,8 @@ public class HybrasylTime
                 nameof(age));
         var hybticks = year * TicksPerYear + moon * TicksPerMoon + sun * TicksPerSun + hour + TicksPerHour +
                        minute * TicksPerMinute;
-        TerranDateTime = Game.ActiveConfiguration.Time.Ages.First(predicate: a => a.Name == age).StartDate.AddTicks(hybticks / 8);
+        TerranDateTime = Game.ActiveConfiguration.Time.Ages.First(predicate: a => a.Name == age).StartDate
+            .AddTicks(hybticks / 8);
     }
 
     /// <summary>
@@ -158,7 +156,9 @@ public class HybrasylTime
         : "Hybrasyl";
 
     public static int DefaultYear => Game.ActiveConfiguration != null
-        ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultYear != 1 ? Game.ActiveConfiguration.Time.ServerStart.DefaultYear : 1
+        ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultYear != 1
+            ? Game.ActiveConfiguration.Time.ServerStart.DefaultYear
+            : 1
         : 1;
 
     /// <summary>
@@ -166,7 +166,11 @@ public class HybrasylTime
     ///     if we can't find that, the current running server's start time
     /// </summary>
     public static HybrasylAge DefaultAge => new()
-    { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time?.ServerStart?.Value ?? Game.StartDate };
+    {
+        Name = "Hybrasyl",
+        StartYear = 1,
+        StartDate = Game.ActiveConfiguration.Time?.ServerStart?.Value ?? Game.StartDate
+    };
 
     public static string CurrentAgeName => CurrentAge.Name;
 
@@ -199,7 +203,8 @@ public class HybrasylTime
 
     public static bool ValidAge(string age)
     {
-        return Game.ActiveConfiguration.Time?.Ages?.Where(predicate: a => a.Name == age).Count() > 0 || DefaultAgeName == age;
+        return Game.ActiveConfiguration.Time?.Ages?.Where(predicate: a => a.Name == age).Count() > 0 ||
+               DefaultAgeName == age;
     }
 
     public override string ToString()
@@ -225,7 +230,9 @@ public class HybrasylTime
         if (Game.ActiveConfiguration.Time.Ages.Count == 0)
             // Construct and return our default
             return new List<HybrasylAge>
-                { new()  { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time.ServerStart.Value } };
+            {
+                new()  { Name = "Hybrasyl", StartYear = 1, StartDate = Game.ActiveConfiguration.Time.ServerStart.Value }
+            };
         return Game.ActiveConfiguration.Time.Ages;
     }
 

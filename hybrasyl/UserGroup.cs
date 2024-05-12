@@ -1,29 +1,26 @@
-/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -62,7 +59,7 @@ public class UserGroup
     public Dictionary<Class, uint> ClassCount { get; }
     public GroupRecruit RecruitInfo => Founder.GroupRecruit;
 
-    public byte AverageLevel => (byte)Math.Ceiling(Members.Average(selector: x => x.Stats.Level));
+    public byte AverageLevel => (byte) Math.Ceiling(Members.Average(selector: x => x.Stats.Level));
 
     public int Count => Members.Count;
 
@@ -93,7 +90,7 @@ public class UserGroup
             Members.Add(user);
             user.Group = this;
             ClassCount[user.Class]++;
-            MaxMembers = (uint)Math.Max(MaxMembers, Members.Count);
+            MaxMembers = (uint) Math.Max(MaxMembers, Members.Count);
         }
 
         if (user != Founder && user.GroupRecruit != null)
@@ -166,22 +163,22 @@ public class UserGroup
                 exp = 1;
                 break;
             case 5:
-                exp = (uint)Math.Ceiling(exp * 0.40);
+                exp = (uint) Math.Ceiling(exp * 0.40);
                 break;
             case 4:
-                exp = (uint)Math.Ceiling(exp * 0.80);
+                exp = (uint) Math.Ceiling(exp * 0.80);
                 break;
             case -6:
-                exp = (uint)Math.Ceiling(exp * 1.15);
+                exp = (uint) Math.Ceiling(exp * 1.15);
                 break;
             case -5:
-                exp = (uint)Math.Ceiling(exp * 1.10);
+                exp = (uint) Math.Ceiling(exp * 1.10);
                 break;
             case -4:
-                exp = (uint)Math.Ceiling(exp * 1.05);
+                exp = (uint) Math.Ceiling(exp * 1.05);
                 break;
             case < -7:
-                exp = (uint)Math.Ceiling(exp * 1.20);
+                exp = (uint) Math.Ceiling(exp * 1.20);
                 break;
         }
 
@@ -234,7 +231,7 @@ public class UserGroup
                 1; // will always be 1 when source is in range. set back to 0 to not penalize solo while grouped.
             if (inRange > 5) inRange = 5; //limit to max 45% decrease
 
-            full = (uint)(full * ((100 - inRange * 7.5) / 100));
+            full = (uint) (full * ((100 - inRange * 7.5) / 100));
         }
 
         return Distribution_Full(source, full);
@@ -293,7 +290,7 @@ public class GroupRecruit
             Class.Peasant => 0,
             Class.Rogue => RoguesWanted,
             Class.Wizard => WizardsWanted,
-            _ => _wanted[(int)cl - 1]
+            _ => _wanted[(int) cl - 1]
         };
     }
 
@@ -303,8 +300,8 @@ public class GroupRecruit
         {
             Name = packet.ReadString8(),
             Note = packet.ReadString8(),
-            StartingLevelRange = Math.Max((int)packet.ReadByte(), 1),
-            EndingLevelRange = Math.Clamp((int)packet.ReadByte(), 1, 99),
+            StartingLevelRange = Math.Max((int) packet.ReadByte(), 1),
+            EndingLevelRange = Math.Clamp((int) packet.ReadByte(), 1, 99),
             _wanted = new[]
             {
                 Math.Min((int) packet.ReadByte(), 13),
@@ -319,7 +316,7 @@ public class GroupRecruit
     public void ShowTo(User user)
     {
         var groupPacket = new ServerPacket(0x63);
-        groupPacket.WriteByte((byte)GroupServerPacketType.RecruitInfo);
+        groupPacket.WriteByte((byte) GroupServerPacketType.RecruitInfo);
         WriteInfo(groupPacket);
         user.Enqueue(groupPacket);
     }
@@ -329,18 +326,18 @@ public class GroupRecruit
         packet.WriteString8(Recruiter.Name);
         packet.WriteString8(Name);
         packet.WriteString8(Note);
-        packet.WriteByte((byte)StartingLevelRange);
-        packet.WriteByte((byte)EndingLevelRange);
-        packet.WriteByte((byte)WarriorsWanted);
-        packet.WriteByte((byte)(Group?.ClassCount[Class.Warrior] ?? 0));
-        packet.WriteByte((byte)WizardsWanted);
-        packet.WriteByte((byte)(Group?.ClassCount[Class.Wizard] ?? 0));
-        packet.WriteByte((byte)RoguesWanted);
-        packet.WriteByte((byte)(Group?.ClassCount[Class.Rogue] ?? 0));
-        packet.WriteByte((byte)PriestsWanted);
-        packet.WriteByte((byte)(Group?.ClassCount[Class.Priest] ?? 0));
-        packet.WriteByte((byte)MonksWanted);
-        packet.WriteByte((byte)(Group?.ClassCount[Class.Monk] ?? 0));
+        packet.WriteByte((byte) StartingLevelRange);
+        packet.WriteByte((byte) EndingLevelRange);
+        packet.WriteByte((byte) WarriorsWanted);
+        packet.WriteByte((byte) (Group?.ClassCount[Class.Warrior] ?? 0));
+        packet.WriteByte((byte) WizardsWanted);
+        packet.WriteByte((byte) (Group?.ClassCount[Class.Wizard] ?? 0));
+        packet.WriteByte((byte) RoguesWanted);
+        packet.WriteByte((byte) (Group?.ClassCount[Class.Rogue] ?? 0));
+        packet.WriteByte((byte) PriestsWanted);
+        packet.WriteByte((byte) (Group?.ClassCount[Class.Priest] ?? 0));
+        packet.WriteByte((byte) MonksWanted);
+        packet.WriteByte((byte) (Group?.ClassCount[Class.Monk] ?? 0));
     }
 
     public bool InviteToGroup(User invitee)

@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Dialogs;
 using MoonSharp.Interpreter;
@@ -94,7 +91,7 @@ public class HybrasylDialogSequence
     /// <param name="displaySprite">Integer representing the creature display sprite in the client datfiles.</param>
     public void SetNpcDisplaySprite(int displaySprite)
     {
-        Sequence.Sprite = (ushort)(0x4000 + displaySprite);
+        Sequence.Sprite = (ushort) (0x4000 + displaySprite);
     }
 
     /// <summary>
@@ -104,7 +101,7 @@ public class HybrasylDialogSequence
     /// <param name="displaySprite">Integer representing the item display sprite in the client datfiles.</param>
     public void SetItemDisplaySprite(int displaySprite)
     {
-        Sequence.Sprite = (ushort)(0x8000 + displaySprite);
+        Sequence.Sprite = (ushort) (0x8000 + displaySprite);
     }
 
     /// <summary>

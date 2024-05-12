@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -89,13 +86,13 @@ internal class DestroyItemCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (byte.TryParse(args[0], out byte slot))
+        if (byte.TryParse(args[0], out var slot))
         {
             user.RemoveItem(slot);
             return Success("Destroyed.");
         }
 
-        return Fail($"That's not a slot.");
+        return Fail("That's not a slot.");
     }
 }
 
@@ -710,20 +707,24 @@ internal class DebugCommand : ChatCommand
 {
     public new static string Command = "debug";
     public new static string ArgumentText = "None";
-    public new static string HelpText = "Toggle whether or not debug logging is enabled on the server. WARNING: It's a lot of logs.";
+
+    public new static string HelpText =
+        "Toggle whether or not debug logging is enabled on the server. WARNING: It's a lot of logs.";
+
     public new static bool Privileged = true;
 
-    public new static ChatCommandResult Run(User user, params string[] args)
-    {
-        return Success(GameLog.ToggleDebug() ? "Debugging enabled" : "Debugging disabled");
-    }
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Success(GameLog.ToggleDebug() ? "Debugging enabled" : "Debugging disabled");
 }
 
 internal class LogLevelCommand : ChatCommand
 {
     public new static string Command = "loglevel";
     public new static string ArgumentText = "<string type> <string loglevel>";
-    public new static string HelpText = "Set the log level for a specific logging type. Use /loginfo to get a list of types and levels.";
+
+    public new static string HelpText =
+        "Set the log level for a specific logging type. Use /loginfo to get a list of types and levels.";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
@@ -750,17 +751,14 @@ internal class LogInfoCommand : ChatCommand
     {
         var txt = "Current Logging Configuration\n-----------------------------\n";
         foreach (var (type, logger) in GameLog.Loggers)
-        {
             txt = $"{txt}\n{type}: {logger.Level.MinimumLevel} ->\n {logger.Path.Replace("\\", "/")}\n";
-        }
 
         txt = $"{txt}\nAvailable Log Types:\n\n";
-        txt = Enum.GetValues<LogType>().Aggregate(txt, (current, strEnum) => $"{current} {strEnum}");
+        txt = Enum.GetValues<LogType>().Aggregate(txt, func: (current, strEnum) => $"{current} {strEnum}");
         txt = $"{txt}\nAvailable Log Levels:\n\n";
-        txt = Enum.GetValues<LogLevel>().Aggregate(txt, (current, strEnum) => $"{current} {strEnum}");
+        txt = Enum.GetValues<LogLevel>().Aggregate(txt, func: (current, strEnum) => $"{current} {strEnum}");
         return Success(txt, (byte)MessageType.SlateScrollbar);
     }
-
 }
 
 internal class ListMobCommand : ChatCommand
@@ -1157,7 +1155,7 @@ internal class GenerateArmor : ChatCommand
                             }
                         }
                     };
-                    Game.World.WorldData.AddWithIndex<Item>(item, item.Id, item.Name);
+                    Game.World.WorldData.AddWithIndex(item, item.Id, item.Name);
                     user.AddItem(item.Name);
                 }
                 break;

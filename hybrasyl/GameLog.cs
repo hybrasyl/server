@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Xml.Objects;
 using Serilog;
@@ -26,8 +23,8 @@ using Serilog.Events;
 using System;
 using System.Collections.Generic;
 using System.IO;
-namespace Hybrasyl;
 
+namespace Hybrasyl;
 
 public class HybrasylLogger
 {
@@ -53,7 +50,6 @@ public static class GameLog
             logger.Level.MinimumLevel = LogEventLevel.Warning;
             logger.Logger.Warning($"Level set to {level}");
             logger.Level.MinimumLevel = level;
-
         }
     }
 
@@ -121,6 +117,7 @@ public static class GameLog
             });
             Serilog.Log.Information($"Logger: added {config.Type} -> {path}");
         }
+
         // Ensure there is always a general logger and that it is "attached" to Serilog
         if (!Loggers.ContainsKey(LogType.General))
         {
@@ -141,7 +138,7 @@ public static class GameLog
                 DefaultLevel = LogEventLevel.Information,
                 Path = Path.Combine(dataDirectory, "general.log")
             });
-            GameLog.Info($"Logger: added General log");
+            Info("Logger: added General log");
         }
 
         Serilog.Log.Logger = Loggers[LogType.General].Logger;
@@ -150,7 +147,6 @@ public static class GameLog
     public static void Log(LogEventLevel level = LogEventLevel.Information, LogType logType = LogType.General,
         string messageTemplate = "", params object[] propertyValues)
     {
-
         var logger = GetLogger(logType).Logger;
 
         switch (level)

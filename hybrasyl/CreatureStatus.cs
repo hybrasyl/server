@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -208,6 +205,7 @@ public class CreatureStatus : ICreatureStatus
             }
         }
     }
+
     // TODO: xmlfix
     public string Category => XmlStatus.CategoryList.FirstOrDefault() ?? string.Empty;
     protected User TargetUser => Target as User;
@@ -221,12 +219,16 @@ public class CreatureStatus : ICreatureStatus
     public string Name => XmlStatus.Name;
     public ushort Icon => XmlStatus.Icon;
     public double Tick { get; }
+
     public double Duration { get; }
+
     // TODO: xmlfix
-    public List<string> UseCastRestrictions => XmlStatus.CastRestrictions.Where(x => !string.IsNullOrEmpty(x.Use)).Select(y => y.Use).ToList();
+    public List<string> UseCastRestrictions => XmlStatus.CastRestrictions
+        .Where(predicate: x => !string.IsNullOrEmpty(x.Use)).Select(selector: y => y.Use).ToList();
 
     public List<string> ReceiveCastRestrictions =>
-        XmlStatus.CastRestrictions.Where(x => !string.IsNullOrEmpty(x.Receive)).Select(y => y.Receive).ToList();
+        XmlStatus.CastRestrictions.Where(predicate: x => !string.IsNullOrEmpty(x.Receive))
+            .Select(selector: y => y.Receive).ToList();
 
     public double Intensity { get; set; } = 1;
 
@@ -298,7 +300,8 @@ public class CreatureStatus : ICreatureStatus
             {
                 var animation = effect.Animations.Target;
                 if (Target is Monster || !Target.Condition.Comatose || (Target.Condition.Comatose &&
-                                                                        animation.Id == (Game.ActiveConfiguration.Handlers?.Death
+                                                                        animation.Id == (Game.ActiveConfiguration
+                                                                            .Handlers?.Death
                                                                             ?.Coma?.Effect ?? 24)))
                     Target.Effect(effect.Animations.Target.Id, effect.Animations.Target.Speed);
             }
@@ -361,6 +364,7 @@ public class CreatureStatus : ICreatureStatus
                 dmg.Element = effect.Damage.Element;
             dmg.Type = effect.Damage.Type;
         }
+
         return (heal, dmg);
     }
 
@@ -368,7 +372,8 @@ public class CreatureStatus : ICreatureStatus
     {
         if (effect == null) return;
         if (effect.Damage != null && effect.Damage.Amount != 0)
-            Target.Damage(effect.Damage.Amount, effect.Damage.Element, effect.Damage.Type, effect.Damage.Flags, Source, Castable);
+            Target.Damage(effect.Damage.Amount, effect.Damage.Element, effect.Damage.Type, effect.Damage.Flags, Source,
+                Castable);
         if (effect.Heal != 0)
             Target.Heal(effect.Heal, Source, Castable);
     }

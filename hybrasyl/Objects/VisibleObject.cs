@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -80,14 +77,14 @@ public class VisibleObject : WorldObject, IVisible
 
     public HashSet<User> viewportUsers { get; private set; }
 
+    public SpokenEvent LastHeard { get; set; }
+
     [JsonProperty] public LocationInfo Location { get; set; }
 
     public ushort Sprite { get; set; }
     public string Portrait { get; set; }
     public string DisplayText { get; set; }
     public virtual void ShowTo(IVisible target) { }
-
-    public SpokenEvent LastHeard { get; set; }
 
     public int Distance(IVisible target) => Point.Distance(this, target);
 
@@ -225,6 +222,7 @@ public class VisibleObject : WorldObject, IVisible
             GameLog.Warning($"Teleport to nonexistent map {name}");
             return;
         }
+
         Map?.Remove(this);
         GameLog.DebugFormat("Teleporting {0} to {1}", Name, targetMap.Name);
         targetMap.Insert(this, x, y);
@@ -261,7 +259,7 @@ public class VisibleObject : WorldObject, IVisible
 
         foreach (var user in viewportUsers)
         {
-            var nPacket = (ServerPacket)soundPacket.Packet().Clone();
+            var nPacket = soundPacket.Packet().Clone();
             user.Enqueue(nPacket);
         }
     }

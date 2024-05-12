@@ -1,8 +1,24 @@
-﻿using System;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using System;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Threading;
-using Discord.Rest;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using Xunit;
@@ -21,7 +37,7 @@ public class Monsters
     public HybrasylFixture Fixture { get; set; }
 
     [Fact]
-    public void MonsterLearnCastables() 
+    public void MonsterLearnCastables()
     {
         Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
             "Gabbaghoul test monster not found");
@@ -30,33 +46,25 @@ public class Monsters
         Game.World.Insert(monster);
 
         foreach (var skillCategory in monster.BehaviorSet.LearnSkillCategories)
+        foreach (var skill in
+                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(skillCategory)))
         {
-            foreach (var skill in
-                     Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(skillCategory)))
-            {
-                var reqs = skill.Requirements.Where(x => x.Physical != null);
-                foreach (var req in reqs)
-                {
-                    if (monster.MeetsRequirement(req))
-                        Assert.True(monster.CastableController.ContainsCastable(skill.Name),
-                            $"Skills: Should know {skill.Name} but doesn't");
-                }
-            }
+            var reqs = skill.Requirements.Where(predicate: x => x.Physical != null);
+            foreach (var req in reqs)
+                if (monster.MeetsRequirement(req))
+                    Assert.True(monster.CastableController.ContainsCastable(skill.Name),
+                        $"Skills: Should know {skill.Name} but doesn't");
         }
 
         foreach (var spellCategory in monster.BehaviorSet.LearnSpellCategories)
+        foreach (var spell in
+                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
         {
-            foreach (var spell in
-                     Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
-            {
-                var reqs = spell.Requirements.Where(x => x.Physical != null);
-                foreach (var req in reqs)
-                {
-                    if (monster.MeetsRequirement(req))
-                        Assert.True(monster.CastableController.ContainsCastable(spell.Name),
-                            $"Skills: Should know {spell.Name} but doesn't");
-                }
-            }
+            var reqs = spell.Requirements.Where(predicate: x => x.Physical != null);
+            foreach (var req in reqs)
+                if (monster.MeetsRequirement(req))
+                    Assert.True(monster.CastableController.ContainsCastable(spell.Name),
+                        $"Skills: Should know {spell.Name} but doesn't");
         }
     }
 
@@ -215,11 +223,11 @@ public class Monsters
         Assert.Equal(bait.Map, Fixture.TestUser.Map);
 
         bait.BehaviorSet = behaviorSet;
-        
+
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
         var immunityTriggered =
-            behaviorSet.Immunities.FirstOrDefault(x => x.Type == CreatureImmunityType.Castable);
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Castable);
 
         Assert.NotNull(immunityTriggered);
         Assert.Equal((uint) 500, bait.Stats.Hp);
@@ -263,11 +271,11 @@ public class Monsters
         Assert.Equal(bait.Map, Fixture.TestUser.Map);
 
         bait.BehaviorSet = behaviorSet;
-        
+
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
         var immunityTriggered =
-            behaviorSet.Immunities.FirstOrDefault(x => x.Type == CreatureImmunityType.Element);
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Element);
 
         Assert.NotNull(immunityTriggered);
         Assert.Equal((uint) 500, bait.Stats.Hp);
@@ -290,13 +298,13 @@ public class Monsters
 
         var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
         Assert.NotNull(baitTemplate);
-        
+
         var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
         {
             Stats =
             {
                 BaseHp = 500,
-                Hp = 500,
+                Hp = 500
             },
             Name = "Bee Bait",
             X = (byte) (Fixture.TestUser.X - 1),
@@ -311,24 +319,23 @@ public class Monsters
         Assert.Equal(bait.Map, Fixture.TestUser.Map);
 
         bait.BehaviorSet = behaviorSet;
-        
+
         Fixture.TestUser.SpellBook.Add(castable);
         var beforeAc = bait.Stats.Ac;
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
         var immunityTriggered =
-            behaviorSet.Immunities.FirstOrDefault(x => x.Type == CreatureImmunityType.CastableCategory);
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.CastableCategory);
 
         Assert.NotNull(immunityTriggered);
         Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(beforeAc, bait.Stats.Ac);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
-        
+
         if (immunityTriggered.MessageType == Xml.Objects.MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
         else
             Assert.False(Fixture.TestUser.LastHeard.Shout);
         Assert.Empty(bait.Statuses);
-
     }
 
     [Fact]
@@ -365,17 +372,17 @@ public class Monsters
         Assert.Equal(bait.Map, Fixture.TestUser.Map);
 
         bait.BehaviorSet = behaviorSet;
-        
+
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
         Thread.Sleep(1000);
 
         var immunityTriggered =
-            behaviorSet.Immunities.FirstOrDefault(x => x.Type == CreatureImmunityType.StatusCategory);
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.StatusCategory);
 
         var beforeStr = bait.Stats.Str;
         Assert.NotNull(immunityTriggered);
-        Assert.Equal((byte) beforeStr, bait.Stats.Str);
+        Assert.Equal(beforeStr, bait.Stats.Str);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
 
         if (immunityTriggered.MessageType == Xml.Objects.MessageType.Shout)
@@ -401,17 +408,15 @@ public class Monsters
 
         var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
         {
-            Name = "Gabbaghoul Test",
+            Name = "Gabbaghoul Test"
         };
 
         Assert.True(bait.Stats.BaseHp > 100000);
         Assert.True(bait.Stats.BaseMp > 100000);
         Assert.True(bait.Stats.BaseStr > 100);
-
     }
 
     [Fact]
-
     public void MonsterWithDynamicStats()
     {
         Fixture.TestUser.LastHeard = null;
@@ -426,12 +431,11 @@ public class Monsters
 
         var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99, null, behaviorSet)
         {
-            Name = "Gabbaghoul Test",
+            Name = "Gabbaghoul Test"
         };
 
         // Gabba now has its base hp from leveling, and its buff defined in the behaviorset
         Assert.True(bait.Stats.BaseHp >= bait.Stats.Str * 200);
         Assert.True(bait.Stats.BaseMp >= bait.Stats.Int * 200);
-
     }
 }

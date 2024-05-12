@@ -1,23 +1,20 @@
-/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
@@ -25,19 +22,16 @@ using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Serilog;
 using Creature = Hybrasyl.Xml.Objects.Creature;
-
 
 namespace Hybrasyl;
 
 //This class is defined to control the mob spawning thread.
 internal class Monolith
 {
-    private ConcurrentDictionary<string, SpawnGroup> Spawns;
+    private readonly ConcurrentDictionary<string, SpawnGroup> Spawns;
 
     internal Monolith()
     {
@@ -84,16 +78,16 @@ internal class Monolith
             GameLog.Error($"Duplicate spawngroup (ignored): map {map.Name}, spawngroup {map.SpawnDirectives.Name}");
             return;
         }
+
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
         GameLog.Debug($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
     }
 
     public void Start()
     {
-
         foreach (var spawnmap in Game.World.WorldState.Values<MapObject>())
         {
-            if (spawnmap.SpawningDisabled) 
+            if (spawnmap.SpawningDisabled)
                 continue;
             LoadSpawns(spawnmap);
         }
@@ -123,6 +117,7 @@ internal class Monolith
                     }
                 }
             }
+
             Thread.Sleep(1000);
         }
     }
@@ -204,7 +199,8 @@ internal class Monolith
             {
                 spawn.Status.Disabled = true;
                 spawn.Status.LastException = ex;
-                GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to formula evaluation exception: {ex}", spawn.Name,
+                GameLog.SpawnError("Spawn {spawn} on map {map} disabled due to formula evaluation exception: {ex}",
+                    spawn.Name,
                     spawnmap.Name, ex);
                 continue;
             }
@@ -213,8 +209,8 @@ internal class Monolith
 
             if (currentCount >= maxcount)
             {
-                    GameLog.SpawnFatal(
-                        $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
+                GameLog.SpawnFatal(
+                    $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
                 if (spawnmap.SpawnDebug)
                     GameLog.SpawnInfo(
                         $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
@@ -298,7 +294,8 @@ internal class Monolith
                     if (spawn.Coordinates.Count != 0)
                     {
                         var coordinate =
-                            spawn.Coordinates.FirstOrDefault(coord => spawnmap.IsCreatureAt(coord.X, coord.Y) == false);
+                            spawn.Coordinates.FirstOrDefault(predicate: coord =>
+                                spawnmap.IsCreatureAt(coord.X, coord.Y) == false);
                         if (coordinate == null)
                             return;
                         xcoord = coordinate.X;
@@ -307,13 +304,14 @@ internal class Monolith
                     else
                     {
                         var tile = spawnmap.FindEmptyTile();
-                        if (tile == (-1,-1))
+                        if (tile == (-1, -1))
                         {
                             GameLog.SpawnFatal($"{spawnmap.Name}: {spawn.Name} - no empty tiles, aborting");
                             return;
                         }
-                        xcoord = (byte) tile.x;
-                        ycoord = (byte) tile.y;
+
+                        xcoord = (byte)tile.x;
+                        ycoord = (byte)tile.y;
                     }
 
 
@@ -389,7 +387,8 @@ internal class Monolith
                 }
                 else
                 {
-                    GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}: map {spawnmap.Name} Spawn {spawn.Name} not found");
+                    GameLog.SpawnWarning(
+                        $"Spawngroup {spawnGroup.Name}: map {spawnmap.Name} Spawn {spawn.Name} not found");
                 }
 
             spawn.Status.LastSpawnTime = DateTime.Now;

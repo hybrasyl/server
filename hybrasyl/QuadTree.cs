@@ -1,25 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) C3 (https://bitbucket.org/C3)
- *
- * This file, AND THIS FILE ONLY, is licensed under the zlib license
- * http://www.zlib.net/zlib_license.html
- *
- */
-
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 /* NOTES:
  * ------
@@ -28,7 +23,7 @@
  * Microsoft.Xna.Framework.Rectangle to supply the functionality for defining a
  * rectangle as well as providing the Contains and Intersects methods used for
  * determining what is in a quad or not.
- * 
+ *
  * This code can quite easily be modified to remove the dependence on the XNA
  * framework by removing the reference and updating anywhere that the rectangle
  * is used. The rest should function as is.

@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Messaging;
@@ -180,23 +177,26 @@ public static class HybrasylUtility
             userObj.SendSystemMessage(Game.World.GetLocalString("send_parcel_system_msg", ("$NAME", from)));
             userObj.UpdateAttributes(StatUpdateFlags.Secondary);
         }
+
         return true;
     }
 
-    public static bool RegisterQuest(string id, string title, string summary, string result, string reward, string prerequisite, int circle)
-    => Game.World.WorldState.RegisterQuest(new QuestMetadata()
-    {
-        Id = id,
-        Circle = circle,
-        Result = result,
-        Reward = reward,
-        Prerequisite = prerequisite,
-        Summary = summary,
-        Title = title
-    });
+    public static bool RegisterQuest(string id, string title, string summary, string result, string reward,
+        string prerequisite, int circle)
+        => Game.World.WorldState.RegisterQuest(new QuestMetadata
+        {
+            Id = id,
+            Circle = circle,
+            Result = result,
+            Reward = reward,
+            Prerequisite = prerequisite,
+            Summary = summary,
+            Title = title
+        });
 
 
-    public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level, bool aggro)
+    public static void CreateMonster(int mapId, byte x, byte y, string creatureName, string behaviorSet, int level,
+        bool aggro)
     {
         if (!Game.World.WorldData.TryGetValue<Creature>(creatureName, out var creature))
         {
@@ -219,16 +219,19 @@ public static class HybrasylUtility
         var monster = new Monster(creature, SpawnFlags.Active, (byte)level, null, cbs);
         monster.X = x;
         monster.Y = y;
-        monster.Hostility = aggro ? new CreatureHostilitySettings { Players = new CreatureHostility() } : new CreatureHostilitySettings();
+        monster.Hostility =
+            aggro
+                ? new CreatureHostilitySettings { Players = new CreatureHostility() }
+                : new CreatureHostilitySettings();
 
         World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.MonolithSpawn, monster, map));
     }
 
     /// <summary>
-    /// Convert a string direction to a <see cref="Direction"/> (intended for usage from Lua)
+    ///     Convert a string direction to a <see cref="Direction" /> (intended for usage from Lua)
     /// </summary>
     /// <param name="direction">The string to convert</param>
-    /// <returns>The appropriate <see cref="Direction"/> or North, if it could not be converted</returns>
+    /// <returns>The appropriate <see cref="Direction" /> or North, if it could not be converted</returns>
     public static Direction DirectionFromString(string direction)
     {
         return direction.ToLower() switch
@@ -242,10 +245,10 @@ public static class HybrasylUtility
     }
 
     /// <summary>
-    /// Given a <see cref="Direction"/>, return its opposite direction
+    ///     Given a <see cref="Direction" />, return its opposite direction
     /// </summary>
     /// <param name="direction">The direction to convert</param>
-    /// <returns>The appropriate <see cref="Direction"/> or North, if it could not be converted</returns>
+    /// <returns>The appropriate <see cref="Direction" /> or North, if it could not be converted</returns>
     public static Direction OppositeDirection(Direction direction)
     {
         return direction switch
@@ -254,15 +257,15 @@ public static class HybrasylUtility
             Direction.South => Direction.North,
             Direction.North => Direction.South,
             Direction.East => Direction.West,
-            _ => Direction.North,
+            _ => Direction.North
         };
     }
 
     /// <summary>
-    /// Given a string direction, return its opposite <see cref="Direction"/>.
+    ///     Given a string direction, return its opposite <see cref="Direction" />.
     /// </summary>
     /// <param name="direction">The direction to convert</param>
-    /// <returns>The appropriate <see cref="Direction"/> or North, if it could not be converted</returns>
+    /// <returns>The appropriate <see cref="Direction" /> or North, if it could not be converted</returns>
     public static Direction OppositeDirection(string direction)
     {
         return direction.ToLower() switch

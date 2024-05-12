@@ -1,30 +1,27 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Utility;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Linq;
-using Hybrasyl.Utility;
 
 namespace Hybrasyl.ChatCommands;
 
@@ -168,7 +165,10 @@ internal class DamageCommand : ChatCommand
 {
     public new static string Command = "damage";
     public new static string ArgumentText = "<double damage> <string element>";
-    public new static string HelpText = "Damage yourself for the specified amount, with the specified element. Careful...";
+
+    public new static string HelpText =
+        "Damage yourself for the specified amount, with the specified element. Careful...";
+
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
@@ -194,9 +194,7 @@ internal class ResistancesCommand : ChatCommand
     {
         var str = "Resistances\n-----------\n";
         foreach (var element in Enum.GetValues<ElementType>())
-        {
             str += $"{element} {user.Stats.ElementalModifiers.GetResistance(element)}\n";
-        }
 
         user.SendMessage(str, MessageType.SlateScrollbar);
         return Success();
@@ -214,9 +212,7 @@ internal class AugmentsCommand : ChatCommand
     {
         var str = "Augments\n-----------\n";
         foreach (var element in Enum.GetValues<ElementType>())
-        {
             str += $"{element} {user.Stats.ElementalModifiers.GetAugment(element)}\n";
-        }
 
         user.SendMessage(str, MessageType.SlateScrollbar);
         return Success();
@@ -311,9 +307,8 @@ internal class ClassCommand : ChatCommand
 
         var classId = Game.ActiveConfiguration.GetClassId(cls);
         if (classId == 254) return Fail("I know nothing about that class");
-        user.Class = (Class) classId;
+        user.Class = (Class)classId;
         return Success($"Class changed to {cls}");
-
     }
 }
 
@@ -329,11 +324,10 @@ internal class LevelCommand : ChatCommand
         if (!byte.TryParse(args[0], out var newLevel))
             return Fail("The value you specified could not be parsed (byte)");
         user.Stats.Level = newLevel > Game.ActiveConfiguration.Constants.PlayerMaxLevel
-            ? (byte) Game.ActiveConfiguration.Constants.PlayerMaxLevel
+            ? (byte)Game.ActiveConfiguration.Constants.PlayerMaxLevel
             : newLevel;
         user.UpdateAttributes(StatUpdateFlags.Full);
         return Success($"Level changed to {newLevel}");
-
     }
 }
 

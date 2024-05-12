@@ -1,24 +1,20 @@
-﻿/*
- *
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
 using Hybrasyl.ChatCommands;
@@ -54,7 +50,6 @@ using Message = Hybrasyl.Plugins.Message;
 using Reactor = Hybrasyl.Objects.Reactor;
 using Script = Hybrasyl.Scripting.Script;
 using Timer = System.Timers.Timer;
-using User = Hybrasyl.Objects.User;
 
 namespace Hybrasyl;
 
@@ -113,7 +108,8 @@ public partial class World : Server
         InitializeWorld();
     }
 
-    public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale, bool adminEnabled = false, bool isDefault = false)
+    public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale,
+        bool adminEnabled = false, bool isDefault = false)
         : base(port, isDefault)
     {
         InitializeWorld();
@@ -132,14 +128,18 @@ public partial class World : Server
         if (!string.IsNullOrEmpty(redis.Password))
             datastoreConfig.Password = redis.Password;
 
-        GameLog.Info($@"Using redis connection: {redis.Host}:{redis.Port}/{redis.Database} {(string.IsNullOrWhiteSpace(redis.Password) ? "(no password)" : "(password set)")}");
+        GameLog.Info(
+            $@"Using redis connection: {redis.Host}:{redis.Port}/{redis.Database} {(string.IsNullOrWhiteSpace(redis.Password) ? "(no password)" : "(password set)")}");
 
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));
         Locale = locale;
     }
 
-    public static DateTime StartDate => Game.ActiveConfiguration.Time != null ? Game.ActiveConfiguration.Time.ServerStart.Value : Game.StartDate;
+    public static DateTime StartDate => Game.ActiveConfiguration.Time != null
+        ? Game.ActiveConfiguration.Time.ServerStart.Value
+        : Game.StartDate;
+
     public Dictionary<uint, WorldObject> Objects { get; set; }
 
     public Dictionary<string, string> Portraits { get; set; }
@@ -164,7 +164,7 @@ public partial class World : Server
     private Thread ConsumerThread { get; set; }
     private Thread ControlConsumerThread { get; set; }
 
-    public Login Login { get; private set; }
+    public Login Login { get; }
 
     public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
@@ -316,12 +316,13 @@ public partial class World : Server
             }
     }
 
-    public string GetLocalString(string key) => Localizations?.GetString(key) ?? $"Locale {Locale} not found or localization {key} missing";
+    public string GetLocalString(string key) =>
+        Localizations?.GetString(key) ?? $"Locale {Locale} not found or localization {key} missing";
 
     public string GetLocalString(string key, params (string Token, string Value)[] replacements)
     {
         var str = GetLocalString(key);
-        return replacements.Aggregate(str, (current, repl) => current.Replace(repl.Token, repl.Value));
+        return replacements.Aggregate(str, func: (current, repl) => current.Replace(repl.Token, repl.Value));
     }
 
     public string GetLocalResponse(string key) => Localizations.GetResponse(key);
@@ -334,7 +335,8 @@ public partial class World : Server
             WorldData.Count<ServerConfig>() < 1)
         {
             GameLog.Error("Not enough XML data to start the server! I need one each of:");
-            GameLog.Error($"Maps: {WorldData.Count<Map>()} Nations: {WorldData.Count<Nation>()} ElementTables: {WorldData.Count<ElementTable>()} ServerConfigs: {WorldData.Count<ServerConfig>()}");
+            GameLog.Error(
+                $"Maps: {WorldData.Count<Map>()} Nations: {WorldData.Count<Nation>()} ElementTables: {WorldData.Count<ElementTable>()} ServerConfigs: {WorldData.Count<ServerConfig>()}");
             return false;
         }
 
@@ -704,7 +706,7 @@ public partial class World : Server
         files.Add(new Metafile("SEvent4"));
         files.Add(new Metafile("SEvent5"));
         files.Add(new Metafile("SEvent6"));
-        var quests = new List<int>() { 0, 0, 0, 0, 0, 0 };
+        var quests = new List<int> { 0, 0, 0, 0, 0, 0 };
 
         // By now this has been populated since OnSpawn for all NPCS has run
 
@@ -725,10 +727,7 @@ public partial class World : Server
             quests[quest.Circle - 1]++;
         }
 
-        foreach (var f in files)
-        {
-            WorldState.Set(f.Name, f.Compile());
-        }
+        foreach (var f in files) WorldState.Set(f.Name, f.Compile());
 
         #endregion
     }
@@ -1028,8 +1027,6 @@ public partial class World : Server
                             "Connection ID {0}: received packet, but seems to be dead connection?",
                             clientMessage.ConnectionId);
                     }
-
-
                 }
                 catch (Exception e)
                 {
@@ -1066,7 +1063,6 @@ public partial class World : Server
                     var watch = Stopwatch.StartNew();
                     ControlMessageHandlers[hcm.Opcode].Invoke(hcm);
                     watch.Stop();
-
                 }
                 catch (Exception e)
                 {
@@ -1147,28 +1143,34 @@ public partial class World : Server
     }
 
     #region Path helpers
+
     public string XmlDirectory => Path.Combine(Game.DataDirectory, "xml");
     public string MapFileDirectory => Path.Combine(Game.DataDirectory, "mapfiles");
     public string ScriptDirectory => Path.Combine(Game.DataDirectory, "scripts");
+
     #endregion
 
     #region Set Handlers
 
     public void SetControlMessageHandlers()
     {
-        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Where(f => f.GetCustomAttribute<HybrasylMessageHandler>() != null);
+        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(predicate: f => f.GetCustomAttribute<HybrasylMessageHandler>() != null);
         foreach (var method in methods)
         {
             var attr = method.GetCustomAttributes<HybrasylMessageHandler>().FirstOrDefault();
             if (attr == null) continue;
-            ControlMessageHandlers[attr.Opcode] = (ControlMessageHandler)Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
+            ControlMessageHandlers[attr.Opcode] =
+                (ControlMessageHandler)Delegate.CreateDelegate(typeof(ControlMessageHandler), this, method);
         }
+
         GameLog.Info("Control message handlers registered");
     }
 
     public void SetPacketHandlers()
     {
-        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Where(f => f.GetCustomAttribute<PacketHandler>() != null);
+        var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(predicate: f => f.GetCustomAttribute<PacketHandler>() != null);
 
         foreach (var method in methods)
         {
@@ -1177,6 +1179,7 @@ public partial class World : Server
             WorldPacketHandlers[attr.Opcode] =
                 (WorldPacketHandler)Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
         }
+
         GameLog.Info("Packet handlers registered");
     }
 
@@ -1635,26 +1638,30 @@ public partial class World : Server
 
         if (!string.IsNullOrEmpty(proc.Script))
         {
-            if (ScriptProcessor.TryGetScript(proc.Script, out Script script))
+            if (ScriptProcessor.TryGetScript(proc.Script, out var script))
             {
                 var env = ScriptEnvironment.CreateWithOriginTargetAndSource(source, target, source);
                 var result = script.ExecuteFunction("OnProc", env);
                 if (result.Result != ScriptResult.Success)
-                    GameLog.ScriptingError($"{source.Name}: proc for {castable.Name}, script {script.Name}: {result.Error}");
+                    GameLog.ScriptingError(
+                        $"{source.Name}: proc for {castable.Name}, script {script.Name}: {result.Error}");
             }
             else
+            {
                 GameLog.Error($"Proc: references {script} but does not exist");
+            }
         }
 
         if (string.IsNullOrEmpty(proc.Castable)) return;
-        if (WorldData.TryGetValueByIndex<Castable>(proc.Castable, out Castable procCastable))
+        if (WorldData.TryGetValueByIndex(proc.Castable, out Castable procCastable))
         {
             if (source is User u)
                 u.UseCastable(procCastable, target, false, false);
         }
         else
+        {
             GameLog.Error($"{source.Name}: proc references {proc.Castable}, but does not exist");
-
+        }
     }
 
     [HybrasylMessageHandler(ControlOpcode.UpdateUser)]
@@ -1678,15 +1685,16 @@ public partial class World : Server
         if (target is not Creature creature) return;
         var user = target as User;
         if (target.Condition.IsInvisible)
+        {
             target.Hide();
+        }
         else
         {
             // Remove any invisible statuses
-            foreach (var invisStatus in WorldData.Find<Status>(x =>
+            foreach (var invisStatus in WorldData.Find<Status>(condition: x =>
                          x.Effects?.OnApply?.Conditions?.Set.HasFlag(CreatureCondition.Invisible) ?? false))
                 target.RemoveStatus(invisStatus.Icon);
             target.Show();
-
         }
     }
 
@@ -1807,7 +1815,7 @@ public partial class World : Server
         // If the add is successful, remove the item from the map quadtree
         if (pickupObject is Gold gold)
         {
-            var pickupAmount = (uint) Game.ActiveConfiguration.Constants.PlayerMaxGold - user.Gold;
+            var pickupAmount = Game.ActiveConfiguration.Constants.PlayerMaxGold - user.Gold;
             if (gold.Amount > pickupAmount && pickupAmount > 0)
             {
                 gold.Amount -= pickupAmount;
@@ -2049,7 +2057,6 @@ public partial class World : Server
             //}
 
             GameLog.InfoFormat($"{user.Name} leaving world");
-
         }
     }
 
@@ -2336,7 +2343,6 @@ public partial class World : Server
                             else
                                 user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
                             return;
-
                         }
                     default:
                         {
@@ -2360,7 +2366,6 @@ public partial class World : Server
                                     user.DisplayIncomingWhisper("$", "Ret: nil (OK)");
                                 else
                                     user.DisplayIncomingWhisper("$", $"Ret: {ret.Return.ToPrintString()}");
-
                             }
 
                             return;
@@ -2391,7 +2396,8 @@ public partial class World : Server
 
             // for the record this is a very strange usage of a message packet
             var settingsString = string.Join("\t",
-                Game.ActiveConfiguration.SettingsNumberIndex.Select(selector: kvp => string.Format("{0}  :{1}", kvp.Value.Value,
+                Game.ActiveConfiguration.SettingsNumberIndex.Select(selector: kvp => string.Format("{0}  :{1}",
+                    kvp.Value.Value,
                     user.ClientSettings[kvp.Key] ? "ON" : "OFF")));
             var x0a = new ServerPacketStructures.SettingsMessage
             {
@@ -2986,7 +2992,8 @@ public partial class World : Server
                 {
                     var book = user.SpellBook;
                     if (oldSlot == 0 || oldSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || newSlot == 0 ||
-                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || (book[oldSlot] == null && book[newSlot] == null)) return;
+                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize ||
+                        (book[oldSlot] == null && book[newSlot] == null)) return;
                     user.SwapCastable(oldSlot, newSlot, book);
                     break;
                 }
@@ -2994,7 +3001,8 @@ public partial class World : Server
                 {
                     var book = user.SkillBook;
                     if (oldSlot == 0 || oldSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || newSlot == 0 ||
-                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize || (book[oldSlot] == null && book[newSlot] == null)) return;
+                        newSlot > Game.ActiveConfiguration.Constants.PlayerMaxBookSize ||
+                        (book[oldSlot] == null && book[newSlot] == null)) return;
                     user.SwapCastable(oldSlot, newSlot, book);
                     break;
                 }
@@ -3252,7 +3260,8 @@ public partial class World : Server
             invocation = new DialogInvocation(castableObj, user, user);
         }
         // Is this an async dialog session (either one in progress, or one starting)
-        else if (objectType == DialogObjectType.Asynchronous && Game.World.WorldState.TryGetValue(objectID, out session))
+        else if (objectType == DialogObjectType.Asynchronous &&
+                 Game.World.WorldState.TryGetValue(objectID, out session))
         {
             clickTarget = session;
             GameLog.Error($"Clicktarget set yo, clicktarget is {clickTarget}");
@@ -3579,6 +3588,7 @@ public partial class World : Server
                 user.SendSystemMessage("You can't carry anything else.");
                 return;
             }
+
             user.RemoveEquipment(slot);
             // Add our removed item to our first empty inventory slot
             GameLog.DebugFormat("Player weight is currently {0}", user.CurrentWeight);

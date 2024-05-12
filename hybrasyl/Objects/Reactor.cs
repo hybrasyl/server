@@ -1,33 +1,30 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -35,15 +32,12 @@ public class Reactor : VisibleObject, IPursuitable
 {
     private bool _ready;
     public bool Blocking;
+    public CreatureSnapshot Caster;
     public string Description;
     public string ScriptName;
-    public CreatureSnapshot Caster;
 
     public bool VisibleToGroup;
     public bool VisibleToOwner;
-    public List<string> VisibleToCookies { get; set; } = new();
-    public List<string> InvisibleToCookies { get; set; } = new();
-    public List<string> VisibleToStatuses { get; set; } = new();
 
     public Reactor(Xml.Objects.Reactor reactor)
     {
@@ -52,7 +46,8 @@ public class Reactor : VisibleObject, IPursuitable
         DialogSequences = new List<DialogSequence>();
     }
 
-    public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null, string description = null)
+    public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null,
+        string description = null)
     {
         X = x;
         Y = y;
@@ -98,17 +93,12 @@ public class Reactor : VisibleObject, IPursuitable
         Init();
     }
 
-    private void Init()
-    {
-        CreatedAt = DateTime.Now;
-        Expiration = DateTime.MaxValue;
-        if (ExpirationSeconds <= 0) return;
-        Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
-        Task.Run(function: OnExpiration);
-    }
+    public List<string> VisibleToCookies { get; set; } = new();
+    public List<string> InvisibleToCookies { get; set; } = new();
+    public List<string> VisibleToStatuses { get; set; } = new();
 
     public DateTime CreatedAt { get; set; }
-    public DateTime Expiration { get; set; } 
+    public DateTime Expiration { get; set; }
     private int ExpirationSeconds { get; set; }
     public VisibleObject Origin { get; set; }
     public Guid CreatedBy { get; set; }
@@ -134,20 +124,6 @@ public class Reactor : VisibleObject, IPursuitable
     public Dictionary<string, string> Responses { get; set; } = new();
     public virtual List<DialogSequence> DialogSequences { get; set; } = new();
     public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
-
-    public bool VisibleTo(IVisible obj)
-    {
-        if (Expired) return false;
-        if (obj is not User user) return false;
-        var casterObj = Caster?.GetUserObject();
-        if (VisibleToCookies.Any(user.HasCookie)) return true; 
-        if (InvisibleToCookies.Any(user.HasCookie)) return false;
-        if (user.CurrentStatusInfo.Any(x => VisibleToStatuses.Contains(x.Name))) return true;
-        if (casterObj == null) return false;
-        if (VisibleToOwner && user.Name == Caster.Name) return true;
-        if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;
-        return false;
-    }
 
     public override void ShowTo(IVisible obj)
     {
@@ -176,6 +152,29 @@ public class Reactor : VisibleObject, IPursuitable
         p.WriteByte((byte)MonsterType.Reactor);
         p.WriteString8(Name);
         user.Enqueue(p);
+    }
+
+    private void Init()
+    {
+        CreatedAt = DateTime.Now;
+        Expiration = DateTime.MaxValue;
+        if (ExpirationSeconds <= 0) return;
+        Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
+        Task.Run(OnExpiration);
+    }
+
+    public bool VisibleTo(IVisible obj)
+    {
+        if (Expired) return false;
+        if (obj is not User user) return false;
+        var casterObj = Caster?.GetUserObject();
+        if (VisibleToCookies.Any(user.HasCookie)) return true;
+        if (InvisibleToCookies.Any(user.HasCookie)) return false;
+        if (user.CurrentStatusInfo.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
+        if (casterObj == null) return false;
+        if (VisibleToOwner && user.Name == Caster.Name) return true;
+        if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;
+        return false;
     }
 
     public async Task OnExpiration()
@@ -209,7 +208,7 @@ public class Reactor : VisibleObject, IPursuitable
 
     public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
         ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
-    
+
     public virtual void OnEntry(VisibleObject obj)
     {
         if (Expired) return;

@@ -1,27 +1,24 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Objects;
 using System;
 using System.Collections.Generic;
+using Hybrasyl.Objects;
 
 namespace Hybrasyl;
 
@@ -59,12 +56,12 @@ public class ManufactureState
 
     public void ProcessManufacturePacket(ClientPacket packet)
     {
-        var manufactureType = (ManufactureType)packet.ReadByte();
+        var manufactureType = (ManufactureType) packet.ReadByte();
         var slotIndex = packet.ReadByte();
 
         if (manufactureType != Type || slotIndex != Slot) return;
 
-        var manufacturePacketType = (ManufactureClientPacketType)packet.ReadByte();
+        var manufacturePacketType = (ManufactureClientPacketType) packet.ReadByte();
 
         switch (manufacturePacketType)
         {
@@ -86,10 +83,10 @@ public class ManufactureState
     public void ShowWindow()
     {
         var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte)Type);
-        manufacturePacket.WriteByte((byte)Slot);
-        manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Open);
-        manufacturePacket.WriteByte((byte)Recipes.Count);
+        manufacturePacket.WriteByte((byte) Type);
+        manufacturePacket.WriteByte((byte) Slot);
+        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Open);
+        manufacturePacket.WriteByte((byte) Recipes.Count);
         User.Enqueue(manufacturePacket);
     }
 
@@ -98,11 +95,11 @@ public class ManufactureState
         SelectedIndex = pageIndex;
 
         var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte)Type);
-        manufacturePacket.WriteByte((byte)Slot);
-        manufacturePacket.WriteByte((byte)ManufactureServerPacketType.Page);
-        manufacturePacket.WriteByte((byte)pageIndex);
-        manufacturePacket.WriteUInt16((ushort)(SelectedRecipe.Tile + 0x8000));
+        manufacturePacket.WriteByte((byte) Type);
+        manufacturePacket.WriteByte((byte) Slot);
+        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Page);
+        manufacturePacket.WriteByte((byte) pageIndex);
+        manufacturePacket.WriteUInt16((ushort) (SelectedRecipe.Tile + 0x8000));
         manufacturePacket.WriteString8(SelectedRecipe.Name);
         manufacturePacket.WriteString16(SelectedRecipe.Description);
         manufacturePacket.WriteString16(SelectedRecipe.HighlightedIngredientsText(User));
@@ -145,13 +142,13 @@ public class ManufactureRecipe
         }
 
         if (HasAddItem && (addSlotIndex < 1 || addSlotIndex > user.Inventory.Size ||
-                           user.Inventory[(byte)addSlotIndex]?.Name != AddItemName))
+                           user.Inventory[(byte) addSlotIndex]?.Name != AddItemName))
         {
             user.SendSystemMessage($"That recipe requires {AddItemName} to be added to the window.");
             return false;
         }
 
-        user.RemoveItem((byte)addSlotIndex);
+        user.RemoveItem((byte) addSlotIndex);
         TakeIngredientsFrom(user);
         GiveManufacturedItemTo(user);
         user.SendSystemMessage($"You create {Name}.");
@@ -219,7 +216,7 @@ public class ManufactureIngredient
 
     public void TakeFrom(User user)
     {
-        user.RemoveItem(Name, (ushort)Quantity);
+        user.RemoveItem(Name, (ushort) Quantity);
     }
 
     public string HighlightedText(User user)

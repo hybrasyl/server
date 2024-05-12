@@ -1,10 +1,27 @@
-﻿using System;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using System;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
+using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -38,7 +55,7 @@ public class Status
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, Fixture.TestUser));
         Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo);
-        Assert.True(Fixture.TestUser.Stats.Ac == beforeAc + (expectedAcDelta * intensity),
+        Assert.True(Fixture.TestUser.Stats.Ac == beforeAc + expectedAcDelta * intensity,
             $"ac was {beforeAc}, delta {expectedAcDelta}, should be {beforeAc + expectedAcDelta} but is {Fixture.TestUser.Stats.Ac}");
     }
 
@@ -73,7 +90,8 @@ public class Status
         Fixture.TestUser.Stats.Mp = 1000;
         Fixture.TestUser.RemoveAllStatuses();
 
-        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible").FirstOrDefault();
+        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible")
+            .FirstOrDefault();
         var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
 
         Assert.NotNull(invisible);
@@ -86,7 +104,7 @@ public class Status
         Assert.True(Fixture.TestUser.UseCastable(assail));
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(50); 
+        Thread.Sleep(50);
 
         Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
     }
@@ -98,7 +116,8 @@ public class Status
         Fixture.TestUser.Stats.Mp = 1000;
         Fixture.TestUser.RemoveAllStatuses();
 
-        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible").FirstOrDefault();
+        var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible")
+            .FirstOrDefault();
         var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
         var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "beag athar").FirstOrDefault();
 
@@ -113,7 +132,7 @@ public class Status
         Fixture.TestUser.UseCastable(castable);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(50); 
+        Thread.Sleep(50);
         Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
     }
 
@@ -121,8 +140,8 @@ public class Status
     public void ApplyStatusToUserFromScript()
     {
         var scriptUser = new HybrasylUser(Fixture.TestUser);
-        Assert.True(scriptUser.ApplyStatus("TestMinusStr",30));
-        Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo.Where(x =>x.Name == "TestMinusStr"));
+        Assert.True(scriptUser.ApplyStatus("TestMinusStr", 30));
+        Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo.Where(predicate: x => x.Name == "TestMinusStr"));
     }
 
     [Fact]
@@ -136,14 +155,11 @@ public class Status
                 Hp = 500
             },
             Name = "Bee Bait",
-            X = (byte)(Fixture.TestUser.X - 1),
+            X = (byte) (Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
         var scriptMonster = new HybrasylMonster(monster);
-        Assert.True(scriptMonster.ApplyStatus("TestMinusStr",30));
-        Assert.NotEmpty(monster.CurrentStatusInfo.Where(x =>x.Name == "TestMinusStr"));
-
-
+        Assert.True(scriptMonster.ApplyStatus("TestMinusStr", 30));
+        Assert.NotEmpty(monster.CurrentStatusInfo.Where(predicate: x => x.Name == "TestMinusStr"));
     }
-
 }

@@ -1,18 +1,38 @@
-﻿using Hybrasyl.Objects;
-using Hybrasyl.Xml.Manager;
-using Hybrasyl.Xml.Objects;
-using Serilog;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Hybrasyl.Internals;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Manager;
+using Hybrasyl.Xml.Objects;
+using Serilog;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-[assembly: CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true, MaxParallelThreads = 1)]
+[assembly:
+    CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true,
+        MaxParallelThreads = 1)]
 
 namespace Hybrasyl.Tests;
 
@@ -24,7 +44,8 @@ public class HybrasylFixture : IDisposable
     {
         this.sink = sink;
         Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
-            .WriteTo.Console().WriteTo.File("hybrasyl-tests-.log", rollingInterval: RollingInterval.Day).WriteTo.TestCorrelator()
+            .WriteTo.Console().WriteTo.File("hybrasyl-tests-.log", rollingInterval: RollingInterval.Day).WriteTo
+            .TestCorrelator()
             .CreateLogger();
         var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("Hybrasyl.Tests");
         Game.LoadCollisions();
@@ -85,8 +106,8 @@ public class HybrasylFixture : IDisposable
             Name = "Test Item"
         };
         TestItem.Properties.Stackable.Max = 1;
-        TestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
-        { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        TestItem.Properties.Equipment = new Xml.Objects.Equipment
+            { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         TestItem.Properties.Categories = new List<Category>
         {
@@ -100,8 +121,8 @@ public class HybrasylFixture : IDisposable
             Name = "Stackable Test Item"
         };
         StackableTestItem.Properties.Stackable.Max = 20;
-        StackableTestItem.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
-        { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        StackableTestItem.Properties.Equipment = new Xml.Objects.Equipment
+            { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         StackableTestItem.Properties.Categories = new List<Category>
         {
@@ -116,8 +137,8 @@ public class HybrasylFixture : IDisposable
         {
             var item = new Item { Name = $"Equip Test {slot}" };
             item.Properties.Stackable.Max = 1;
-            item.Properties.Equipment = new Hybrasyl.Xml.Objects.Equipment
-            { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
+            item.Properties.Equipment = new Xml.Objects.Equipment
+                { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
             item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Add(item);
             TestEquipment.Add(slot, item);
@@ -180,7 +201,7 @@ public class HybrasylFixture : IDisposable
     public Item StackableTestItem { get; }
     public Dictionary<EquipmentSlot, Item> TestEquipment { get; } = new();
     public static byte InventorySize => 59;
-    
+
     public User TestUser { get; }
 
     public CreatureBehaviorSet TestSet { get; set; }
@@ -193,7 +214,7 @@ public class HybrasylFixture : IDisposable
             var server = World.DatastoreConnection.GetServer(ep.First().ToString());
             server.FlushDatabase(15);
         }
-        catch (Exception ex) {}
+        catch (Exception ex) { }
     }
 
     public void ResetUserStats()
@@ -220,4 +241,3 @@ public class HybrasylFixture : IDisposable
         TestUser.Vault.Clear();
     }
 }
-

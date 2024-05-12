@@ -1,46 +1,42 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Interfaces;
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl;
-
 
 [MoonSharpUserData]
 public class QuestMetadata
 {
-    public string Title;
-    public string Id;
-    public int Circle = 0;
     public SortedSet<Class> AllowedClasses;
-    public string Summary;
-    public string Result;
+    public int Circle = 0;
+    public string Id;
     public string Prerequisite; // who knows
+    public string Result;
     public string Reward;
+    public string Summary;
+    public string Title;
 
     // Client expects a string like "123", "12345" etc
 
@@ -49,10 +45,9 @@ public class QuestMetadata
         AllowedClasses = new SortedSet<Class> { Class.Monk, Class.Priest, Class.Wizard, Class.Rogue, Class.Warrior };
     }
 
+    public string Classes => AllowedClasses.Aggregate(string.Empty, func: (current, c) => current + (byte) c);
+
     public void AddClass(Class c) => AllowedClasses.Add(c);
-
-    public string Classes => AllowedClasses.Aggregate(string.Empty, (current, c) => current + (byte)c);
-
 }
 
 public class Metafile
@@ -113,20 +108,20 @@ public class CompiledMetafile : IStateStorable
             using (var metaFileWriter =
                    new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
             {
-                metaFileWriter.Write((byte)(file.Nodes.Count / 256));
-                metaFileWriter.Write((byte)(file.Nodes.Count % 256));
+                metaFileWriter.Write((byte) (file.Nodes.Count / 256));
+                metaFileWriter.Write((byte) (file.Nodes.Count % 256));
                 foreach (var node in file.Nodes)
                 {
                     var nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
-                    metaFileWriter.Write((byte)nodeBuffer.Length);
+                    metaFileWriter.Write((byte) nodeBuffer.Length);
                     metaFileWriter.Write(nodeBuffer);
-                    metaFileWriter.Write((byte)(node.Properties.Count / 256));
-                    metaFileWriter.Write((byte)(node.Properties.Count % 256));
+                    metaFileWriter.Write((byte) (node.Properties.Count / 256));
+                    metaFileWriter.Write((byte) (node.Properties.Count % 256));
                     foreach (var property in node.Properties)
                     {
                         var propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
-                        metaFileWriter.Write((byte)(propertyBuffer.Length / 256));
-                        metaFileWriter.Write((byte)(propertyBuffer.Length % 256));
+                        metaFileWriter.Write((byte) (propertyBuffer.Length / 256));
+                        metaFileWriter.Write((byte) (propertyBuffer.Length % 256));
                         metaFileWriter.Write(propertyBuffer);
                     }
                 }
@@ -148,5 +143,5 @@ public class CompiledMetafile : IStateStorable
     public uint Checksum { get; }
     public byte[] Data { get; }
 
-    public byte[] Decompressed { get; private set; }
+    public byte[] Decompressed { get;  }
 }

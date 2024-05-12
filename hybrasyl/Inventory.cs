@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
@@ -74,7 +71,8 @@ public class Exchange
     {
         errorMessage = string.Empty;
         var locationCheck = source.Map == target.Map && source.IsInViewport(target) &&
-                            target.IsInViewport(source) && target.Distance(source) <= Game.ActiveConfiguration.Constants.PlayerExchangeDistance;
+                            target.IsInViewport(source) && target.Distance(source) <=
+                            Game.ActiveConfiguration.Constants.PlayerExchangeDistance;
 
         var flagCheck = source.Condition.NoFlags && target.Condition.NoFlags;
 
@@ -1097,8 +1095,8 @@ public class Equipment : Inventory
     public bool GauntletEquipped => LGauntlet != null || RGauntlet != null;
 
 
-    public ItemObject this[EquipmentSlot slot] => this[(byte) slot];
-    
+    public ItemObject this[EquipmentSlot slot] => this[(byte)slot];
+
     public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
     {
         var returnList = new List<Tuple<ushort, byte>>();

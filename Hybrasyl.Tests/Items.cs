@@ -1,4 +1,22 @@
-﻿using Hybrasyl.Enums;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Enums;
 using Hybrasyl.Xml.Objects;
 using Xunit;
 
@@ -40,7 +58,7 @@ public class Items
         Assert.NotNull(Fixture.TestUser.Equipment.Armor);
         Assert.NotNull(Fixture.TestUser.Equipment.Boots);
         // Removing the boots should not be possible (we should get a system message)
-        Assert.False(Fixture.TestUser.RemoveEquipment((byte)ItemSlots.Foot));
+        Assert.False(Fixture.TestUser.RemoveEquipment((byte) ItemSlots.Foot));
         Assert.Equal("Other equipment must be removed first.", Fixture.TestUser.LastSystemMessage);
         Assert.NotNull(Fixture.TestUser.Equipment.Armor);
         Assert.NotNull(Fixture.TestUser.Equipment.Boots);
@@ -67,7 +85,7 @@ public class Items
         Assert.False(boots.CheckRequirements(Fixture.TestUser, out error));
         Assert.Equal("You cannot equip this now.", error);
         // Now try the other way - put the boots on first and then equip the armor
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte)ItemSlots.Armor));
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte) ItemSlots.Armor));
         Assert.Null(Fixture.TestUser.Equipment.Armor);
         Assert.Null(Fixture.TestUser.Equipment.Boots);
         Assert.True(Fixture.TestUser.AddEquipment(boots, boots.EquipmentSlot, false));

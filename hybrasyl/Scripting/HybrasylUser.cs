@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Dialogs;
 using Hybrasyl.Enums;
@@ -150,14 +147,14 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Get a list of objects in the viewport of the player. This represents all visible objects (items, players,
     ///     creatures) contained in the client's viewport (the drawable map area).
     /// </summary>
-    /// <returns>A list of <see cref="HybrasylWorldObject"/> objects in the player's viewport.</returns>
+    /// <returns>A list of <see cref="HybrasylWorldObject" /> objects in the player's viewport.</returns>
     public List<HybrasylWorldObject> GetViewportObjects() => new();
 
     /// <summary>
     ///     Get a list of players in the viewport of the player. This represents only players contained in the client's
     ///     viewport (the drawable map area).
     /// </summary>
-    /// <returns>A list of <see cref="HybrasylUser"/> objects in the player's viewport.</returns>
+    /// <returns>A list of <see cref="HybrasylUser" /> objects in the player's viewport.</returns>
     public List<HybrasylUser> GetViewportPlayers() => new();
 
     /// <summary>
@@ -173,7 +170,8 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Get the player, if any, that the current player is facing ("looking at").
     /// </summary>
     /// <returns>
-    ///     <see cref="HybrasylUser"/> object for the player facing this player, or nil, if the player isn't directly facing another
+    ///     <see cref="HybrasylUser" /> object for the player facing this player, or nil, if the player isn't directly facing
+    ///     another
     ///     player.
     /// </returns>
     public HybrasylUser GetFacingUser()
@@ -186,7 +184,7 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Get the objects a player is facing (for instance, items on the ground in front of the player)
     /// </summary>
     /// <param name="distance">Maximum distance to consider in front of the user.</param>
-    /// <returns>A list of <see cref="HybrasylWorldObject"/> objects facing the player.</returns>
+    /// <returns>A list of <see cref="HybrasylWorldObject" /> objects facing the player.</returns>
     public List<HybrasylWorldObject> GetFacingObjects(int distance = 1)
     {
         return User.GetFacingObjects(distance).Select(selector: item => new HybrasylWorldObject(item)).ToList();
@@ -195,60 +193,64 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Get the monster that the player is facing.
     /// </summary>
-    /// <returns>A <see cref="HybrasylMonster"/> object.</returns>
+    /// <returns>A <see cref="HybrasylMonster" /> object.</returns>
     public HybrasylMonster GetFacingMonster()
     {
-        var facing = (Monster) User.GetFacingObjects().FirstOrDefault(x => x is Monster);
+        var facing = (Monster)User.GetFacingObjects().FirstOrDefault(predicate: x => x is Monster);
         return facing != null ? new HybrasylMonster(facing) : null;
     }
 
     /// <summary>
-    /// Get a list of monsters facing the user.
-    /// </summary>#2 
+    ///     Get a list of monsters facing the user.
+    /// </summary>
+    /// #2
     /// <param name="distance">The maximum distance to consider from the user.</param>
-    /// <returns>A list of <see cref="HybrasylMonster"/> objects facing the user.</returns>
+    /// <returns>A list of <see cref="HybrasylMonster" /> objects facing the user.</returns>
     public List<HybrasylMonster> GetFacingMonsters(int distance = 1)
     {
-        return User.GetFacingObjects(distance).Where(x => x is Monster).Cast<Monster>().Select(y => new HybrasylMonster(y)).ToList();
+        return User.GetFacingObjects(distance).Where(predicate: x => x is Monster).Cast<Monster>()
+            .Select(selector: y => new HybrasylMonster(y)).ToList();
     }
 
     /// <summary>
-    /// Get a list of players facing the user.
-    /// </summary>#2 
+    ///     Get a list of players facing the user.
+    /// </summary>
+    /// #2
     /// <param name="distance">The maximum distance to consider from the user.</param>
-    /// <returns>A list of <see cref="HybrasylUser"/> objects facing the user.</returns>
+    /// <returns>A list of <see cref="HybrasylUser" /> objects facing the user.</returns>
     public List<HybrasylUser> GetFacingUsers(int distance = 1)
     {
-        return User.GetFacingObjects(distance).Where(x => x is User).Cast<User>().Select(y => new HybrasylUser(y))
+        return User.GetFacingObjects(distance).Where(predicate: x => x is User).Cast<User>()
+            .Select(selector: y => new HybrasylUser(y))
             .ToList();
     }
 
     /// <summary>
-    /// Return a list of monsters in a specified direction.
+    ///     Return a list of monsters in a specified direction.
     /// </summary>
-    /// <param name="direction">The <see cref="Direction"/> to examine.</param>
+    /// <param name="direction">The <see cref="Direction" /> to examine.</param>
     /// <param name="radius">The number of tiles to examine in the given direction.</param>
     /// <returns></returns>
     public List<HybrasylMonster> GetMonstersInDirection(Direction direction, int radius = 1) =>
-        User.GetDirectionalTargets(direction).Where(x => x is Monster).Cast<Monster>()
-            .Select(y => new HybrasylMonster(y)).ToList();
+        User.GetDirectionalTargets(direction).Where(predicate: x => x is Monster).Cast<Monster>()
+            .Select(selector: y => new HybrasylMonster(y)).ToList();
 
     /// <summary>
-    /// Return a list of players in a specified direction.
+    ///     Return a list of players in a specified direction.
     /// </summary>
-    /// <param name="direction">The <see cref="Direction"/> to examine.</param>
+    /// <param name="direction">The <see cref="Direction" /> to examine.</param>
     /// <param name="radius">The number of tiles to examine in the given direction.</param>
-    /// <returns>List of <see cref="HybrasylPlayer"/>. </returns>
+    /// <returns>List of <see cref="HybrasylPlayer" />. </returns>
     public List<HybrasylUser> GetUsersInDirection(Direction direction, int radius = 1) =>
-        User.GetDirectionalTargets(direction).Where(x => x is User).Cast<User>()
-            .Select(y => new HybrasylUser(y)).ToList();
+        User.GetDirectionalTargets(direction).Where(predicate: x => x is User).Cast<User>()
+            .Select(selector: y => new HybrasylUser(y)).ToList();
 
     /// <summary>
-    /// Get the coordinates of a tile in a specific direction and number of tiles away from current location.
+    ///     Get the coordinates of a tile in a specific direction and number of tiles away from current location.
     /// </summary>
-    /// <param name="direction">The <see cref="Direction"/> to use.</param>
+    /// <param name="direction">The <see cref="Direction" /> to use.</param>
     /// <param name="tiles">The number of tiles away from the current location in the specified direction.</param>
-    /// <returns>A <see cref="Coordinate"/> representing the X,Y of the calculated tile.</returns>
+    /// <returns>A <see cref="Coordinate" /> representing the X,Y of the calculated tile.</returns>
     public Coordinate GetTileInDirection(Direction direction, int tiles = 1)
     {
         int x = X;
@@ -274,7 +276,6 @@ public class HybrasylUser : HybrasylWorldObject
         }
 
         return Coordinate.FromInt(x, y);
-
     }
 
     /// <summary>
@@ -284,7 +285,7 @@ public class HybrasylUser : HybrasylWorldObject
     public void ChangeDirection(string direction)
     {
         Enum.TryParse(typeof(Direction), direction, out var result);
-        User.Direction = (Direction) result;
+        User.Direction = (Direction)result;
     }
 
     /// <summary>
@@ -324,7 +325,7 @@ public class HybrasylUser : HybrasylWorldObject
     public dynamic GetLegendMark(string prefix)
     {
         LegendMark mark;
-        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object) null;
+        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object)null;
     }
 
     /// <summary>
@@ -389,7 +390,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Generate a list of reactors in the current user's viewport.
     /// </summary>
-    /// <returns>List of <see cref="HybrasylReactor"/> objects in the player's viewport.</returns>
+    /// <returns>List of <see cref="HybrasylReactor" /> objects in the player's viewport.</returns>
     public List<HybrasylReactor> GetReactorsInViewport()
     {
         return User.Map.EntityTree.GetObjects(User.GetViewport()).Where(predicate: x => x is Reactor)
@@ -405,15 +406,15 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>Boolean indicating whether the specified requirements have been met.</returns>
     public bool HasKilledSince(string name, int since, int quantity = 1)
     {
-        var matches = User.RecentKills.Where(z =>
+        var matches = User.RecentKills.Where(predicate: z =>
             string.Equals(z.Name, name, StringComparison.CurrentCultureIgnoreCase));
-        matches = matches.Where(y =>
+        matches = matches.Where(predicate: y =>
             y.Timestamp.ToUniversalTime() >= DateTimeOffset.FromUnixTimeSeconds(since).UtcDateTime);
         return matches.Count() >= quantity;
     }
 
     /// <summary>
-    /// Return the number of named monsters the player has killed since a specific timestamp.
+    ///     Return the number of named monsters the player has killed since a specific timestamp.
     /// </summary>
     /// <param name="name">The name of the monster to check</param>
     /// <param name="since">Specify that the kills should have occurred after the given Unix timestamp.</param>
@@ -421,9 +422,10 @@ public class HybrasylUser : HybrasylWorldObject
     public int NumberKilled(string name, int since = 0)
     {
         var matches = User.RecentKills
-            .Where(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
+            .Where(predicate: x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
         return since > 0
-            ? matches.Count(x => x.Timestamp.ToUniversalTime() >= DateTimeOffset.FromUnixTimeSeconds(since).UtcDateTime)
+            ? matches.Count(predicate: x =>
+                x.Timestamp.ToUniversalTime() >= DateTimeOffset.FromUnixTimeSeconds(since).UtcDateTime)
             : matches.Count();
     }
 
@@ -436,11 +438,11 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>Boolean indicating whether or not the specified requirements were met.</returns>
     public bool HasKilled(string name, int quantity = 1, int minutes = 0)
     {
-        var matches = User.RecentKills.Where(x =>
+        var matches = User.RecentKills.Where(predicate: x =>
             string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase));
 
         return minutes > 0
-            ? matches.Count(x =>
+            ? matches.Count(predicate: x =>
                 x.Timestamp.ToUniversalTime() >=
                 (DateTime.Now.ToUniversalTime() - TimeSpan.FromMinutes(minutes)).ToUniversalTime()) >= quantity
             : matches.Count() >= quantity;
@@ -449,15 +451,18 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Return the player's entire legend.
     /// </summary>
-    /// <returns>A <see cref="Legend"/> object representing the player's legend. </returns>
+    /// <returns>A <see cref="Legend" /> object representing the player's legend. </returns>
     public Legend GetLegend() => User.Legend;
 
     /// <summary>
     ///     Add a legend mark with the specified icon, color, text, and prefix to a player's legend, which will default to
     ///     being issued now (current in-game time).
     /// </summary>
-    /// <param name="icon">A <see cref="LegendIcon"/> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
-    /// <param name="color">A <see cref="LegendColor"/> indicating the color the mark will be rendered in (blue, yellow, orange, etc)</param>
+    /// <param name="icon">A <see cref="LegendIcon" /> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
+    /// <param name="color">
+    ///     A <see cref="LegendColor" /> indicating the color the mark will be rendered in (blue, yellow,
+    ///     orange, etc)
+    /// </param>
     /// <param name="text">The actual text of the legend mark.</param>
     /// <param name="prefix">
     ///     An invisible key (stored in the beginning of the mark) that can be used to refer to the mark
@@ -483,8 +488,11 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Add a legend mark with the specified icon, color, text, timestamp and prefix to a player's legend.
     /// </summary>
-    /// <param name="icon">A <see cref="LegendIcon"/> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
-    /// <param name="color">A <see cref="LegendColor"/> indicating the color the mark will be rendered in (blue, yellow, orange, etc)</param>
+    /// <param name="icon">A <see cref="LegendIcon" /> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
+    /// <param name="color">
+    ///     A <see cref="LegendColor" /> indicating the color the mark will be rendered in (blue, yellow,
+    ///     orange, etc)
+    /// </param>
     /// <param name="text">The actual text of the legend mark.</param>
     /// <param name="timestamp">The in-game time the legend was awarded.</param>
     /// <param name="prefix">
@@ -498,8 +506,11 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     Add a legend mark to a player's legend.
     /// </summary>
-    /// <param name="icon">A <see cref="LegendIcon"/> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
-    /// <param name="color">A <see cref="LegendColor"/> indicating the color the mark will be rendered in (blue, yellow, orange, etc)</param>
+    /// <param name="icon">A <see cref="LegendIcon" /> enum indicating the icon to be used for the mark (heart, sword, etc)</param>
+    /// <param name="color">
+    ///     A <see cref="LegendColor" /> indicating the color the mark will be rendered in (blue, yellow,
+    ///     orange, etc)
+    /// </param>
     /// <param name="text">The actual text of the legend mark.</param>
     /// <param name="timestamp">The Terran time the legend was awarded.</param>
     /// <param name="prefix">
@@ -608,7 +619,7 @@ public class HybrasylUser : HybrasylWorldObject
 
         try
         {
-            User.SetSessionCookie(cookieName, value is string ? (string) value : (string) value.ToString());
+            User.SetSessionCookie(cookieName, value is string ? (string)value : (string)value.ToString());
             GameLog.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
         }
         catch (Exception e)
@@ -739,7 +750,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="speed">speed of the diplayed motion</param>
     public void DisplayMotion(int motionId, short speed = 20)
     {
-        User.Motion((byte) motionId, speed);
+        User.Motion((byte)motionId, speed);
     }
 
     /// <summary>
@@ -907,7 +918,7 @@ public class HybrasylUser : HybrasylWorldObject
 
         if (User.Inventory.ContainsName(name))
         {
-            if (User.RemoveItem(name, (ushort) count, true, force))
+            if (User.RemoveItem(name, (ushort)count, true, force))
                 return true;
             GameLog.ScriptingWarning("TakeItem: {user} - failed for {item}, might be bound", User.Name, name);
         }
@@ -926,18 +937,18 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>true</returns>
     public void GiveExperience(int exp)
     {
-        User.GiveExperience((uint) exp);
+        User.GiveExperience((uint)exp);
     }
 
     public void GiveScaledExperience(float scaleFactor, int levelMaximum, int expMinimum, int expMaximum)
     {
         if (User.Stats.Level > levelMaximum)
         {
-            User.GiveExperience((uint) expMaximum);
+            User.GiveExperience((uint)expMaximum);
             return;
         }
 
-        User.GiveExperience((uint) (scaleFactor * User.ExpToLevel > expMinimum
+        User.GiveExperience((uint)(scaleFactor * User.ExpToLevel > expMinimum
             ? scaleFactor * User.ExpToLevel
             : expMinimum));
     }
@@ -952,9 +963,9 @@ public class HybrasylUser : HybrasylWorldObject
     /// </returns>
     public bool TakeExperience(int exp)
     {
-        if ((uint) exp > User.Stats.Experience)
+        if ((uint)exp > User.Stats.Experience)
             return false;
-        User.Stats.Experience -= (uint) exp;
+        User.Stats.Experience -= (uint)exp;
         SystemMessage($"Your world spins as your insight leaves you ((-{exp} experience!))");
         User.UpdateAttributes(StatUpdateFlags.Experience);
         return true;
@@ -1084,7 +1095,7 @@ public class HybrasylUser : HybrasylWorldObject
 
     public void SendMessage(string message, int type)
     {
-        User.SendMessage(message, (byte) type);
+        User.SendMessage(message, (byte)type);
     }
 
     /// Close any active dialogs for the current player.
@@ -1187,7 +1198,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="hairStyle">The target hairstyle</param>
     public void SetHairstyle(int hairStyle)
     {
-        User.SetHairstyle((ushort) hairStyle);
+        User.SetHairstyle((ushort)hairStyle);
     }
 
     /// <summary>
@@ -1196,12 +1207,12 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="itemColor">The color to apply</param>
     public void SetHairColor(string itemColor)
     {
-        var color = (ItemColor) Enum.Parse(typeof(ItemColor), itemColor);
+        var color = (ItemColor)Enum.Parse(typeof(ItemColor), itemColor);
         User.SetHairColor(color);
     }
 
     /// <summary>
-    /// Trigger or clear a cooldown for a specific spell or skill.
+    ///     Trigger or clear a cooldown for a specific spell or skill.
     /// </summary>
     /// <param name="name">The name of the spell or skill</param>
     /// <param name="clear">Whether or not to trigger or clear. True clears; false triggers.</param>
@@ -1225,12 +1236,12 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
-    /// Send an update to the client that stats have changed.
+    ///     Send an update to the client that stats have changed.
     /// </summary>
     public void UpdateAttributes() => User.UpdateAttributes(StatUpdateFlags.Full);
 
     /// <summary>
-    /// Apply a given status to a player.
+    ///     Apply a given status to a player.
     /// </summary>
     /// <param name="statusName">The name of the status</param>
     /// <param name="duration">The duration of the status, if zero, use default </param>
@@ -1239,17 +1250,16 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>boolean indicating whether or not the status was applied</returns>
     public bool ApplyStatus(string statusName, int duration = 0, int tick = 0, double intensity = 1)
     {
-        var status  = Game.World.WorldData.Get<Status>(statusName);
-        if  (status == null)
+        var status = Game.World.WorldData.Get<Status>(statusName);
+        if (status == null)
         {
             GameLog.ScriptingError("ApplyStatus: status {statusName} not found");
             return false;
         }
 
-        return User.ApplyStatus(new CreatureStatus(status, User,  null,  null,
-            duration == 0  ? status.Duration : duration,
-            tick == 0  ? status.Tick : tick,
+        return User.ApplyStatus(new CreatureStatus(status, User, null, null,
+            duration == 0 ? status.Duration : duration,
+            tick == 0 ? status.Tick : tick,
             intensity));
     }
-
 }

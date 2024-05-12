@@ -1,6 +1,24 @@
-﻿using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -99,9 +117,9 @@ public class Equipment
         var equipment = Game.World.CreateItem(item);
         Assert.True(equipment.CheckRequirements(Fixture.TestUser, out var m1),
             $"Equipment min level is 50, player level is 50, CheckRequirements failed with {m1}");
-        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte)EquipmentSlot.Armor),
+        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte) EquipmentSlot.Armor),
             "Equipment level is 50, player level is 50, AddEquipment failed");
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor), "Failed to unequip equipment");
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Armor), "Failed to unequip equipment");
         Fixture.TestUser.Stats.Level = 49;
         Assert.False(equipment.CheckRequirements(Fixture.TestUser, out var m2),
             "Equipment min level is 50, player level is 49, CheckRequirements succeeded");
@@ -137,9 +155,9 @@ public class Equipment
         Fixture.TestUser.Class = Class.Monk;
         Assert.True(equipment.CheckRequirements(Fixture.TestUser, out var m3),
             $"Equipment class is Monk, user is Monk, CheckRequirements failed {m3}");
-        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte)EquipmentSlot.Armor),
+        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte) EquipmentSlot.Armor),
             "Equipment class is Monk, user is Monk, AddEquipment failed");
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor), "Failed to unequip equipment");
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Armor), "Failed to unequip equipment");
     }
 
     [Fact]
@@ -158,9 +176,9 @@ public class Equipment
         Fixture.TestUser.Stats.Level = 99;
         Assert.True(equipment.CheckRequirements(Fixture.TestUser, out var m3),
             $"Equipment weight is 100, user is str 255 / level 99, CheckRequirements failed {m3}");
-        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte)EquipmentSlot.Armor),
+        Assert.True(Fixture.TestUser.AddEquipment(equipment, (byte) EquipmentSlot.Armor),
             "Equipment weight is 100, user is str 255 / level 99, AddEquipment failed");
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor), "Failed to unequip equipment");
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Armor), "Failed to unequip equipment");
     }
 
     [Fact]
@@ -175,16 +193,16 @@ public class Equipment
         var twohandObj = Game.World.CreateItem(twohand);
         Assert.True(
             shieldObj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(shieldObj, (byte)EquipmentSlot.Shield),
+            Fixture.TestUser.AddEquipment(shieldObj, (byte) EquipmentSlot.Shield),
             $"Check & Equip shield failed ({m1})");
         Assert.False(twohandObj.CheckRequirements(Fixture.TestUser, out var m2),
             "Shield equipped, equip two handed weapon,1 CheckRequirements succeeded");
         Assert.Equal(Game.World.GetLocalString("item_equip_2h_shield"), m2);
 
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Shield));
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.Shield));
         Assert.True(
             twohandObj.CheckRequirements(Fixture.TestUser, out var m3) &&
-            Fixture.TestUser.AddEquipment(twohandObj, (byte)EquipmentSlot.Weapon),
+            Fixture.TestUser.AddEquipment(twohandObj, (byte) EquipmentSlot.Weapon),
             "Check & Equip 2H weapon failed");
         Assert.False(shieldObj.CheckRequirements(Fixture.TestUser, out var m4));
         Assert.Equal(Game.World.GetLocalString("item_equip_shield_2h"), m4);
@@ -204,7 +222,7 @@ public class Equipment
         var ring2Obj = Game.World.CreateItem(ring2);
         Assert.True(
             ring1Obj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(ring1Obj, (byte)EquipmentSlot.LeftHand), $"Equip first ring failed ({m1})");
+            Fixture.TestUser.AddEquipment(ring1Obj, (byte) EquipmentSlot.LeftHand), $"Equip first ring failed ({m1})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null);
         Assert.False(ring2Obj.CheckRequirements(Fixture.TestUser, out var m2),
             "Ring 1 equipped, Equipping duplicate unique-equipped item, CheckRequirements succeeded");
@@ -252,7 +270,7 @@ public class Equipment
 
         Assert.True(
             ringObj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.LeftHand),
+            Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.LeftHand),
             $"Equip armor-prohibiting ring failed ({m1})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null, "Ring is missing");
         Assert.False(armorObj.CheckRequirements(Fixture.TestUser, out var m2),
@@ -262,7 +280,7 @@ public class Equipment
         // Try the reverse now
         Assert.True(
             ringObj.CheckRequirements(Fixture.TestUser, out var m3) &&
-            Fixture.TestUser.AddEquipment(armorObj, (byte)EquipmentSlot.Armor),
+            Fixture.TestUser.AddEquipment(armorObj, (byte) EquipmentSlot.Armor),
             $"Equip ring-prohibiting armor failed ({m3})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null, "Armor is missing");
         Assert.False(ringObj.CheckRequirements(Fixture.TestUser, out var m4),
@@ -287,7 +305,7 @@ public class Equipment
         ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "-3" };
 
         var ringObj = Game.World.CreateItem(ring);
-        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
         Assert.True(Fixture.TestUser.Stats.ExtraXp == -3.0);
 
         Fixture.TestUser.GiveExperience(10000, true);
@@ -306,7 +324,7 @@ public class Equipment
         ring.Properties.StatModifiers = new StatModifiers { BonusExtraXp = "3" };
 
         var ringObj = Game.World.CreateItem(ring);
-        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
         Assert.True(Fixture.TestUser.Stats.ExtraXp == 3.0);
 
         Fixture.TestUser.GiveExperience(10000, true);
@@ -420,7 +438,7 @@ public class Equipment
 
         // Now remove
 
-        Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.RightHand);
+        Fixture.TestUser.RemoveEquipment((byte) EquipmentSlot.RightHand);
 
         var currentAc = Fixture.TestUser.Stats.BaseAc - Fixture.TestUser.Stats.Level / 3 +
                         Fixture.TestUser.Stats.BonusAc;
@@ -490,7 +508,7 @@ public class Equipment
         ring.Name = "Test Ring";
         var ringObj = Game.World.CreateItem(ring);
         Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
-        Assert.Equal((byte)EquipmentSlot.RightHand, Fixture.TestUser.Equipment.SlotOfName(ringObj.Name));
+        Assert.Equal((byte) EquipmentSlot.RightHand, Fixture.TestUser.Equipment.SlotOfName(ringObj.Name));
         Assert.Equal((byte) EquipmentSlot.None, Fixture.TestUser.Equipment.SlotOfName("Something that does not exist"));
     }
 }

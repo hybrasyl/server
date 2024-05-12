@@ -1,32 +1,29 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Enums;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using Hybrasyl.Enums;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -51,9 +48,9 @@ public class Login : Server
         PacketHandlers[0x68] = PacketHandler_0x68_RequestHomepage;
     }
 
-    public new LoginPacketHandler[] PacketHandlers { get; }
+    public  LoginPacketHandler[] PacketHandlers { get; }
 
-    public World World { get; private set; }
+    public World World { get;  }
 
     private void PacketHandler_0x02_CreateA(Client client, ClientPacket packet)
     {
@@ -147,7 +144,7 @@ public class Login : Server
                 GameLog.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
                     client.ConnectionId, name);
                 login.LastLogin = DateTime.Now;
-                login.LastLoginFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastLoginFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 login.CurrentState = UserState.Redirect;
                 login.LastStateChange = login.LastLogin;
                 login.Save();
@@ -159,7 +156,7 @@ public class Login : Server
                 client.LoginMessage("Incorrect password", 3);
                 login.LastLoginFailure = DateTime.Now;
                 login.LoginFailureCount++;
-                login.LastLoginFailureFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastLoginFailureFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 login.CurrentState = UserState.Login;
                 login.LastStateChange = login.LastLoginFailure;
                 login.Save();
@@ -196,11 +193,11 @@ public class Login : Server
 
         // Try to get our map
         // TODO: replace with XML config for start map, x, y
-     if (!World.PlayerExists(client.NewCharacterName))
+        if (!World.PlayerExists(client.NewCharacterName))
         {
             var newPlayer = new User();
             newPlayer.Name = client.NewCharacterName;
-            newPlayer.Gender = (Gender)gender;
+            newPlayer.Gender = (Gender) gender;
             newPlayer.Location.X = 10;
             newPlayer.Location.Y = 10;
             newPlayer.HairColor = hairColor;
@@ -222,7 +219,7 @@ public class Login : Server
             newPlayer.AuthInfo.FirstLogin = true;
             newPlayer.AuthInfo.PasswordHash = client.NewCharacterPassword;
             newPlayer.AuthInfo.LastPasswordChange = DateTime.Now;
-            newPlayer.AuthInfo.LastPasswordChangeFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+            newPlayer.AuthInfo.LastPasswordChangeFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
             newPlayer.AuthInfo.Save();
             newPlayer.Nation = Game.World.DefaultNation;
 
@@ -254,7 +251,7 @@ public class Login : Server
 
         if (redirect.Matches(name, key, seed))
         {
-            ((IDictionary)ExpectedConnections).Remove(id);
+            ((IDictionary) ExpectedConnections).Remove(id);
 
             client.EncryptionKey = key;
             client.EncryptionSeed = seed;
@@ -294,7 +291,7 @@ public class Login : Server
             {
                 login.PasswordHash = HashPassword(newPass);
                 login.LastPasswordChange = DateTime.Now;
-                login.LastPasswordChangeFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastPasswordChangeFrom = ((IPEndPoint) client.Socket.RemoteEndPoint).Address.ToString();
                 login.Save();
                 // Let the user know the good news.
                 client.LoginMessage("Your password has been changed successfully.", 0x0);
@@ -318,7 +315,7 @@ public class Login : Server
     {
         var x60 = new ServerPacket(0x60);
         x60.WriteByte(0x01);
-        x60.WriteUInt16((ushort)Game.Notification.Length);
+        x60.WriteUInt16((ushort) Game.Notification.Length);
         x60.Write(Game.Notification);
         client.Enqueue(x60);
     }

@@ -1,23 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Enums;
 using System;
@@ -216,13 +213,15 @@ public class Client
         if (server is Lobby)
         {
             EncryptionKey = Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint != null
-                ? GlobalConnectionManifest.RequestEncryptionKey(Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
+                ? GlobalConnectionManifest.RequestEncryptionKey(
+                    Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
                     ((IPEndPoint)socket.RemoteEndPoint).Address)
                 : Encoding.ASCII.GetBytes("UrkcnItnI");
             GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
 
             var valid = Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint != null
-                ? GlobalConnectionManifest.ValidateEncryptionKey(Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint.Url,
+                ? GlobalConnectionManifest.ValidateEncryptionKey(
+                    Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint.Url,
                     new ServerToken
                     { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey })
                 : true;
@@ -268,7 +267,7 @@ public class Client
     public string NewCharacterSalt { get; set; }
     public string NewCharacterPassword { get; set; }
 
-    public byte CurrentMusicTrack { get; private set; }
+    public byte CurrentMusicTrack { get; }
 
     /// <summary>
     ///     Return the ServerType of a connection, corresponding with Hybrasyl.Utility.ServerTypes

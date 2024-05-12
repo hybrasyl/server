@@ -1,4 +1,21 @@
-﻿using System;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
@@ -13,7 +30,7 @@ public class HybrasylMonster : HybrasylWorldObject
         World = new HybrasylWorld(monster.World);
         Map = new HybrasylMap(monster.Map);
     }
-    
+
     internal Monster Monster => WorldObject as Monster;
 
     public Direction Direction => Monster.Direction;
@@ -104,7 +121,7 @@ public class HybrasylMonster : HybrasylWorldObject
     }
 
     /// <summary>
-    /// Apply a given status to a player.
+    ///     Apply a given status to a player.
     /// </summary>
     /// <param name="statusName">The name of the status</param>
     /// <param name="duration">The duration of the status, if zero, use default </param>
@@ -113,17 +130,16 @@ public class HybrasylMonster : HybrasylWorldObject
     /// <returns>boolean indicating whether or not the status was applied</returns>
     public bool ApplyStatus(string statusName, int duration = 0, int tick = 0, double intensity = 1)
     {
-
-        var status  = Game.World.WorldData.Get<Status>(statusName);
-        if  (status == null)
+        var status = Game.World.WorldData.Get<Status>(statusName);
+        if (status == null)
         {
             GameLog.ScriptingError("ApplyStatus: status {statusName} not found");
             return false;
         }
 
-        return Monster.ApplyStatus(new CreatureStatus(status, Monster,  null,  null,
-            duration == 0  ? status.Duration : duration,
-            tick == 0  ? status.Tick : tick,
+        return Monster.ApplyStatus(new CreatureStatus(status, Monster, null, null,
+            duration == 0 ? status.Duration : duration,
+            tick == 0 ? status.Tick : tick,
             intensity));
     }
 }

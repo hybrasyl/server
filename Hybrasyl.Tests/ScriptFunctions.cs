@@ -1,5 +1,22 @@
-﻿using System;
-using System.Linq;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using System;
 using System.Threading;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
@@ -54,7 +71,7 @@ public class ScriptFunctions
         Fixture.TestUser.Turn(Direction.West);
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
-        
+
         Assert.Equal((uint) 0, bait.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1000);
@@ -80,14 +97,13 @@ public class ScriptFunctions
         Fixture.TestUser.Turn(Direction.West);
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
-        
+
         Assert.Equal((uint) 0, bait2.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1);
         Assert.True(bait2.DeathProcessed);
-        Assert.True(scriptObject.HasKilled("Bee Bait",2));
+        Assert.True(scriptObject.HasKilled("Bee Bait", 2));
         Assert.True(scriptObject.HasKilled("Bee Bait", 2, 5));
-
     }
 
     [Fact]
@@ -125,7 +141,7 @@ public class ScriptFunctions
         Fixture.TestUser.Turn(Direction.West);
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
-        
+
         Assert.Equal((uint) 0, bait.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1000);
@@ -159,17 +175,16 @@ public class ScriptFunctions
         Fixture.TestUser.Turn(Direction.West);
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
-        
+
         Assert.Equal((uint) 0, bait2.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1);
         Assert.True(bait2.DeathProcessed);
         Assert.True(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30)).ToUnixTimeSeconds(),2));
+            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30)).ToUnixTimeSeconds(), 2));
         Assert.False(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds(),2));
+            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds(), 2));
         Assert.True(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds(),1));
+            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds()));
     }
-
 }

@@ -1,24 +1,20 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
-
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
 using Hybrasyl.Dialogs;
@@ -43,6 +39,7 @@ public class HybrasylWorldObject : IScriptable
     public WorldObject Obj => WorldObject as WorldObject;
 
     public virtual bool IsPlayer => false;
+
     //public Xml.Direction Direction => WorldObject.Direction;
     public string Guid => Obj.Guid.ToString();
 
@@ -302,12 +299,16 @@ public class HybrasylWorldObject : IScriptable
     }
 
     /// <summary>
-    /// Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for mentoring, etc).
+    ///     Request an asynchronous dialog with a player. This can be used to ask a different player a question (such as for
+    ///     mentoring, etc).
     /// </summary>
     /// <param name="targetUser">The logged-in player that will receive the dialog</param>
     /// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
     /// <param name="sequenceName">The sequence that will be started for the target player</param>
-    /// <param name="origin">The GUID of the origin for the request (castable, item, merchant, whatever). The origin must contain the script that will be used to handle the request.</param>
+    /// <param name="origin">
+    ///     The GUID of the origin for the request (castable, item, merchant, whatever). The origin must
+    ///     contain the script that will be used to handle the request.
+    /// </param>
     /// <param name="requireLocal">Whether or not the player needs to be on the same map as the player causing the request.</param>
     /// <returns>Boolean indicating success</returns>
     public bool RequestDialog(string targetUser, string sourceGuid, string sequenceName, string originGuid,
@@ -484,7 +485,8 @@ public class HybrasylWorldObject : IScriptable
     }
 
     /// <summary>
-    /// Change the sprite of an object in the world. A Show() is automatically called to display the new sprite to any nearby players.
+    ///     Change the sprite of an object in the world. A Show() is automatically called to display the new sprite to any
+    ///     nearby players.
     /// </summary>
     /// <param name="sprite">ushort id of the sprite, referencing a sprite in client datfiles.</param>
     public void SetSprite(ushort sprite)
@@ -516,7 +518,7 @@ public class HybrasylWorldObject : IScriptable
     }
 
     /// <summary>
-    /// Teleport the object to an x,y coordinate location on its current map.
+    ///     Teleport the object to an x,y coordinate location on its current map.
     /// </summary>
     /// <param name="x"></param>
     /// <param name="y"></param>

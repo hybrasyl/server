@@ -17,8 +17,8 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Tests;
 
@@ -58,5 +58,4 @@ public class DirectorySettings
     public string WorldDataDirectory { get; init; }
     public string LogDirectory { get; init; }
     public string DataDirectory { get; init; }
-
 }

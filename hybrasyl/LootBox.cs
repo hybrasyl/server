@@ -1,8 +1,26 @@
-﻿using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl;
 
@@ -80,7 +98,7 @@ public static class LootBox
     /// <param name="a">Lower bound</param>
     /// <param name="b">Upper bound</param>
     /// <returns></returns>
-    public static uint RollBetween(uint a, uint b) => (uint)Random.Shared.Next((int)a, (int)b + 1);
+    public static uint RollBetween(uint a, uint b) => (uint) Random.Shared.Next((int) a, (int) b + 1);
 
     public static Loot CalculateLoot(LootSet set, int rolls, float chance)
     {
@@ -272,7 +290,8 @@ public static class LootBox
                     if (xmlItem.Variants?.TryGetValue(lootedVariant, out var variantItems) ?? false)
                         itemList.Add(Game.World.CreateItem(variantItems.PickRandom().Id));
                     else
-                        GameLog.SpawnError($"Loot: variant group {lootedVariant} specified for {xmlItem.Name} but that item does not have the specified variant");
+                        GameLog.SpawnError(
+                            $"Loot: variant group {lootedVariant} specified for {xmlItem.Name} but that item does not have the specified variant");
                 }
                 else
                 {

@@ -1,30 +1,30 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Grpc.Core;
+using Hybrasyl.Internals;
 using Hybrasyl.Utility;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using HybrasylGrpc;
 using Newtonsoft.Json.Linq;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Core;
 using System;
@@ -40,10 +40,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Hybrasyl.Internals;
-using Hybrasyl.Objects;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
 
 namespace Hybrasyl;
 
@@ -78,7 +74,7 @@ public static class Game
 
     public static readonly ActivitySource ActivitySource = new("erisco.hybrasyl.server");
     public static TracerProvider TracerProvider;
-    
+
     public static readonly Dictionary<ushort, ushort> ClosedDoorSprites = new()
     {
         { 1994, 1997 }, { 2000, 2003 }, { 2163, 2164 }, { 2165, 2196 }, { 2197, 2198 }, { 2227, 2228 },
@@ -154,8 +150,8 @@ public static class Game
     public static DateTime StartDate { get; set; }
     public static string CommitLog { get; private set; }
 
-    public static IDisposable Sentry { get; private set; }
-    public static bool SentryEnabled { get; private set; }
+    public static IDisposable Sentry { get; }
+    public static bool SentryEnabled { get; }
 
     public static ServerConfig ActiveConfiguration { get; set; }
     public static string WorldDataDirectory { get; set; }
@@ -199,10 +195,7 @@ public static class Game
         return true;
     }
 
-    public static void ReportException(Exception e)
-    {
-        return;
-    }
+    public static void ReportException(Exception e) { }
 
     public static void CurrentDomain_ProcessExit(object sender, EventArgs e)
     {
@@ -237,29 +230,29 @@ public static class Game
     // <param name="logDir">The directory to use to write logs. Defaults to ~/Hybrasyl/logs on Linux or My Documents\Hybrasyl\logs on Windows.</param>
     public static void Main(string[] args)
     {
-        var dataOption = new Option<string>(name: "--datadir",
-            description: "The data directory to be used for the server. Defaults to ~\\Hybrasyl\\world");
+        var dataOption = new Option<string>("--datadir",
+            "The data directory to be used for the server. Defaults to ~\\Hybrasyl\\world");
 
-        var worldDataOption = new Option<string>(name: "--worlddatadir",
-            description: "The XML data directory to be used for the server. Defaults to DATADIR\\xml");
+        var worldDataOption = new Option<string>("--worlddatadir",
+            "The XML data directory to be used for the server. Defaults to DATADIR\\xml");
 
-        var logdirOption = new Option<string>(name: "--logdir",
-            description: "The directory for log output from the server. Defaults to DATADIR\\logs");
+        var logdirOption = new Option<string>("--logdir",
+            "The directory for log output from the server. Defaults to DATADIR\\logs");
 
-        var configOption = new Option<string>(name: "--config",
-            description: "The named configuration to use in the world directory. Defaults to default");
+        var configOption = new Option<string>("--config",
+            "The named configuration to use in the world directory. Defaults to default");
 
-        var redisHost = new Option<string>(name: "--redisHost",
-            description: "The redis server to use. Overrides any setting in config xml.");
+        var redisHost = new Option<string>("--redisHost",
+            "The redis server to use. Overrides any setting in config xml.");
 
-        var redisPort = new Option<int?>(name: "--redisPort",
-            description: "The port to use for Redis. Overrides any setting in config xml.");
+        var redisPort = new Option<int?>("--redisPort",
+            "The port to use for Redis. Overrides any setting in config xml.");
 
-        var redisDb = new Option<int?>(name: "--redisDb",
-            description: "The redis DB to use. Overrides any setting in config xml.");
+        var redisDb = new Option<int?>("--redisDb",
+            "The redis DB to use. Overrides any setting in config xml.");
 
-        var redisPassword = new Option<string>(name: "--redisPassword",
-            description: "The password to use for Redis. Overrides any setting in config xml.");
+        var redisPassword = new Option<string>("--redisPassword",
+            "The password to use for Redis. Overrides any setting in config xml.");
 
         var rootCommand = new RootCommand("Hybrasyl, a DOOMVAS-compatible MMO server");
 
@@ -273,12 +266,13 @@ public static class Game
         rootCommand.AddOption(redisPassword);
 
         rootCommand.SetHandler(StartServer,
-        dataOption, worldDataOption, logdirOption, configOption, redisHost, redisPort, redisDb, redisPassword);
+            dataOption, worldDataOption, logdirOption, configOption, redisHost, redisPort, redisDb, redisPassword);
 
         rootCommand.Invoke(args);
     }
 
-    public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null, string configName = null,
+    public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null,
+        string configName = null,
         string redisHost = null, int? redisPort = null, int? redisDb = null, string redisPw = null)
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
@@ -287,10 +281,10 @@ public static class Game
 
         // Initialize OTel
 
-        
+
         using var activity = ActivitySource.StartActivity("Startup");
 
-        activity?.SetTag("host",Dns.GetHostName());
+        activity?.SetTag("host", Dns.GetHostName());
         // Gather our directories from env vars / command line switches
 
         var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
@@ -309,12 +303,11 @@ public static class Game
 
         var rPw = Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? redisHost;
 
-        DataDirectory = string.IsNullOrWhiteSpace(data) ?
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world") : data;
-        WorldDataDirectory = string.IsNullOrWhiteSpace(world) ?
-            Path.Combine(DataDirectory, "xml") : world;
-        LogDirectory = string.IsNullOrWhiteSpace(log) ?
-            Path.Combine(DataDirectory, "logs") : log;
+        DataDirectory = string.IsNullOrWhiteSpace(data)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world")
+            : data;
+        WorldDataDirectory = string.IsNullOrWhiteSpace(world) ? Path.Combine(DataDirectory, "xml") : world;
+        LogDirectory = string.IsNullOrWhiteSpace(log) ? Path.Combine(DataDirectory, "logs") : log;
         ActiveConfigurationName = string.IsNullOrWhiteSpace(config) ? "default" : config;
 
         // Set our exit handler
@@ -331,6 +324,7 @@ public static class Game
             Thread.Sleep(10000);
             return;
         }
+
         var manager = new XmlDataManager(WorldDataDirectory);
 
         try
@@ -345,10 +339,11 @@ public static class Game
                     break;
                 Thread.Sleep(250);
             }
+
             Log.Information("Loading xml completed");
             manager.LogResult(Log.Logger);
         }
-        catch (FileNotFoundException ex)
+        catch (FileNotFoundException)
         {
             activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal($"An XML directory (world data) was not found at {manager.RootPath}.");
@@ -361,7 +356,6 @@ public static class Game
                 "Hybrasyl cannot start without a readable world data directory, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
             return;
-
         }
         catch (Exception ex)
         {
@@ -385,10 +379,7 @@ public static class Game
                 $"We are currently looking in:\n{manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs for a config file.");
             if (loadResult.ErrorCount > 0)
                 Log.Fatal("Errors were encountered processing server configuration:");
-            foreach (var error in loadResult.Errors)
-            {
-                Log.Fatal($"{error.Key}: {error.Value}");
-            }
+            foreach (var error in loadResult.Errors) Log.Fatal($"{error.Key}: {error.Value}");
 
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration file, so it will automatically close in 10 seconds.");
@@ -409,17 +400,13 @@ public static class Game
             if (loadResult.ErrorCount > 0)
                 Log.Fatal("Errors were encountered processing localizations:");
 
-            foreach (var error in loadResult.Errors)
-            {
-                Log.Fatal($"{error.Key}: {error.Value}");
-            }
+            foreach (var error in loadResult.Errors) Log.Fatal($"{error.Key}: {error.Value}");
 
             activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
                 "Hybrasyl cannot start without localizations, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
             return;
-
         }
 
         if (!manager.TryGetValue(ActiveConfigurationName, out ServerConfig activeConfiguration))
@@ -429,7 +416,7 @@ public static class Game
             Log.Fatal(
                 $"You specified a server configuration name of {ActiveConfigurationName}, but there are no configurations with that name.");
             Log.Fatal(
-                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(x => x.Name))}");
+                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(selector: x => x.Name))}");
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -441,16 +428,17 @@ public static class Game
         if (!manager.TryGetValue(activeConfiguration.Locale, out Localization locale))
         {
             Log.Fatal(
-                $"You specified a locale of en_us, but there are no locales with that name.");
+                "You specified a locale of en_us, but there are no locales with that name.");
             Log.Fatal(
                 $"Make sure a localization configuration exists in {manager.RootPath}{Path.DirectorySeparatorChar}localizations and that it matches what is defined in the server configuration.");
             Log.Fatal(
-                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}localizations: {string.Join(" ", manager.Values<Localization>().Select(x => x.Locale))}");
+                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}localizations: {string.Join(" ", manager.Values<Localization>().Select(selector: x => x.Locale))}");
             Log.Fatal(
                 "Hybrasyl cannot start without a properly set locale, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
 
-            return; }
+            return;
+        }
 
         Log.Information($"Configuration file: {activeConfiguration.Filename} ({activeConfiguration.Name}) loaded");
         activeConfiguration.InitializeClientSettings();
@@ -468,7 +456,7 @@ public static class Game
             // TODO : actually implement this
             var providerBuilder = Sdk.CreateTracerProviderBuilder()
                 .AddSource("erisco.hybrasyl.server")
-                .AddConsoleExporter().AddOtlpExporter(opt =>
+                .AddConsoleExporter().AddOtlpExporter(configure: opt =>
                 {
                     opt.Endpoint = new Uri(activeConfiguration.ApiEndpoints.TelemetryEndpoint.Url);
                 });
@@ -674,7 +662,8 @@ public static class Game
                     Services = { Patron.BindService(new PatronServer()) },
                     Ports =
                     {
-                        new ServerPort(activeConfiguration.Network.Grpc.BindAddress, activeConfiguration.Network.Grpc.Port,
+                        new ServerPort(activeConfiguration.Network.Grpc.BindAddress,
+                            activeConfiguration.Network.Grpc.Port,
                             ServerCredentials.Insecure)
                     }
                 };

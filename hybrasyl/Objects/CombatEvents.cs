@@ -1,7 +1,26 @@
-﻿using Hybrasyl.Enums;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using MoonSharp.Interpreter.Interop;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -45,8 +64,8 @@ public record StatChangeEvent : CombatEvent
             _ => string.Empty
         };
     }
-
 }
+
 [MoonSharpUserData]
 public record DodgeEvent : CombatEvent
 {
@@ -57,10 +76,12 @@ public record DodgeEvent : CombatEvent
 public record HealEvent : StatChangeEvent
 {
     public override CombatLogEventType EventType => CombatLogEventType.Heal;
-    public override string ToString() => $"[combat] Heal: {SourceCastableName} on {TargetName}: {Amount} (modified {BonusHeal})";
+
     // Amount of healing buff / debuff from inbound modifiers
     public int BonusHeal { get; set; } = 0;
 
+    public override string ToString() =>
+        $"[combat] Heal: {SourceCastableName} on {TargetName}: {Amount} (modified {BonusHeal})";
 }
 
 [MoonSharpUserData]
@@ -122,10 +143,35 @@ public record DamageEvent : StatChangeEvent
             str += $" AC {ArmorReduction}";
         if (ModifierDmg > 0)
             str += $" Mod {ModifierDmg}";
-        if (Shielded >0)
+        if (Shielded > 0)
             str += $" Shield {Shielded}";
         if (Crit || MagicCrit)
             str = $"CRIT {str}";
         return $"[combat] {str}";
+    }
+}
+
+[MoonSharpUserData]
+public record NoLootEvent : CombatEvent
+{
+    public string Reason { get; set; }
+    public override CombatLogEventType EventType => CombatLogEventType.Loot;
+    public override string ToString() => $"[LOOT DENIED]: {Target}: {Reason}";
+}
+
+[MoonSharpUserData]
+public record LootEvent : CombatEvent
+{
+    public List<string> Items { get; set; } = new();
+    public uint Xp { get; set; }
+    public uint Gold { get; set; }
+    public override CombatLogEventType EventType => CombatLogEventType.Loot;
+
+    public override string ToString()
+    {
+        var ret = $"[combat] [Loot] XP {Xp} Gold {Gold}\n";
+        return Items.Count <= 0 ? ret :
+            // Deal with client vagaries
+            Items.Aggregate(ret, (current, item) => current + $"[combat] [Loot] Item: {item}\n");
     }
 }
