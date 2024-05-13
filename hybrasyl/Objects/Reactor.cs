@@ -170,7 +170,7 @@ public class Reactor : VisibleObject, IPursuitable
         var casterObj = Caster?.GetUserObject();
         if (VisibleToCookies.Any(user.HasCookie)) return true;
         if (InvisibleToCookies.Any(user.HasCookie)) return false;
-        if (user.CurrentStatusInfo.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
+        if (user.CurrentStatuses.Values.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
         if (casterObj == null) return false;
         if (VisibleToOwner && user.Name == Caster.Name) return true;
         if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;

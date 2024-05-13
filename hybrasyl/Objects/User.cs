@@ -95,6 +95,8 @@ public class User : Creature
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 
+    [JsonProperty] private List<StatusInfo> Statuses { get; set; }
+
     public int LevelCircle
     {
         get
@@ -997,7 +999,9 @@ public class User : Creature
             if (serializeStatus)
             {
                 if (ActiveStatusCount > 0)
-                    Statuses = CurrentStatusInfo.ToList();
+                    Statuses = CurrentStatuses.Count > 0
+                        ? CurrentStatuses.Values.Select(selector: e => e.Info).ToList()
+                        : new List<StatusInfo>();
                 else
                     Statuses.Clear();
             }

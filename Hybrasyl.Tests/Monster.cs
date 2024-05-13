@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Linq;
 using System.Threading;
-using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -46,26 +46,26 @@ public class Monsters
         Game.World.Insert(monster);
 
         foreach (var skillCategory in monster.BehaviorSet.LearnSkillCategories)
-        foreach (var skill in
-                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(skillCategory)))
-        {
-            var reqs = skill.Requirements.Where(predicate: x => x.Physical != null);
-            foreach (var req in reqs)
-                if (monster.MeetsRequirement(req))
-                    Assert.True(monster.CastableController.ContainsCastable(skill.Name),
-                        $"Skills: Should know {skill.Name} but doesn't");
-        }
+            foreach (var skill in
+                     Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(skillCategory)))
+            {
+                var reqs = skill.Requirements.Where(predicate: x => x.Physical != null);
+                foreach (var req in reqs)
+                    if (monster.MeetsRequirement(req))
+                        Assert.True(monster.CastableController.ContainsCastable(skill.Name),
+                            $"Skills: Should know {skill.Name} but doesn't");
+            }
 
         foreach (var spellCategory in monster.BehaviorSet.LearnSpellCategories)
-        foreach (var spell in
-                 Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
-        {
-            var reqs = spell.Requirements.Where(predicate: x => x.Physical != null);
-            foreach (var req in reqs)
-                if (monster.MeetsRequirement(req))
-                    Assert.True(monster.CastableController.ContainsCastable(spell.Name),
-                        $"Skills: Should know {spell.Name} but doesn't");
-        }
+            foreach (var spell in
+                     Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
+            {
+                var reqs = spell.Requirements.Where(predicate: x => x.Physical != null);
+                foreach (var req in reqs)
+                    if (monster.MeetsRequirement(req))
+                        Assert.True(monster.CastableController.ContainsCastable(spell.Name),
+                            $"Skills: Should know {spell.Name} but doesn't");
+            }
     }
 
     [Fact]
@@ -211,7 +211,7 @@ public class Monsters
                 Hp = 500
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
 
@@ -230,7 +230,7 @@ public class Monsters
             behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Castable);
 
         Assert.NotNull(immunityTriggered);
-        Assert.Equal((uint) 500, bait.Stats.Hp);
+        Assert.Equal((uint)500, bait.Stats.Hp);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
         if (immunityTriggered.MessageType == Xml.Objects.MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
@@ -259,7 +259,7 @@ public class Monsters
                 Hp = 500
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
 
@@ -278,7 +278,7 @@ public class Monsters
             behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Element);
 
         Assert.NotNull(immunityTriggered);
-        Assert.Equal((uint) 500, bait.Stats.Hp);
+        Assert.Equal((uint)500, bait.Stats.Hp);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
         if (immunityTriggered.MessageType == Xml.Objects.MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
@@ -307,7 +307,7 @@ public class Monsters
                 Hp = 500
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
 
@@ -335,7 +335,7 @@ public class Monsters
             Assert.True(Fixture.TestUser.LastHeard.Shout);
         else
             Assert.False(Fixture.TestUser.LastHeard.Shout);
-        Assert.Empty(bait.Statuses);
+        Assert.Empty(bait.CurrentStatuses);
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public class Monsters
                 BaseStr = 50
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
 
@@ -390,7 +390,7 @@ public class Monsters
         else
             Assert.False(Fixture.TestUser.LastHeard.Shout);
 
-        Assert.Empty(bait.Statuses);
+        Assert.Empty(bait.CurrentStatuses);
     }
 
     [Fact]

@@ -99,7 +99,7 @@ internal class StatusesCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         var statusReport = string.Empty;
-        foreach (var status in user.CurrentStatusInfo)
+        foreach (var status in user.CurrentStatuses.Values)
             statusReport =
                 $"{statusReport}{status.Name}: {status.Remaining} seconds remaining, tick every {status.Tick} seconds\n";
         user.SendMessage(statusReport, MessageTypes.SLATE_WITH_SCROLLBAR);

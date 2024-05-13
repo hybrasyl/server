@@ -16,12 +16,12 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Linq;
-using System.Threading;
 using Hybrasyl.Objects;
 using Hybrasyl.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Linq;
+using System.Threading;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -54,7 +54,7 @@ public class Status
         var intensity = castable.AddStatuses.First().Intensity;
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, Fixture.TestUser));
-        Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo);
+        Assert.NotEmpty(Fixture.TestUser.CurrentStatuses);
         Assert.True(Fixture.TestUser.Stats.Ac == beforeAc + expectedAcDelta * intensity,
             $"ac was {beforeAc}, delta {expectedAcDelta}, should be {beforeAc + expectedAcDelta} but is {Fixture.TestUser.Stats.Ac}");
     }
@@ -106,7 +106,7 @@ public class Status
         // Allow sufficient time for control message handler to process messages
         Thread.Sleep(50);
 
-        Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
+        Assert.Empty(Fixture.TestUser.CurrentStatuses);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class Status
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
         Thread.Sleep(50);
-        Assert.Empty(Fixture.TestUser.CurrentStatusInfo);
+        Assert.Empty(Fixture.TestUser.CurrentStatuses);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class Status
     {
         var scriptUser = new HybrasylUser(Fixture.TestUser);
         Assert.True(scriptUser.ApplyStatus("TestMinusStr", 30));
-        Assert.NotEmpty(Fixture.TestUser.CurrentStatusInfo.Where(predicate: x => x.Name == "TestMinusStr"));
+        Assert.NotEmpty(Fixture.TestUser.CurrentStatuses.Values.Where(predicate: x => x.Name == "TestMinusStr"));
     }
 
     [Fact]
@@ -155,11 +155,107 @@ public class Status
                 Hp = 500
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
         var scriptMonster = new HybrasylMonster(monster);
         Assert.True(scriptMonster.ApplyStatus("TestMinusStr", 30));
-        Assert.NotEmpty(monster.CurrentStatusInfo.Where(predicate: x => x.Name == "TestMinusStr"));
+        Assert.NotEmpty(monster.CurrentStatuses.Values.Where(predicate: x => x.Name == "TestMinusStr"));
     }
+
+    [Fact]
+    public void ApplyAndRemoveStatus()
+    {
+        Fixture.ResetUserStats();
+        var beforeAc = Fixture.TestUser.Stats.Ac;
+        var testadd1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse1").FirstOrDefault();
+        var testadd2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse2").FirstOrDefault();
+        var testremove1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRemCurse1").FirstOrDefault();
+        var testremove2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRemCurse2").FirstOrDefault();
+
+        Assert.NotNull(testadd1);
+        Assert.NotNull(testadd2);
+        Assert.NotNull(testremove1);
+        Assert.NotNull(testremove2);
+
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+
+        var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
+        // Should spawn, and not have a null behaviorset
+        Assert.NotNull(monster.BehaviorSet);
+        monster.X = 11;
+        monster.Y = 11;
+        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Map.InsertCreature(monster);
+
+        Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
+        Assert.True(Fixture.TestUser.SpellBook.Add(testadd2));
+        Assert.True(Fixture.TestUser.SpellBook.Add(testremove1));
+        Assert.True(Fixture.TestUser.SpellBook.Add(testremove1));
+
+        Assert.True(Fixture.TestUser.UseCastable(testadd1, monster));
+
+        // Gabbaghoul should have test curse 1 applied
+        Assert.True(monster.CurrentStatuses.Count == 1);
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") > 0);
+
+        // Remove 2 should not remove 1
+        Assert.True(Fixture.TestUser.UseCastable(testremove2, monster));
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") > 0);
+        Assert.True(monster.CurrentStatuses.Count == 1);
+
+        // Remove 1 should remove 1
+        Assert.True(Fixture.TestUser.UseCastable(testremove1, monster));
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") == 0);
+        Assert.True(monster.CurrentStatuses.Count == 0);
+    }
+
+    [Fact]
+    public void ApplyAndRemoveMultipleStatuses()
+    {
+        Fixture.ResetUserStats();
+        var beforeAc = Fixture.TestUser.Stats.Ac;
+        var testadd1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse1").FirstOrDefault();
+        var testadd2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse2").FirstOrDefault();
+        var testremove1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRem2Curse").FirstOrDefault();
+
+        Assert.NotNull(testadd1);
+        Assert.NotNull(testadd2);
+        Assert.NotNull(testremove1);
+
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+
+        var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
+        // Should spawn, and not have a null behaviorset
+        Assert.NotNull(monster.BehaviorSet);
+        monster.X = 11;
+        monster.Y = 11;
+        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Map.InsertCreature(monster);
+
+        Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
+        Assert.True(Fixture.TestUser.SpellBook.Add(testadd2));
+        Assert.True(Fixture.TestUser.SpellBook.Add(testremove1));
+        Assert.True(Fixture.TestUser.SpellBook.Add(testremove1));
+
+        // Gabbaghoul should have test curse 1 applied
+        Assert.True(Fixture.TestUser.UseCastable(testadd1, monster));
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") > 0);
+        Assert.True(monster.CurrentStatuses.Count == 1);
+
+        // Gabbaghoul should have test curse 2 applied
+        Assert.True(Fixture.TestUser.UseCastable(testadd2, monster));
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse2") > 0);
+        Assert.True(monster.CurrentStatuses.Count == 2);
+
+        // Gabbaghoul should have both curses removed by Test Remove 2
+        Assert.True(Fixture.TestUser.UseCastable(testremove1, monster));
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") == 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse2") == 0);
+        Assert.True(monster.CurrentStatuses.Count == 0);
+
+    }
+
 }

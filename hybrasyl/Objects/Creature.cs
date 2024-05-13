@@ -37,7 +37,7 @@ public class Creature : VisibleObject
 
     private uint _mLastHitter;
 
-    protected ConcurrentDictionary<ushort, ICreatureStatus> CurrentStatuses;
+    public ConcurrentDictionary<ushort, ICreatureStatus> CurrentStatuses;
 
     public Creature()
     {
@@ -47,19 +47,12 @@ public class Creature : VisibleObject
         Condition = new ConditionInfo(this);
         CurrentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         LastHitTime = DateTime.MinValue;
-        Statuses = new List<StatusInfo>();
         Cookies = new Dictionary<string, string>();
         SessionCookies = new Dictionary<string, string>();
     }
 
     [JsonProperty(Order = 2)] public StatInfo Stats { get; set; }
     [JsonProperty(Order = 3)] public ConditionInfo Condition { get; set; }
-
-    [JsonProperty] public List<StatusInfo> Statuses { get; set; }
-
-    public List<StatusInfo> CurrentStatusInfo => CurrentStatuses.Count > 0
-        ? CurrentStatuses.Values.Select(selector: e => e.Info).ToList()
-        : new List<StatusInfo>();
 
     public uint Gold => Stats.Gold;
 
@@ -679,16 +672,16 @@ public class Creature : VisibleObject
                     var tick = status.Tick == 0 ? applyStatus.Tick : status.Tick;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
-                    if (tar.CurrentStatusInfo.Count > 0)
+                    if (!tar.CurrentStatuses.IsEmpty)
                     {
-                        var overlap = tar.CurrentStatusInfo.Where(predicate: x => applyStatus.IsCategory(x.Category))
-                            .ToList();
-                        if (overlap.Any())
+                        var overlap =
+                            tar.CurrentStatuses.Values.FirstOrDefault(x => x.Icon == applyStatus.Icon);
+
+                        if (overlap != null)
                         {
                             if (this is User user)
                                 user.SendSystemMessage(
-                                    $"Another {overlap.First().Category} already affects your target.");
-
+                                    $"Another {overlap.Category.First().ToLower()} already affects your target.");
                             continue;
                         }
                     }
@@ -696,11 +689,11 @@ public class Creature : VisibleObject
                     // Check immunities
                     var apply = true;
                     CreatureImmunity immunity = null;
-                    if (tar is Monster m && (castableXml.CategoryList.Any(predicate: x =>
-                                                 m.BehaviorSet.ImmuneToCastableCategory(x, out immunity)) ||
-                                             m.BehaviorSet.ImmuneToStatus(applyStatus, out immunity) ||
-                                             applyStatus.CategoryList.Any(predicate: x =>
-                                                 m.BehaviorSet.ImmuneToStatusCategory(x, out immunity))))
+                    if (tar is Monster m &&
+                        (m.BehaviorSet.ImmuneToCastableCategories(castableXml.CategoryList, out immunity) ||
+                         m.BehaviorSet.ImmuneToStatusCategories(castableXml.CategoryList, out immunity) ||
+                         m.BehaviorSet.ImmuneToStatus(applyStatus, out immunity) ||
+                         m.BehaviorSet.ImmuneToCastable(castableXml, out immunity)))
                     {
                         m.SendImmunityMessage(immunity, this);
                         apply = false;
@@ -721,16 +714,15 @@ public class Creature : VisibleObject
                 {
                     for (var x = 0; x <= status.Quantity; x++)
                     {
-                        var toRemove = tar.Statuses.FirstOrDefault(predicate: x => string.Equals(x.Category,
-                            status.Value,
-                            StringComparison.CurrentCultureIgnoreCase));
+                        var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(s =>
+                            s.Category.Contains(status.Value));
                         if (toRemove == null) break;
                         tar.RemoveStatus(toRemove.Icon);
                         GameLog.UserActivityInfo(
                             $"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
                     }
                 }
-                else if (World.WorldData.TryGetValue<Status>(status.Value.ToLower(), out var applyStatus))
+                else if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
@@ -1338,7 +1330,7 @@ public class Creature : VisibleObject
         // Check for immunities to status effects
         if (this is Monster { BehaviorSet: not null } m)
             if (m.BehaviorSet.ImmuneToStatus(status.Name, out var immunity) ||
-                m.BehaviorSet.ImmuneToStatusCategory(status.Info.Category, out immunity))
+                m.BehaviorSet.ImmuneToStatusCategories(status.Category, out immunity))
             {
                 m.SendImmunityMessage(immunity);
                 return false;

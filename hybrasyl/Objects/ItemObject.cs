@@ -455,11 +455,12 @@ public class ItemObject : VisibleObject, IInteractable
                 {
                     var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
                     var tick = add.Tick == 0 ? applyStatus.Tick : add.Tick;
-                    var overlap = trigger.CurrentStatusInfo.Where(predicate: x => applyStatus.IsCategory(x.Category))
-                        .ToList();
-                    if (overlap.Any())
+                    var overlap =
+                        trigger.CurrentStatuses.Values
+                            .FirstOrDefault(x => x.Category.Union(applyStatus.CategoryList).Any());
+                    if (overlap != null)
                     {
-                        trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
+                        trigger.SendSystemMessage($"You already have an active {overlap.Category}.");
                     }
                     else
                     {

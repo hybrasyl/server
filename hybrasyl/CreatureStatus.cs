@@ -98,6 +98,7 @@ public class Required : Attribute
 public interface ICreatureStatus
 {
     string Name { get; }
+    List<string> Category { get; }
     string ActionProhibitedMessage { get; }
     double Duration { get; }
     double Tick { get; }
@@ -129,7 +130,6 @@ public class StatusInfo
 {
     public string Name { get; set; }
     public ushort Icon { get; set; }
-    public string Category { get; set; }
     public SimpleStatusEffect OnStartEffect { get; set; }
     public SimpleStatusEffect OnTickEffect { get; set; }
     public SimpleStatusEffect OnRemoveEffect { get; set; }
@@ -207,7 +207,7 @@ public class CreatureStatus : ICreatureStatus
     }
 
     // TODO: xmlfix
-    public string Category => XmlStatus.CategoryList.FirstOrDefault() ?? string.Empty;
+    public List<string> Category => XmlStatus.CategoryList;
     protected User TargetUser => Target as User;
     protected User SourceUser => Target as User;
 
@@ -242,7 +242,6 @@ public class CreatureStatus : ICreatureStatus
         OnExpireEffect = OnExpireEffect,
         Remaining = Remaining,
         Tick = Tick,
-        Category = Category,
         Intensity = Intensity
     };
 

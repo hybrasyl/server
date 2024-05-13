@@ -16,16 +16,16 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using Hybrasyl.Internals;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using Serilog;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -107,7 +107,7 @@ public class HybrasylFixture : IDisposable
         };
         TestItem.Properties.Stackable.Max = 1;
         TestItem.Properties.Equipment = new Xml.Objects.Equipment
-            { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         TestItem.Properties.Categories = new List<Category>
         {
@@ -122,7 +122,7 @@ public class HybrasylFixture : IDisposable
         };
         StackableTestItem.Properties.Stackable.Max = 20;
         StackableTestItem.Properties.Equipment = new Xml.Objects.Equipment
-            { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
+        { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
         StackableTestItem.Properties.Categories = new List<Category>
         {
@@ -138,7 +138,7 @@ public class HybrasylFixture : IDisposable
             var item = new Item { Name = $"Equip Test {slot}" };
             item.Properties.Stackable.Max = 1;
             item.Properties.Equipment = new Xml.Objects.Equipment
-                { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
+            { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
             item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
             Game.World.WorldData.Add(item);
             TestEquipment.Add(slot, item);
@@ -214,7 +214,7 @@ public class HybrasylFixture : IDisposable
             var server = World.DatastoreConnection.GetServer(ep.First().ToString());
             server.FlushDatabase(15);
         }
-        catch (Exception ex) { }
+        catch (Exception) { }
     }
 
     public void ResetUserStats()
@@ -239,5 +239,6 @@ public class HybrasylFixture : IDisposable
         TestUser.Inventory.Clear();
         TestUser.Equipment.Clear();
         TestUser.Vault.Clear();
+        TestUser.RemoveAllStatuses();
     }
 }
