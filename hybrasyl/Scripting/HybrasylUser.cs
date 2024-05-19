@@ -1262,4 +1262,6 @@ public class HybrasylUser : HybrasylWorldObject
             tick == 0 ? status.Tick : tick,
             intensity));
     }
+
+    public void RemoveAllStatuses() => User.RemoveAllStatuses();
 }
