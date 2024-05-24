@@ -53,11 +53,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Creature = Hybrasyl.Objects.Creature;
-using Exchange = Hybrasyl.Subsystems.Players.Exchange;
 using Message = Hybrasyl.Plugins.Message;
-using MessageType = Hybrasyl.Internals.Enums.MessageType;
+using MessageType = Hybrasyl.Xml.Objects.MessageType;
 using Reactor = Hybrasyl.Objects.Reactor;
-using Required = Hybrasyl.Internals.Required;
 using Script = Hybrasyl.Subsystems.Scripting.Script;
 using Timer = System.Timers.Timer;
 
@@ -78,7 +76,7 @@ public class World : Server
     private readonly object _lock = new();
     private readonly object asyncLock = new();
 
-    private readonly Dictionary<Xml.Objects.MessageType, List<IMessageHandler>> MessagePlugins = new();
+    private readonly Dictionary<MessageType, List<IMessageHandler>> MessagePlugins = new();
 
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
@@ -745,7 +743,7 @@ public class World : Server
             GameLog.Error($"Scripts: {numErrors} scripts had errors - check scripting log");
     }
 
-    public IMessageHandler ResolveMessagingPlugin(Xml.Objects.MessageType type, Message message)
+    public IMessageHandler ResolveMessagingPlugin(MessageType type, Message message)
     {
         // Do we have a plugin that would handle this message?
         if (MessagePlugins.TryGetValue(type, out var pluginList))
@@ -2331,7 +2329,7 @@ public class World : Server
                             user.AdHocScript = null;
                             if (ret.Result != ScriptResult.Success)
                             {
-                                user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
+                                user.SendMessage(ret.Error.HumanizedError, Internals.Enums.MessageType.SlateScrollbar);
                                 return;
                             }
 
@@ -2355,7 +2353,7 @@ public class World : Server
                                 var ret = script.ExecuteExpression($"return {message}", env);
                                 if (ret.Result != ScriptResult.Success)
                                 {
-                                    user.SendMessage(ret.Error.HumanizedError, MessageType.SlateScrollbar);
+                                    user.SendMessage(ret.Error.HumanizedError, Internals.Enums.MessageType.SlateScrollbar);
                                     return;
                                 }
 

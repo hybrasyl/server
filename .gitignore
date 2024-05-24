@@ -281,15 +281,10 @@ __pycache__/
 **/hybrasyl/log.txt
 **/*.txt
 
-XML/api
-XML/articles
-XML/site
-XML/docfx.json
-XML/toc.yml
-
 hybrasyl/api
 hybrasyl/articles
 hybrasyl/site
+hybrasyl/_site
 hybrasyl/docfx.json
 hybrasyl/toc.yml
 

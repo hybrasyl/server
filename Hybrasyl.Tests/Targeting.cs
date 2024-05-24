@@ -25,14 +25,9 @@ using Creature = Hybrasyl.Xml.Objects.Creature;
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Targeting
+public class Targeting(HybrasylFixture fixture)
 {
-    public Targeting(HybrasylFixture fixture)
-    {
-        Fixture = fixture;
-    }
-
-    public HybrasylFixture Fixture { get; set; }
+    public HybrasylFixture Fixture { get; set; } = fixture;
 
 
     [Fact]

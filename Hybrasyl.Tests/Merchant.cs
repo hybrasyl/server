@@ -36,7 +36,7 @@ public class Merchants
     [Fact]
     public void CheckOnDeposit()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Fixture.TestUser.Say("how many epee do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
@@ -74,7 +74,7 @@ public class Merchants
     [Fact]
     public void CheckGoldOnDeposit()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Fixture.TestUser.Say("how much gold do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
@@ -105,7 +105,7 @@ public class Merchants
     [Fact]
     public void BuyAllCategory()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var before = Fixture.TestUser.Stats.Gold;
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Prayer Book", out Item junk),
@@ -130,7 +130,7 @@ public class Merchants
     [Fact]
     public void BuyItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -147,7 +147,7 @@ public class Merchants
     [Fact]
     public void RepairAll()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var before = Fixture.TestUser.Stats.Gold;
@@ -174,7 +174,7 @@ public class Merchants
     [Fact]
     public void RepairItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk),
             "Couldn't find epee in very test items");
@@ -198,7 +198,7 @@ public class Merchants
     [Fact]
     public void DepositGold()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Fixture.TestUser.Say("how much gold do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
@@ -225,7 +225,7 @@ public class Merchants
     [Fact]
     public void DepositItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk),
             "Couldn't find prayer book in test items");
@@ -244,7 +244,7 @@ public class Merchants
     [Fact]
     public void WithdrawGold()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         var before = Fixture.TestUser.Stats.Gold;
         Fixture.TestUser.Vault.AddGold(30000);
@@ -259,7 +259,7 @@ public class Merchants
     [Fact]
     public void WithdrawItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -270,7 +270,7 @@ public class Merchants
     [Fact]
     public void WithdrawStackableItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Bent Needle", out Item junk),
             "Couldn't find bent needle in test items");

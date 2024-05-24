@@ -683,7 +683,7 @@ public class Creature : VisibleObject
                     if (!tar.CurrentStatuses.IsEmpty)
                     {
                         var overlap =
-                            tar.CurrentStatuses.Values.FirstOrDefault(x => x.Icon == applyStatus.Icon);
+                            tar.CurrentStatuses.Values.FirstOrDefault(predicate: x => x.Icon == applyStatus.Icon);
 
                         if (overlap != null)
                         {
@@ -722,7 +722,7 @@ public class Creature : VisibleObject
                 {
                     for (var x = 0; x <= status.Quantity; x++)
                     {
-                        var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(s =>
+                        var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(predicate: s =>
                             s.Category.Contains(status.Value));
                         if (toRemove == null) break;
                         tar.RemoveStatus(toRemove.Icon);

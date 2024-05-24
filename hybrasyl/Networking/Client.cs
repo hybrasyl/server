@@ -1,4 +1,22 @@
-﻿using Hybrasyl.Interfaces;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.Throttling;
@@ -30,55 +48,6 @@ public class Client : IClient
     private int _localTickCount;  // Make this int32 because it's what the client expects
     private long _tickHeartbeatReceived;
     private long _tickHeartbeatSent;
-
-    public ClientState ClientState { get; set; }
-
-    public long ConnectedSince { get; set; }
-
-    public byte ServerOrdinal { get; set; }
-
-    public Dictionary<byte, ThrottleInfo> ThrottleState { get; set; } = new();
-
-    public bool Connected => ClientState.Connected;
-
-    public ISocketProxy Socket => ClientState.WorkSocket;
-
-    private Server Server { get; }
-
-    public long ConnectionId => ClientState.Id;
-    //private byte clientOrdinal = 0x00;
-
-    public string RemoteAddress
-    {
-        get
-        {
-            if (Socket != null) return ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString();
-            return "nil";
-        }
-    }
-
-    public byte EncryptionSeed { get; set; }
-    public byte[] EncryptionKey { get; set; }
-    private byte[] EncryptionKeyTable { get; set; }
-
-    public string NewCharacterName { get; set; }
-    public string NewCharacterPassword { get; set; }
-
-
-    /// <summary>
-    ///     Return the ServerType of a connection, corresponding with Hybrasyl.Utility.ServerTypes
-    /// </summary>
-    public int ServerType
-    {
-        get
-        {
-            if (Server is Lobby) return ServerTypes.Lobby;
-            if (Server is Login) return ServerTypes.Login;
-            return ServerTypes.World;
-        }
-    }
-
-    public static Client FromSocket(Socket socket, Server server) => new(new SocketProxy(socket), server);
 
     public Client() { }
 
@@ -119,6 +88,53 @@ public class Client : IClient
         GlobalConnectionManifest.RegisterClient(this);
 
         ConnectedSince = DateTime.Now.Ticks;
+    }
+
+    private Server Server { get; }
+    private byte[] EncryptionKeyTable { get; set; }
+
+    public ClientState ClientState { get; set; }
+
+    public long ConnectedSince { get; set; }
+
+    public byte ServerOrdinal { get; set; }
+
+    public Dictionary<byte, ThrottleInfo> ThrottleState { get; set; } = new();
+
+    public bool Connected => ClientState.Connected;
+
+    public ISocketProxy Socket => ClientState.WorkSocket;
+
+    public long ConnectionId => ClientState.Id;
+    //private byte clientOrdinal = 0x00;
+
+    public string RemoteAddress
+    {
+        get
+        {
+            if (Socket != null) return ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString();
+            return "nil";
+        }
+    }
+
+    public byte EncryptionSeed { get; set; }
+    public byte[] EncryptionKey { get; set; }
+
+    public string NewCharacterName { get; set; }
+    public string NewCharacterPassword { get; set; }
+
+
+    /// <summary>
+    ///     Return the ServerType of a connection, corresponding with Hybrasyl.Utility.ServerTypes
+    /// </summary>
+    public int ServerType
+    {
+        get
+        {
+            if (Server is Lobby) return ServerTypes.Lobby;
+            if (Server is Login) return ServerTypes.Login;
+            return ServerTypes.World;
+        }
     }
 
     /// <summary>
@@ -554,4 +570,6 @@ public class Client : IClient
         x0A.WriteString16(message);
         Enqueue(x0A);
     }
+
+    public static Client FromSocket(Socket socket, Server server) => new(new SocketProxy(socket), server);
 }

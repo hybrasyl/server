@@ -16,57 +16,53 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Networking;
+using Hybrasyl.Networking.ClientPackets;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.ClientPackets;
-using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Inventory
+public class Inventory(HybrasylFixture fixture)
 {
-    public Inventory(HybrasylFixture fixture)
-    {
-        Fixture = fixture;
-    }
-
-    private HybrasylFixture Fixture { get;  }
+    private HybrasylFixture Fixture { get; } = fixture;
 
     [Fact]
     public void NewInventorySizeIsCorrect()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(HybrasylFixture.InventorySize, f.Size);
     }
 
     [Fact]
     public void NewInventoryEmptySlotsEqualsSize()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(HybrasylFixture.InventorySize, f.EmptySlots);
     }
 
     [Fact]
     public void NewInventoryFirstEmptySlotIsOne()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(1, f.FindEmptySlot());
     }
 
     [Fact]
     public void NewInventoryWeightIsZero()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(0, f.Weight);
     }
 
     [Fact]
     public void NewInventoryIsNotFull()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.False(f.IsFull, "new inventory should not be full");
     }
 
@@ -155,7 +151,7 @@ public class Inventory
             Fixture.TestUser.Inventory.GetSlotsByCategory("StAcKaBlE"));
 
         // After a swap, GetSlotsByCategory should return correct results
-        for (byte x = 6; x <= 10; x++) Assert.True(Fixture.TestUser.Inventory.Swap(x, (byte) (59 - x)));
+        for (byte x = 6; x <= 10; x++) Assert.True(Fixture.TestUser.Inventory.Swap(x, (byte)(59 - x)));
         Assert.Equal(new List<byte> { 53, 52, 51, 50, 49 },
             Fixture.TestUser.Inventory.GetSlotsByCategory("stackable"));
     }
@@ -198,11 +194,11 @@ public class Inventory
 
         var guid = Fixture.TestUser.Inventory[1].Guid;
         var testPacket = new DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
-            (uint) Fixture.TestUser.Inventory[1].Count);
+            (uint)Fixture.TestUser.Inventory[1].Count);
 
         var handler = Game.World.WorldPacketHandlers[0x08];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, (ClientPacket) testPacket);
+        handler(Fixture.TestUser, (ClientPacket)testPacket);
 
         // Assert X,Y contains the item we just dropped
 
@@ -262,12 +258,12 @@ public class Inventory
     public void RemoveEquipmentFailIfInventoryFull()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseStr = 255;
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         var ringObj = Game.World.CreateItem(ring);
         Assert.NotNull(ringObj);
-        Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand);
+        Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand);
         while (!Fixture.TestUser.Inventory.IsFull)
         {
             var anotherRingObj = Game.World.CreateItem(ring);
@@ -276,11 +272,11 @@ public class Inventory
 
         Assert.True(Fixture.TestUser.Inventory.IsFull);
         var guid = Fixture.TestUser.Inventory[1].Guid;
-        var testPacket = new EquipItemClick((byte) EquipmentSlot.RightHand);
+        var testPacket = new EquipItemClick((byte)EquipmentSlot.RightHand);
 
         var handler = Game.World.WorldPacketHandlers[testPacket.Opcode];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, (ClientPacket) testPacket);
+        handler(Fixture.TestUser, (ClientPacket)testPacket);
         Assert.Equal("You can't carry anything else.", Fixture.TestUser.LastSystemMessage);
     }
 
@@ -311,7 +307,7 @@ public class Inventory
     [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void FullInventoryShouldBeFull(params Item[] item)
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseStr = 255;
         Fixture.TestUser.Inventory.Clear();
         for (var x = 1; x <= HybrasylFixture.InventorySize; x++)
@@ -350,7 +346,7 @@ public class Inventory
             if (slot == EquipmentSlot.None || slot == EquipmentSlot.Gauntlet ||
                 slot == EquipmentSlot.Ring) continue;
             var itemObject = Game.World.CreateItem(Fixture.TestEquipment[slot].Id);
-            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte) slot, false),
+            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte)slot, false),
                 $"Adding equipment to {slot} failed, last sys message {Fixture.TestUser.LastSystemMessage}");
         }
 
@@ -432,7 +428,7 @@ public class Inventory
             if (slot == EquipmentSlot.None || slot == EquipmentSlot.Gauntlet ||
                 slot == EquipmentSlot.Ring) continue;
             var itemObject = Game.World.CreateItem(Fixture.TestEquipment[slot].Id);
-            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte) slot, false),
+            Assert.True(Fixture.TestUser.AddEquipment(itemObject, (byte)slot, false),
                 $"Adding equipment to {slot} failed");
         }
 
@@ -486,9 +482,9 @@ public class Inventory
         {
             if (slot == EquipmentSlot.None || slot == EquipmentSlot.Gauntlet ||
                 slot == EquipmentSlot.Ring) continue;
-            Assert.True(u1.Equipment[(byte) slot].Durability == 1000, "Durability of item in {slot} is not 1000");
-            Assert.True(u1.Equipment[(byte) slot].Guid != default, "Guid for {slot} is corrupt / not set");
-            Assert.True(u1.Equipment[(byte) slot].TemplateId == Fixture.TestEquipment[slot].Id,
+            Assert.True(u1.Equipment[(byte)slot].Durability == 1000, "Durability of item in {slot} is not 1000");
+            Assert.True(u1.Equipment[(byte)slot].Guid != default, "Guid for {slot} is corrupt / not set");
+            Assert.True(u1.Equipment[(byte)slot].TemplateId == Fixture.TestEquipment[slot].Id,
                 "{slot}: ID of item in inventory does not match template");
         }
     }

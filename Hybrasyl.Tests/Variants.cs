@@ -164,7 +164,7 @@ public class Variant
     //[Fact]
     //public void EquipVariant()
     //{
-    //    Fixture.ResetUserStats();
+    //    Fixture.ResetTestUserStats();
     //    Fixture.TestUser.Equipment.Clear();
     //    Assert.True(Game.World.WorldData.TryGetValueByIndex<Item>("Abundance Variant All Belt", out var variant));
     //    var itemObj = Game.World.CreateItem(variant);

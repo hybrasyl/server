@@ -43,9 +43,9 @@ public class Server
 {
     protected static ManualResetEvent AllDone = new(false);
 
-    public ConcurrentDictionary<IntPtr, IClient> Clients;
-
     private ClientType _clientType;
+
+    public ConcurrentDictionary<IntPtr, IClient> Clients;
 
     public Server(int port, bool isDefault = false, ClientType clientType = ClientType.Client)
     {
@@ -92,7 +92,7 @@ public class Server
                 {
                     //GameLog.ErrorFormat($"Server {this.GetType().Name} Client {client.ConnectionId}: buffer sending");
                     case true when client.ClientState.SendBufferDepth > 0:
-                        await Task.Run(action: client.FlushSendBuffer, cancellationToken: StopToken);
+                        await Task.Run(client.FlushSendBuffer, StopToken);
                         break;
                     case false:
                         Clients.TryRemove(ptr, out var _);
@@ -111,7 +111,9 @@ public class Server
     }
 
     public ThrottleResult PacketThrottleCheck(Client client, ClientPacket packet) =>
-        Throttles.TryGetValue(packet.Opcode, out var throttle) ? throttle.ProcessThrottle(new PacketThrottleData(client, packet)) : ThrottleResult.OK;
+        Throttles.TryGetValue(packet.Opcode, out var throttle)
+            ? throttle.ProcessThrottle(new PacketThrottleData(client, packet))
+            : ThrottleResult.OK;
 
     public void StartListening()
     {
@@ -151,7 +153,7 @@ public class Server
             return;
         }
 
-        var client = Client.FromSocket(handler, this);
+        var client = ClientFactory.CreateClient(_clientType);
         Clients.TryAdd(handler.Handle, client);
         GlobalConnectionManifest.RegisterClient(client);
 

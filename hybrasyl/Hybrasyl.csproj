@@ -17,7 +17,7 @@
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <RestoreFallbackFolders>clear</RestoreFallbackFolders>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Optimize>false</Optimize>
   </PropertyGroup>
@@ -44,7 +44,7 @@
   <ItemGroup>
     <Protobuf Include="protos/Patron.proto" GrpcServices="Server" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Discord.Net.Webhook" Version="3.15.0" />
@@ -100,4 +100,3 @@
     <MSBuildGitHashCommand>git rev-parse --short HEAD</MSBuildGitHashCommand>
   </PropertyGroup>
 </Project>
-

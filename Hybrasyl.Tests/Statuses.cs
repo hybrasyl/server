@@ -17,7 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Objects;
-using Hybrasyl.Scripting;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Linq;
@@ -41,7 +41,7 @@ public class Status
     public void ApplyStatus()
     {
         // Apply a status, verify that status exists
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseAc = 50;
         var beforeAc = Fixture.TestUser.Stats.Ac;
         var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestPlusAc").FirstOrDefault();
@@ -62,7 +62,7 @@ public class Status
     [Fact]
     public void ApplyConditionStatus()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var beforeAc = Fixture.TestUser.Stats.Ac;
         var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddSleep").FirstOrDefault();
         Assert.NotNull(castable);
@@ -112,6 +112,7 @@ public class Status
     [Fact]
     public void InvisibilityStatusBreakOnBreakStealth()
     {
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseMp = 1000;
         Fixture.TestUser.Stats.Mp = 1000;
         Fixture.TestUser.RemoveAllStatuses();
@@ -132,7 +133,7 @@ public class Status
         Fixture.TestUser.UseCastable(castable);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(50);
+        Thread.Sleep(200);
         Assert.Empty(Fixture.TestUser.CurrentStatuses);
     }
 
@@ -166,12 +167,14 @@ public class Status
     [Fact]
     public void ApplyAndRemoveStatus()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var beforeAc = Fixture.TestUser.Stats.Ac;
         var testadd1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse1").FirstOrDefault();
         var testadd2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse2").FirstOrDefault();
-        var testremove1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRemCurse1").FirstOrDefault();
-        var testremove2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRemCurse2").FirstOrDefault();
+        var testremove1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRemCurse1")
+            .FirstOrDefault();
+        var testremove2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRemCurse2")
+            .FirstOrDefault();
 
         Assert.NotNull(testadd1);
         Assert.NotNull(testadd2);
@@ -198,27 +201,28 @@ public class Status
 
         // Gabbaghoul should have test curse 1 applied
         Assert.True(monster.CurrentStatuses.Count == 1);
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") > 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse1") > 0);
 
         // Remove 2 should not remove 1
         Assert.True(Fixture.TestUser.UseCastable(testremove2, monster));
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") > 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse1") > 0);
         Assert.True(monster.CurrentStatuses.Count == 1);
 
         // Remove 1 should remove 1
         Assert.True(Fixture.TestUser.UseCastable(testremove1, monster));
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") == 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse1") == 0);
         Assert.True(monster.CurrentStatuses.Count == 0);
     }
 
     [Fact]
     public void ApplyAndRemoveMultipleStatuses()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var beforeAc = Fixture.TestUser.Stats.Ac;
         var testadd1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse1").FirstOrDefault();
         var testadd2 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddCurse2").FirstOrDefault();
-        var testremove1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRem2Curse").FirstOrDefault();
+        var testremove1 = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestRem2Curse")
+            .FirstOrDefault();
 
         Assert.NotNull(testadd1);
         Assert.NotNull(testadd2);
@@ -242,20 +246,18 @@ public class Status
 
         // Gabbaghoul should have test curse 1 applied
         Assert.True(Fixture.TestUser.UseCastable(testadd1, monster));
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") > 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse1") > 0);
         Assert.True(monster.CurrentStatuses.Count == 1);
 
         // Gabbaghoul should have test curse 2 applied
         Assert.True(Fixture.TestUser.UseCastable(testadd2, monster));
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse2") > 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse2") > 0);
         Assert.True(monster.CurrentStatuses.Count == 2);
 
         // Gabbaghoul should have both curses removed by Test Remove 2
         Assert.True(Fixture.TestUser.UseCastable(testremove1, monster));
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse1") == 0);
-        Assert.True(monster.CurrentStatuses.Values.Count(x => x.Name == "TestCurse2") == 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse1") == 0);
+        Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse2") == 0);
         Assert.True(monster.CurrentStatuses.Count == 0);
-
     }
-
 }

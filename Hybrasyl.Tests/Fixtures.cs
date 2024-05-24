@@ -17,7 +17,10 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals;
+using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
+using Hybrasyl.Servers;
+using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using Serilog;
@@ -81,10 +84,12 @@ public class HybrasylFixture : IDisposable
         GameLog.Info();
         Game.World = new World(1337, redisConn, manager, "en_us", true);
         Game.ActiveConfiguration = new ServerConfig();
+
         Game.World.CompileScripts();
         Game.World.SetPacketHandlers();
         Game.World.SetControlMessageHandlers();
         Game.World.StartControlConsumers();
+
         if (!Game.World.LoadData())
             throw new InvalidDataException("LoadData encountered errors");
 
@@ -144,9 +149,41 @@ public class HybrasylFixture : IDisposable
             TestEquipment.Add(slot, item);
         }
 
-        TestUser = new User
+        TestUser = CreateUser("TestUser");
+        SerializableUser = CreateUser("TestSaveUser");
+
+        Game.World.Insert(TestUser);
+        TestUser.Teleport(TestUser.Map.Id, TestUser.X, TestUser.Y);
+    }
+
+    public MapObject Map { get; }
+    public MapObject MapNoCasting { get; }
+    public Item TestItem { get; }
+    public Item StackableTestItem { get; }
+    public Dictionary<EquipmentSlot, Item> TestEquipment { get; } = new();
+    public static byte InventorySize => 59;
+
+    public User TestUser { get; init; }
+    public User SerializableUser { get; init; }
+
+    public CreatureBehaviorSet TestSet { get; set; }
+
+    public void Dispose()
+    {
+        try
         {
-            Name = "TestUser",
+            var ep = World.DatastoreConnection.GetEndPoints();
+            var server = World.DatastoreConnection.GetServer(ep.First().ToString());
+            server.FlushDatabase(15);
+        }
+        catch (Exception) { }
+    }
+
+    public User CreateUser(string username)
+    {
+        var user = new User
+        {
+            Name = username,
             Guid = Guid.NewGuid(),
             Gender = Gender.Female,
             Location =
@@ -183,43 +220,23 @@ public class HybrasylFixture : IDisposable
                 Gold = 0
             }
         };
-        TestUser.AuthInfo.Save();
-        TestUser.Nation = Game.World.DefaultNation;
+        user.AuthInfo.Save();
+        user.Nation = Game.World.DefaultNation;
 
-        var vault = new Vault(TestUser.Guid);
+        var vault = new Vault(user.Guid);
         vault.Save();
-        var parcelStore = new ParcelStore(TestUser.Guid);
+        var parcelStore = new ParcelStore(user.Guid);
         parcelStore.Save();
-        TestUser.Save();
-        Game.World.Insert(TestUser);
-        Map.Insert(TestUser, TestUser.X, TestUser.Y, false);
+        user.Save();
+        return user;
     }
 
-    public MapObject Map { get; }
-    public MapObject MapNoCasting { get; }
-    public Item TestItem { get; }
-    public Item StackableTestItem { get; }
-    public Dictionary<EquipmentSlot, Item> TestEquipment { get; } = new();
-    public static byte InventorySize => 59;
+    public void ResetTestUserStats() => ResetUserStats(TestUser);
+    public void ResetSerializableUserStats() => ResetUserStats(SerializableUser);
 
-    public User TestUser { get; }
-
-    public CreatureBehaviorSet TestSet { get; set; }
-
-    public void Dispose()
+    private void ResetUserStats(User user)
     {
-        try
-        {
-            var ep = World.DatastoreConnection.GetEndPoints();
-            var server = World.DatastoreConnection.GetServer(ep.First().ToString());
-            server.FlushDatabase(15);
-        }
-        catch (Exception) { }
-    }
-
-    public void ResetUserStats()
-    {
-        TestUser.Stats = new StatInfo
+        user.Stats = new StatInfo
         {
             BaseInt = 3,
             BaseStr = 3,
@@ -233,12 +250,12 @@ public class HybrasylFixture : IDisposable
             Experience = 1000,
             BaseAc = 100
         };
-        TestUser.Stats.Hp = 1000;
-        TestUser.Stats.Mp = 1000;
-        TestUser.Class = Class.Peasant;
-        TestUser.Inventory.Clear();
+        user.Stats.Hp = 1000;
+        user.Stats.Mp = 1000;
+        user.Class = Class.Peasant;
+        user.Inventory.Clear();
         TestUser.Equipment.Clear();
-        TestUser.Vault.Clear();
-        TestUser.RemoveAllStatuses();
+        user.Vault.Clear();
+        user.RemoveAllStatuses();
     }
 }

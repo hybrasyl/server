@@ -19,7 +19,7 @@
 using System;
 using System.Threading;
 using Hybrasyl.Objects;
-using Hybrasyl.Scripting;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
@@ -41,7 +41,7 @@ public class ScriptFunctions
     {
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Map.Clear();
 
         var assail = Game.World.WorldData.GetByIndex<Castable>("Assail");
@@ -111,7 +111,7 @@ public class ScriptFunctions
     {
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Map.Clear();
 
         var assail = Game.World.WorldData.GetByIndex<Castable>("Assail");

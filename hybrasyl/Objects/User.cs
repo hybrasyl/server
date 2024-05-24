@@ -41,8 +41,8 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Book = Hybrasyl.Casting.Book;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
-using Exchange = Hybrasyl.Subsystems.Players.Exchange;
 using MessageType = Hybrasyl.Internals.Enums.MessageType;
 
 namespace Hybrasyl.Objects;
@@ -84,7 +84,7 @@ public class User : Creature
         _initializeUser(playername);
     }
 
-    public string RemoteAddress => Client.RemoteAddress;
+    public string RemoteAddress => Client?.RemoteAddress ?? "unknown";
 
     public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
 
@@ -2555,7 +2555,7 @@ public class User : Creature
         }
     }
 
-    public void SwapCastable(byte oldSlot, byte newSlot, Casting.Book book)
+    public void SwapCastable(byte oldSlot, byte newSlot, Book book)
     {
         if (book == SkillBook)
         {
@@ -4986,7 +4986,7 @@ public class User : Creature
         {
             var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed,
                 Client.EncryptionKey);
-            Client.Redirect(redirect, true);
+            Client.Redirect(redirect);
         }
         else
         {
@@ -5068,7 +5068,7 @@ public class User : Creature
     public void SendExchangeUpdate(uint gold, bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ExchangeControl()
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.GoldUpdate,
             Side = source,
@@ -5083,7 +5083,7 @@ public class User : Creature
     public void SendExchangeCancellation(bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ExchangeControl()
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.Cancel,
             Side = source
@@ -5097,7 +5097,7 @@ public class User : Creature
     public void SendExchangeConfirmation(bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ExchangeControl()
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.Confirm,
             Side = source

@@ -26,6 +26,7 @@ using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MessageType = Hybrasyl.Xml.Objects.MessageType;
 
 namespace Hybrasyl.Subsystems.Messaging;
 
@@ -49,9 +50,9 @@ internal static class MessagingController
 
         boards.Add((ushort.MaxValue - 1, $"{userRef.UserName}'s Sent Messages"));
 
-        foreach (var board in Enumerable.Where<Board>(Game.World.WorldState.Values<Board>(), predicate: mb => mb.Global &&
-                                                                                                                                         mb.CheckAccessLevel(userRef.UserName,
-                                                                                                                                             BoardAccessLevel.Read)))
+        foreach (var board in Game.World.WorldState.Values<Board>().Where(predicate: mb => mb.Global &&
+                     mb.CheckAccessLevel(userRef.UserName,
+                         BoardAccessLevel.Read)))
             boards.Add(((ushort)board.Id, board.DisplayName));
 
         return new MessagingResponse
@@ -331,8 +332,8 @@ internal static class MessagingController
         try
         {
             IMessageHandler handler;
-            Xml.Objects.MessageType type;
-            type = boardId == 0 ? Xml.Objects.MessageType.Mail : Xml.Objects.MessageType.BoardMessage;
+            MessageType type;
+            type = boardId == 0 ? MessageType.Mail : MessageType.BoardMessage;
 
             var message = new Plugins.Message(type, senderRef.UserName, recipient, subject, body);
 
@@ -340,7 +341,7 @@ internal static class MessagingController
 
             if (handler is IProcessingMessageHandler pmh && success)
             {
-                var msg = new Plugins.Message(Xml.Objects.MessageType.Mail, senderRef.UserName, recipient, subject,
+                var msg = new Plugins.Message(MessageType.Mail, senderRef.UserName, recipient, subject,
                     body);
                 var resp = pmh.Process(msg);
                 if (!pmh.Passthrough)

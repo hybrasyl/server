@@ -16,7 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-namespace Hybrasyl.ClientPackets;
+namespace Hybrasyl.Networking.ClientPackets;
 
 public class JoinWorld : PacketBase
 {

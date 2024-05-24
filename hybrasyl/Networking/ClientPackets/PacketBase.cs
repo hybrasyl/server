@@ -18,9 +18,8 @@
 
 using System.IO;
 using System.Text;
-using Hybrasyl.Networking;
 
-namespace Hybrasyl.ClientPackets;
+namespace Hybrasyl.Networking.ClientPackets;
 
 public abstract class PacketBase
 {
@@ -38,8 +37,8 @@ public abstract class PacketBase
         var shouldEncrypt = pb.ShouldEncrypt ? 5 : 4;
         var totalLength = pb.Data.Length + shouldEncrypt;
         stream.WriteByte(pb.Header);
-        stream.WriteByte((byte) (totalLength - 3 / 256));
-        stream.WriteByte((byte) (totalLength - 3));
+        stream.WriteByte((byte)(totalLength - 3 / 256));
+        stream.WriteByte((byte)(totalLength - 3));
         stream.WriteByte(pb.Opcode);
         if (pb.ShouldEncrypt)
             stream.WriteByte(pb.Ordinal);
@@ -56,36 +55,36 @@ public abstract class PacketBase
 
     public void WriteInt16(short value)
     {
-        Data.WriteByte((byte) (value >> 8));
-        Data.WriteByte((byte) value);
+        Data.WriteByte((byte)(value >> 8));
+        Data.WriteByte((byte)value);
     }
 
     public void WriteUInt16(ushort value)
     {
-        Data.WriteByte((byte) (value >> 8));
-        Data.WriteByte((byte) value);
+        Data.WriteByte((byte)(value >> 8));
+        Data.WriteByte((byte)value);
     }
 
     public void WriteInt32(int value)
     {
-        Data.WriteByte((byte) (value >> 24));
-        Data.WriteByte((byte) (value >> 16));
-        Data.WriteByte((byte) (value >> 8));
-        Data.WriteByte((byte) value);
+        Data.WriteByte((byte)(value >> 24));
+        Data.WriteByte((byte)(value >> 16));
+        Data.WriteByte((byte)(value >> 8));
+        Data.WriteByte((byte)value);
     }
 
     public void WriteUInt32(uint value)
     {
-        Data.WriteByte((byte) (value >> 24));
-        Data.WriteByte((byte) (value >> 16));
-        Data.WriteByte((byte) (value >> 8));
-        Data.WriteByte((byte) value);
+        Data.WriteByte((byte)(value >> 24));
+        Data.WriteByte((byte)(value >> 16));
+        Data.WriteByte((byte)(value >> 8));
+        Data.WriteByte((byte)value);
     }
 
     public void WriteString(string value, bool writeLength = false)
     {
         if (writeLength)
-            Data.WriteByte((byte) value.Length);
+            Data.WriteByte((byte)value.Length);
         var buffer = Encoding.ASCII.GetBytes(value);
         Data.Write(buffer, 0, buffer.Length);
     }

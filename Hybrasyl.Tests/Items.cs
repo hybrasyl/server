@@ -16,7 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Enums;
+using Hybrasyl.Internals.Enums;
 using Hybrasyl.Xml.Objects;
 using Xunit;
 
@@ -35,7 +35,7 @@ public class Items
     [Fact]
     public void ItemSlotRequirement()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Class = Class.Monk;
         Fixture.TestUser.Gender = Gender.Male;
         var error = string.Empty;
@@ -67,7 +67,7 @@ public class Items
     [Fact]
     public void ItemSlotRestrictions()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Class = Class.Monk;
         Fixture.TestUser.Gender = Gender.Male;
         var error = string.Empty;
@@ -96,7 +96,7 @@ public class Items
     [Fact]
     public void UseItemBaseStats()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Permanent Bonuses";

@@ -33,7 +33,7 @@ public class Stats
     [Fact]
     public void CreateAndSerialize()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Save();
         Assert.True(Game.World.WorldState.TryGetUser(Fixture.TestUser.Name, out var deserializedUser));
         Assert.True(Fixture.TestUser.Stats.BonusHp == deserializedUser.Stats.BonusHp,

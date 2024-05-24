@@ -16,14 +16,31 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-namespace Hybrasyl.Networking.ClientPackets;
+using Xunit;
 
-public class EquipItemClick : PacketBase
+namespace Hybrasyl.Tests;
+
+[Collection("hybrasyl")]
+public class UserTests(HybrasylFixture fixture) : IClassFixture<HybrasylFixture>
 {
-    public EquipItemClick(byte slot)
+    public HybrasylFixture Fixture { get; set; } = fixture;
+    // Test serialization of statuses 
+
+    [Fact]
+    public void CreationOfUserShouldSucceed()
     {
-        WriteByte(slot);
+
     }
 
-    public override byte Opcode => 0x44;
+    [Fact]
+    public void LoginOfUserShouldSucceed() { }
+
+    [Fact]
+    public void LogoffOfUserShouldSucceedBecauseThisIsNotSwordArtOnline() { }
+
+    [Fact]
+    public void SerializedStatusShouldReturnOnRelog()
+    {
+
+    }
 }
