@@ -16,16 +16,21 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Casting;
-using Hybrasyl.Enums;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Scripting;
-using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Casting;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Formulas;
+using Hybrasyl.Subsystems.Loot;
+using Hybrasyl.Subsystems.Messaging;
+using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Objects;
+using MessageType = Hybrasyl.Xml.Objects.MessageType;
 
 namespace Hybrasyl.Objects;
 
@@ -44,7 +49,6 @@ public class Monster : Creature, ICloneable, IEphemeral
     private readonly object _lock = new();
     private bool _idle = true;
     private uint _mTarget;
-    private bool _active { get; set; }
 
 
     public int ActionDelay = 800;
@@ -52,84 +56,9 @@ public class Monster : Creature, ICloneable, IEphemeral
     public Tile CurrentPath;
     public (int X, int Y) Destination;
     public bool HasCastNearDeath;
+    public HashSet<Guid> HitByUsers = new();
     public Loot Loot;
     public SpawnFlags SpawnFlags;
-    public HashSet<Guid> HitByUsers = new HashSet<Guid>();
-    public CastableController CastableController { get; set; }
-    private CreatureBehaviorSet _behaviorSet { get; set; }
-    public CreatureHostilitySettings Hostility { get; set; }
-    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
-    public DateTime LastAction { get; set; } = DateTime.MinValue;
-    public DateTime LastSkill { get; set; } = DateTime.MinValue;
-    public DateTime LastSpell { get; set; } = DateTime.MinValue;
-    public bool ShouldWander { get; set; }
-    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
-    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
-    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
-    public bool DeathProcessed { get; set; }
-    public bool ScriptExists { get; set; }
-    public ThreatInfo ThreatInfo { get; private set; }
-    public DateTime ActiveSince { get; set; }
-    public bool HasAssailSkills { get; set; }
-    public uint LootableGold => Loot?.Gold ?? 0;
-    public List<string> LootableItems => Loot?.Items ?? new List<string>();
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
-
-    public CreatureBehaviorSet BehaviorSet
-    {
-        get => _behaviorSet;
-        set
-        {
-            if (_behaviorSet == null)
-            {
-                _behaviorSet = value;
-            }
-            else
-            {
-                _behaviorSet = value;
-                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
-            }
-        }
-    }
-
-    public double ActiveSeconds
-    {
-        get
-        {
-            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
-            return -1;
-        }
-    }
-
-    public bool Active
-    {
-        get => _active;
-        set
-        {
-            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
-            _active = value;
-        }
-    }
-
-
-    public uint LootableXp
-    {
-        get => Loot?.Xp ?? 0;
-        set => Loot.Xp = value;
-    }
-
-    public Creature Target
-    {
-        get
-        {
-            if (World.Objects.TryGetValue(_mTarget, out var o))
-                return o as Creature;
-            return null;
-        }
-        set => _mTarget = value?.Id ?? 0;
-    }
 
     public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
@@ -188,8 +117,86 @@ public class Monster : Creature, ICloneable, IEphemeral
             SetCookie(cookie.Name, cookie.Value);
     }
 
+    private bool _active { get; set; }
+    public CastableController CastableController { get; set; }
+    private CreatureBehaviorSet _behaviorSet { get; set; }
+    public CreatureHostilitySettings Hostility { get; set; }
+    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
+    public DateTime LastAction { get; set; } = DateTime.MinValue;
+    public DateTime LastSkill { get; set; } = DateTime.MinValue;
+    public DateTime LastSpell { get; set; } = DateTime.MinValue;
+    public bool ShouldWander { get; set; }
+    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
+    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
+    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
+    public bool DeathProcessed { get; set; }
+    public bool ScriptExists { get; set; }
+    public ThreatInfo ThreatInfo { get; private set; }
+    public DateTime ActiveSince { get; set; }
+    public bool HasAssailSkills { get; set; }
+    public uint LootableGold => Loot?.Gold ?? 0;
+    public List<string> LootableItems => Loot?.Items ?? new List<string>();
+
+    public CreatureBehaviorSet BehaviorSet
+    {
+        get => _behaviorSet;
+        set
+        {
+            if (_behaviorSet == null)
+            {
+                _behaviorSet = value;
+            }
+            else
+            {
+                _behaviorSet = value;
+                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+            }
+        }
+    }
+
+    public double ActiveSeconds
+    {
+        get
+        {
+            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
+            return -1;
+        }
+    }
+
+    public bool Active
+    {
+        get => _active;
+        set
+        {
+            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
+            _active = value;
+        }
+    }
+
+
+    public uint LootableXp
+    {
+        get => Loot?.Xp ?? 0;
+        set => Loot.Xp = value;
+    }
+
+    public Creature Target
+    {
+        get
+        {
+            if (World.Objects.TryGetValue(_mTarget, out var o))
+                return o as Creature;
+            return null;
+        }
+        set => _mTarget = value?.Id ?? 0;
+    }
+
 
     public object Clone() => MemberwiseClone();
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
 
     public bool TryGetImmunity(ElementType element, out CreatureImmunity immunity)
     {
@@ -226,13 +233,13 @@ public class Monster : Creature, ICloneable, IEphemeral
 
         switch (immunity.MessageType)
         {
-            case Xml.Objects.MessageType.Say:
+            case MessageType.Say:
                 Say(immunity.Message);
                 break;
-            case Xml.Objects.MessageType.Shout:
+            case MessageType.Shout:
                 Shout(immunity.Message);
                 break;
-            case Xml.Objects.MessageType.Whisper:
+            case MessageType.Whisper:
                 if (attacker is User u)
                     u.SendWhisper(Name, immunity.Message);
                 break;
@@ -341,16 +348,16 @@ public class Monster : Creature, ICloneable, IEphemeral
             switch (LastHitter)
             {
                 case Monster monster:
-                    {
-                        var hitterStatuses = monster.Condition.Charmed
-                            ? monster.CurrentStatuses.Values
-                            : CurrentStatuses.Values;
-                        var statuses = hitterStatuses.Cast<CreatureStatus>().Where(predicate: x =>
-                                x.ConditionChanges != null && (x.ConditionChanges.Set & CreatureCondition.Charm) != 0)
-                            .ToList();
-                        if (statuses.Count != 0) hitter = statuses.First().Source as User;
-                        break;
-                    }
+                {
+                    var hitterStatuses = monster.Condition.Charmed
+                        ? monster.CurrentStatuses.Values
+                        : CurrentStatuses.Values;
+                    var statuses = hitterStatuses.Cast<CreatureStatus>().Where(predicate: x =>
+                            x.ConditionChanges != null && (x.ConditionChanges.Set & CreatureCondition.Charm) != 0)
+                        .ToList();
+                    if (statuses.Count != 0) hitter = statuses.First().Source as User;
+                    break;
+                }
                 case User:
                     hitter = LastHitter as User;
                     break;
@@ -362,8 +369,7 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             if (hitter != null && (HitByUsers.Contains(hitter.Guid) ||
                                    (hitter.Group != null &&
-                                    hitter.Group.Members.Any(x => HitByUsers.Contains(x.Guid)))))
-            {
+                                    hitter.Group.Members.Any(predicate: x => HitByUsers.Contains(x.Guid)))))
                 try
                 {
                     var lootEvent = new LootEvent();
@@ -418,6 +424,7 @@ public class Monster : Creature, ICloneable, IEphemeral
                         Map.Insert(item, X, Y);
                         lootEvent.Items.Add(item.Name);
                     }
+
                     hitter.SendCombatLogMessage(lootEvent);
                 }
                 catch (Exception e)
@@ -425,9 +432,9 @@ public class Monster : Creature, ICloneable, IEphemeral
                     GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
                     Game.ReportException(e);
                 }
-            }
             else
-                hitter?.SendCombatLogMessage(new NoLootEvent { Reason = "You or your group must hit a monster to collect loot" });
+                hitter?.SendCombatLogMessage(new NoLootEvent
+                    { Reason = "You or your group must hit a monster to collect loot" });
 
             Game.World.RemoveStatusCheck(this);
             // TODO: ondeath castables
@@ -519,11 +526,11 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public void ApplyModifier(double modifier)
     {
-        Stats.BaseHp = (uint)(Stats.BaseHp * (1 + modifier));
-        Stats.BaseMp = (uint)(Stats.BaseMp * (1 + modifier));
-        LootableXp = (uint)(LootableXp * (1 + modifier));
+        Stats.BaseHp = (uint) (Stats.BaseHp * (1 + modifier));
+        Stats.BaseMp = (uint) (Stats.BaseMp * (1 + modifier));
+        LootableXp = (uint) (LootableXp * (1 + modifier));
         if (Loot?.Gold > 0)
-            Loot.Gold = (uint)(Loot.Gold * (1 + modifier));
+            Loot.Gold = (uint) (Loot.Gold * (1 + modifier));
         Stats.BaseOutboundDamageModifier = 1 + modifier;
         Stats.BaseInboundDamageModifier = 1 - modifier;
         Stats.BaseOutboundHealModifier = 1 + modifier;
@@ -558,9 +565,9 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
                 var bonusHpGain =
-                    (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
+                    (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
                 var bonusMpGain =
-                    (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
+                    (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
 
                 Stats.BaseHp += bonusHpGain + 25;
                 Stats.BaseMp += bonusMpGain + 25;
@@ -608,9 +615,9 @@ public class Monster : Creature, ICloneable, IEphemeral
                     {
                         var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
                         var bonusHpGain =
-                            (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
+                            (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
                         var bonusMpGain =
-                            (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
+                            (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
 
                         Stats.BaseHp += bonusHpGain + 25;
                         Stats.BaseMp += bonusMpGain + 25;
@@ -908,7 +915,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             else
             {
                 next = Random.Shared.Next(1, 3); //cast or move
-                _actionQueue.Enqueue((MobAction)next);
+                _actionQueue.Enqueue((MobAction) next);
             }
         }
         else
@@ -942,7 +949,7 @@ public class Monster : Creature, ICloneable, IEphemeral
                         var sides = GetClearSides();
                         if (sides.Count == 0)
                             return; // cower in fear, we can't move anywhere
-                        Walk(sides.PickRandom());
+                        Walk(Extensions.EnumerableExtension.PickRandom(sides));
                     }
 
                     break;
@@ -1000,108 +1007,108 @@ public class Monster : Creature, ICloneable, IEphemeral
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
                 case MobAction.Move when ShouldWander || Condition.Blinded:
-                    {
-                        if (!Condition.Blinded)
-                        {
-                            var target = ThreatInfo
-                                .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
-                                .FirstOrDefault();
-                            if (target != null)
-                            {
-                                ShouldWander = false;
-                                return;
-                            }
-                        }
-
-                        var rand = Random.Shared.NextDouble();
-                        var dir = Random.Shared.Next(0, 4);
-                        if (rand > 0.33)
-                        {
-                            if (Direction == (Direction)dir)
-                                if (!Walk(Direction))
-                                {
-                                    Turn(Opposite(Direction));
-                                    Walk(Opposite(Direction));
-                                }
-                                else
-                                {
-                                    Turn((Direction)dir);
-                                }
-                        }
-                        else
-                        {
-                            Walk(Direction);
-                        }
-
-                        break;
-                    }
-                case MobAction.Move:
+                {
+                    if (!Condition.Blinded)
                     {
                         var target = ThreatInfo
                             .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
                             .FirstOrDefault();
-
-                        if (target == null)
+                        if (target != null)
                         {
-                            ShouldWander = true;
+                            ShouldWander = false;
                             return;
                         }
+                    }
 
-                        if (Condition.MovementAllowed)
-                        {
-                            if (CurrentPath == null || !AStarPathClear())
+                    var rand = Random.Shared.NextDouble();
+                    var dir = Random.Shared.Next(0, 4);
+                    if (rand > 0.33)
+                    {
+                        if (Direction == (Direction) dir)
+                            if (!Walk(Direction))
+                            {
+                                Turn(Opposite(Direction));
+                                Walk(Opposite(Direction));
+                            }
+                            else
+                            {
+                                Turn((Direction) dir);
+                            }
+                    }
+                    else
+                    {
+                        Walk(Direction);
+                    }
+
+                    break;
+                }
+                case MobAction.Move:
+                {
+                    var target = ThreatInfo
+                        .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
+                        .FirstOrDefault();
+
+                    if (target == null)
+                    {
+                        ShouldWander = true;
+                        return;
+                    }
+
+                    if (Condition.MovementAllowed)
+                    {
+                        if (CurrentPath == null || !AStarPathClear())
                             // If we don't have a current path to our threat target, OR if there is something in the way of
                             // our existing path, calculate a new one
+                        {
+                            if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
+                            if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
+                            Target = target;
+                            CurrentPath = AStarPathFind(target.Location.X,
+                                target.Location.Y, X, Y);
+                        }
+
+                        if (CurrentPath != null)
+                        {
+                            // We have a path, check its validity
+                            // We recalculate our path if we're within five spaces of the target and they have moved
+
+                            if (Distance(target) < 5 &&
+                                CurrentPath.Target.X != target.Location.X &&
+                                CurrentPath.Target.Y != target.Location.Y)
                             {
-                                if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
-                                if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
-                                Target = target;
+                                GameLog.Info("Distance less than five and target moved, recalculating path");
                                 CurrentPath = AStarPathFind(target.Location.X,
                                     target.Location.Y, X, Y);
                             }
 
-                            if (CurrentPath != null)
+                            if (Walk(AStarGetDirection()))
                             {
-                                // We have a path, check its validity
-                                // We recalculate our path if we're within five spaces of the target and they have moved
-
-                                if (Distance(target) < 5 &&
-                                    CurrentPath.Target.X != target.Location.X &&
-                                    CurrentPath.Target.Y != target.Location.Y)
-                                {
-                                    GameLog.Info("Distance less than five and target moved, recalculating path");
-                                    CurrentPath = AStarPathFind(target.Location.X,
-                                        target.Location.Y, X, Y);
-                                }
-
-                                if (Walk(AStarGetDirection()))
-                                {
-                                    if (X != CurrentPath.X || Y != CurrentPath.Y)
-                                        GameLog.SpawnError(
-                                            $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
-                                    // We've moved; update our path
-                                    CurrentPath = CurrentPath.Parent;
-                                }
-                                else
-                                // Couldn't move, attempt to recalculate path
-                                {
-                                    CurrentPath = AStarPathFind(target.Location.X,
-                                        target.Location.Y, X, Y);
-                                }
+                                if (X != CurrentPath.X || Y != CurrentPath.Y)
+                                    GameLog.SpawnError(
+                                        $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
+                                // We've moved; update our path
+                                CurrentPath = CurrentPath.Parent;
                             }
                             else
-                            // If we can't find a path, return to wandering
+                                // Couldn't move, attempt to recalculate path
                             {
-                                ShouldWander = true;
+                                CurrentPath = AStarPathFind(target.Location.X,
+                                    target.Location.Y, X, Y);
                             }
                         }
                         else
+                            // If we can't find a path, return to wandering
                         {
-                            GameLog.SpawnError("Can't move");
+                            ShouldWander = true;
                         }
-
-                        break;
                     }
+                    else
+                    {
+                        GameLog.SpawnError("Can't move");
+                    }
+
+                    break;
+                }
                 case MobAction.Idle:
                     //do nothing
                     break;

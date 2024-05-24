@@ -16,6 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Objects;
+
 namespace Hybrasyl.Plugins;
 
 // TODO: interface
@@ -26,7 +28,7 @@ public class Message
     public string Subject = string.Empty;
     public string Text = string.Empty;
 
-    public Message(Xml.Objects.MessageType type, string sender, string recipient, string subject, string body)
+    public Message(MessageType type, string sender, string recipient, string subject, string body)
     {
         Type = type;
         Sender = sender;
@@ -36,5 +38,5 @@ public class Message
     }
 
     public Message() { }
-    public Xml.Objects.MessageType Type { get; set; }
+    public MessageType Type { get; set; }
 }

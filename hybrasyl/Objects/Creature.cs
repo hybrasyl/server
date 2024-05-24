@@ -17,10 +17,17 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
-using Hybrasyl.Enums;
+using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Scripting;
-using Hybrasyl.Utility;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Servers;
+using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Formulas;
+using Hybrasyl.Subsystems.Players;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -28,6 +35,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 namespace Hybrasyl.Objects;
 
@@ -1274,7 +1282,7 @@ public class Creature : VisibleObject
     {
         if (Map == null) return;
         var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
-        var healthbar = new ServerPacketStructures.HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
+        var healthbar = new HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
@@ -1404,7 +1412,7 @@ public class Creature : VisibleObject
     }
 
     /// <summary>
-    ///     Remove all statuses from a user.
+    ///     Remove all statuses from a creature.
     /// </summary>
     public void RemoveAllStatuses()
     {

@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Enums;
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
 
@@ -170,8 +170,10 @@ public record LootEvent : CombatEvent
     public override string ToString()
     {
         var ret = $"[combat] [Loot] XP {Xp} Gold {Gold}\n";
-        return Items.Count <= 0 ? ret :
+        return Items.Count <= 0
+            ? ret
+            :
             // Deal with client vagaries
-            Items.Aggregate(ret, (current, item) => current + $"[combat] [Loot] Item: {item}\n");
+            Items.Aggregate(ret, func: (current, item) => current + $"[combat] [Loot] Item: {item}\n");
     }
 }

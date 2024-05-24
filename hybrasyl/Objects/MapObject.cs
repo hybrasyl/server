@@ -16,9 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using C3;
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Crc;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

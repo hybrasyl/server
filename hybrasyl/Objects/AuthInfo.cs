@@ -17,6 +17,8 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
+using Hybrasyl.Servers;
 using Newtonsoft.Json;
 using System;
 using System.Data;

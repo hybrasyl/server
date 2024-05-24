@@ -17,8 +17,9 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Collections.Generic;
-using Hybrasyl.Dialogs;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Scripting;
 
 namespace Hybrasyl.Interfaces;
 

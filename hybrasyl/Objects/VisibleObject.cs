@@ -16,10 +16,12 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Subsystems.Messaging;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -255,7 +257,7 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void PlaySound(byte Id)
     {
-        var soundPacket = new ServerPacketStructures.PlaySound { Sound = Id };
+        var soundPacket = new PlaySound { Sound = Id };
 
         foreach (var user in viewportUsers)
         {

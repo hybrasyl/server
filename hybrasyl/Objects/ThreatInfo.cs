@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
 
@@ -109,11 +109,11 @@ public class ThreatInfo(Guid id)
                     break;
                 // Add everything targeting the last player to use a spell on this monster
                 default:
-                    {
-                        if (LastCaster is User u2)
-                            ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(LastCaster)));
-                        break;
-                    }
+                {
+                    if (LastCaster is User u2)
+                        ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(LastCaster)));
+                    break;
+                }
             }
 
             // If we still have no targets, or our (singular) target is dead, add every monster in the viewport.
@@ -162,11 +162,13 @@ public class ThreatInfo(Guid id)
                     .Select(selector: x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.RandomAlly:
-                ret.Add(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>()
-                    .Select(selector: x => x as Creature).PickRandom());
+                ret.Add(Extensions.EnumerableExtension.PickRandom(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>()
+                    .Select(selector: x => x as Creature)));
                 break;
             case CreatureTargetPriority.RandomAttacker:
-                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByCreature.PickRandom().Key));
+                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(Extensions.EnumerableExtension
+                    .PickRandom(ThreatTableByCreature).Key));
                 break;
             case CreatureTargetPriority.Self:
                 ret.Add(OwnerObject);
@@ -244,11 +246,11 @@ public class ThreatInfo(Guid id)
         {
             if (HighestThreat == threat)
                 return;
-            entry.Threat = (uint)(HighestThreatEntry.Threat * 1.10);
+            entry.Threat = (uint) (HighestThreatEntry.Threat * 1.10);
         }
         else
         {
-            AddNewThreat(threat, (uint)(HighestThreatEntry.Threat * 1.10));
+            AddNewThreat(threat, (uint) (HighestThreatEntry.Threat * 1.10));
         }
     }
 

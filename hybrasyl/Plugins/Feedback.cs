@@ -20,6 +20,8 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Discord.Webhook;
+using Hybrasyl.Extensions;
+using Hybrasyl.Internals.Logging;
 
 namespace Hybrasyl.Plugins;
 

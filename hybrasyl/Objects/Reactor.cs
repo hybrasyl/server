@@ -16,10 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Servers;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

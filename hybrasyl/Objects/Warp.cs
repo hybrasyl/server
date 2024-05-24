@@ -16,7 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Enums;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;

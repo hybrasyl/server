@@ -16,10 +16,10 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
-using System;
 
 namespace Hybrasyl.Objects;
 
@@ -45,7 +45,7 @@ public class StatInfo
     // The actual lockable private properties
     private object _lock = new();
 
-    public decimal HpPercentage => (decimal)Hp / MaximumHp * 100m;
+    public decimal HpPercentage => (decimal) Hp / MaximumHp * 100m;
 
     [FormulaVariable]
     [JsonProperty]
@@ -1505,32 +1505,32 @@ public class StatInfo
 
     [FormulaVariable]
     public uint MaximumHp =>
-        (uint)Math.Clamp(BaseHp + BonusHp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp,
+        (uint) Math.Clamp(BaseHp + BonusHp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp,
             Game.ActiveConfiguration.Constants.PlayerMaxBaseHpMp);
 
     [FormulaVariable]
     public uint MaximumMp =>
-        (uint)Math.Clamp(BaseMp + BonusMp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp,
+        (uint) Math.Clamp(BaseMp + BonusMp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp,
             Game.ActiveConfiguration.Constants.PlayerMaxBaseHpMp);
 
     [FormulaVariable]
-    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, Game.ActiveConfiguration.Constants.PlayerMinStat,
+    public byte Str => (byte) Math.Clamp(BaseStr + BonusStr, Game.ActiveConfiguration.Constants.PlayerMinStat,
         Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Int => (byte)Math.Clamp(BaseInt + BonusInt, Game.ActiveConfiguration.Constants.PlayerMinStat,
+    public byte Int => (byte) Math.Clamp(BaseInt + BonusInt, Game.ActiveConfiguration.Constants.PlayerMinStat,
         Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Wis => (byte)Math.Clamp(BaseWis + BonusWis, Game.ActiveConfiguration.Constants.PlayerMinStat,
+    public byte Wis => (byte) Math.Clamp(BaseWis + BonusWis, Game.ActiveConfiguration.Constants.PlayerMinStat,
         Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Con => (byte)Math.Clamp(BaseCon + BonusCon, Game.ActiveConfiguration.Constants.PlayerMinStat,
+    public byte Con => (byte) Math.Clamp(BaseCon + BonusCon, Game.ActiveConfiguration.Constants.PlayerMinStat,
         Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Dex => (byte)Math.Clamp(BaseDex + BonusDex, Game.ActiveConfiguration.Constants.PlayerMinStat,
+    public byte Dex => (byte) Math.Clamp(BaseDex + BonusDex, Game.ActiveConfiguration.Constants.PlayerMinStat,
         Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
 
@@ -1550,8 +1550,8 @@ public class StatInfo
         {
             return Mr switch
             {
-                < 1.0 => (byte)(128 - Math.Min((1.0 - Mr) * 800, 128)),
-                > 1.0 => (byte)(128 + Math.Min((Mr - 1.0) * 800, 127)),
+                < 1.0 => (byte) (128 - Math.Min((1.0 - Mr) * 800, 128)),
+                > 1.0 => (byte) (128 + Math.Min((Mr - 1.0) * 800, 127)),
                 _ => 128
             };
         }
@@ -1563,8 +1563,8 @@ public class StatInfo
         {
             return Dmg switch
             {
-                < 1.0 => (byte)(128 - Math.Min((1.0 - Dmg) * 800, 128)),
-                > 1.0 => (byte)(128 + Math.Min((Dmg - 1.0) * 800, 127)),
+                < 1.0 => (byte) (128 - Math.Min((1.0 - Dmg) * 800, 128)),
+                > 1.0 => (byte) (128 + Math.Min((Dmg - 1.0) * 800, 127)),
                 _ => 128
             };
         }
@@ -1576,8 +1576,8 @@ public class StatInfo
         {
             return Hit switch
             {
-                < 1.0 => (byte)(128 - Math.Min((1.0 - Hit) * 800, 128)),
-                > 1.0 => (byte)(128 + Math.Min((Hit - 1.0) * 800, 127)),
+                < 1.0 => (byte) (128 - Math.Min((1.0 - Hit) * 800, 128)),
+                > 1.0 => (byte) (128 + Math.Min((Hit - 1.0) * 800, 127)),
                 _ => 128
             };
         }
@@ -1590,7 +1590,7 @@ public class StatInfo
 
     [FormulaVariable]
     public sbyte Ac =>
-        (sbyte)Math.Clamp(BaseAc - Level / 3 + BonusAc, Game.ActiveConfiguration.Constants.PlayerMinAc,
+        (sbyte) Math.Clamp(BaseAc - Level / 3 + BonusAc, Game.ActiveConfiguration.Constants.PlayerMinAc,
             Game.ActiveConfiguration.Constants.PlayerMaxAc);
 
     [FormulaVariable]
@@ -1719,14 +1719,14 @@ public class StatInfo
     {
         if (si1 == null || si1.Empty) return;
         // Always apply current hp/mp/gold changes
-        var hp = (long)Hp;
+        var hp = (long) Hp;
         hp += si1.DeltaHp;
         if (hp < 0) hp = 0;
-        Hp = (uint)Math.Clamp(hp, 0, uint.MaxValue);
-        var mp = (long)Mp;
+        Hp = (uint) Math.Clamp(hp, 0, uint.MaxValue);
+        var mp = (long) Mp;
         mp += si1.DeltaMp;
         if (mp < 0) mp = 0;
-        Mp = (uint)Math.Clamp(mp, 0, uint.MaxValue);
+        Mp = (uint) Math.Clamp(mp, 0, uint.MaxValue);
         var gold = Gold + si1.Gold;
         Gold = Math.Clamp(gold, 0, uint.MaxValue);
 

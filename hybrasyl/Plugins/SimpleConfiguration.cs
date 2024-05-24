@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using Hybrasyl.Internals.Logging;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Plugins;

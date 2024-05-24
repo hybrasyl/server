@@ -17,7 +17,9 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Threading.Tasks;
-using Hybrasyl.Messaging;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Subsystems.Messaging;
 
 namespace Hybrasyl.Objects;
 

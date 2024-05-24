@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using C3;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Scripting;
+using Hybrasyl.Servers;
+using Hybrasyl.Subsystems.Scripting;
 using Newtonsoft.Json;
 using System;
 using System.Drawing;

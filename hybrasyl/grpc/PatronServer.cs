@@ -16,15 +16,18 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
-using Hybrasyl;
-using Hybrasyl.Enums;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Servers;
+using HybrasylGrpc;
 
-namespace HybrasylGrpc;
+namespace Hybrasyl.grpc;
 
 internal class PatronServer : Patron.PatronBase
 {
