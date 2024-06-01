@@ -20,10 +20,10 @@ namespace Hybrasyl.Networking.ClientPackets;
 
 public class JoinWorld : PacketBase
 {
-    public JoinWorld(byte seed, byte keyLength, string key, string name, uint id)
+    public JoinWorld(byte seed, string key, string name, uint id)
     {
         WriteByte(seed);
-        WriteString(key, true);
+        WriteString(key);
         WriteString(name);
         WriteUInt32(id);
     }

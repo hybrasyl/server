@@ -80,7 +80,8 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
         {
             optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.BuyItemMenu, Text = "Buy" });
+            options.Options.Add(new MerchantDialogOption
+            { Id = (ushort)MerchantMenuItem.BuyItemMenu, Text = "Buy" });
             options.Options.Add(new MerchantDialogOption
             { Id = (ushort)MerchantMenuItem.SellItemMenu, Text = "Sell" });
         }

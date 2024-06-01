@@ -17,24 +17,39 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Hybrasyl.Networking;
 
-public class TestClient : IClient
+public class TestClient : AbstractClient, IClient
 {
-    public ClientState ClientState
+    private static int _clientId;
+    private readonly object _lock = new();
+
+    public TestClient(ISocketProxy proxy, Server server = null)
     {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
+        lock (_lock)
+        {
+            _clientId++;
+            ConnectionId = _clientId;
+        }
+
+        Server = server;
+        ClientState = new TestClientState(proxy);
     }
 
-    public long ConnectedSince => throw new NotImplementedException();
+    public Redirect LastRedirect { get; set; }
 
-    public byte ServerOrdinal => throw new NotImplementedException();
+    public IClientState ClientState { get; set; }
+
+    public long ConnectedSince { get; init; } = DateTime.Now.Ticks;
+
+    public byte ServerOrdinal { get; set; }
 
     public Dictionary<byte, ThrottleInfo> ThrottleState
     {
@@ -42,59 +57,33 @@ public class TestClient : IClient
         set => throw new NotImplementedException();
     }
 
-    public bool Connected => throw new NotImplementedException();
+    public bool Connected => Socket.Connected;
 
-    public ISocketProxy Socket => throw new NotImplementedException();
+    public ISocketProxy Socket => ClientState.WorkSocket;
 
-    public long ConnectionId => throw new NotImplementedException();
+    public long ConnectionId { get; }
 
-    public string RemoteAddress => throw new NotImplementedException();
+    public string RemoteAddress => "127.0.0.1";
 
-    public byte EncryptionSeed
-    {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
-    }
+    public byte EncryptionSeed { get; set; }
 
-    public byte[] EncryptionKey
-    {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
-    }
+    public byte[] EncryptionKey { get; set; }
 
-    public string NewCharacterName
-    {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
-    }
+    public string NewCharacterName { get; set; }
 
-    public string NewCharacterPassword
-    {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
-    }
+    public string NewCharacterPassword { get; set; }
 
-    public int ServerType => throw new NotImplementedException();
-
-    public void CheckIdle()
-    {
-        throw new NotImplementedException();
-    }
+    public void CheckIdle() { }
 
     public void Disconnect()
     {
-        throw new NotImplementedException();
+        ClientState.WorkSocket?.Disconnect(false);
+        ClientState.Dispose();
     }
 
-    public void Enqueue(ServerPacket packet)
-    {
-        throw new NotImplementedException();
-    }
+    public void Enqueue(ServerPacket packet, bool flush = false) => ClientState.SendBufferAdd(packet);
 
-    public void Enqueue(ClientPacket packet)
-    {
-        throw new NotImplementedException();
-    }
+    public void Enqueue(ClientPacket packet) => ClientState.ReceiveBufferAdd(packet);
 
     public void FlushReceiveBuffer()
     {
@@ -102,13 +91,6 @@ public class TestClient : IClient
     }
 
     public void FlushSendBuffer()
-    {
-        throw new NotImplementedException();
-    }
-
-    public byte[] GenerateKey(ushort bRand, byte sRand) => throw new NotImplementedException();
-
-    public void GenerateKeyTable(string seed)
     {
         throw new NotImplementedException();
     }
@@ -123,12 +105,18 @@ public class TestClient : IClient
 
     public void LoginMessage(string message, byte type)
     {
-        throw new NotImplementedException();
+        LastMessage = message;
     }
 
     public void Redirect(Redirect redirect, bool isLogoff, int transmitDelay)
     {
-        throw new NotImplementedException();
+        LastRedirect = redirect;
+        GameLog.InfoFormat("Processing redirect");
+        GlobalConnectionManifest.RegisterRedirect(this, redirect);
+        GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
+        GameLog.Info($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
+        if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
+        redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
     }
 
     public void SendByteHeartbeat()
@@ -143,7 +131,7 @@ public class TestClient : IClient
 
     public void SendMessage(string message, byte type)
     {
-        throw new NotImplementedException();
+        LastMessage = message;
     }
 
     public void SendTickHeartbeat()
@@ -159,5 +147,12 @@ public class TestClient : IClient
     public void UpdateLastReceived(bool updateIdle)
     {
         throw new NotImplementedException();
+    }
+
+    public void Dispose()
+    {
+        Disconnect();
+        ClientState.WorkSocket.Close();
+        ClientState.WorkSocket.Dispose();
     }
 }

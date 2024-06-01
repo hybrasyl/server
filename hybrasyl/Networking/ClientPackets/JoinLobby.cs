@@ -23,7 +23,7 @@ public class JoinLogin : PacketBase
     public JoinLogin(byte seed, byte keyLength, string key, string name, uint id)
     {
         WriteByte(seed);
-        WriteString(key, true);
+        WriteString(key);
         WriteString(name);
         WriteUInt32(id);
     }

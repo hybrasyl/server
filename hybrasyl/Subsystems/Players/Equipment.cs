@@ -56,8 +56,9 @@ public class Equipment : Inventory
                 case ItemSlots.FirstAcc:
                     returnList.Add(Items[(byte) ItemSlots.Foot] == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite), Items[
-                            (byte) ItemSlots.Foot].Color));
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite),
+                            Items[
+                                (byte) ItemSlots.Foot].Color));
                     break;
                 case ItemSlots.None:
                 case ItemSlots.Ring:

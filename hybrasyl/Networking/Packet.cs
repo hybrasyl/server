@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Logging;
 using System;
 using System.Security.Cryptography;
-using Hybrasyl.Internals.Logging;
 
 namespace Hybrasyl.Networking;
 
@@ -307,8 +307,8 @@ public abstract class Packet
         var shouldEncrypt = ShouldEncrypt ? 5 : 4;
         var buffer = new byte[Data.Length + shouldEncrypt];
         buffer[0] = 0xAA;
-        buffer[1] = (byte) ((buffer.Length - 3) / 256);
-        buffer[2] = (byte) (buffer.Length - 3);
+        buffer[1] = (byte)((buffer.Length - 3) / 256);
+        buffer[2] = (byte)(buffer.Length - 3);
         buffer[3] = Opcode;
         buffer[4] = Ordinal;
 

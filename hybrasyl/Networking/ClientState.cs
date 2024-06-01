@@ -16,6 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,8 +25,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Internals.Logging;
 
 namespace Hybrasyl.Networking;
 
@@ -43,7 +43,6 @@ public class ClientState(ISocketProxy incoming) : IClientState
 
     public int SendBufferDepth => _sendBuffer.Count;
     public bool Connected { get; set; } = true;
-
     public long Id { get; } = GlobalConnectionManifest.GetNewConnectionId();
 
     public object ReceiveLock

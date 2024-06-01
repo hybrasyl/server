@@ -203,7 +203,8 @@ public class Creature : VisibleObject
                 break;
         }
 
-        return ((byte)Math.Clamp(a, byte.MinValue, byte.MaxValue), (byte)Math.Clamp(b, byte.MinValue, byte.MaxValue));
+        return ((byte)Math.Clamp(a, byte.MinValue, byte.MaxValue),
+            (byte)Math.Clamp(b, byte.MinValue, byte.MaxValue));
     }
 
     public Creature GetDirectionalTarget(Direction direction)
@@ -1196,7 +1197,8 @@ public class Creature : VisibleObject
         {
             var reflected = Stats.ReflectMagical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(reflected * -1) },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
+                    new StatInfo { DeltaHp = (long)(reflected * -1) },
                     new StatChangeEvent
                     {
                         Amount = Convert.ToUInt32(reflected * -1),

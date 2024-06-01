@@ -16,13 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
@@ -35,12 +35,13 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
     public double Durability => Item.Durability;
     public uint MaximumDurability => Item.MaximumDurability;
     public int Weight => Item.Weight;
-    public int Value => (int) Item.Value;
+    public int Value => (int)Item.Value;
     public StatInfo Stats => Item.Stats;
     public List<string> Categories => Item.Categories;
     public int MinLevel => Item.Template.Properties?.Restrictions?.Level?.Min ?? 1;
     public int MaxLevel => Item.Template.Properties?.Restrictions?.Level?.Max ?? 1;
     public string Description => Item.Template.Properties?.Vendor?.Description ?? string.Empty;
+    public List<ItemTag> Tags => Item.Template.Properties?.Tags ?? new List<ItemTag>();
 
     // ItemFlags exposed here, to make it easier to use in scripting
     public bool Bound => Item.Template.Properties.Flags.HasFlag(ItemFlags.Bound);

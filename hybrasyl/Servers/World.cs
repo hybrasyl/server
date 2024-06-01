@@ -40,7 +40,6 @@ using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using StackExchange.Redis;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -753,11 +752,35 @@ public class World : Server
         return null;
     }
 
-    public void DeleteUser(string username)
+    public void RemoveUser(string username)
     {
-        if (TryGetActiveUser(username, out var user))
-            WorldState.RemoveIndex<User>(user.ConnectionId);
+        if (TryGetActiveUser(username, out var u))
+            WorldState.RemoveIndex<User>(u.ConnectionId);
+
+        if (!WorldState.TryGetUser(username, out var user))
+            return;
+
         WorldState.Remove<User>(username);
+        WorldState.Remove<AuthInfo>(user.Guid);
+        WorldState.Remove<Mailbox>(user.Guid);
+        WorldState.Remove<SentMail>(user.Guid);
+        WorldState.RemoveIndex<AuthInfo>(username);
+    }
+
+    public bool DeleteUser(string username)
+    {
+        if (!WorldState.TryGetUser(username, out var user))
+            return false;
+
+        RemoveUser(username);
+
+        var redis = DatastoreConnection.GetDatabase();
+
+        return redis.KeyDelete(user.Vault.StorageKey) &&
+               redis.KeyDelete(user.AuthInfo.StorageKey) &&
+               redis.KeyDelete(user.Mailbox.StorageKey) &&
+               redis.KeyDelete(user.SentMailbox.StorageKey) &&
+               redis.KeyDelete(user.StorageKey);
     }
 
     public void EnqueueProc(Proc p, Castable castable, Guid source, Guid target) =>
@@ -1414,7 +1437,7 @@ public class World : Server
                 cleanup.Condition.Flags = 0;
             Remove(cleanup);
             GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", cleanup.Name);
-            DeleteUser(cleanup.Name);
+            RemoveUser(cleanup.Name);
         }
         catch (Exception e)
         {
@@ -2041,7 +2064,7 @@ public class World : Server
             user.SendRedirect(this, Game.Login, user.Name, false);
             user.AuthInfo.CurrentState = UserState.Disconnected;
             user.Save(true);
-            DeleteUser(user.Name);
+            RemoveUser(user.Name);
 
             // Remove any active async dialog sessions
             // TODO: async fix
@@ -2078,11 +2101,10 @@ public class World : Server
         var name = packet.ReadString8();
         var id = packet.ReadUInt32();
 
-        var redirect = ExpectedConnections[id];
+        if (!ExpectedConnections.TryGetValue(id, out var redirect) || !redirect.Matches(name, key, seed))
+            return;
 
-        if (!redirect.Matches(name, key, seed)) return;
-
-        ((IDictionary)ExpectedConnections).Remove(id);
+        ExpectedConnections.Remove(id, out _);
 
         if (!WorldState.TryGetUser(name, out var loginUser))
         {
@@ -2097,7 +2119,11 @@ public class World : Server
         if (loginUser.AuthInfo.CurrentState == UserState.InWorld)
         {
             if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out var client))
+            {
+                client.SendMessage("Another client is logging in", MessageTypes.SYSTEM);
                 client.Disconnect();
+            }
+
             loginUser.AuthInfo.CurrentState = UserState.Disconnected;
             return;
         }
@@ -2127,9 +2153,9 @@ public class World : Server
 
         // Ensure settings exist
 
-        foreach (var x in new List<byte> { 1, 2, 3, 4, 5, 6, 7, 8 })
-            if (!loginUser.ClientSettings.ContainsKey(x))
-                loginUser.ClientSettings[x] = Game.ActiveConfiguration.SettingsNumberIndex[x].Default;
+        foreach (var x in new List<byte> { 1, 2, 3, 4, 5, 6, 7, 8 }.Where(predicate: x =>
+                     !loginUser.ClientSettings.ContainsKey(x)))
+            loginUser.ClientSettings[x] = Game.ActiveConfiguration.SettingsNumberIndex[x].Default;
 
         Insert(loginUser);
         GameLog.DebugFormat("Adding {0} to hash", loginUser.Name);

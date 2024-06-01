@@ -27,8 +27,22 @@ public interface ISocketProxy : IDisposable
     public EndPoint? RemoteEndPoint { get; }
     public bool Connected { get; }
 
+    public nint Handle { get; }
+
+    public void Bind(IPEndPoint remoteEndPoint);
+    public void Listen(int backlog);
+
+    public static abstract ISocketProxy Create(AddressFamily addressFamily, SocketType socketType,
+        ProtocolType protocolType);
+
+    public static abstract ISocketProxy CreateFromAsyncResult(IAsyncResult asyncResult);
+
     public IAsyncResult? BeginSend(byte[] buffer, int offset, int size, SocketFlags socketFlags, AsyncCallback callback,
         object state);
+
+    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state);
+
+    public ISocketProxy EndAccept(IAsyncResult asyncResult);
 
     public int EndSend(IAsyncResult asyncResult);
     public int EndSend(IAsyncResult asyncResult, out SocketError error);

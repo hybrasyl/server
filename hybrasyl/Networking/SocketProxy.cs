@@ -20,14 +20,22 @@ using Hybrasyl.Interfaces;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Hybrasyl.Networking;
 
 public sealed class SocketProxy(Socket toProxy) : ISocketProxy
 {
+    public bool Connected => toProxy.Connected;
+    public nint Handle => toProxy.Handle;
+
     public EndPoint? RemoteEndPoint => toProxy.RemoteEndPoint;
 
-    public bool Connected => toProxy.Connected;
+    public static ISocketProxy Create(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) =>
+        new SocketProxy(new Socket(addressFamily, socketType, protocolType));
+
+    public static ISocketProxy CreateFromAsyncResult(IAsyncResult asyncResult) =>
+        (SocketProxy)asyncResult.AsyncState;
 
     public IAsyncResult BeginSend(byte[] buffer, int offset, int size, SocketFlags socketFlags, AsyncCallback callback,
         object state) => toProxy.BeginSend(buffer, offset, size, socketFlags, callback, state);
@@ -47,6 +55,9 @@ public sealed class SocketProxy(Socket toProxy) : ISocketProxy
     public int EndReceive(IAsyncResult asyncResult, out SocketError error) =>
         toProxy.EndReceive(asyncResult, out error);
 
+    public ISocketProxy EndAccept(IAsyncResult asyncResult) =>
+        new SocketProxy(TaskToAsyncResult.End<Socket>(asyncResult));
+
     public void Shutdown(SocketShutdown how) => toProxy.Shutdown(how);
 
     public void Close() => toProxy.Close();
@@ -54,4 +65,10 @@ public sealed class SocketProxy(Socket toProxy) : ISocketProxy
     public void Close(int timeout) => toProxy.Close(timeout);
 
     public void Disconnect(bool reuseSocket) => toProxy.Disconnect(reuseSocket);
+
+    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state) => toProxy.BeginAccept(callback, state);
+
+    public void Bind(IPEndPoint remoteEndPoint) => toProxy.Bind(remoteEndPoint);
+
+    public void Listen(int backlog) => toProxy.Listen(backlog);
 }

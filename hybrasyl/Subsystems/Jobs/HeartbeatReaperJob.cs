@@ -16,13 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Timers;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
+using System;
+using System.Timers;
 
 namespace Hybrasyl.Subsystems.Jobs;
 

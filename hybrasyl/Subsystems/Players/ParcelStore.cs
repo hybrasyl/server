@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Extensions;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Objects;

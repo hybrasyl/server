@@ -43,7 +43,7 @@ public class Server
 {
     protected static ManualResetEvent AllDone = new(false);
 
-    private ClientType _clientType;
+    private readonly ClientType _clientType;
 
     public ConcurrentDictionary<IntPtr, IClient> Clients;
 
@@ -67,7 +67,7 @@ public class Server
 
     public int Port { get; }
     public bool Default { get; set; }
-    public Socket Listener { get; private set; }
+    public ISocketProxy Listener { get; private set; }
     public Dictionary<byte, WorldPacketHandler> WorldPacketHandlers { get; } = new();
     public Dictionary<byte, IPacketThrottle> Throttles { get; }
 
@@ -78,7 +78,7 @@ public class Server
 
     public bool Active { get; protected set; }
 
-    public Guid Guid { get; } = new();
+    public Guid Guid { get; } = Guid.NewGuid();
 
     public async void ProcessOutbound()
     {
@@ -117,7 +117,7 @@ public class Server
 
     public void StartListening()
     {
-        Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        Listener = SocketProxy.Create(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         Listener.Bind(new IPEndPoint(IPAddress.Any, Port));
         Active = true;
         Listener.Listen(100);
@@ -140,11 +140,11 @@ public class Server
     {
         AllDone.Set();
         if (!Active) return;
-        Socket handler;
-        Socket clientSocket;
+        ISocketProxy handler;
+        ISocketProxy clientSocket;
         try
         {
-            clientSocket = (Socket)ar.AsyncState;
+            clientSocket = (ISocketProxy)ar.AsyncState;
             handler = clientSocket.EndAccept(ar);
         }
         catch (ObjectDisposedException e)
@@ -153,28 +153,30 @@ public class Server
             return;
         }
 
-        var client = ClientFactory.CreateClient(_clientType);
+        var client = ClientFactory.CreateClient(_clientType, handler, this);
         Clients.TryAdd(handler.Handle, client);
         GlobalConnectionManifest.RegisterClient(client);
 
-        if (this is Lobby)
+        switch (this)
         {
-            var x7E = new ServerPacket(0x7E);
-            x7E.WriteByte(0x1B);
-            x7E.WriteString("CONNECTED SERVER\n");
-            client.Enqueue(x7E);
-            GameLog.DebugFormat("Lobby: AcceptConnection occuring");
-            GameLog.DebugFormat("Lobby: cid is {0}", client.ConnectionId);
-        }
-        else if (this is Login)
-        {
-            GameLog.DebugFormat("Login: AcceptConnection occuring");
-            GameLog.DebugFormat("Login: cid is {0}", client.ConnectionId);
-        }
-        else if (this is World)
-        {
-            GameLog.DebugFormat("World: AcceptConnection occuring");
-            GameLog.DebugFormat("World: cid is {0}", client.ConnectionId);
+            case Lobby:
+                {
+                    var x7E = new ServerPacket(0x7E);
+                    x7E.WriteByte(0x1B);
+                    x7E.WriteString("CONNECTED SERVER\n");
+                    client.Enqueue(x7E);
+                    GameLog.DebugFormat("Lobby: AcceptConnection occuring");
+                    GameLog.Info("Lobby: cid is {0}", client.ConnectionId);
+                    break;
+                }
+            case Login:
+                GameLog.DebugFormat("Login: AcceptConnection occuring");
+                GameLog.Info("Login: cid is {0}", client.ConnectionId);
+                break;
+            case World:
+                GameLog.DebugFormat("World: AcceptConnection occuring");
+                GameLog.Info("World: cid is {0}", client.ConnectionId);
+                break;
         }
 
         try
@@ -193,21 +195,16 @@ public class Server
 
     public void ReadCallback(IAsyncResult ar)
     {
-        var state = (ClientState)ar.AsyncState;
-        IClient client;
-        var errorCode = SocketError.SocketError;
-        var bytesRead = 0;
-        ClientPacket receivedPacket;
+        var state = (IClientState)ar.AsyncState;
 
         GameLog.Debug(
             $"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
         GameLog.Debug("Running read callback");
 
-        if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
+        if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out var client))
         {
             // Is this a redirect?
-            Redirect redirect;
-            if (!GlobalConnectionManifest.TryGetRedirect(state.Id, out redirect))
+            if (!GlobalConnectionManifest.TryGetRedirect(state.Id, out var redirect))
             {
                 GameLog.ErrorFormat("Receive: data from unknown client (id {0}, closing connection", state.Id);
                 state.WorkSocket.Close();
@@ -217,14 +214,14 @@ public class Server
 
             client = redirect.Client;
             client.ClientState = state;
-            if (client.EncryptionKey == null)
-                client.EncryptionKey = redirect.EncryptionKey;
+            client.EncryptionKey ??= redirect.EncryptionKey;
             GlobalConnectionManifest.RegisterClient(client);
+            return;
         }
 
         try
         {
-            bytesRead = state.WorkSocket.EndReceive(ar, out errorCode);
+            var bytesRead = state.WorkSocket.EndReceive(ar, out var errorCode);
             if (bytesRead == 0 || errorCode != SocketError.Success)
             {
                 GameLog.Error($"bytesRead: {bytesRead}, errorCode: {errorCode}");
@@ -243,7 +240,7 @@ public class Server
         try
         {
             // TODO: improve / refactor
-            while (client.ClientState.TryGetPacket(out receivedPacket)) client.Enqueue(receivedPacket);
+            while (client.ClientState.TryGetPacket(out var receivedPacket)) client.Enqueue(receivedPacket);
         }
         catch (Exception e)
         {
@@ -251,10 +248,11 @@ public class Server
             GameLog.Error("ReadCallback error: {e}", e);
         }
 
-        ContinueReceiving(state, client);
+        if (state.Connected)
+            ContinueReceiving(state, client);
     }
 
-    private void ContinueReceiving(ClientState state, IClient client)
+    private void ContinueReceiving(IClientState state, IClient client)
     {
         // Continue getting dem bytes
         try

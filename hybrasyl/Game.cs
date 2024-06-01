@@ -157,32 +157,30 @@ public static class Game
     public static DateTime StartDate { get; set; }
     public static string CommitLog { get; private set; }
 
-    public static IDisposable Sentry { get; }
-    public static bool SentryEnabled { get; }
-
     public static ServerConfig ActiveConfiguration { get; set; }
     public static string WorldDataDirectory { get; set; }
     public static string DataDirectory { get; set; }
     public static string LogDirectory { get; set; }
     public static string ActiveConfigurationName { get; set; }
 
-    public static T GetServerByGuid<T>(Guid g) where T : Server => Servers.ContainsKey(g) ? (T)Servers[g] : null;
-
-    public static T GetDefaultServer<T>() where T : Server
+    public static T GetServerByGuid<T>(Guid g) where T : Server
     {
-        return Servers.Values.FirstOrDefault(predicate: x => x is T && x.Default) as T;
+        if (Servers.TryGetValue(g, out var server))
+            return (T)server;
+        return null;
     }
 
-    public static Guid GetDefaultServerGuid<T>() where T : Server
-    {
-        return Servers.FirstOrDefault(predicate: x => x.Value is T && x.Value.Default).Value?.Guid ?? Guid.Empty;
-    }
+    public static T GetDefaultServer<T>() where T : Server =>
+        Servers.Values.FirstOrDefault(predicate: x => x is T && x.Default) as T;
 
-    public static void RegisterServer(Server s)
+    public static Guid GetDefaultServerGuid<T>() where T : Server =>
+        Servers.FirstOrDefault(predicate: x => x.Value is T && x.Value.Default).Value?.Guid ?? Guid.Empty;
+
+    public static void RegisterServer(Server s, bool defaultServer = true)
     {
+        s.Default = defaultServer;
         Servers[s.Guid] = s;
     }
-
 
     public static void ToggleActive()
     {

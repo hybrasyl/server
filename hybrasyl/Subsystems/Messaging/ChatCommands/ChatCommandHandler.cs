@@ -43,7 +43,8 @@ public class ChatCommandHandler
             {
                 // ArgumentText example
                 // <string foo> <int bar> | <int baz> [<string quux> <int bazbar>] 
-                var command = (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var command =
+                    (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                 var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
                 var options = argtext.Split('|');
@@ -120,7 +121,8 @@ public class ChatCommandHandler
 
             if (!handler.argCount.Contains(splitArgs.Length))
             {
-                var argText = (string) handler.Type.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
+                var argText = (string) handler.Type
+                    .GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
                 if (argText.Length <= 50)
                     user.SendSystemMessage($"Usage: {command} {argText}");

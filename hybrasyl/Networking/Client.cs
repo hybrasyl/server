@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Networking;
 
-public class Client : IClient
+public class Client : AbstractClient, IClient
 {
     private long _byteHeartbeatReceived;
     private long _byteHeartbeatSent;
@@ -56,8 +56,8 @@ public class Client : IClient
         ClientState = new ClientState(socket);
         Server = server;
         GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
-            ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString(),
-            ((IPEndPoint)Socket.RemoteEndPoint).Port);
+            ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(),
+            ((IPEndPoint)socket.RemoteEndPoint).Port);
 
         if (server is Lobby)
         {
@@ -82,7 +82,6 @@ public class Client : IClient
             }
         }
 
-        EncryptionKeyTable = new byte[1024];
         _lastReceived = DateTime.Now.Ticks;
 
         GlobalConnectionManifest.RegisterClient(this);
@@ -90,10 +89,7 @@ public class Client : IClient
         ConnectedSince = DateTime.Now.Ticks;
     }
 
-    private Server Server { get; }
-    private byte[] EncryptionKeyTable { get; set; }
-
-    public ClientState ClientState { get; set; }
+    public IClientState ClientState { get; set; }
 
     public long ConnectedSince { get; set; }
 
@@ -108,14 +104,9 @@ public class Client : IClient
     public long ConnectionId => ClientState.Id;
     //private byte clientOrdinal = 0x00;
 
-    public string RemoteAddress
-    {
-        get
-        {
-            if (Socket != null) return ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString();
-            return "nil";
-        }
-    }
+    public string RemoteAddress => Socket is { RemoteEndPoint: not null }
+        ? ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString()
+        : "unknown";
 
     public byte EncryptionSeed { get; set; }
     public byte[] EncryptionKey { get; set; }
@@ -123,19 +114,6 @@ public class Client : IClient
     public string NewCharacterName { get; set; }
     public string NewCharacterPassword { get; set; }
 
-
-    /// <summary>
-    ///     Return the ServerType of a connection, corresponding with Hybrasyl.Utility.ServerTypes
-    /// </summary>
-    public int ServerType
-    {
-        get
-        {
-            if (Server is Lobby) return ServerTypes.Lobby;
-            if (Server is Login) return ServerTypes.Login;
-            return ServerTypes.World;
-        }
-    }
 
     /// <summary>
     ///     Atomically update the byte-based heartbeat values for the 0x3B packet and then
@@ -299,15 +277,6 @@ public class Client : IClient
         GlobalConnectionManifest.DeregisterClient(this);
     }
 
-    public byte[] GenerateKey(ushort bRand, byte sRand)
-    {
-        var key = new byte[9];
-
-        for (var i = 0; i < 9; ++i) key[i] = EncryptionKeyTable[(i * (9 * i + sRand * sRand) + bRand) % 1024];
-
-        return key;
-    }
-
     public void FlushSendBuffer()
     {
         var buffer = new MemoryStream();
@@ -453,8 +422,7 @@ public class Client : IClient
 
         try
         {
-            SocketError errorCode;
-            var bytesSent = state.WorkSocket.EndSend(ar, out errorCode);
+            var bytesSent = state.WorkSocket.EndSend(ar, out var errorCode);
             if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out client))
             {
                 GameLog.ErrorFormat("Send: socket should not exist: cid {0}", state.Id);
@@ -486,16 +454,7 @@ public class Client : IClient
         state.SendComplete.Set();
     }
 
-    public void GenerateKeyTable(string seed)
-    {
-        var table = Crypto.HashString(seed, "MD5");
-        table = Crypto.HashString(table, "MD5");
-        for (var i = 0; i < 31; i++) table += Crypto.HashString(table, "MD5");
-
-        EncryptionKeyTable = Encoding.ASCII.GetBytes(table);
-    }
-
-    public void Enqueue(ServerPacket packet)
+    public void Enqueue(ServerPacket packet, bool flush = false)
     {
         GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
         if (!Connected)
@@ -505,6 +464,7 @@ public class Client : IClient
         }
 
         ClientState.SendBufferAdd(packet);
+        if (flush) FlushSendBuffer();
     }
 
     public void Enqueue(ClientPacket packet)
@@ -552,7 +512,7 @@ public class Client : IClient
         x03.WriteString8(redirect.Name);
         x03.WriteUInt32(redirect.Id);
         x03.TransmitDelay = transmitDelay == 0 ? 250 : transmitDelay;
-        Enqueue(x03);
+        Enqueue(x03, true);
     }
 
     public void LoginMessage(string message, byte type)
@@ -569,6 +529,13 @@ public class Client : IClient
         x0A.WriteByte(type);
         x0A.WriteString16(message);
         Enqueue(x0A);
+    }
+
+    public void Dispose()
+    {
+        Disconnect();
+        ClientState.WorkSocket.Close();
+        ClientState.WorkSocket.Dispose();
     }
 
     public static Client FromSocket(Socket socket, Server server) => new(new SocketProxy(socket), server);

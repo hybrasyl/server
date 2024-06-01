@@ -16,4 +16,15 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+namespace Hybrasyl.Networking.ClientPackets;
 
+public class Login : PacketBase
+{
+    public Login(string name, string password)
+    {
+        WriteString(name);
+        WriteString(password);
+    }
+
+    public override byte Opcode => 0x03;
+}

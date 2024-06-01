@@ -20,9 +20,9 @@ using System.Text;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
-namespace Hybrasyl.Servers;
+namespace Hybrasyl.Extensions;
 
-public static class SampleStackExchangeRedisExtensions
+public static class StackExchangeRedisExtensions
 {
     public static T Get<T>(this IDatabase cache, string key) => Deserialize<T>(cache.StringGet(key));
 

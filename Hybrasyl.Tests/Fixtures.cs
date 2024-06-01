@@ -34,8 +34,7 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 
 [assembly:
-    CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true,
-        MaxParallelThreads = 1)]
+    CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Hybrasyl.Tests;
 
@@ -82,13 +81,20 @@ public class HybrasylFixture : IDisposable
         sink.OnMessage(new DiagnosticMessage($"Redis: {redisConn.Host}:{redisConn.Port}/{redisConn.Database}"));
 
         GameLog.Info();
+        Game.Lobby = new Lobby(1338, true);
+        Game.Login = new Login(1339, true);
         Game.World = new World(1337, redisConn, manager, "en_us", true);
         Game.ActiveConfiguration = new ServerConfig();
+        Game.ActiveConfiguration.InitializeClientSettings();
+        Game.ActiveConfiguration.Constants ??= new ServerConstants();
+        Game.ActiveConfiguration.Time = new Time { Ages = new List<HybrasylAge>() };
+
 
         Game.World.CompileScripts();
         Game.World.SetPacketHandlers();
         Game.World.SetControlMessageHandlers();
         Game.World.StartControlConsumers();
+
 
         if (!Game.World.LoadData())
             throw new InvalidDataException("LoadData encountered errors");

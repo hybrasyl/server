@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
+using Hybrasyl.Extensions;
 using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
@@ -108,7 +109,7 @@ public class User : Creature
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 
-    [JsonProperty] private List<StatusInfo> Statuses { get; set; }
+    [JsonProperty] private List<StatusInfo> Statuses { get; set; } = new();
 
     public int LevelCircle
     {
@@ -3888,7 +3889,7 @@ public class User : Creature
         PendingSellableQuantity = quantity;
         var item = Inventory[slot];
         var offer = (uint)(Math.Round(item.Value * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage, 0) *
-                            quantity);
+                              quantity);
         PendingMerchantOffer = offer;
         var options = new MerchantOptions
         {
@@ -4986,7 +4987,7 @@ public class User : Creature
         {
             var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed,
                 Client.EncryptionKey);
-            Client.Redirect(redirect);
+            Client.Redirect(redirect, true);
         }
         else
         {
@@ -5161,6 +5162,7 @@ public class User : Creature
 
     public void ReapplyStatuses()
     {
+        Statuses ??= new List<StatusInfo>();
         foreach (var status in Statuses)
             try
             {

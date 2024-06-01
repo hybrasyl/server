@@ -141,7 +141,7 @@ public class ClientPacket : Packet
         if (_position + 1 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (sbyte) Data[_position++];
+        return (sbyte)Data[_position++];
     }
 
     public bool ReadBoolean()
@@ -157,7 +157,7 @@ public class ClientPacket : Packet
         if (_position + 2 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (short) ((Data[_position++] << 8) | Data[_position++]);
+        return (short)((Data[_position++] << 8) | Data[_position++]);
     }
 
     public ushort ReadUInt16()
@@ -165,7 +165,7 @@ public class ClientPacket : Packet
         if (_position + 2 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (ushort) ((Data[_position++] << 8) | Data[_position++]);
+        return (ushort)((Data[_position++] << 8) | Data[_position++]);
     }
 
     public int ReadInt32()
@@ -181,8 +181,8 @@ public class ClientPacket : Packet
         if (_position + 4 > Data.Length)
             throw new IndexOutOfRangeException();
 
-        return (uint) ((Data[_position++] << 24) | (Data[_position++] << 16) | (Data[_position++] << 8) |
-                       Data[_position++]);
+        return (uint)((Data[_position++] << 24) | (Data[_position++] << 16) | (Data[_position++] << 8) |
+                         Data[_position++]);
     }
 
     public string ReadString8()
@@ -225,45 +225,45 @@ public class ClientPacket : Packet
     {
         ushort crc = 0;
         for (var i = 0; i < Data.Length - 6; i++)
-            crc = (ushort) (Data[6 + i] ^ (ushort) (crc << 8) ^ DialogCrcTable[crc >> 8]);
-        Data[0] = (byte) Random.Shared.Next();
-        Data[1] = (byte) Random.Shared.Next();
-        Data[2] = (byte) ((Data.Length - 4) / 256);
-        Data[3] = (byte) ((Data.Length - 4) % 256);
-        Data[4] = (byte) (crc / 256);
-        Data[5] = (byte) (crc % 256);
+            crc = (ushort)(Data[6 + i] ^ (ushort)(crc << 8) ^ DialogCrcTable[crc >> 8]);
+        Data[0] = (byte)Random.Shared.Next();
+        Data[1] = (byte)Random.Shared.Next();
+        Data[2] = (byte)((Data.Length - 4) / 256);
+        Data[3] = (byte)((Data.Length - 4) % 256);
+        Data[4] = (byte)(crc / 256);
+        Data[5] = (byte)(crc % 256);
     }
 
     public void EncryptDialog()
     {
         var length = (Data[2] << 8) | Data[3];
-        var xPrime = (byte) (Data[0] - 0x2D);
-        var x = (byte) (Data[1] ^ xPrime);
-        var y = (byte) (x + 0x72);
-        var z = (byte) (x + 0x28);
+        var xPrime = (byte)(Data[0] - 0x2D);
+        var x = (byte)(Data[1] ^ xPrime);
+        var y = (byte)(x + 0x72);
+        var z = (byte)(x + 0x28);
         Data[2] ^= y;
-        Data[3] ^= (byte) ((y + 1) % 256);
-        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte) ((z + i) % 256);
+        Data[3] ^= (byte)((y + 1) % 256);
+        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
 
     public void DecryptDialog()
     {
-        var xPrime = (byte) (Data[0] - 0x2D);
-        var x = (byte) (Data[1] ^ xPrime);
-        var y = (byte) (x + 0x72);
-        var z = (byte) (x + 0x28);
+        var xPrime = (byte)(Data[0] - 0x2D);
+        var x = (byte)(Data[1] ^ xPrime);
+        var y = (byte)(x + 0x72);
+        var z = (byte)(x + 0x28);
         Data[2] ^= y;
-        Data[3] ^= (byte) ((y + 1) % 256);
+        Data[3] ^= (byte)((y + 1) % 256);
         var length = (Data[2] << 8) | Data[3];
-        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte) ((z + i) % 256);
+        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
 
     public void Decrypt(Client client)
     {
         var length = Data.Length - 3;
 
-        var bRand = (ushort) (((Data[length + 2] << 8) | Data[length]) ^ 0x7470);
-        var sRand = (byte) (Data[length + 1] ^ 0x23);
+        var bRand = (ushort)(((Data[length + 2] << 8) | Data[length]) ^ 0x7470);
+        var sRand = (byte)(Data[length + 1] ^ 0x23);
 
         var key = UseDefaultKey ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
 

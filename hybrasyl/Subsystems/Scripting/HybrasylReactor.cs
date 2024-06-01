@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
@@ -38,7 +38,7 @@ public class HybrasylReactor : HybrasylWorldObject
     }
 
     public bool Expired => Reactor.Expired;
-    public long Expiration => ((DateTimeOffset) Reactor.Expiration).ToUnixTimeSeconds();
+    public long Expiration => ((DateTimeOffset)Reactor.Expiration).ToUnixTimeSeconds();
 
     /// <summary>
     ///     Make a reactor visible to a player if they have a specified cookie.

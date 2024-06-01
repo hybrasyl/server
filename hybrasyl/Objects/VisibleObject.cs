@@ -32,18 +32,6 @@ namespace Hybrasyl.Objects;
 
 public class VisibleObject : WorldObject, IVisible
 {
-    public VisibleObject()
-    {
-        DisplayText = string.Empty;
-        DeathPileOwner = string.Empty;
-        ItemDropAllowedLooters = new List<string>();
-        ItemDropTime = null;
-        viewportUsers = new HashSet<User>();
-        Location = new LocationInfo();
-        ItemDropType = ItemDropType.Normal;
-        AllowDead = false;
-    }
-
     // TODO: Clean these up later and simply use Location instead
     public MapObject Map
     {
@@ -72,20 +60,20 @@ public class VisibleObject : WorldObject, IVisible
     // Whether or not to allow a ghost (a dead player) to interact with this object
     public bool AllowDead { get; set; }
 
-    public string DeathPileOwner { get; set; }
-    public List<string> ItemDropAllowedLooters { get; set; }
+    public string DeathPileOwner { get; set; } = string.Empty;
+    public List<string> ItemDropAllowedLooters { get; set; } = new();
     public DateTime? ItemDropTime { get; set; }
-    public ItemDropType ItemDropType { get; set; }
+    public ItemDropType ItemDropType { get; set; } = ItemDropType.Normal;
 
-    public HashSet<User> viewportUsers { get; private set; }
+    public HashSet<User> viewportUsers { get; private set; } = new();
 
     public SpokenEvent LastHeard { get; set; }
 
-    [JsonProperty] public LocationInfo Location { get; set; }
+    [JsonProperty] public LocationInfo Location { get; set; } = new();
 
     public ushort Sprite { get; set; }
     public string Portrait { get; set; }
-    public string DisplayText { get; set; }
+    public string DisplayText { get; set; } = string.Empty;
     public virtual void ShowTo(IVisible target) { }
 
     public int Distance(IVisible target) => Point.Distance(this, target);

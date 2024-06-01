@@ -105,7 +105,8 @@ internal class HelpCommand : ChatCommand
             foreach (var x in typeof(ChatCommand).Assembly.GetTypes()
                          .Where(predicate: type => type.IsSubclassOf(typeof(ChatCommand))))
             {
-                var command = (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                var command =
+                    (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
                 var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
                     .GetValue(null);
                 var priv = (bool) x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);

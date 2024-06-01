@@ -26,7 +26,41 @@ public abstract class PacketBase
     public MemoryStream Data = new();
     public virtual byte Opcode { get; set; }
     public byte Ordinal { get; set; } = 0xFF;
-    public bool ShouldEncrypt => Opcode != 0x00 && Opcode != 0x10;
+    public bool ShouldEncrypt => EncryptMethod != EncryptMethod.None;
+    public bool UseDefaultKey => EncryptMethod == EncryptMethod.Normal;
+
+    public EncryptMethod EncryptMethod
+    {
+        get
+        {
+            switch (Opcode)
+            {
+                case 0x00:
+                case 0x10:
+                case 0x48:
+                    return EncryptMethod.None;
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x0B:
+                case 0x26:
+                case 0x2D:
+                case 0x3A:
+                case 0x42:
+                case 0x43:
+                case 0x4B:
+                case 0x57:
+                case 0x62:
+                case 0x68:
+                case 0x71:
+                case 0x73:
+                case 0x7B:
+                    return EncryptMethod.Normal;
+                default:
+                    return EncryptMethod.MD5Key;
+            }
+        }
+    }
 
     public byte Header => 0xAA;
     public byte[] Footer => new byte[] { 0x68, 0x79, 0x62 };
@@ -81,7 +115,7 @@ public abstract class PacketBase
         Data.WriteByte((byte)value);
     }
 
-    public void WriteString(string value, bool writeLength = false)
+    public void WriteString(string value, bool writeLength = true)
     {
         if (writeLength)
             Data.WriteByte((byte)value.Length);

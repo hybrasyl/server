@@ -16,15 +16,15 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Networking;
 using System.Collections.Generic;
 using System.Threading;
-using Hybrasyl.Networking;
 
 namespace Hybrasyl.Interfaces;
 
 public interface IClientState
 {
-    public int BytesReceived { get; }
+    public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; }
     public int SendBufferDepth { get; }
     public bool Connected { get; }

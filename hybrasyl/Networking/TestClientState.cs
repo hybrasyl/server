@@ -16,4 +16,30 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Interfaces;
+using System;
+using System.Threading;
 
+namespace Hybrasyl.Networking;
+
+public class TestClientState(ISocketProxy proxy) : AbstractClientState, IClientState
+{
+    public ManualResetEvent SendComplete { get; set; } = new(false);
+
+    public int SendBufferDepth { get; set; }
+
+    public bool Connected { get; set; }
+
+    public long Id { get; } = GlobalConnectionManifest.GetNewConnectionId();
+
+    public ISocketProxy WorkSocket { get; set; } = proxy;
+
+    public bool SendBufferEmpty => throw new NotImplementedException();
+
+    public void Dispose()
+    {
+        ResetReceive();
+        ResetSend();
+        Connected = false;
+    }
+}

@@ -238,6 +238,7 @@ internal class Monolith
                     newSpawnLoot += LootBox.CalculateLoot(creature.Loot);
                     newSpawnLoot += LootBox.CalculateLoot(spawnGroup.Loot);
 
+                    // need to link world here dipshit
                     var baseMob = new Monster(creature, spawn.Flags, (byte)baseLevel,
                         newSpawnLoot);
 

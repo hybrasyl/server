@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Threading;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Threading;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -63,7 +63,7 @@ public class ScriptFunctions
                 Hp = 400
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
         Game.World.Insert(bait);
@@ -72,7 +72,7 @@ public class ScriptFunctions
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
 
-        Assert.Equal((uint) 0, bait.Stats.Hp);
+        Assert.Equal((uint)0, bait.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1000);
         Assert.True(bait.DeathProcessed);
@@ -89,7 +89,7 @@ public class ScriptFunctions
                 Hp = 400
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
         Game.World.Insert(bait2);
@@ -98,7 +98,7 @@ public class ScriptFunctions
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
 
-        Assert.Equal((uint) 0, bait2.Stats.Hp);
+        Assert.Equal((uint)0, bait2.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1);
         Assert.True(bait2.DeathProcessed);
@@ -133,7 +133,7 @@ public class ScriptFunctions
                 Hp = 400
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
         Game.World.Insert(bait);
@@ -142,7 +142,7 @@ public class ScriptFunctions
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
 
-        Assert.Equal((uint) 0, bait.Stats.Hp);
+        Assert.Equal((uint)0, bait.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1000);
         Assert.True(bait.DeathProcessed);
@@ -152,7 +152,7 @@ public class ScriptFunctions
         var ts = new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30));
 
         Assert.True(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30)).ToUnixTimeSeconds()));
+            (int)new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30)).ToUnixTimeSeconds()));
 
 
         // Create a buffer of time we can use for the next series of checks
@@ -166,7 +166,7 @@ public class ScriptFunctions
                 Hp = 400
             },
             Name = "Bee Bait",
-            X = (byte) (Fixture.TestUser.X - 1),
+            X = (byte)(Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
 
@@ -176,15 +176,15 @@ public class ScriptFunctions
         Assert.NotEmpty(Fixture.TestUser.GetFacingObjects());
         Fixture.TestUser.AssailAttack(Direction.West);
 
-        Assert.Equal((uint) 0, bait2.Stats.Hp);
+        Assert.Equal((uint)0, bait2.Stats.Hp);
         // Wait for bee to be properly dead
         Thread.Sleep(1);
         Assert.True(bait2.DeathProcessed);
         Assert.True(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30)).ToUnixTimeSeconds(), 2));
+            (int)new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(30)).ToUnixTimeSeconds(), 2));
         Assert.False(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds(), 2));
+            (int)new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds(), 2));
         Assert.True(scriptObject.HasKilledSince("Bee Bait",
-            (int) new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds()));
+            (int)new DateTimeOffset(DateTime.Now - TimeSpan.FromSeconds(1)).ToUnixTimeSeconds()));
     }
 }

@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Extensions;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
@@ -98,7 +99,7 @@ public class Login : Server
         {
             if (string.IsNullOrEmpty(login.PasswordHash))
             {
-                client.LoginMessage("ERROR: Authentication information corrupt [HYB-LOGIN-01]", 3);
+                client.LoginMessage("[HYB-LOGIN-01]: Authentication information corrupt. Contact Hybrasyl support.", 3);
                 return;
             }
 
@@ -131,7 +132,7 @@ public class Login : Server
                 if (!Game.World.WorldState.TryGetUser(name, out _))
                 {
                     // Something bad has happened
-                    client.LoginMessage("An unknown error occurred. Please contact Hybrasyl support.", 3);
+                    client.LoginMessage("[HYB-LOGIN-02] An unknown error occurred. Contact Hybrasyl support.", 3);
                     return;
                 }
 
@@ -196,14 +197,17 @@ public class Login : Server
         // TODO: replace with XML config for start map, x, y
         if (!World.PlayerExists(client.NewCharacterName))
         {
-            var newPlayer = new User();
-            newPlayer.Name = client.NewCharacterName;
-            newPlayer.Gender = (Gender)gender;
+            var newPlayer = new User
+            {
+                Name = client.NewCharacterName,
+                Gender = (Gender)gender,
+                Class = Class.Peasant,
+                Nation = Game.World.DefaultNation
+            };
             newPlayer.Location.X = 10;
             newPlayer.Location.Y = 10;
             newPlayer.HairColor = hairColor;
             newPlayer.HairStyle = hairStyle;
-            newPlayer.Class = Class.Peasant;
             newPlayer.Stats.Level = 1;
             newPlayer.Stats.BaseStr = 3;
             newPlayer.Stats.BaseInt = 3;
@@ -220,9 +224,9 @@ public class Login : Server
             newPlayer.AuthInfo.FirstLogin = true;
             newPlayer.AuthInfo.PasswordHash = client.NewCharacterPassword;
             newPlayer.AuthInfo.LastPasswordChange = DateTime.Now;
-            newPlayer.AuthInfo.LastPasswordChangeFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+            newPlayer.AuthInfo.LastPasswordChangeFrom =
+                ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
             newPlayer.AuthInfo.Save();
-            newPlayer.Nation = Game.World.DefaultNation;
 
             var cache = World.DatastoreConnection.GetDatabase();
             cache.Set(User.GetStorageKey(newPlayer.Name), newPlayer);
@@ -230,10 +234,10 @@ public class Login : Server
             vault.Save();
             var parcelStore = new ParcelStore(newPlayer.Guid);
             parcelStore.Save();
+            newPlayer.Save();
             client.LoginMessage("\0", 0);
         }
     }
-
 
     private void PacketHandler_0x10_ClientJoin(IClient client, ClientPacket packet)
     {

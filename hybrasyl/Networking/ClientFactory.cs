@@ -18,17 +18,18 @@
 
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
+using Hybrasyl.Servers;
 
 namespace Hybrasyl.Networking;
 
 public static class ClientFactory
 {
-    public static IClient CreateClient(ClientType type)
+    public static IClient CreateClient(ClientType type, ISocketProxy socketProxy = null, Server server = null)
     {
         return type switch
         {
-            ClientType.Client => new Client(),
-            ClientType.TestClient => new TestClient(),
+            ClientType.Client => new Client(socketProxy, server),
+            ClientType.TestClient => new TestClient(socketProxy, server),
             _ => null
         };
     }

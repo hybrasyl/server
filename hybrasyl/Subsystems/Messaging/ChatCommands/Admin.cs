@@ -16,10 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Net;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
@@ -28,6 +24,10 @@ using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.IO;
+using System.Linq;
+using System.Net;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 using MessageType = Hybrasyl.Internals.Enums.MessageType;
 
@@ -392,8 +392,8 @@ internal class GcmCommand : ChatCommand
             try
             {
                 gcmContents = gcmContents + string.Format("{0}:{1} - {2}:{3}\n", pair.Key,
-                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Address,
-                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Port, serverType);
+                    ((IPEndPoint)pair.Value.Socket.RemoteEndPoint).Address,
+                    ((IPEndPoint)pair.Value.Socket.RemoteEndPoint).Port, serverType);
             }
             catch
             {
@@ -560,7 +560,7 @@ internal class NpcstatusCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args) =>
         Game.World.WorldState.TryGetValue(args[0], out Merchant merchant)
-            ? Success(merchant.Status(), (byte) MessageType.SlateScrollbar)
+            ? Success(merchant.Status(), (byte)MessageType.SlateScrollbar)
             : Fail($"NPC {args[0]} not found.");
 }
 
@@ -615,7 +615,7 @@ internal class TeleportCommand : ChatCommand
 
             if (Game.World.WorldState.TryGetValue(args[0], out Merchant merchant))
             {
-                var (x, y) = merchant.Map.FindEmptyTile((byte) (merchant.Map.X / 2), (byte) (merchant.Map.Y / 2));
+                var (x, y) = merchant.Map.FindEmptyTile((byte)(merchant.Map.X / 2), (byte)(merchant.Map.Y / 2));
                 if (x > 0 && y > 0)
                 {
                     user.Teleport(merchant.Map.Id, x, y);
@@ -762,7 +762,7 @@ internal class LogInfoCommand : ChatCommand
         txt = Enum.GetValues<LogType>().Aggregate(txt, func: (current, strEnum) => $"{current} {strEnum}");
         txt = $"{txt}\nAvailable Log Levels:\n\n";
         txt = Enum.GetValues<LogLevel>().Aggregate(txt, func: (current, strEnum) => $"{current} {strEnum}");
-        return Success(txt, (byte) MessageType.SlateScrollbar);
+        return Success(txt, (byte)MessageType.SlateScrollbar);
     }
 }
 
@@ -1127,80 +1127,80 @@ internal class GenerateArmor : ChatCommand
         switch (args[0].ToLower())
         {
             case "armor":
-            {
-                var item = new Item
                 {
-                    Name = "GeneratedArmor" + GeneratedId,
-                    Properties = new ItemProperties
+                    var item = new Item
                     {
-                        Stackable = new Stackable { Max = 1 },
-                        Physical = new Physical
+                        Name = "GeneratedArmor" + GeneratedId,
+                        Properties = new ItemProperties
                         {
-                            Durability = 1000,
-                            Value = 1,
-                            Weight = 1
-                        },
-                        Restrictions = new ItemRestrictions
-                        {
-                            Gender = (Gender) Enum.Parse(typeof(Gender), args[1]),
-                            Level = new RestrictionsLevel
+                            Stackable = new Stackable { Max = 1 },
+                            Physical = new Physical
                             {
-                                Min = 1
+                                Durability = 1000,
+                                Value = 1,
+                                Weight = 1
+                            },
+                            Restrictions = new ItemRestrictions
+                            {
+                                Gender = (Gender)Enum.Parse(typeof(Gender), args[1]),
+                                Level = new RestrictionsLevel
+                                {
+                                    Min = 1
+                                }
+                            },
+                            Appearance = new Appearance
+                            {
+                                BodyStyle = (ItemBodyStyle)Enum.Parse(typeof(ItemBodyStyle), args[1]),
+                                Sprite = sprite,
+                                DisplaySprite = displaysprite
+                            },
+                            Equipment = new Equipment
+                            {
+                                Slot = EquipmentSlot.Armor
                             }
-                        },
-                        Appearance = new Appearance
-                        {
-                            BodyStyle = (ItemBodyStyle) Enum.Parse(typeof(ItemBodyStyle), args[1]),
-                            Sprite = sprite,
-                            DisplaySprite = displaysprite
-                        },
-                        Equipment = new Equipment
-                        {
-                            Slot = EquipmentSlot.Armor
                         }
-                    }
-                };
-                Game.World.WorldData.AddWithIndex(item, item.Id, item.Name);
-                user.AddItem(item.Name);
-            }
+                    };
+                    Game.World.WorldData.AddWithIndex(item, item.Id, item.Name);
+                    user.AddItem(item.Name);
+                }
                 break;
             case "coat":
-            {
-                var item = new Item
                 {
-                    Name = "GeneratedArmor" + GeneratedId,
-                    Properties = new ItemProperties
+                    var item = new Item
                     {
-                        Stackable = new Stackable { Max = 1 },
-                        Physical = new Physical
+                        Name = "GeneratedArmor" + GeneratedId,
+                        Properties = new ItemProperties
                         {
-                            Durability = 1000,
-                            Value = 1,
-                            Weight = 1
-                        },
-                        Restrictions = new ItemRestrictions
-                        {
-                            Gender = (Gender) Enum.Parse(typeof(Gender), args[1]),
-                            Level = new RestrictionsLevel
+                            Stackable = new Stackable { Max = 1 },
+                            Physical = new Physical
                             {
-                                Min = 1
+                                Durability = 1000,
+                                Value = 1,
+                                Weight = 1
+                            },
+                            Restrictions = new ItemRestrictions
+                            {
+                                Gender = (Gender)Enum.Parse(typeof(Gender), args[1]),
+                                Level = new RestrictionsLevel
+                                {
+                                    Min = 1
+                                }
+                            },
+                            Appearance = new Appearance
+                            {
+                                BodyStyle = (ItemBodyStyle)Enum.Parse(typeof(ItemBodyStyle), args[1]),
+                                Sprite = sprite,
+                                DisplaySprite = displaysprite
+                            },
+                            Equipment = new Equipment
+                            {
+                                Slot = EquipmentSlot.Trousers
                             }
-                        },
-                        Appearance = new Appearance
-                        {
-                            BodyStyle = (ItemBodyStyle) Enum.Parse(typeof(ItemBodyStyle), args[1]),
-                            Sprite = sprite,
-                            DisplaySprite = displaysprite
-                        },
-                        Equipment = new Equipment
-                        {
-                            Slot = EquipmentSlot.Trousers
                         }
-                    }
-                };
-                Game.World.WorldData.AddWithIndex(item, item.Id, item.Name);
-                user.AddItem(item.Name);
-            }
+                    };
+                    Game.World.WorldData.AddWithIndex(item, item.Id, item.Name);
+                    user.AddItem(item.Name);
+                }
                 break;
         }
 

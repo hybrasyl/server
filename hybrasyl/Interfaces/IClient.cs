@@ -24,13 +24,9 @@ using System.Collections.Generic;
 
 namespace Hybrasyl.Interfaces;
 
-/// <summary>
-///     Interface for a client connection. This will be used eventually to provide a full-scale mock
-///     for testing.
-/// </summary>
-public interface IClient
+public interface IClient : IDisposable
 {
-    public ClientState ClientState { get; set; }
+    public IClientState ClientState { get; set; }
     public long ConnectedSince { get; }
     public byte ServerOrdinal { get; }
 
@@ -50,6 +46,7 @@ public interface IClient
     public string NewCharacterPassword { get; set; }
 
     public int ServerType { get; }
+    public string LastMessage { get; }
 
     public void SendByteHeartbeat();
     public void CheckIdle();
@@ -67,9 +64,9 @@ public interface IClient
     public void FlushReceiveBuffer();
     public void SendCallback(IAsyncResult ar);
     public void GenerateKeyTable(string seed);
-    public void Enqueue(ServerPacket packet);
+    public void Enqueue(ServerPacket packet, bool flush = false);
     public void Enqueue(ClientPacket packet);
-    public void Redirect(Redirect redirect, bool isLogoff = true, int transmitDelay = 0);
+    public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0);
     public void LoginMessage(string message, byte type);
     public void SendMessage(string message, byte type);
 }

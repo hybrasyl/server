@@ -56,9 +56,8 @@ public class WorldObject : IQuadStorable, IWorldObject
 
     [JsonProperty(Order = 0)] public virtual string Name { get; set; }
 
-    public Guid ServerGuid { get; set; }
-    public World World => Game.GetServerByGuid<World>(ServerGuid);
-
+    public Guid ServerGuid { get; set; } = Guid.Empty;
+    public World World => Game.GetServerByGuid<World>(ServerGuid) ?? Game.GetDefaultServer<World>();
 
     public virtual void OnInsert() { }
 
