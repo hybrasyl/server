@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Objects;
+using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Objects;
-using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Objects;
 
@@ -109,18 +109,18 @@ public class ThreatInfo(Guid id)
                     break;
                 // Add everything targeting the last player to use a spell on this monster
                 default:
-                {
-                    if (LastCaster is User u2)
-                        ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(LastCaster)));
-                    break;
-                }
+                    {
+                        if (LastCaster is User u2)
+                            ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(LastCaster)));
+                        break;
+                    }
             }
 
             // If we still have no targets, or our (singular) target is dead, add every monster in the viewport.
             if (ret.Count == 0 || (ret.Count == 1 && ret.First().Stats.Hp <= 0))
                 ret.AddRange(monstersInViewport);
             // Order by distance, take closest first, make sure to not target ourselves
-            return ret.OrderBy(keySelector: x => x.Distance(OwnerObject)).Where(predicate: x => x.Guid != Owner)
+            return ret.OrderBy(keySelector: x => x.Distance(OwnerObject)).Where(predicate: x => x.Guid != Owner && x.Stats.Hp > 0)
                 .ToList();
         }
 
@@ -232,6 +232,7 @@ public class ThreatInfo(Guid id)
 
     public void OnRangeEnter(Creature threat)
     {
+        if (ThreatTableByCreature.ContainsKey(threat.Guid)) return;
         // TODO: review / refactor
         if (threat is not User userThreat) return;
         if (HighestThreat is User { Group: not null } user && user.Group.Members.Contains(userThreat))
@@ -246,11 +247,11 @@ public class ThreatInfo(Guid id)
         {
             if (HighestThreat == threat)
                 return;
-            entry.Threat = (uint) (HighestThreatEntry.Threat * 1.10);
+            entry.Threat = (uint)(HighestThreatEntry.Threat * 1.10);
         }
         else
         {
-            AddNewThreat(threat, (uint) (HighestThreatEntry.Threat * 1.10));
+            AddNewThreat(threat, (uint)(HighestThreatEntry.Threat * 1.10));
         }
     }
 

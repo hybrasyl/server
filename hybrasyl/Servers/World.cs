@@ -1111,7 +1111,7 @@ public class World : Server
     public void StartTimers()
     {
         var jobList =
-            Assembly.GetExecutingAssembly().GetTypes().ToList().Where(predicate: t => t.Namespace == "Hybrasyl.Jobs")
+            Assembly.GetExecutingAssembly().GetTypes().ToList().Where(predicate: t => t.Namespace == "Hybrasyl.Subsystems.Jobs")
                 .ToList();
 
         foreach (var jobClass in jobList)

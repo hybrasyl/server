@@ -3889,7 +3889,7 @@ public class User : Creature
         PendingSellableQuantity = quantity;
         var item = Inventory[slot];
         var offer = (uint)(Math.Round(item.Value * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage, 0) *
-                              quantity);
+                            quantity);
         PendingMerchantOffer = offer;
         var options = new MerchantOptions
         {

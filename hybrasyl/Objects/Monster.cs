@@ -48,7 +48,7 @@ public class Monster : Creature, ICloneable, IEphemeral
     private readonly ConcurrentQueue<MobAction> _actionQueue;
     private readonly object _lock = new();
     private bool _idle = true;
-    private uint _mTarget;
+    private Guid _target = Guid.Empty;
 
 
     public int ActionDelay = 800;
@@ -181,15 +181,9 @@ public class Monster : Creature, ICloneable, IEphemeral
 
     public Creature Target
     {
-        get
-        {
-            if (World.Objects.TryGetValue(_mTarget, out var o))
-                return o as Creature;
-            return null;
-        }
-        set => _mTarget = value?.Id ?? 0;
+        get => World.WorldState.TryGetWorldObject<Creature>(_target, out var o) ? o : null;
+        set => _target = value?.Guid ?? Guid.Empty;
     }
-
 
     public object Clone() => MemberwiseClone();
 
@@ -903,7 +897,15 @@ public class Monster : Creature, ICloneable, IEphemeral
             return;
         }
 
-        var target = Condition.Charmed ? Target : ThreatInfo.HighestThreat;
+        var target = Target;
+
+        if (Condition.Charmed)
+        {
+            // Our target is dead, get a new one
+            if (Target == null || Target.Stats.Hp <= 0)
+                _actionQueue.Enqueue(MobAction.Move);
+        }
+
 
         if (target != null)
         {
@@ -972,8 +974,16 @@ public class Monster : Creature, ICloneable, IEphemeral
 
                     // If the monster is charmed and it doesn't already have a target, the target is a user, or the target is dead (or in the process of getting dead)
                     // get a new target. If it is not charmed, our castable determines targeting priority and we take the first target.
-                    if ((Condition.Charmed && (Target is null or User || Target.Stats.Hp <= 0)) || !Condition.Charmed)
-                        Target = targets.First();
+                    if (!Condition.Charmed)
+                        Target = targets.FirstOrDefault();
+                    else if (Target is null || Target is User || Target.Stats.Hp <= 0)
+                        Target = targets.FirstOrDefault();
+
+                    if (Target == null)
+                    {
+                        GameLog.SpawnError($"{Name} ({Map}@{X},{Y}): unable to calculate target, aborting attack");
+                        return;
+                    }
 
                     if (nextCastable == null || nextCastable.Slot.Castable.IsAssail)
                     {

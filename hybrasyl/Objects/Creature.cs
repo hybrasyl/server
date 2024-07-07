@@ -43,7 +43,7 @@ public class Creature : VisibleObject
 {
     private readonly object _lock = new();
 
-    private uint _mLastHitter;
+    private Guid _mLastHitter = Guid.Empty;
 
     public ConcurrentDictionary<ushort, ICreatureStatus> CurrentStatuses;
 
@@ -76,17 +76,11 @@ public class Creature : VisibleObject
 
     public Creature LastHitter
     {
-        get
-        {
-            if (Game.World.Objects.TryGetValue(_mLastHitter, out var o))
-                return o as Creature;
-            return null;
-        }
-        set => _mLastHitter = value?.Id ?? 0;
+        get => Game.World.WorldState.TryGetWorldObject<Creature>(_mLastHitter, out var o) ? o : null;
+        set => _mLastHitter = value?.Guid ?? Guid.Empty;
     }
 
     public Creature LastTarget { get; set; }
-    public Creature CurrentTarget { get; set; }
 
     public bool AbsoluteImmortal { get; set; }
     public bool PhysicalImmortal { get; set; }
@@ -1389,7 +1383,7 @@ public class Creature : VisibleObject
     }
 
     /// <summary>
-    ///     Remove a status from a client.
+    ///     Remove a status from a creature.
     /// </summary>
     /// <param name="icon">The icon of the status we are removing.</param>
     /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>

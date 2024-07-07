@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/hybrasyl/server</RepositoryUrl>
     <Company>ERISCO LLC</Company>
     <Product>Hybrasyl Server</Product>
-    <VersionPrefix>0.9.3.2</VersionPrefix>
+    <VersionPrefix>0.9.4</VersionPrefix>
     <Description>Hybrasyl, a DOOMVAS v1 emulator</Description>
     <BuildDocFx Condition="'$(Configuration)'=='Debug' ">false</BuildDocFx>
     <NoWarn>NU1701</NoWarn>

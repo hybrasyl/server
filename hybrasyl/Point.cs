@@ -16,8 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
 using Hybrasyl.Interfaces;
+using System;
 
 namespace Hybrasyl;
 
@@ -25,7 +25,7 @@ public struct Point
 {
     public static int Distance(int x1, int y1, int x2, int y2) => Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
 
-    public static int Distance(IVisible obj1, IVisible obj2) =>
+    public static int Distance(IVisible obj1, IVisible obj2) => obj1 == null || obj2 == null ? 0 :
         Distance(obj1.Location.X, obj1.Location.Y, obj2.Location.X, obj2.Location.Y);
 
     public static int Distance(IVisible obj, int x, int y) => Distance(obj.Location.X, obj.Location.Y, x, y);
