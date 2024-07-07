@@ -1182,7 +1182,7 @@ public class Creature : VisibleObject
         }
 
         damageEvent.Amount = normalized;
-        _mLastHitter = attacker?.Id ?? 0;
+        _mLastHitter = attacker?.Guid ?? Guid.Empty;
         OnDamage(damageEvent);
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects
