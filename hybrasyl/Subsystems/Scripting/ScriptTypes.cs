@@ -16,11 +16,12 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
+using Hybrasyl.Casting;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
@@ -122,6 +123,16 @@ public class DialogInvocation
         Environment.Add("origin", Origin);
         Environment.Add("source", Source);
         Environment.Add("target", Target);
+        switch (Origin)
+        {
+            case CastableObject:
+                Environment.Add("castable", Origin);
+                break;
+            case ItemObject:
+                Environment.Add("item", Origin);
+                break;
+        }
+
         return Script.ExecuteExpression(expr, Environment);
     }
 
@@ -130,6 +141,16 @@ public class DialogInvocation
         Environment.Add("origin", Origin);
         Environment.Add("source", Source);
         Environment.Add("target", Target);
+        switch (Origin)
+        {
+            case CastableObject:
+                Environment.Add("castable", Origin);
+                break;
+            case ItemObject:
+                Environment.Add("item", Origin);
+                break;
+        }
+
         return Script.ExecuteFunction(function, Environment);
     }
 }

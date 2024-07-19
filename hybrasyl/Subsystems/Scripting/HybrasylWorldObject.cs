@@ -306,7 +306,7 @@ public class HybrasylWorldObject : IScriptable
     /// <param name="targetUser">The logged-in player that will receive the dialog</param>
     /// <param name="sourceGuid">The GUID of the source (player, merchant, etc)</param>
     /// <param name="sequenceName">The sequence that will be started for the target player</param>
-    /// <param name="origin">
+    /// <param name="originGuid">
     ///     The GUID of the origin for the request (castable, item, merchant, whatever). The origin must
     ///     contain the script that will be used to handle the request.
     /// </param>
@@ -316,6 +316,7 @@ public class HybrasylWorldObject : IScriptable
         bool requireLocal = true)
     {
         IInteractable originInteractable = null;
+
         WorldObject originObj = null;
         CastableObject originCastable = null;
         if (string.IsNullOrEmpty(sequenceName) || string.IsNullOrEmpty(targetUser))
@@ -344,7 +345,11 @@ public class HybrasylWorldObject : IScriptable
             return false;
         }
 
-        originInteractable = originObj == null ? originCastable : originObj as IInteractable;
+        // Fall back to castable as last resort
+        originInteractable = (originObj == null ? originCastable : originObj as IInteractable) ?? originCastable;
+
+        if (originInteractable == null)
+            return false;
 
         if (!originInteractable.SequenceIndex.ContainsKey(sequenceName) &&
             !Game.World.GlobalSequences.ContainsKey(sequenceName))

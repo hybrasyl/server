@@ -16,12 +16,14 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Scripting;
+using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
+using Script = Hybrasyl.Subsystems.Scripting.Script;
 
 namespace Hybrasyl.Subsystems.Dialogs;
 
@@ -29,6 +31,7 @@ namespace Hybrasyl.Subsystems.Dialogs;
 ///     An AsyncDialogSession is a dialog sequence that is showed to a player based on asynchronous input
 ///     from another script, player, or event (such as a mentoring request).
 /// </summary>
+[MoonSharpUserData]
 public class AsyncDialogSession : IInteractable, IStateStorable
 {
     public IVisible Source;
@@ -181,7 +184,10 @@ public class AsyncDialogSession : IInteractable, IStateStorable
     // Show the dialog to the recipient
     public bool ShowTo()
     {
-        if (!SequenceIndex.TryGetValue(StartSequence, out var sequenceObj)) return false;
+        // Get the sequence
+        if (!SequenceIndex.TryGetValue(StartSequence, out var sequenceObj) && !Game.World.GlobalSequences.TryGetValue(StartSequence, out sequenceObj))
+            return false;
+
         // Do checks one last time, just to be safe
 
         if (!targetReady)

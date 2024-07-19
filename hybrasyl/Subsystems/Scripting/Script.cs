@@ -16,7 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Casting;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
@@ -136,6 +135,7 @@ public class Script
             sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => DynValue
                 .NewNumber(obj),
             string => DynValue.NewString(obj),
+            Guid => DynValue.NewString(obj.ToString()),
             User user => UserData.Create(new HybrasylUser(user)),
             Monster monster => UserData.Create(new HybrasylMonster(monster)),
             World world => UserData.Create(new HybrasylWorld(world)),
@@ -143,8 +143,6 @@ public class Script
             Reactor reactor => UserData.Create(new HybrasylReactor(reactor)),
             ItemObject item => UserData.Create(new HybrasylItemObject(item)),
             WorldObject wobj => UserData.Create(new HybrasylWorldObject(wobj)),
-            HybrasylInteractable hi => UserData.Create(hi),
-            CastableObject co => UserData.Create(co),
             _ => UserData.Create(obj)
         };
     }

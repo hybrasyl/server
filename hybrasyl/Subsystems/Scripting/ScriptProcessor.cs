@@ -45,6 +45,9 @@ public class ScriptProcessor
         UserData.RegisterType<ElementType>();
         UserData.RegisterType<Direction>();
         _scripts = new Dictionary<string, List<Script>>();
+        // Ensure usage of Guid in various scripts is handled correctly
+        MoonSharp.Interpreter.Script.GlobalOptions.CustomConverters.SetClrToScriptCustomConversion<Guid>(v =>
+            DynValue.NewString(v.ToString()));
     }
 
     public HybrasylWorld World { get; }
