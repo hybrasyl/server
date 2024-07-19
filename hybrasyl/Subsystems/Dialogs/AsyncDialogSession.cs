@@ -134,21 +134,42 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         return true;
     }
 
+    public void CloseSource()
+    {
+        sourceClosed = true;
+        if (Source is not User user) return;
+        sourceClosed = true;
+        user.ActiveDialogSession = null;
+        user.ClearDialogState();
+    }
+
+    public void CloseTarget()
+    {
+        targetClosed = true;
+        Target.ActiveDialogSession = null;
+        Target.ClearDialogState();
+    }
+
+    public void Close()
+    {
+        CloseSource();
+        CloseTarget();
+    }
+
+    public void Close(string name)
+    {
+        if (Target.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            CloseSource();
+        if (Source.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            CloseTarget();
+    }
+
     public void Close(Guid guid)
     {
         if (Target.Guid == guid)
-        {
-            targetClosed = true;
-            Target.ActiveDialogSession = null;
-            Target.ClearDialogState();
-        }
-        else if (Source.Guid == guid)
-        {
-            if (Source is not User user) return;
-            sourceClosed = true;
-            user.ActiveDialogSession = null;
-            user.ClearDialogState();
-        }
+            CloseSource();
+        if (Source.Guid == guid)
+            CloseTarget();
     }
 
     public bool CheckRequest()
