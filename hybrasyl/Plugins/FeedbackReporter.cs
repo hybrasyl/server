@@ -16,17 +16,17 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Discord.Webhook;
 using Hybrasyl.Extensions;
 using Hybrasyl.Internals.Logging;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Hybrasyl.Plugins;
 
 /// <summary>
-///     A message handler plugin
+///     A message handler plugin which handles feedback from players
 /// </summary>
 public class FeedbackReporter : MessagePlugin, IProcessingMessageHandler
 {

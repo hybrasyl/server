@@ -16,17 +16,17 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Discord.Webhook;
 using Hybrasyl.Extensions;
 using Hybrasyl.Internals.Logging;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Hybrasyl.Plugins;
 
 /// <summary>
-///     A message handler plugin
+///     A message handler plugin which handles bug reports from players
 /// </summary>
 public class BugReporter : MessagePlugin, IProcessingMessageHandler
 {
@@ -84,7 +84,7 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
     {
         try
         {
-            await File.WriteAllTextAsync(Path.Join(Game.DataDirectory, OutputDir, $"bugreport-{sender}-{id}.txt"),
+            await File.WriteAllTextAsync(Path.Join(OutputDir, $"bugreport-{sender}-{id}.txt"),
                 text);
         }
         catch (Exception e)
