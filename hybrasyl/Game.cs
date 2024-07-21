@@ -446,7 +446,7 @@ public static class Game
         }
 
         Log.Information($"Configuration file: {activeConfiguration.Filename} ({activeConfiguration.Name}) loaded");
-        activeConfiguration.InitializeClientSettings();
+        activeConfiguration.Init();
         activeConfiguration.Constants ??= new ServerConstants();
         // Set our active configuration to the one we just loaded
         ActiveConfiguration = activeConfiguration;

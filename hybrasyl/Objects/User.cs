@@ -3071,6 +3071,17 @@ public class User : Creature
             if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Castable result))
             {
                 if (SkillBook.Contains(result.Id)) continue;
+                var requirement =
+                    result.Requirements.FirstOrDefault(x => x.Class.Contains(Class) || x.Class.Contains(Class.None));
+                if (requirement != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(requirement.ForbidCookie) &&
+                        GetCookie(requirement.ForbidCookie) != null)
+                        continue;
+                    if (!string.IsNullOrWhiteSpace(requirement.RequireCookie) &&
+                        GetCookie(requirement.RequireCookie) == null)
+                        continue;
+                }
                 merchantSkills.Skills.Add(new MerchantSkill
                 {
                     IconType = 3,
@@ -3265,35 +3276,46 @@ public class User : Creature
                         $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
         if (classReq.Prerequisites != null)
-            foreach (var preReq in classReq.Prerequisites.Prerequisite)
+        {
+            if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.ForbidCookie) &&
+                GetCookie(classReq.Prerequisites.ForbidCookie) != null)
+                prompt = classReq.Prerequisites.ForbidMessage;
+            else if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.RequireCookie) &&
+                GetCookie(classReq.Prerequisites.RequireCookie) == null)
+                prompt = classReq.Prerequisites.RequireMessage;
+            else
             {
-                BookSlot slot;
-                if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
+                foreach (var preReq in classReq.Prerequisites.Prerequisite)
                 {
-                    if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
-                    }
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                        {
+                            prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
 
-                    if (SkillBook.Contains(castablePrereq.Id))
-                        slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+
+                        if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
+                        {
+                            prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
+                    }
                     else
-                        slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
-
-                    if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
+                        prompt = merchant.GetLocalString("learn_error");
                     }
-                }
-                else
-                {
-                    prompt = merchant.GetLocalString("learn_error");
                 }
             }
+        }
 
         if (prompt == string.Empty) //this is so bad
         {
@@ -3425,6 +3447,17 @@ public class User : Creature
             // Verify the spell exists first
             if (!Game.World.WorldData.TryGetValueByIndex(spell.Name, out Castable result)) continue;
             if (SpellBook.Contains(result.Id)) continue;
+            var requirement =
+                result.Requirements.FirstOrDefault(x => x.Class.Contains(Class) || x.Class.Contains(Class.None));
+            if (requirement != null)
+            {
+                if (!string.IsNullOrWhiteSpace(requirement.ForbidCookie) &&
+                    GetCookie(requirement.ForbidCookie) != null)
+                    continue;
+                if (!string.IsNullOrWhiteSpace(requirement.RequireCookie) &&
+                    GetCookie(requirement.RequireCookie) == null)
+                    continue;
+            }
             merchantSpells.Spells.Add(new MerchantSpell
             {
                 IconType = 2,
@@ -3515,34 +3548,45 @@ public class User : Creature
                         $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
         if (classReq.Prerequisites != null)
-            foreach (var preReq in classReq.Prerequisites.Prerequisite)
+        {
+            if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.ForbidCookie) &&
+                GetCookie(classReq.Prerequisites.ForbidCookie) != null)
+                prompt = classReq.Prerequisites.ForbidMessage;
+            else if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.RequireCookie) &&
+                     GetCookie(classReq.Prerequisites.RequireCookie) == null)
+                prompt = classReq.Prerequisites.RequireMessage;
+            else
             {
-                BookSlot slot;
-                if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
+                foreach (var preReq in classReq.Prerequisites.Prerequisite)
                 {
-                    if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
-                    }
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                        {
+                            prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
 
-                    if (SkillBook.Contains(castablePrereq.Id))
-                        slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
-                    else
-                        slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
-                    if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
-                    {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
+                        {
+                            prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
                     }
-                }
-                else
-                {
-                    prompt = merchant.GetLocalString("learn_error");
+                    else
+                    {
+                        prompt = merchant.GetLocalString("learn_error");
+                    }
                 }
             }
+        }
 
         if (prompt == string.Empty) //this is so bad
         {
