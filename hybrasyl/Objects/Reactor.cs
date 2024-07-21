@@ -1,30 +1,32 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Servers;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
@@ -33,8 +35,12 @@ public class Reactor : VisibleObject, IPursuitable
 {
     private bool _ready;
     public bool Blocking;
+    public CreatureSnapshot Caster;
     public string Description;
     public string ScriptName;
+
+    public bool VisibleToGroup;
+    public bool VisibleToOwner;
 
     public Reactor(Xml.Objects.Reactor reactor)
     {
@@ -43,8 +49,41 @@ public class Reactor : VisibleObject, IPursuitable
         DialogSequences = new List<DialogSequence>();
     }
 
+    public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null,
+        string description = null)
+    {
+        X = x;
+        Y = y;
+        Map = map;
+        ScriptName = reactor.Script;
+        Blocking = reactor.Blocking;
+        CreatedAt = DateTime.Now;
+        Expiration = CreatedAt.AddSeconds(reactor.Expiration);
+        ExpirationSeconds = reactor.Expiration;
+        Caster = caster?.GetSnapshot();
+        Description = description;
+        VisibleToGroup = reactor.DisplayGroup;
+        VisibleToOwner = reactor.DisplayOwner;
+        VisibleToCookies = reactor.DisplayCookie?.Split(" ").ToList() ?? new List<string>();
+        VisibleToStatuses = reactor.DisplayStatus?.Split(" ").ToList() ?? new List<string>();
+        Init();
+    }
+
+    public Reactor(Reactor reactor, MapObject map, int expiration = 0)
+    {
+        X = reactor.X;
+        Y = reactor.Y;
+        Map = map;
+        Script = reactor.Script;
+        ExpirationSeconds = expiration;
+        Description = reactor.Description;
+        Blocking = reactor.Blocking;
+        AllowDead = reactor.AllowDead;
+        Init();
+    }
+
     public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
-        bool blocking = true)
+        bool blocking = true, Creature caster = null)
     {
         X = x;
         Y = y;
@@ -52,14 +91,18 @@ public class Reactor : VisibleObject, IPursuitable
         Description = description;
         ScriptName = scriptName;
         Blocking = blocking;
-        CreatedAt = DateTime.Now;
-        if (expiration <= 0) return;
-        Expiration = CreatedAt.AddSeconds(expiration);
-        Task.Run(function: OnExpiration);
+        Caster = caster?.GetSnapshot();
+        ExpirationSeconds = expiration;
+        Init();
     }
+
+    public List<string> VisibleToCookies { get; set; } = new();
+    public List<string> InvisibleToCookies { get; set; } = new();
+    public List<string> VisibleToStatuses { get; set; } = new();
 
     public DateTime CreatedAt { get; set; }
     public DateTime Expiration { get; set; }
+    private int ExpirationSeconds { get; set; }
     public VisibleObject Origin { get; set; }
     public Guid CreatedBy { get; set; }
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
@@ -87,8 +130,9 @@ public class Reactor : VisibleObject, IPursuitable
 
     public override void ShowTo(IVisible obj)
     {
-        if (Expired) return;
+        if (!VisibleTo(obj)) return;
         if (obj is not User user) return;
+
         // TODO: improve, this isn't sufficient to work with Say/Shout currently
         var p = new ServerPacket(0x07);
         p.WriteUInt16(1);
@@ -111,6 +155,29 @@ public class Reactor : VisibleObject, IPursuitable
         p.WriteByte((byte)MonsterType.Reactor);
         p.WriteString8(Name);
         user.Enqueue(p);
+    }
+
+    private void Init()
+    {
+        CreatedAt = DateTime.Now;
+        Expiration = DateTime.MaxValue;
+        if (ExpirationSeconds <= 0) return;
+        Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
+        Task.Run(OnExpiration);
+    }
+
+    public bool VisibleTo(IVisible obj)
+    {
+        if (Expired) return false;
+        if (obj is not User user) return false;
+        var casterObj = Caster?.GetUserObject();
+        if (VisibleToCookies.Any(user.HasCookie)) return true;
+        if (InvisibleToCookies.Any(user.HasCookie)) return false;
+        if (user.CurrentStatuses.Values.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
+        if (casterObj == null) return false;
+        if (VisibleToOwner && user.Name == Caster.Name) return true;
+        if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;
+        return false;
     }
 
     public async Task OnExpiration()
@@ -142,6 +209,9 @@ public class Reactor : VisibleObject, IPursuitable
             Script.ExecuteFunction("OnSpawn");
     }
 
+    public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
+        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
+
     public virtual void OnEntry(VisibleObject obj)
     {
         if (Expired) return;
@@ -153,8 +223,7 @@ public class Reactor : VisibleObject, IPursuitable
         }
 
         if (!Ready) return;
-        var wef = Script.ExecuteFunction("OnEntry",
-            ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        var wef = Script.ExecuteFunction("OnEntry", GetBaseEnvironment(obj));
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -162,14 +231,16 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiEntry(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiEntry", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        if (obj is User user)
+            ShowTo(user);
+        Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 
     public virtual void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
-            Script.ExecuteFunction("OnLeave", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+            Script.ExecuteFunction("OnLeave", GetBaseEnvironment(obj));
         if (obj is User user)
             user.LastAssociate = null;
     }
@@ -179,14 +250,20 @@ public class Reactor : VisibleObject, IPursuitable
         if (Expired) return;
         base.AoiDeparture(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiDeparture", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        Script.ExecuteFunction("AoiDeparture", GetBaseEnvironment(obj));
+        if (obj is User u)
+        {
+            var removePacket = new ServerPacket(0x0E);
+            removePacket.WriteUInt32(Id);
+            u.Enqueue(removePacket);
+        }
     }
 
     public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
         if (!Ready) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this);
+        var env = GetBaseEnvironment(obj);
         env.Add("item", dropped);
         Script.ExecuteFunction("OnDrop", env);
     }
@@ -195,14 +272,14 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return;
         if (!Ready) return;
-        Script.ExecuteFunction("OnMove", ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this));
+        Script.ExecuteFunction("OnMove", GetBaseEnvironment(obj));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
     {
         if (Expired) return;
         if (!Ready) return;
-        var env = ScriptEnvironment.CreateWithOriginTargetAndSource(this, obj, this);
+        var env = GetBaseEnvironment(obj);
         env.Add("item", taken);
         Script.ExecuteFunction("OnTake", env);
     }

@@ -1,4 +1,22 @@
-﻿using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Xml.Objects;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -33,35 +51,35 @@ public class Equipment
     [Fact]
     public void NewEquipmentSizeIsCorrect()
     {
-        var f = new Hybrasyl.Equipment(Hybrasyl.Equipment.DefaultSize);
-        Assert.Equal(Hybrasyl.Equipment.DefaultSize, f.Size);
+        var f = new Subsystems.Players.Equipment(Subsystems.Players.Equipment.DefaultSize);
+        Assert.Equal(Subsystems.Players.Equipment.DefaultSize, f.Size);
     }
 
     [Fact]
     public void NewEquipmentEmptySlotsEqualsSize()
     {
-        var f = new Hybrasyl.Equipment(Hybrasyl.Equipment.DefaultSize);
-        Assert.Equal(Hybrasyl.Equipment.DefaultSize, f.EmptySlots);
+        var f = new Subsystems.Players.Equipment(Subsystems.Players.Equipment.DefaultSize);
+        Assert.Equal(Subsystems.Players.Equipment.DefaultSize, f.EmptySlots);
     }
 
     [Fact]
     public void NewEquipmentFirstEmptySlotIsOne()
     {
-        var f = new Hybrasyl.Equipment(Hybrasyl.Equipment.DefaultSize);
+        var f = new Subsystems.Players.Equipment(Subsystems.Players.Equipment.DefaultSize);
         Assert.Equal(1, f.FindEmptySlot());
     }
 
     [Fact]
     public void NewEquipmentWeightIsZero()
     {
-        var f = new Hybrasyl.Equipment(Hybrasyl.Equipment.DefaultSize);
+        var f = new Subsystems.Players.Equipment(Subsystems.Players.Equipment.DefaultSize);
         Assert.Equal(0, f.Weight);
     }
 
     [Fact]
     public void NewEquipmentIsNotFull()
     {
-        var f = new Hybrasyl.Equipment(Hybrasyl.Equipment.DefaultSize);
+        var f = new Subsystems.Players.Equipment(Subsystems.Players.Equipment.DefaultSize);
         Assert.False(f.IsFull, "new equipment should not be full");
     }
 
@@ -69,7 +87,7 @@ public class Equipment
     public void ClearEquipment()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         Assert.True(Fixture.TestUser.Equipment.Count == 0, "Equipment cleared but count is non-zero");
         Assert.True(Fixture.TestUser.Equipment.ToList().Count == 0,
@@ -84,7 +102,7 @@ public class Equipment
     public void EquipRestrictionCheckAbLevel()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         item.Properties.Restrictions = new ItemRestrictions
@@ -118,7 +136,7 @@ public class Equipment
     public void EquipRestrictionCheckClass()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         item.Properties.Restrictions = new ItemRestrictions
@@ -146,7 +164,7 @@ public class Equipment
     public void EquipRestrictionCheckWeight()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var item = Fixture.TestEquipment[EquipmentSlot.Armor].Clone<Item>();
         item.Properties.Physical.Weight = 100;
         var equipment = Game.World.CreateItem(item);
@@ -167,7 +185,7 @@ public class Equipment
     public void EquipRestrictionShieldTwoHand()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var shield = Fixture.TestEquipment[EquipmentSlot.Shield].Clone<Item>();
         var twohand = Fixture.TestEquipment[EquipmentSlot.Weapon].Clone<Item>();
         twohand.Properties.Equipment.WeaponType = WeaponType.TwoHand;
@@ -194,7 +212,7 @@ public class Equipment
     public void EquipRestrictionUniqueEquipped()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring1 = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring1.Properties.Flags = ItemFlags.UniqueEquipped;
@@ -204,7 +222,8 @@ public class Equipment
         var ring2Obj = Game.World.CreateItem(ring2);
         Assert.True(
             ring1Obj.CheckRequirements(Fixture.TestUser, out var m1) &&
-            Fixture.TestUser.AddEquipment(ring1Obj, (byte)EquipmentSlot.LeftHand), $"Equip first ring failed ({m1})");
+            Fixture.TestUser.AddEquipment(ring1Obj, (byte)EquipmentSlot.LeftHand),
+            $"Equip first ring failed ({m1})");
         Assert.True(Fixture.TestUser.Equipment.LRing != null);
         Assert.False(ring2Obj.CheckRequirements(Fixture.TestUser, out var m2),
             "Ring 1 equipped, Equipping duplicate unique-equipped item, CheckRequirements succeeded");
@@ -215,7 +234,7 @@ public class Equipment
     public void EquipRestrictionSlotRestriction()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Prohibit Armor";
@@ -280,7 +299,7 @@ public class Equipment
     public void EquipNegativeXpBonus()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Bad Bonuses";
@@ -299,7 +318,7 @@ public class Equipment
     public void EquipPositiveXpBonus()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Ok Bonuses";
@@ -318,7 +337,7 @@ public class Equipment
     public void EquipEquipmentBonuses()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "I Give Bonuses";
@@ -356,7 +375,7 @@ public class Equipment
 
         var ringObj = Game.World.CreateItem(ring);
         var beforeAc = Fixture.TestUser.Stats.Ac;
-        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
         var expectedAc = 100 - Fixture.TestUser.Stats.Level / 3 +
                          Fixture.TestUser.Stats.BonusAc;
 
@@ -484,13 +503,14 @@ public class Equipment
     public void EquipmentSlotOf()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
 
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         ring.Name = "Test Ring";
         var ringObj = Game.World.CreateItem(ring);
-        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte) EquipmentSlot.RightHand));
+        Assert.True(Fixture.TestUser.AddEquipment(ringObj, (byte)EquipmentSlot.RightHand));
         Assert.Equal((byte)EquipmentSlot.RightHand, Fixture.TestUser.Equipment.SlotOfName(ringObj.Name));
-        Assert.Equal((byte) EquipmentSlot.None, Fixture.TestUser.Equipment.SlotOfName("Something that does not exist"));
+        Assert.Equal((byte)EquipmentSlot.None,
+            Fixture.TestUser.Equipment.SlotOfName("Something that does not exist"));
     }
 }

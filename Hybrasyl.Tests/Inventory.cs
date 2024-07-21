@@ -1,56 +1,68 @@
-using Hybrasyl.ClientPackets;
+// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Networking;
+using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
-
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class Inventory
+public class Inventory(HybrasylFixture fixture)
 {
-    private HybrasylFixture Fixture { get; set; }
-
-    public Inventory(HybrasylFixture fixture)
-    {
-        Fixture = fixture;
-    }
+    private HybrasylFixture Fixture { get; } = fixture;
 
     [Fact]
     public void NewInventorySizeIsCorrect()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(HybrasylFixture.InventorySize, f.Size);
     }
 
     [Fact]
     public void NewInventoryEmptySlotsEqualsSize()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(HybrasylFixture.InventorySize, f.EmptySlots);
     }
 
     [Fact]
     public void NewInventoryFirstEmptySlotIsOne()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(1, f.FindEmptySlot());
     }
 
     [Fact]
     public void NewInventoryWeightIsZero()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.Equal(0, f.Weight);
     }
 
     [Fact]
     public void NewInventoryIsNotFull()
     {
-        var f = new Hybrasyl.Inventory(HybrasylFixture.InventorySize);
+        var f = new Subsystems.Players.Inventory(HybrasylFixture.InventorySize);
         Assert.False(f.IsFull, "new inventory should not be full");
     }
 
@@ -69,7 +81,7 @@ public class Inventory
 
 
     [Theory]
-    [MemberData(nameof(XmlItemTestData.XmlItems),MemberType = typeof(XmlItemTestData))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void AddRetrieveAndRemoveItems(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -110,7 +122,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItemTestData.XmlItems),MemberType = typeof(XmlItemTestData))]
+    [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void FindItemsByCategory(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
@@ -246,7 +258,7 @@ public class Inventory
     public void RemoveEquipmentFailIfInventoryFull()
     {
         Fixture.TestUser.Equipment.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseStr = 255;
         var ring = Fixture.TestEquipment[EquipmentSlot.Ring].Clone<Item>();
         var ringObj = Game.World.CreateItem(ring);
@@ -257,6 +269,7 @@ public class Inventory
             var anotherRingObj = Game.World.CreateItem(ring);
             Fixture.TestUser.AddItem(anotherRingObj);
         }
+
         Assert.True(Fixture.TestUser.Inventory.IsFull);
         var guid = Fixture.TestUser.Inventory[1].Guid;
         var testPacket = new EquipItemClick((byte)EquipmentSlot.RightHand);
@@ -265,7 +278,6 @@ public class Inventory
         Assert.NotNull(handler);
         handler(Fixture.TestUser, (ClientPacket)testPacket);
         Assert.Equal("You can't carry anything else.", Fixture.TestUser.LastSystemMessage);
-
     }
 
 
@@ -295,7 +307,7 @@ public class Inventory
     [MemberData(nameof(XmlItemTestData.XmlItems), MemberType = typeof(XmlItemTestData))]
     public void FullInventoryShouldBeFull(params Item[] item)
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseStr = 255;
         Fixture.TestUser.Inventory.Clear();
         for (var x = 1; x <= HybrasylFixture.InventorySize; x++)
@@ -499,7 +511,7 @@ public class Inventory
     }
 
     [Theory]
-    [MemberData(nameof(XmlItemTestData.StackableXmlItems),MemberType = typeof(XmlItemTestData))]
+    [MemberData(nameof(XmlItemTestData.StackableXmlItems), MemberType = typeof(XmlItemTestData))]
     public void RemoveQuantity(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();

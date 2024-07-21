@@ -1,4 +1,22 @@
-﻿using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
@@ -6,14 +24,9 @@ using System.Linq;
 
 namespace Hybrasyl.Objects;
 
-public class ThreatEntry : IComparable
+public class ThreatEntry(Guid id) : IComparable
 {
-    public ThreatEntry(Guid id)
-    {
-        Target = id;
-    }
-
-    public Guid Target { get; set; }
+    public Guid Target { get; set; } = id;
     public Creature TargetObject => Game.World.WorldState.GetWorldObject<Creature>(Target);
     public uint Threat { get; set; }
     public bool IsHealer => TotalHeals > 0;
@@ -41,16 +54,9 @@ public class ThreatEntry : IComparable
 }
 
 [MoonSharpUserData]
-public class ThreatInfo
+public class ThreatInfo(Guid id)
 {
-    public ThreatInfo(Guid id)
-    {
-        ThreatTableByCreature = new Dictionary<Guid, ThreatEntry>();
-        ThreatTableByThreat = new SortedDictionary<ThreatEntry, Guid>();
-        Owner = id;
-    }
-
-    public Guid Owner { get; set; }
+    public Guid Owner { get; set; } = id;
     public Creature OwnerObject => Game.World.WorldState.GetWorldObject<Creature>(Owner);
 
     public Creature HighestThreat => ThreatTableByThreat.Count == 0
@@ -60,8 +66,9 @@ public class ThreatInfo
     public ThreatEntry HighestThreatEntry => ThreatTableByThreat.First().Key;
 
     public int Count => ThreatTableByCreature.Count;
-    public Dictionary<Guid, ThreatEntry> ThreatTableByCreature { get; }
-    public SortedDictionary<ThreatEntry, Guid> ThreatTableByThreat { get; }
+    public Dictionary<Guid, ThreatEntry> ThreatTableByCreature { get; } = new();
+    public SortedDictionary<ThreatEntry, Guid> ThreatTableByThreat { get; } = new();
+    public Creature LastCaster { get; set; }
 
     public uint this[Creature threat]
     {
@@ -78,7 +85,48 @@ public class ThreatInfo
     public List<Creature> GetTargets(CreatureTargetPriority priority)
     {
         var ret = new List<Creature>();
+        if (OwnerObject == null)
+            return ret;
         ThreatEntry entry;
+        var monstersInViewport =
+            OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList();
+        if (OwnerObject.Condition.Charmed)
+        {
+            switch (OwnerObject.LastTarget)
+            {
+                // If our immediate target is grouped, add every monster they've collectively targeted to our target list,
+                // otherwise add their last target - but make sure not to add ourselves
+                case User u1:
+                    if (u1.Group != null)
+                        ret.AddRange(u1.Group.Members.Where(predicate: x =>
+                            x.LastTarget != null && x.LastTarget != OwnerObject));
+                    else if (u1.LastTarget != OwnerObject)
+                        ret.Add(u1.LastTarget);
+                    break;
+                // If we are already targeting a monster, continue to target it
+                case Monster:
+                    ret.Add(OwnerObject.LastTarget);
+                    break;
+                // Add everything targeting the last player to use a spell on this monster
+                default:
+                    {
+                        if (LastCaster is User u2)
+                            ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(LastCaster)));
+                        break;
+                    }
+            }
+
+            // If we still have no targets, or our (singular) target is dead, add every monster in the viewport.
+            if (ret.Count == 0 || (ret.Count == 1 && ret.First().Stats.Hp <= 0))
+                ret.AddRange(monstersInViewport);
+            // Order by distance, take closest first, make sure to not target ourselves
+            return ret.OrderBy(keySelector: x => x.Distance(OwnerObject)).Where(predicate: x => x.Guid != Owner && x.Stats.Hp > 0)
+                .ToList();
+        }
+
+        if (ThreatTableByThreat.Count == 0)
+            return ret;
+
         switch (priority)
         {
             case CreatureTargetPriority.HighThreat:
@@ -88,28 +136,24 @@ public class ThreatInfo
                 ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
                 break;
             case CreatureTargetPriority.Attacker:
-                entry = ThreatTableByThreat.Keys.OrderByDescending(keySelector: x => x.SecondsSinceLastMelee)
-                    .FirstOrDefault();
+                entry = ThreatTableByThreat.Keys.MaxBy(keySelector: x => x.SecondsSinceLastMelee);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
             case CreatureTargetPriority.AttackingCaster:
                 entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsCaster)
-                    .OrderByDescending(keySelector: x => x.SecondsSinceLastNonHealCast)
-                    .FirstOrDefault();
+                    .MaxBy(keySelector: x => x.SecondsSinceLastNonHealCast);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
             case CreatureTargetPriority.AttackingGroup:
-                entry = ThreatTableByThreat.Keys.OrderByDescending(keySelector: x => x.SecondsSinceLastMelee)
-                    .FirstOrDefault();
+                entry = ThreatTableByThreat.Keys.MaxBy(keySelector: x => x.SecondsSinceLastMelee);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
             case CreatureTargetPriority.AttackingHealer:
                 entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsHealer)
-                    .OrderByDescending(keySelector: x => x.SecondsSinceLastHeal)
-                    .FirstOrDefault();
+                    .MaxBy(keySelector: x => x.SecondsSinceLastHeal);
                 if (entry != null)
                     ret.Add(entry.TargetObject);
                 break;
@@ -118,11 +162,13 @@ public class ThreatInfo
                     .Select(selector: x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.RandomAlly:
-                ret.Add(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>()
-                    .Select(selector: x => x as Creature).PickRandom());
+                ret.Add(Extensions.EnumerableExtension.PickRandom(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>()
+                    .Select(selector: x => x as Creature)));
                 break;
             case CreatureTargetPriority.RandomAttacker:
-                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByCreature.PickRandom().Key));
+                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(Extensions.EnumerableExtension
+                    .PickRandom(ThreatTableByCreature).Key));
                 break;
             case CreatureTargetPriority.Self:
                 ret.Add(OwnerObject);
@@ -163,7 +209,6 @@ public class ThreatInfo
         if (!ThreatTableByCreature.TryGetValue(threat.Guid, out var entry)) return;
         ThreatTableByCreature.Remove(threat.Guid);
         ThreatTableByThreat.Remove(entry);
-        GameLog.Error($"{OwnerObject.Id}: Removed threat {threat.Id}");
     }
 
     public void RemoveAllThreats()
@@ -187,9 +232,10 @@ public class ThreatInfo
 
     public void OnRangeEnter(Creature threat)
     {
+        if (ThreatTableByCreature.ContainsKey(threat.Guid)) return;
         // TODO: review / refactor
         if (threat is not User userThreat) return;
-        if (HighestThreat is User user && user.Group.Members.Contains(userThreat))
+        if (HighestThreat is User { Group: not null } user && user.Group.Members.Contains(userThreat))
             AddNewThreat(userThreat);
         else
             AddNewThreat(userThreat, 1);

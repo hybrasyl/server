@@ -1,30 +1,27 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
@@ -32,8 +29,8 @@ namespace Hybrasyl.Objects;
 [MoonSharpUserData]
 public class ElementalModifiers
 {
-    [JsonProperty] private Dictionary<ElementType, double> Resistances = new();
     [JsonProperty] private Dictionary<ElementType, double> Augments = new();
+    [JsonProperty] private Dictionary<ElementType, double> Resistances = new();
 
     public ElementalModifiers()
     {
@@ -43,6 +40,14 @@ public class ElementalModifiers
             Augments[type] = 0.0;
         }
     }
+
+    public bool Empty => NoAugments && NoResistances;
+
+    public bool NoAugments =>
+        Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(predicate: type => Augments[type] == 0);
+
+    public bool NoResistances =>
+        Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(predicate: type => Resistances[type] == 0);
 
     public double GetResistance(ElementType element) =>
         Resistances.TryGetValue(element, out var value) ? value : 0.0;
@@ -69,7 +74,6 @@ public class ElementalModifiers
     public void Apply(List<ElementalModifier> elementalModifiers)
     {
         foreach (var modifier in elementalModifiers)
-        {
             switch (modifier.Type)
             {
                 case ElementalModifierType.Resistance:
@@ -79,13 +83,11 @@ public class ElementalModifiers
                     Augments[modifier.Element] += modifier.Modifier;
                     break;
             }
-        }
     }
 
     public void Remove(List<ElementalModifier> elementalModifiers)
     {
         foreach (var modifier in elementalModifiers)
-        {
             switch (modifier.Type)
             {
                 case ElementalModifierType.Resistance:
@@ -95,7 +97,6 @@ public class ElementalModifiers
                     Augments[modifier.Element] -= modifier.Modifier;
                     break;
             }
-        }
     }
 
     public static ElementalModifiers operator +(ElementalModifiers em1, ElementalModifiers em2)
@@ -106,6 +107,7 @@ public class ElementalModifiers
             ret.Augments[element] = em1.GetAugment(element) + em2.GetAugment(element);
             ret.Resistances[element] = em1.GetResistance(element) + em2.GetResistance(element);
         }
+
         return ret;
     }
 
@@ -117,15 +119,7 @@ public class ElementalModifiers
             ret.Augments[element] = em1.GetAugment(element) - em2.GetAugment(element);
             ret.Resistances[element] = em1.GetResistance(element) - em2.GetResistance(element);
         }
+
         return ret;
     }
-
-    public bool Empty => NoAugments && NoResistances;
-
-    public bool NoAugments =>
-        Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(type => Augments[type] == 0);
-
-    public bool NoResistances =>
-        Enum.GetValues(typeof(ElementType)).Cast<ElementType>().All(type => Resistances[type] == 0);
-
 }

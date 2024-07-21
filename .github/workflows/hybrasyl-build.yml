@@ -2,7 +2,6 @@
 name: Hybrasyl packaging and testing
 
 on:
-  workflow_dispatch:
   push:
     paths-ignore:
       - 'contrib/**'
@@ -12,13 +11,15 @@ on:
       - main
       - develop
   pull_request:
-    paths-ignore:
-      - 'contrib/**'
-      - '**.md'
-      - '.github/**'
+    branches: [ main ]  
+  workflow_dispatch:
     branches:
       - main
       - develop
+
+permissions:
+  packages: write
+  contents: read
 
 jobs:
   build:
@@ -27,10 +28,9 @@ jobs:
     if: github.repository == 'hybrasyl/server'
     container:
       image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
-
     strategy:
       matrix:
-        dotnet-version: ['7.0.x']
+        dotnet-version: ['8.0.x']
    
     steps:
       - name: start local redis 
@@ -48,9 +48,7 @@ jobs:
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: generate test config
         run: >
-          echo "{ \"WorldDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/xml\",
-          \"LogDataDirectory\": \"$GITHUB_WORKSPACE/ceridwen/logs\",
-          \"DataDirectory\": \"$GITHUB_WORKSPACE/ceridwen\"}"
+          echo -e "{\n  \"Directories\": {\n    \"Linux\": {\n      \"WorldDataDirectory\": \"$GITHUB_WORKSPACE\\/ceridwen\\/xml\",\n      \"LogDirectory\": \"$GITHUB_WORKSPACE\\/ceridwen\\/logs\",\n      \"DataDirectory\": \"$GITHUB_WORKSPACE\\/ceridwen\"\n    }\n  }\n}\n"
           > $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
         shell: bash
       - name: show config
@@ -65,7 +63,9 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4.2.0
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           fail_ci_if_error: true
           verbose: true
@@ -73,20 +73,20 @@ jobs:
         run: mkdir /releases
       - name: Publish Win64
         run: >
-          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win10-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/win10-x64/publish &&
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net8.0/win-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-windows.zip .
       - name: Publish Linux
         run: >
-          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r ubuntu.18.04-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/ubuntu.18.04-x64/publish &&
+          cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r linux-x64 &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net8.0/linux-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
       - name: Publish MacOS
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r osx-x64 &&
-          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net7.0/osx-x64/publish &&
+          cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net8.0/osx-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
           zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
       - name: Upload to current
@@ -115,6 +115,10 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
+#      - name: Upload to GHCR
+#        uses: KuhlTime/ghcr-action@v2
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Notify discord
         run: >
           /usr/local/bin/discord.sh

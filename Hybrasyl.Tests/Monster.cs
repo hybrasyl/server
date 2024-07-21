@@ -1,7 +1,26 @@
-﻿using System;
-using System.Linq;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Linq;
+using System.Threading;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -27,34 +46,26 @@ public class Monsters
         Game.World.Insert(monster);
 
         foreach (var skillCategory in monster.BehaviorSet.LearnSkillCategories)
-        {
             foreach (var skill in
                      Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(skillCategory)))
             {
-                var reqs = skill.Requirements.Where(x => x.Physical != null);
+                var reqs = skill.Requirements.Where(predicate: x => x.Physical != null);
                 foreach (var req in reqs)
-                {
                     if (monster.MeetsRequirement(req))
                         Assert.True(monster.CastableController.ContainsCastable(skill.Name),
                             $"Skills: Should know {skill.Name} but doesn't");
-                }
             }
-        }
 
         foreach (var spellCategory in monster.BehaviorSet.LearnSpellCategories)
-        {
             foreach (var spell in
                      Game.World.WorldData.Find<Castable>(condition: x => x.CategoryList.Contains(spellCategory)))
             {
-                var reqs = spell.Requirements.Where(x => x.Physical != null);
+                var reqs = spell.Requirements.Where(predicate: x => x.Physical != null);
                 foreach (var req in reqs)
-                {
                     if (monster.MeetsRequirement(req))
                         Assert.True(monster.CastableController.ContainsCastable(spell.Name),
                             $"Skills: Should know {spell.Name} but doesn't");
-                }
             }
-        }
     }
 
     [Fact]
@@ -102,8 +113,8 @@ public class Monsters
             "Gabbaghoul test monster not found");
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
         // Should spawn, and not have a null behaviorset
-        Assert.NotNull(monster.BehaviorSet);
         Game.World.Insert(monster);
+        Assert.NotNull(monster.BehaviorSet);
         var rot = monster.CastableController.GetAssailRotation();
         Assert.NotNull(rot);
         Assert.True(rot.Count == 3);
@@ -177,5 +188,254 @@ public class Monsters
         Assert.True(entry2.Name == "athar gar" || entry2.Name == "athar meall" ||
                     entry2.Name == "athar lamh");
         Assert.True(entry2.CurrentPriority == CreatureTargetPriority.AttackingHealer);
+    }
+
+    [Fact]
+    public void MonsterCastableImmunities()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("CastableImmune");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500
+            },
+            Name = "Bee Bait",
+            X = (byte)(Fixture.TestUser.X - 1),
+            Y = Fixture.TestUser.Y
+        };
+
+        var castable = Game.World.WorldData.GetByIndex<Castable>("ard srad");
+        Assert.NotNull(castable);
+        Assert.NotNull(castable);
+        Game.World.Insert(bait);
+        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+
+        bait.BehaviorSet = behaviorSet;
+
+        Fixture.TestUser.SpellBook.Add(castable);
+        Assert.True(Fixture.TestUser.UseCastable(castable, bait));
+        var immunityTriggered =
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Castable);
+
+        Assert.NotNull(immunityTriggered);
+        Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
+        if (immunityTriggered.MessageType == MessageType.Shout)
+            Assert.True(Fixture.TestUser.LastHeard.Shout);
+        else
+            Assert.False(Fixture.TestUser.LastHeard.Shout);
+    }
+
+    [Fact]
+    public void MonsterElementalImmunities()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("ElementImmune");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500
+            },
+            Name = "Bee Bait",
+            X = (byte)(Fixture.TestUser.X - 1),
+            Y = Fixture.TestUser.Y
+        };
+
+        var castable = Game.World.WorldData.GetByIndex<Castable>("ard srad");
+        Assert.NotNull(castable);
+        Assert.NotNull(castable);
+        Game.World.Insert(bait);
+        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+
+        bait.BehaviorSet = behaviorSet;
+
+        Fixture.TestUser.SpellBook.Add(castable);
+        Assert.True(Fixture.TestUser.UseCastable(castable, bait));
+        var immunityTriggered =
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Element);
+
+        Assert.NotNull(immunityTriggered);
+        Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
+        if (immunityTriggered.MessageType == MessageType.Shout)
+            Assert.True(Fixture.TestUser.LastHeard.Shout);
+        else
+            Assert.False(Fixture.TestUser.LastHeard.Shout);
+    }
+
+    [Fact]
+    public void MonsterCastableCategoryImmunities()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("CastCatImmune");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500
+            },
+            Name = "Bee Bait",
+            X = (byte)(Fixture.TestUser.X - 1),
+            Y = Fixture.TestUser.Y
+        };
+
+        var castable = Game.World.WorldData.GetByIndex<Castable>("TestPlusAc");
+        Assert.NotNull(castable);
+        Assert.NotNull(castable);
+        Game.World.Insert(bait);
+        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+
+        bait.BehaviorSet = behaviorSet;
+
+        Fixture.TestUser.SpellBook.Add(castable);
+        var beforeAc = bait.Stats.Ac;
+        Assert.True(Fixture.TestUser.UseCastable(castable, bait));
+        var immunityTriggered =
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.CastableCategory);
+
+        Assert.NotNull(immunityTriggered);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
+        Assert.Equal(beforeAc, bait.Stats.Ac);
+        Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
+
+        if (immunityTriggered.MessageType == MessageType.Shout)
+            Assert.True(Fixture.TestUser.LastHeard.Shout);
+        else
+            Assert.False(Fixture.TestUser.LastHeard.Shout);
+        Assert.Empty(bait.CurrentStatuses);
+    }
+
+    [Fact]
+    public void MonsterStatusCategoryImmunities()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("StatCatImmune");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Honey Bee");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Stats =
+            {
+                BaseHp = 500,
+                Hp = 500,
+                BaseStr = 50
+            },
+            Name = "Bee Bait",
+            X = (byte)(Fixture.TestUser.X - 1),
+            Y = Fixture.TestUser.Y
+        };
+
+        var castable = Game.World.WorldData.GetByIndex<Castable>("TestMinusStr");
+        Assert.NotNull(castable);
+        Assert.NotNull(castable);
+        Game.World.Insert(bait);
+        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+
+        bait.BehaviorSet = behaviorSet;
+
+        Fixture.TestUser.SpellBook.Add(castable);
+        Assert.True(Fixture.TestUser.UseCastable(castable, bait));
+        Thread.Sleep(1000);
+
+        var immunityTriggered =
+            behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.StatusCategory);
+
+        var beforeStr = bait.Stats.Str;
+        Assert.NotNull(immunityTriggered);
+        Assert.Equal(beforeStr, bait.Stats.Str);
+        Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
+
+        if (immunityTriggered.MessageType == MessageType.Shout)
+            Assert.True(Fixture.TestUser.LastHeard.Shout);
+        else
+            Assert.False(Fixture.TestUser.LastHeard.Shout);
+
+        Assert.Empty(bait.CurrentStatuses);
+    }
+
+    [Fact]
+    public void MonsterWithStaticStats()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabba");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99)
+        {
+            Name = "Gabbaghoul Test"
+        };
+
+        Assert.True(bait.Stats.BaseHp > 100000);
+        Assert.True(bait.Stats.BaseMp > 100000);
+        Assert.True(bait.Stats.BaseStr > 100);
+    }
+
+    [Fact]
+    public void MonsterWithDynamicStats()
+    {
+        Fixture.TestUser.LastHeard = null;
+        Fixture.TestUser.Stats.BaseMp = 10000;
+        Fixture.TestUser.Stats.Mp = 10000;
+
+        var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabbaDynamic");
+        Assert.NotNull(behaviorSet);
+
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99, null, behaviorSet)
+        {
+            Name = "Gabbaghoul Test"
+        };
+
+        // Gabba now has its base hp from leveling, and its buff defined in the behaviorset
+        Assert.True(bait.Stats.BaseHp >= bait.Stats.Str * 200);
+        Assert.True(bait.Stats.BaseMp >= bait.Stats.Int * 200);
     }
 }

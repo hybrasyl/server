@@ -1,31 +1,38 @@
-﻿/*
-/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-
-using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
+using Hybrasyl.Casting;
+using Hybrasyl.Extensions;
+using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Utility;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Servers;
+using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Formulas;
+using Hybrasyl.Subsystems.Manufacturing;
+using Hybrasyl.Subsystems.Messaging;
+using Hybrasyl.Subsystems.Players;
+using Hybrasyl.Subsystems.Players.Grouping;
+using Hybrasyl.Subsystems.Players.Guilds;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -35,6 +42,9 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Book = Hybrasyl.Casting.Book;
+using Equipment = Hybrasyl.Subsystems.Players.Equipment;
+using MessageType = Hybrasyl.Internals.Enums.MessageType;
 
 namespace Hybrasyl.Objects;
 
@@ -50,9 +60,7 @@ public class User : Creature
 {
     private object _serializeLock = new();
 
-    private Client Client;
-
-    public string RemoteAddress => Client.RemoteAddress;
+    private IClient Client;
 
     [JsonProperty] public uint LevelPoints;
 
@@ -62,11 +70,11 @@ public class User : Creature
         LastAssociate = null;
     }
 
+
     public User(Guid serverGuid, long connectionId, string playername = "")
     {
         ServerGuid = serverGuid;
-        Client client;
-        if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client)) Client = client;
+        if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out var client)) Client = client;
         _initializeUser(playername);
     }
 
@@ -76,6 +84,8 @@ public class User : Creature
         Client = client;
         _initializeUser(playername);
     }
+
+    public string RemoteAddress => Client?.RemoteAddress ?? "unknown";
 
     public string StorageKey => string.Concat(GetType().Name, ':', Name.ToLower());
 
@@ -95,22 +105,21 @@ public class User : Creature
 
     [JsonProperty] public bool IsMaster { get; set; }
 
-    public String AdHocScript { get; set; } = null;
+    public string AdHocScript { get; set; }
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
+
+    [JsonProperty] private List<StatusInfo> Statuses { get; set; } = new();
 
     public int LevelCircle
     {
         get
         {
-            return Stats.Level switch
-            {
-                < LevelCircles.CIRCLE_1 => 0,
-                < LevelCircles.CIRCLE_2 => 1,
-                < LevelCircles.CIRCLE_3 => 2,
-                < LevelCircles.CIRCLE_4 => 3,
-                _ => 4
-            };
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle1) return 0;
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle2) return 1;
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle3) return 2;
+            if (Stats.Level < Game.ActiveConfiguration.Constants.LevelCircle4) return 3;
+            return 4;
         }
     }
 
@@ -142,11 +151,11 @@ public class User : Creature
     {
         get
         {
-            var levelExp = (uint) Math.Pow(Stats.Level, 3) * 250;
-            if (Stats.Level == Constants.MAX_LEVEL || Stats.Experience >= levelExp)
+            var levelExp = (uint)Math.Pow(Stats.Level, 3) * 250;
+            if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel || Stats.Experience >= levelExp)
                 return 0;
 
-            return (uint) (Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
+            return (uint)(Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
         }
     }
 
@@ -210,7 +219,7 @@ public class User : Creature
          * values will appear as zero as the client expects).
          */
 
-    public ushort VisibleWeight => (ushort) Math.Max(0, CurrentWeight);
+    public ushort VisibleWeight => (ushort)Math.Max(0, CurrentWeight);
 
     /**
          * Returns the true weight of the user's inventory + equipment, which could be negative.
@@ -219,7 +228,7 @@ public class User : Creature
          */
     public int CurrentWeight => Inventory.Weight + Equipment.Weight;
 
-    public ushort MaximumWeight => (ushort) (Stats.BaseStr + Stats.Level / 4 + 48);
+    public ushort MaximumWeight => (ushort)(Stats.BaseStr + Stats.Level / 4 + 48);
 
     public string LastSystemMessage { get; private set; } = string.Empty;
 
@@ -341,7 +350,6 @@ public class User : Creature
         GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
         if (obj is Creature c)
         {
-
             if (!Condition.SeeInvisible && c.Condition.IsInvisible && obj != this) return;
             base.AoiEntry(obj);
             obj.ShowTo(this);
@@ -402,7 +410,7 @@ public class User : Creature
     /// <param name="remove">Force removal of the status</param>
     public virtual void SendStatusUpdate(ICreatureStatus status, bool remove = false)
     {
-        var statuspacket = new ServerPacketStructures.StatusBar { Icon = status.Icon };
+        var statuspacket = new StatusBar { Icon = status.Icon };
         var elapsed = DateTime.Now - status.Start;
         var remaining = status.Duration - elapsed.TotalSeconds;
         StatusBarColor color;
@@ -430,6 +438,7 @@ public class User : Creature
 
     public override void OnHear(SpokenEvent e)
     {
+        LastHeard = e;
         if (e.Speaker != this)
             MessagesReceived.Add(e);
         var x0D = new ServerPacket(0x0D);
@@ -555,7 +564,7 @@ public class User : Creature
             {
                 uint expPenalty;
                 if (handler.Penalty.Xp.Contains('.'))
-                    expPenalty = (uint) Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Xp));
+                    expPenalty = (uint)Math.Ceiling(Stats.Experience * Convert.ToDouble(handler.Penalty.Xp));
                 else
                     expPenalty = Convert.ToUInt32(handler.Penalty.Xp);
                 Stats.Experience -= expPenalty;
@@ -567,7 +576,7 @@ public class User : Creature
                 uint hpPenalty;
 
                 if (handler.Penalty.Hp.Contains('.'))
-                    hpPenalty = (uint) Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
+                    hpPenalty = (uint)Math.Ceiling(Stats.BaseHp * Convert.ToDouble(handler.Penalty.Hp));
                 else
                     hpPenalty = Convert.ToUInt32(handler.Penalty.Hp);
                 Stats.BaseHp -= hpPenalty;
@@ -596,11 +605,12 @@ public class User : Creature
                 GameLog.UserActivityFatal($"{Name}: died, but not on death map..?");
         }
         else
+        {
             GameLog.Warning($"Death handler not found: {Name} not removed from {Location.Map.Name}");
+        }
 
         if (Game.ActiveConfiguration.Handlers?.Death?.GroupNotify ?? true)
             Group?.SendMessage($"{Name} has died!");
-
     }
 
 
@@ -682,7 +692,7 @@ public class User : Creature
         ClientSettings = new Dictionary<byte, bool>();
         Group = null;
         Flags = new Dictionary<string, bool>();
-        _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+        CurrentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         RecentKills = new List<KillRecord>();
         MessagesReceived = new List<SpokenEvent>();
 
@@ -742,22 +752,22 @@ public class User : Creature
                     exp = 1;
                     break;
                 case 5:
-                    exp = (uint) Math.Ceiling(exp * 0.40);
+                    exp = (uint)Math.Ceiling(exp * 0.40);
                     break;
                 case 4:
-                    exp = (uint) Math.Ceiling(exp * 0.80);
+                    exp = (uint)Math.Ceiling(exp * 0.80);
                     break;
                 case -6:
-                    exp = (uint) Math.Ceiling(exp * 1.15);
+                    exp = (uint)Math.Ceiling(exp * 1.15);
                     break;
                 case -5:
-                    exp = (uint) Math.Ceiling(exp * 1.10);
+                    exp = (uint)Math.Ceiling(exp * 1.10);
                     break;
                 case -4:
-                    exp = (uint) Math.Ceiling(exp * 1.05);
+                    exp = (uint)Math.Ceiling(exp * 1.05);
                     break;
                 case < -7:
-                    exp = (uint) Math.Ceiling(exp * 1.20);
+                    exp = (uint)Math.Ceiling(exp * 1.20);
                     break;
             }
 
@@ -775,10 +785,10 @@ public class User : Creature
         switch (Stats.ExtraGold)
         {
             case < 0:
-                gold -= (uint) (gold * (Stats.ExtraXp / 100) * -1);
+                gold -= (uint)(gold * (Stats.ExtraXp / 100) * -1);
                 break;
             case > 0:
-                gold += (uint) (gold * (Stats.ExtraXp / 100));
+                gold += (uint)(gold * (Stats.ExtraXp / 100));
                 break;
         }
 
@@ -792,7 +802,6 @@ public class User : Creature
     /// <param name="ApplyBonus">Whether or not to apply XP bonuses from items / etc (ExtraXp stat)</param>
     public void GiveExperience(uint exp, bool applyBonus = false)
     {
-
         var bonus = 0;
 
         if (applyBonus)
@@ -803,7 +812,7 @@ public class User : Creature
 
         exp = Convert.ToUInt32(bonus + exp);
 
-        if (Stats.Level == Constants.MAX_LEVEL || exp < ExpToLevel)
+        if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel || exp < ExpToLevel)
         {
             if (uint.MaxValue - Stats.Experience >= exp)
             {
@@ -813,8 +822,6 @@ public class User : Creature
                     Client?.SendMessage($"{bonus} penalty experience...", MessageTypes.SYSTEM);
                 if (bonus > 0)
                     Client?.SendMessage($"{bonus} bonus experience!", MessageTypes.SYSTEM);
-
-
             }
             else
             {
@@ -846,9 +853,9 @@ public class User : Creature
                     // MP: (WIS/(Lv+1)*50*randomfactor)+25
                     var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
                     var bonusHpGain =
-                        (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
+                        (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
                     var bonusMpGain =
-                        (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
+                        (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
 
                     Stats.BaseHp += bonusHpGain + 25;
                     Stats.BaseMp += bonusMpGain + 25;
@@ -880,8 +887,7 @@ public class User : Creature
     public bool AssociateConnection(Guid serverGuid, long connectionId)
     {
         ServerGuid = serverGuid;
-        Client client;
-        if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out client)) return false;
+        if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out var client)) return false;
         Client = client;
         return true;
     }
@@ -898,10 +904,10 @@ public class User : Creature
 
         switch (toApply.EquipmentSlot)
         {
-            case (byte) ItemSlots.Necklace:
+            case (byte)ItemSlots.Necklace:
                 Stats.BaseOffensiveElement = toApply.Element;
                 break;
-            case (byte) ItemSlots.Waist:
+            case (byte)ItemSlots.Waist:
                 Stats.BaseDefensiveElement = toApply.Element;
                 break;
         }
@@ -916,10 +922,10 @@ public class User : Creature
         Stats.Remove(toRemove.Stats);
         switch (toRemove.EquipmentSlot)
         {
-            case (byte) ItemSlots.Necklace:
+            case (byte)ItemSlots.Necklace:
                 Stats.BaseOffensiveElement = ElementType.None;
                 break;
-            case (byte) ItemSlots.Waist:
+            case (byte)ItemSlots.Waist:
                 Stats.BaseDefensiveElement = ElementType.None;
                 break;
         }
@@ -950,26 +956,26 @@ public class User : Creature
             profilePacket.WriteByte(tuple.Item2);
         }
 
-        profilePacket.WriteByte((byte) GroupStatus);
+        profilePacket.WriteByte((byte)GroupStatus);
         profilePacket.WriteString8(Name);
         profilePacket.WriteByte(Nation.Flag); // This should pull from town / nation
         // test
         profilePacket.WriteString8("");
-        profilePacket.WriteByte((byte) (Grouping ? 1 : 0));
+        profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
         profilePacket.WriteString8(guildInfo.GuildRank);
-        profilePacket.WriteString8(Constants.REVERSE_CLASSES[(int) Class].Capitalize());
+        profilePacket.WriteString8(Game.ActiveConfiguration.GetClassName((byte)Class));
         profilePacket.WriteString8(guildInfo.GuildName);
-        profilePacket.WriteByte((byte) Legend.Count);
+        profilePacket.WriteByte((byte)Legend.Count);
         foreach (var mark in Legend.Where(predicate: mark => mark.Public))
         {
-            profilePacket.WriteByte((byte) mark.Icon);
-            profilePacket.WriteByte((byte) mark.Color);
+            profilePacket.WriteByte((byte)mark.Icon);
+            profilePacket.WriteByte((byte)mark.Color);
             profilePacket.WriteString8(mark.Prefix);
             profilePacket.WriteString8(mark.ToString());
         }
 
-        profilePacket.WriteUInt16((ushort) (PortraitData.Length + ProfileText.Length + 4));
-        profilePacket.WriteUInt16((ushort) PortraitData.Length);
+        profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
+        profilePacket.WriteUInt16((ushort)PortraitData.Length);
         profilePacket.Write(PortraitData);
         profilePacket.WriteString16(ProfileText);
 
@@ -1006,7 +1012,9 @@ public class User : Creature
             if (serializeStatus)
             {
                 if (ActiveStatusCount > 0)
-                    Statuses = CurrentStatusInfo.ToList();
+                    Statuses = CurrentStatuses.Count > 0
+                        ? CurrentStatuses.Values.Select(selector: e => e.Info).ToList()
+                        : new List<StatusInfo>();
                 else
                     Statuses.Clear();
             }
@@ -1026,8 +1034,8 @@ public class User : Creature
         x15.WriteByte(Map.Y);
         x15.WriteByte(Map.Flags);
         x15.WriteUInt16(0);
-        x15.WriteByte((byte) (Map.Checksum % 256));
-        x15.WriteByte((byte) (Map.Checksum / 256));
+        x15.WriteByte((byte)(Map.Checksum % 256));
+        x15.WriteByte((byte)(Map.Checksum / 256));
         x15.WriteString8(Map.Name);
         x15.TransmitDelay = transmitDelay;
         Enqueue(x15);
@@ -1058,12 +1066,12 @@ public class User : Creature
         var ret = new List<(byte X, byte Y)>();
 
         for (var x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
-        for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
-        {
-            var coords = ((byte) x, (byte) y);
-            ;
-            if (Map.Doors.ContainsKey(coords)) ret.Add(coords);
-        }
+            for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
+            {
+                var coords = ((byte)x, (byte)y);
+                ;
+                if (Map.Doors.ContainsKey(coords)) ret.Add(coords);
+            }
 
         return ret;
     }
@@ -1154,10 +1162,10 @@ public class User : Creature
                 SendUpdateToUser(user.Client);
                 break;
             case ItemObject itemObject:
-            {
-                SendVisibleItem(itemObject);
-                break;
-            }
+                {
+                    SendVisibleItem(itemObject);
+                    break;
+                }
         }
     }
 
@@ -1169,7 +1177,7 @@ public class User : Creature
         x07.WriteUInt16(gold.X);
         x07.WriteUInt16(gold.Y);
         x07.WriteUInt32(gold.Id);
-        x07.WriteUInt16((ushort) (gold.Sprite + 0x8000));
+        x07.WriteUInt16((ushort)(gold.Sprite + 0x8000));
         x07.WriteInt32(0);
         x07.DumpPacket();
         Enqueue(x07);
@@ -1212,9 +1220,9 @@ public class User : Creature
                 SendSkillUpdate(bookSlot, slot);
 
             bookSlot.Castable.LastCast = DateTime.Now;
-            Client.Enqueue(new ServerPacketStructures.Cooldown
+            Client?.Enqueue(new Cooldown
             {
-                Length = (uint) bookSlot.Castable.Cooldown,
+                Length = (uint)bookSlot.Castable.Cooldown,
                 Pane = 1,
                 Slot = slot
             }.Packet());
@@ -1250,7 +1258,7 @@ public class User : Creature
             if (targetCreature == null || targetCreature.Map != Map)
                 return;
 
-            if (Distance(targetCreature) > Constants.HALF_VIEWPORT_SIZE)
+            if (Distance(targetCreature) > Game.ActiveConfiguration.Constants.PlayerMaxCastDistance)
             {
                 SendSystemMessage("Your target is too far away.");
                 return;
@@ -1277,12 +1285,13 @@ public class User : Creature
 
         if (!UseCastable(bookSlot.Castable, targetCreature)) return;
         bookSlot.UseCount += 1;
+        bookSlot.UseCount += 1;
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
         if (bookSlot.Castable.Cooldown > 0)
-            Client.Enqueue(new ServerPacketStructures.Cooldown
+            Client.Enqueue(new Cooldown
             {
-                Length = (uint) bookSlot.Castable.Cooldown,
+                Length = (uint)bookSlot.Castable.Cooldown,
                 Pane = 0,
                 Slot = slot
             }.Packet());
@@ -1327,7 +1336,7 @@ public class User : Creature
 
         if (cost.Hp != 0) Stats.Hp -= cost.Hp;
         if (cost.Mp != 0) Stats.Mp -= cost.Mp;
-        if ((int) cost.Gold > 0) RemoveGold(new Gold(cost.Gold));
+        if ((int)cost.Gold > 0) RemoveGold(new Gold(cost.Gold));
         cost.Items?.ForEach(action: itemReq => RemoveItem(itemReq.Item, itemReq.Quantity));
 
         UpdateAttributes(StatUpdateFlags.Current);
@@ -1342,7 +1351,7 @@ public class User : Creature
         x07.WriteUInt16(itemObject.X);
         x07.WriteUInt16(itemObject.Y);
         x07.WriteUInt32(itemObject.Id);
-        x07.WriteUInt16((ushort) (itemObject.Sprite + 0x8000));
+        x07.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
         x07.WriteByte(itemObject.Color);
         x07.WriteByte(0);
         x07.WriteByte(0);
@@ -1360,12 +1369,12 @@ public class User : Creature
         x07.WriteUInt16(creature.X);
         x07.WriteUInt16(creature.Y);
         x07.WriteUInt32(creature.Id);
-        x07.WriteUInt16((ushort) (creature.Sprite + 0x4000));
+        x07.WriteUInt16((ushort)(creature.Sprite + 0x4000));
         x07.WriteByte(0); // Unknown what this is
         x07.WriteByte(0);
         x07.WriteByte(0);
         x07.WriteByte(0);
-        x07.WriteByte((byte) creature.Direction);
+        x07.WriteByte((byte)creature.Direction);
         x07.WriteByte(0);
         if (creature is Merchant)
         {
@@ -1395,7 +1404,7 @@ public class User : Creature
 
     public void SetHairColor(ItemColor itemColor)
     {
-        HairColor = (byte) itemColor;
+        HairColor = (byte)itemColor;
         SendUpdateToUser();
 
         foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
@@ -1405,7 +1414,7 @@ public class User : Creature
         }
     }
 
-    public void SendUpdateToUser(Client client = null)
+    public void SendUpdateToUser(IClient client = null)
     {
         var offset = Equipment.Armor?.BodyStyle ?? 0;
         if (!Condition.Alive)
@@ -1422,7 +1431,7 @@ public class User : Creature
         var color = helmcolor == 0 ? HairColor : helmcolor;
         // Why is this so difficult?
         var bootSprite = Equipment.Armor?.HideBoots ?? false ? 0 : Equipment.Boots?.DisplaySprite ?? 0;
-        (client ?? Client)?.Enqueue(new ServerPacketStructures.DisplayUser
+        (client ?? Client)?.Enqueue(new DisplayUser
         {
             X = X,
             Y = Y,
@@ -1433,7 +1442,7 @@ public class User : Creature
             Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
             Armor = Equipment.Armor?.DisplaySprite ?? 0,
             BodySpriteOffset = offset,
-            Boots = (byte) bootSprite,
+            Boots = (byte)bootSprite,
             BootsColor = Equipment.Boots?.Color ?? 0,
             DisplayAsMonster = DisplayAsMonster,
             FaceShape = FaceShape,
@@ -1448,7 +1457,7 @@ public class User : Creature
             Overcoat = Equipment.Overcoat?.DisplaySprite ?? 0,
             OvercoatColor = Equipment.Overcoat?.Color ?? 0,
             SkinColor = SkinColor,
-            Shield = (byte) (Equipment.Shield?.DisplaySprite ?? 0),
+            Shield = (byte)(Equipment.Shield?.DisplaySprite ?? 0),
             Invisible = Condition.IsInvisible,
             NameStyle = NameStyle,
             Name = Name,
@@ -1470,11 +1479,11 @@ public class User : Creature
     {
         var x05 = new ServerPacket(0x05);
         x05.WriteUInt32(Id);
-        x05.WriteByte((byte) Direction);
+        x05.WriteByte((byte)Direction);
         x05.WriteByte(0x00); // unknown. clanid?
-        x05.WriteByte((byte) Class);
+        x05.WriteByte((byte)Class);
         x05.WriteByte(0x00); // unknown
-        x05.WriteByte((byte) Gender);
+        x05.WriteByte((byte)Gender);
         x05.WriteByte(0x00);
         Enqueue(x05);
     }
@@ -1503,8 +1512,8 @@ public class User : Creature
         }
 
         var equipPacket = new ServerPacket(0x37);
-        equipPacket.WriteByte((byte) slot);
-        equipPacket.WriteUInt16((ushort) (itemObject.Sprite + 0x8000));
+        equipPacket.WriteByte((byte)slot);
+        equipPacket.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
         equipPacket.WriteByte(itemObject.Color);
         equipPacket.WriteStringWithLength(itemObject.Name);
         equipPacket.WriteByte(0x00);
@@ -1512,7 +1521,7 @@ public class User : Creature
         equipPacket.WriteUInt32(itemObject.DisplayDurability);
         equipPacket.DumpPacket();
         Enqueue(equipPacket);
-        SendSystemMessage(itemObject.EquipmentSlot == (byte) EquipmentSlot.Weapon
+        SendSystemMessage(itemObject.EquipmentSlot == (byte)EquipmentSlot.Weapon
             ? $"Equipped {itemObject.SlotName}: {itemObject.Name}"
             : $"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
     }
@@ -1525,7 +1534,7 @@ public class User : Creature
     public void SendClearItem(int slot)
     {
         var x10 = new ServerPacket(0x10);
-        x10.WriteByte((byte) slot);
+        x10.WriteByte((byte)slot);
         x10.WriteUInt16(0x0000);
         x10.WriteByte(0x00);
         Enqueue(x10);
@@ -1534,14 +1543,14 @@ public class User : Creature
     public void SendClearSkill(int slot)
     {
         var x2D = new ServerPacket(0x2D);
-        x2D.WriteByte((byte) slot);
+        x2D.WriteByte((byte)slot);
         Enqueue(x2D);
     }
 
     public void SendClearSpell(int slot)
     {
         var x2D = new ServerPacket(0x18);
-        x2D.WriteByte((byte) slot);
+        x2D.WriteByte((byte)slot);
         Enqueue(x2D);
     }
 
@@ -1562,8 +1571,8 @@ public class User : Creature
         GameLog.DebugFormat("Adding {0} qty {1} to slot {2}",
             itemObject.Name, itemObject.Count, slot);
         var x0F = new ServerPacket(0x0F);
-        x0F.WriteByte((byte) slot);
-        x0F.WriteUInt16((ushort) (itemObject.Sprite + 0x8000));
+        x0F.WriteByte((byte)slot);
+        x0F.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
         x0F.WriteByte(itemObject.Color);
         x0F.WriteString8(itemObject.Name);
         x0F.WriteInt32(itemObject.Count);  //amount
@@ -1591,13 +1600,13 @@ public class User : Creature
         //}
 
         var x2C = new ServerPacket(0x2C);
-        x2C.WriteByte((byte) slot);
+        x2C.WriteByte((byte)slot);
         x2C.WriteUInt16(item.Castable.Icon);
         if (item.Castable.Mastery.Uses != 1)
         {
             double percent;
             if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
-            else percent = Math.Floor(item.UseCount / (double) item.Castable.Mastery.Uses * 100);
+            else percent = Math.Floor(item.UseCount / (double)item.Castable.Mastery.Uses * 100);
 
             x2C.WriteString8($"{item.Castable.Name} (Lev:{percent}/100)");
         }
@@ -1609,23 +1618,23 @@ public class User : Creature
         Enqueue(x2C);
     }
 
-    public void SendCooldown(BookSlot item)
+    public void SendCooldown(BookSlot item, bool clear = false)
     {
         if (item == null) return;
         var slot = item.Castable.IsSkill
             ? SkillBook.IndexOf(item.Castable.Name)
             : SpellBook.IndexOf(item.Castable.Name);
-        
+
         if (slot == -1) return;
 
-        Client.Enqueue(new ServerPacketStructures.Cooldown
+        Client.Enqueue(new Cooldown
         {
-            Length = (uint) item.Castable.Cooldown,
+            Length = (uint)(clear ? 1 : item.Castable.Cooldown),
             Pane = 1,
-            Slot = (byte) slot
+            Slot = (byte)(slot + 1)
         }.Packet());
-
     }
+
     public void SendSpellUpdate(BookSlot item, int slot)
     {
         if (item == null)
@@ -1643,7 +1652,7 @@ public class User : Creature
         {
             double percent;
             if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
-            else percent = Math.Floor(item.UseCount / (double) item.Castable.Mastery.Uses * 100);
+            else percent = Math.Floor(item.UseCount / (double)item.Castable.Mastery.Uses * 100);
 
             name = $"{item.Castable.Name} (Lev:{percent}/100)";
         }
@@ -1652,14 +1661,14 @@ public class User : Creature
             name = item.Castable.Name;
         }
 
-        var spellUpdate = new ServerPacketStructures.AddSpell
+        var spellUpdate = new AddSpell
         {
-            Slot = (byte) slot,
+            Slot = (byte)slot,
             Icon = item.Castable.Icon,
-            UseType = (byte) item.Castable.Intents[0].UseType,
+            UseType = (byte)item.Castable.Intents[0].UseType,
             Name = name,
             Prompt = "\0",
-            Lines = (byte) CalculateLines(item.Castable)
+            Lines = (byte)CalculateLines(item.Castable)
         };
         Enqueue(spellUpdate.Packet());
     }
@@ -1733,7 +1742,7 @@ public class User : Creature
         if (CollisionsDisabled)
             flags |= StatUpdateFlags.GameMasterA;
 
-        x08.WriteByte((byte) flags);
+        x08.WriteByte((byte)flags);
         if (flags.HasFlag(StatUpdateFlags.Primary))
         {
             x08.Write(new byte[] { 1, 0, 0 });
@@ -1749,7 +1758,7 @@ public class User : Creature
             if (LevelPoints > 0)
             {
                 x08.WriteByte(1);
-                x08.WriteByte((byte) LevelPoints);
+                x08.WriteByte((byte)LevelPoints);
             }
             else
             {
@@ -1781,13 +1790,13 @@ public class User : Creature
         if (flags.HasFlag(StatUpdateFlags.Secondary))
         {
             x08.WriteByte(0); // Unknown
-            x08.WriteByte((byte) (Condition.Blinded ? 0x08 : 0x00));
+            x08.WriteByte((byte)(Condition.Blinded ? 0x08 : 0x00));
             x08.WriteByte(0); // Unknown
             x08.WriteByte(0); // Unknown
             x08.WriteByte(0); // Unknown
-            x08.WriteByte((byte) MailStatus);
-            x08.WriteByte((byte) Stats.BaseOffensiveElement);
-            x08.WriteByte((byte) Stats.BaseDefensiveElement);
+            x08.WriteByte((byte)MailStatus);
+            x08.WriteByte((byte)Stats.BaseOffensiveElement);
+            x08.WriteByte((byte)Stats.BaseDefensiveElement);
             x08.WriteByte(Stats.MrRating);
             x08.WriteByte(0); // "fast move"
             x08.WriteSByte(Stats.Ac);
@@ -1824,7 +1833,7 @@ public class User : Creature
                 break;
         }
 
-        return (User) contents.FirstOrDefault(predicate: y => y is User);
+        return (User)contents.FirstOrDefault(predicate: y => y is User);
     }
 
     /// <summary>
@@ -1838,24 +1847,24 @@ public class User : Creature
         switch (Direction)
         {
             case Direction.North:
-            {
-                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y - i));
-            }
+                {
+                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y - i));
+                }
                 break;
             case Direction.South:
-            {
-                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y + i));
-            }
+                {
+                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y + i));
+                }
                 break;
             case Direction.West:
-            {
-                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X - i, Y));
-            }
+                {
+                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X - i, Y));
+                }
                 break;
             case Direction.East:
-            {
-                for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X + i, Y));
-            }
+                {
+                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X + i, Y));
+                }
                 break;
             default:
                 contents = new List<VisibleObject>();
@@ -1871,11 +1880,11 @@ public class User : Creature
         var arrivingViewport = Rectangle.Empty;
         var departingViewport = Rectangle.Empty;
         var commonViewport = Rectangle.Empty;
-        var halfViewport = Constants.VIEWPORT_SIZE / 2;
+        var halfViewport = Game.ActiveConfiguration.Constants.ViewportSize / 2;
 
         if (Condition.Disoriented)
         {
-            direction = (Direction) Random.Shared.Next(4);
+            direction = (Direction)Random.Shared.Next(4);
             SendSystemMessage("You stumble around, unable to gather your bearings.");
         }
 
@@ -1898,36 +1907,36 @@ public class User : Creature
             case Direction.North:
                 --newY;
                 arrivingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 4,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, oldY + halfViewport - 2,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 break;
             case Direction.South:
                 ++newY;
                 arrivingViewport = new Rectangle(oldX - halfViewport - 2, oldY + halfViewport - 4,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, newY - halfViewport + 2,
-                    Constants.VIEWPORT_SIZE, 1);
+                    Game.ActiveConfiguration.Constants.ViewportSize, 1);
                 break;
             case Direction.West:
                 --newX;
                 arrivingViewport = new Rectangle(newX - halfViewport + 4, oldY - halfViewport + 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 departingViewport = new Rectangle(oldX + halfViewport - 2, oldY - halfViewport - 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 break;
             case Direction.East:
                 ++newX;
                 arrivingViewport = new Rectangle(oldX + halfViewport - 4, oldY - halfViewport + 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 departingViewport = new Rectangle(oldX - halfViewport + 2, oldY - halfViewport + 2, 1,
-                    Constants.VIEWPORT_SIZE);
+                    Game.ActiveConfiguration.Constants.ViewportSize);
                 break;
         }
 
-        var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte) newX, (byte) newY), out var targetWarp);
-        var isReactors = Map.Reactors.TryGetValue(((byte) newX, (byte) newY), out var newReactors);
-        var wasReactors = Map.Reactors.TryGetValue(((byte) oldX, (byte) oldY), out var oldReactors);
+        var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
+        var isReactors = Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
+        var wasReactors = Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
 
         // Now that we know where we are going, perform some sanity checks.
         // Is the player trying to walk into a wall, or off the map?
@@ -1946,7 +1955,7 @@ public class User : Creature
         }
 
         // Is the player trying to walk into an occupied tile?
-        foreach (var obj in Map.GetTileContents((byte) newX, (byte) newY))
+        foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
         {
             GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
             if (obj is Creature)
@@ -1984,10 +1993,12 @@ public class User : Creature
 
         // Calculate the common viewport between the old and new position
 
-        commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE);
-        commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE));
+        commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport,
+            Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize);
+        commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport,
+            Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize));
         GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
         GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
             arrivingViewport.Y);
@@ -1996,15 +2007,15 @@ public class User : Creature
         GameLog.DebugFormat("Common viewport is a rectangle starting at {0}, {1} of size {2}, {3}", commonViewport.X,
             commonViewport.Y, commonViewport.Width, commonViewport.Height);
 
-        X = (byte) newX;
-        Y = (byte) newY;
+        X = (byte)newX;
+        Y = (byte)newY;
         Direction = direction;
 
         // Transmit update to the moving client, as we are actually walking now
         var x0B = new ServerPacket(0x0B);
-        x0B.WriteByte((byte) direction);
-        x0B.WriteUInt16((byte) oldX);
-        x0B.WriteUInt16((byte) oldY);
+        x0B.WriteByte((byte)direction);
+        x0B.WriteUInt16((byte)oldX);
+        x0B.WriteUInt16((byte)oldY);
         x0B.WriteUInt16(0x0B);
         x0B.WriteUInt16(0x0B);
         x0B.WriteByte(0x01);
@@ -2026,9 +2037,9 @@ public class User : Creature
                 GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                 var x0C = new ServerPacket(0x0C);
                 x0C.WriteUInt32(Id);
-                x0C.WriteUInt16((byte) oldX);
-                x0C.WriteUInt16((byte) oldY);
-                x0C.WriteByte((byte) direction);
+                x0C.WriteUInt16((byte)oldX);
+                x0C.WriteUInt16((byte)oldY);
+                x0C.WriteByte((byte)direction);
                 x0C.WriteByte(0x00);
                 user.Enqueue(x0C);
             }
@@ -2073,7 +2084,7 @@ public class User : Creature
 
     public bool AddGold(uint amount)
     {
-        if (Gold + amount > Constants.MAXIMUM_GOLD)
+        if (Gold + amount > Game.ActiveConfiguration.Constants.PlayerMaxGold)
         {
             Client.SendMessage("You cannot carry any more gold.", 3);
             return false;
@@ -2270,7 +2281,7 @@ public class User : Creature
                             else
                             {
                                 slot.Count += diff;
-                                quantity -= (ushort) diff;
+                                quantity -= (ushort)diff;
                             }
 
                             SendItemUpdate(slot, i);
@@ -2285,7 +2296,7 @@ public class User : Creature
                         if (quantity > item.MaximumStack)
                         {
                             item.Count = item.MaximumStack;
-                            quantity -= (ushort) item.MaximumStack;
+                            quantity -= (ushort)item.MaximumStack;
                             AddItem(item, updateWeight);
                         }
                         else
@@ -2304,7 +2315,7 @@ public class User : Creature
                     if (quantity > item.MaximumStack)
                     {
                         item.Count = item.MaximumStack;
-                        quantity -= (byte) item.MaximumStack;
+                        quantity -= (byte)item.MaximumStack;
                         World.Insert(item);
                         AddItem(item, updateWeight);
                     }
@@ -2355,10 +2366,9 @@ public class User : Creature
         var slotsToClear = new List<byte>();
         if (Inventory.ContainsName(itemName, quantity))
         {
-            var remaining = (int) quantity;
+            var remaining = (int)quantity;
             var slots = Inventory.GetSlotsByName(itemName);
             foreach (var i in slots)
-            {
                 if (remaining > 0)
                 {
                     if (Inventory[i].Stackable)
@@ -2394,7 +2404,6 @@ public class User : Creature
                     GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
                     break;
                 }
-            }
 
             foreach (var slot in slotsToClear)
             {
@@ -2466,7 +2475,7 @@ public class User : Creature
                 .SelectMany(selector: itemReq => itemReq.Template.SlotRequirements);
             if (Equipment.Where(predicate: x => x.Template.SlotRequirements.Any())
                 .SelectMany(selector: itemReq => itemReq.Template.SlotRequirements)
-                .Any(predicate: req => req.Slot == (EquipmentSlot) slot))
+                .Any(predicate: req => req.Slot == (EquipmentSlot)slot))
             {
                 // TODO: improve messaging here
                 SendSystemMessage("Other equipment must be removed first.");
@@ -2495,7 +2504,7 @@ public class User : Creature
         // Like a normal refresh packet, except with a byte indicating which slot we wish to clear
 
         var refreshPacket = new ServerPacket(0x38);
-        refreshPacket.WriteByte((byte) slot);
+        refreshPacket.WriteByte((byte)slot);
         Enqueue(refreshPacket);
     }
 
@@ -2608,7 +2617,7 @@ public class User : Creature
         else
         {
             foreach (var item in Equipment)
-                if (item.EquipmentSlot != (byte) ItemSlots.Weapon && !item.Undamageable)
+                if (item.EquipmentSlot != (byte)ItemSlots.Weapon && !item.Undamageable)
                     item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
         }
 
@@ -2629,161 +2638,167 @@ public class User : Creature
         switch (restriction.RestrictionType)
         {
             case RestrictionType.InInventory:
-            {
-                // <Item RestrictionType="InInventory">Slice of Ham</Item> <!-- Must have slice of ham in inventory-->
-                // <Item RestrictionType="InInventory"/> <!-- Nonsensical - return true if inventory is not empty -->
-
-                if (string.IsNullOrEmpty(restriction.Value))
                 {
-                    if (!Inventory.IsEmpty)
+                    // <Item RestrictionType="InInventory">Slice of Ham</Item> <!-- Must have slice of ham in inventory-->
+                    // <Item RestrictionType="InInventory"/> <!-- Nonsensical - return true if inventory is not empty -->
+
+                    if (string.IsNullOrEmpty(restriction.Value))
+                    {
+                        if (!Inventory.IsEmpty)
+                            return true;
+                    }
+                    else if (Inventory.ContainsName(restriction.Value))
+                    {
                         return true;
+                    }
                 }
-                else if (Inventory.ContainsName(restriction.Value))
-                    return true;
-            }
                 break;
             case RestrictionType.NotInInventory:
-            {
-                // <Item RestrictionType="NotInInventory">Slice of Ham</Item> <!-- Must have slice of ham in inventory-->
-                // <Item RestrictionType="NotInInventory"/> <!-- Nonsensical - return true if inventory is empty -->
-
-                if (string.IsNullOrEmpty(restriction.Value))
                 {
-                    if (Inventory.IsEmpty)
+                    // <Item RestrictionType="NotInInventory">Slice of Ham</Item> <!-- Must have slice of ham in inventory-->
+                    // <Item RestrictionType="NotInInventory"/> <!-- Nonsensical - return true if inventory is empty -->
+
+                    if (string.IsNullOrEmpty(restriction.Value))
+                    {
+                        if (Inventory.IsEmpty)
+                            return true;
+                    }
+                    else if (!Inventory.ContainsName(restriction.Value))
+                    {
                         return true;
+                    }
                 }
-                else if (!Inventory.ContainsName(restriction.Value)) 
-                    return true;
-            }
                 break;
             case RestrictionType.Equipped:
-            {
-                switch (restriction.Slot)
                 {
-                    case EquipmentSlot.Weapon:
+                    switch (restriction.Slot)
                     {
-                        var item = Equipment.Weapon;
-                        if (item == null)
+                        case EquipmentSlot.Weapon:
+                            {
+                                var item = Equipment.Weapon;
+                                if (item == null)
+                                    break;
+                                // <Item Slot="Weapon" RestrictionType="Equipped"/> <!-- Any weapon must be equipped (None is default for WeaponType field) -->
+                                // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="Equipped"/> <!-- Claw must be equipped -->
+                                if (string.IsNullOrEmpty(restriction.Value))
+                                {
+                                    if (item.WeaponType == restriction.WeaponType || restriction.WeaponType == WeaponType.None)
+                                        return true;
+                                }
+                                // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="Equipped">Ham Slicer</Item> <!-- A claw weapon named Ham Slicer must be equipped -->
+                                else
+                                {
+                                    if (restriction.WeaponType == WeaponType.None && item.Name == restriction.Value)
+                                        return true;
+                                    if (item.WeaponType == restriction.WeaponType && item.Name == restriction.Value)
+                                        return true;
+                                }
+
+                                break;
+                            }
+                        // All other slots
+                        // <Item Slot="None" RestrictionType="Equipped"/> <!-- Somewhat nonsensical, we interpret as "player has anything equipped" -->
+                        case EquipmentSlot.None when string.IsNullOrEmpty(restriction.Value):
+                            {
+                                if (!Equipment.IsEmpty)
+                                    return true;
+                                break;
+                            }
+                        // <Item Slot="None" RestrictionType="Equipped">Ham Slapper</Item> <!-- Player has any item equipped named "Ham Slapper" -->
+                        case EquipmentSlot.None when Equipment.FindByName(restriction.Value) != null:
+                            return true;
+                        // Failure of test above
+                        case EquipmentSlot.None:
                             break;
-                        // <Item Slot="Weapon" RestrictionType="Equipped"/> <!-- Any weapon must be equipped (None is default for WeaponType field) -->
-                        // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="Equipped"/> <!-- Claw must be equipped -->
-                        if (string.IsNullOrEmpty(restriction.Value))
-                        {
-                            if (item.WeaponType == restriction.WeaponType || restriction.WeaponType == WeaponType.None)
-                                return true;
-                        }
-                        // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="Equipped">Ham Slicer</Item> <!-- A claw weapon named Ham Slicer must be equipped -->
-                        else
-                        {
-                            if (restriction.WeaponType == WeaponType.None && item.Name == restriction.Value)
-                                return true;
-                            if (item.WeaponType == restriction.WeaponType && item.Name == restriction.Value)
-                                return true;
-                        }
-                        break;
-                    }
-                    // All other slots
-                    // <Item Slot="None" RestrictionType="Equipped"/> <!-- Somewhat nonsensical, we interpret as "player has anything equipped" -->
-                    case EquipmentSlot.None when string.IsNullOrEmpty(restriction.Value):
-                    {
-                        if (!Equipment.IsEmpty)
-                            return true;
-                        break;
-                    }
-                    // <Item Slot="None" RestrictionType="Equipped">Ham Slapper</Item> <!-- Player has any item equipped named "Ham Slapper" -->
-                    case EquipmentSlot.None when Equipment.FindByName(restriction.Value) != null:
-                        return true;
-                    // Failure of test above
-                    case EquipmentSlot.None:
-                        break;
-                    // Nominal cases: 
-                    // <Item Slot="Foot" RestrictionType="Equipped">Ham Boots</Item> <!-- Player must have Ham Boots equipped in Foot slot -->
-                    // <Item Slot="Foot" RestrictionType="Equipped"> <!-- Player must have something equipped in Foot slot -->
-                    default:
-                    {
-                        var item = Equipment[restriction.Slot];
-                        if (item == null) break;
-                        if (string.IsNullOrEmpty(restriction.Value))
-                            return true;
-                        if (item.Name == restriction.Value)
-                            return true;
-                        break;
+                        // Nominal cases: 
+                        // <Item Slot="Foot" RestrictionType="Equipped">Ham Boots</Item> <!-- Player must have Ham Boots equipped in Foot slot -->
+                        // <Item Slot="Foot" RestrictionType="Equipped"> <!-- Player must have something equipped in Foot slot -->
+                        default:
+                            {
+                                var item = Equipment[restriction.Slot];
+                                if (item == null) break;
+                                if (string.IsNullOrEmpty(restriction.Value))
+                                    return true;
+                                if (item.Name == restriction.Value)
+                                    return true;
+                                break;
+                            }
                     }
                 }
-            }
                 break;
             case RestrictionType.NotEquipped:
-            {
-                switch (restriction.Slot)
                 {
-                    case EquipmentSlot.Weapon:
+                    switch (restriction.Slot)
                     {
-                        var item = Equipment.Weapon;
-                        // <Item Slot="Weapon" RestrictionType="NotEquipped"/> <!-- A weapon must not be equipped (None is default for WeaponType field) -->
-                        if (item == null)
-                            return true;
-                        // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="NotEquipped"/> <!-- Claw must not be equipped -->
-                        if (string.IsNullOrEmpty(restriction.Value))
-                        {
-                            if (restriction.WeaponType != WeaponType.None && restriction.WeaponType != item.WeaponType)
-                                return true;
-
-                        }
-                        // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="NotEquipped">Ham Slicer</Item> <!-- A claw weapon named Ham Slicer must not be equipped -->
-                        // <Item Slot="Weapon" RestrictionType="NotEquipped">Ham Slicer</Item> <!-- A weapon named Ham Slicer must not be equipped -->
-                        else
-                        {
-                            if (restriction.WeaponType == WeaponType.None)
+                        case EquipmentSlot.Weapon:
                             {
-                                if (item.Name != restriction.Value)
+                                var item = Equipment.Weapon;
+                                // <Item Slot="Weapon" RestrictionType="NotEquipped"/> <!-- A weapon must not be equipped (None is default for WeaponType field) -->
+                                if (item == null)
                                     return true;
-                            }
-                            else if (item.WeaponType != restriction.WeaponType)
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (item.Name != restriction.Value)
-                                    return true;
-                            }
-                        }
-                        break;
+                                // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="NotEquipped"/> <!-- Claw must not be equipped -->
+                                if (string.IsNullOrEmpty(restriction.Value))
+                                {
+                                    if (restriction.WeaponType != WeaponType.None && restriction.WeaponType != item.WeaponType)
+                                        return true;
+                                }
+                                // <Item Slot="Weapon" WeaponType="Claw" RestrictionType="NotEquipped">Ham Slicer</Item> <!-- A claw weapon named Ham Slicer must not be equipped -->
+                                // <Item Slot="Weapon" RestrictionType="NotEquipped">Ham Slicer</Item> <!-- A weapon named Ham Slicer must not be equipped -->
+                                else
+                                {
+                                    if (restriction.WeaponType == WeaponType.None)
+                                    {
+                                        if (item.Name != restriction.Value)
+                                            return true;
+                                    }
+                                    else if (item.WeaponType != restriction.WeaponType)
+                                    {
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        if (item.Name != restriction.Value)
+                                            return true;
+                                    }
+                                }
 
-                    }
-                    // All other slots
-                    // <Item Slot="None" RestrictionType="NotEquipped"/> <!-- Somewhat nonsensical, we interpret as "player has nothing equipped" -->
-                    case EquipmentSlot.None when string.IsNullOrEmpty(restriction.Value):
-                    {
-                        if (Equipment.IsEmpty)
+                                break;
+                            }
+                        // All other slots
+                        // <Item Slot="None" RestrictionType="NotEquipped"/> <!-- Somewhat nonsensical, we interpret as "player has nothing equipped" -->
+                        case EquipmentSlot.None when string.IsNullOrEmpty(restriction.Value):
+                            {
+                                if (Equipment.IsEmpty)
+                                    return true;
+                                break;
+                            }
+                        // <Item Slot="None" RestrictionType="NotEquipped">Ham Slapper</Item> <!-- Player has no item equipped named "Ham Slapper" -->
+                        case EquipmentSlot.None when Equipment.FindByName(restriction.Value) == null:
                             return true;
-                        break;
-                    }
-                    // <Item Slot="None" RestrictionType="NotEquipped">Ham Slapper</Item> <!-- Player has no item equipped named "Ham Slapper" -->
-                    case EquipmentSlot.None when Equipment.FindByName(restriction.Value) == null:
-                        return true;
-                    // Failure of test above
-                    case EquipmentSlot.None:
-                        break;
-                    // Nominal cases: 
-                    // <Item Slot="Foot" RestrictionType="NotEquipped">Ham Boots</Item> <!-- Player must not have Ham Boots equipped in Foot slot -->
-                    // <Item Slot="Foot" RestrictionType="NotEquipped"> <!-- Player must not have something equipped in Foot slot -->
-                    default:
-                    {
-                        var item = Equipment[restriction.Slot];
-                        if (item == null) return true;
-                        if (!string.IsNullOrEmpty(restriction.Value) && item.Name != restriction.Value)
-                            return true;
-                        break;
+                        // Failure of test above
+                        case EquipmentSlot.None:
+                            break;
+                        // Nominal cases: 
+                        // <Item Slot="Foot" RestrictionType="NotEquipped">Ham Boots</Item> <!-- Player must not have Ham Boots equipped in Foot slot -->
+                        // <Item Slot="Foot" RestrictionType="NotEquipped"> <!-- Player must not have something equipped in Foot slot -->
+                        default:
+                            {
+                                var item = Equipment[restriction.Slot];
+                                if (item == null) return true;
+                                if (!string.IsNullOrEmpty(restriction.Value) && item.Name != restriction.Value)
+                                    return true;
+                                break;
+                            }
                     }
                 }
-            }
                 break;
             default:
                 throw new ArgumentOutOfRangeException($"Restriction type {restriction} is not supported");
         }
 
-        message = !string.IsNullOrEmpty(restriction.Message) ? Game.World.GetLocalString(restriction.Message) : "It cannot be done";
+        message = !string.IsNullOrEmpty(restriction.Message)
+            ? Game.World.GetLocalString(restriction.Message)
+            : "It cannot be done";
         return false;
     }
 
@@ -2795,52 +2810,40 @@ public class User : Creature
             return true;
 
         foreach (var restriction in restrictions)
-        {
             // By design intent, equipment restrictions are OR and not AND, so first one wins
             if (CheckCastableRestriction(restriction, out message))
                 return true;
-        }
 
         return false;
     }
 
-    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true, bool evalRestrictions = true)
+    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true,
+        bool evalRestrictions = true)
     {
         if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
             //do something. 
             return false;
 
+        // Check for target immunity 
+
         // Check casting costs
         if (castCost)
-        {
             if (!ProcessCastingCost(castableXml, target, out var message))
             {
                 SendSystemMessage(message);
                 return false;
             }
-        }
-
-        //Check immunities
-        if (target is Monster m && (m.BehaviorSet?.Immunities?.Contains(castableXml.Name.ToLower()) ?? false))
-        {
-            SendSystemMessage($"{m.Name} is immune to {castableXml.Name}!");
-            return false;
-        }
 
         if (evalRestrictions)
         {
             if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
             {
-                if (castableXml.BreakStealth && Condition.IsInvisible)
-                {
-                    Condition.IsInvisible = false;
-                }
+                if (castableXml.BreakStealth && Condition.IsInvisible) Condition.IsInvisible = false;
                 return base.UseCastable(castableXml, target);
             }
 
             SendSystemMessage(restrictionMessage);
             return false;
-
         }
 
         return base.UseCastable(castableXml, target);
@@ -2851,10 +2854,11 @@ public class User : Creature
         target ??= GetDirectionalTarget(direction);
         var animation = false;
 
-        foreach (var c in SkillBook.Where(c => c.Castable is { IsAssail: true }))
+        foreach (var c in SkillBook.Where(predicate: c => c.Castable is { IsAssail: true }))
             if (target != null && target.GetType() != typeof(Merchant))
             {
                 UseSkill(SkillBook.SlotOf(c.Castable.Name));
+                LastTarget = target;
                 animation = true;
             }
 
@@ -2885,8 +2889,8 @@ public class User : Creature
             if (Condition.IsInvisible)
                 Condition.IsInvisible = false;
 
-            var firstAssail = SkillBook.FirstOrDefault(x => x.Castable is { IsAssail: true });
-            var soundId = firstAssail != null ? firstAssail.Castable.Effects.Sound.Id : (byte)1;
+            var firstAssail = SkillBook.FirstOrDefault(predicate: x => x.Castable is { IsAssail: true });
+            var soundId = (byte)(firstAssail != null ? firstAssail.Castable.Effects?.Sound?.Id ?? 1 : 1);
             if (firstAssail != null && firstAssail.Castable.TryGetMotion(Class, out var motion))
                 Motion(motion.Id, motion.Speed);
             PlaySound(Equipment?.Weapon?.AssailSound ?? soundId);
@@ -2927,7 +2931,7 @@ public class User : Creature
     /// </summary>
     public void SendProfile()
     {
-        var profile = new ServerPacketStructures.PlayerProfile
+        var profile = new PlayerProfile
         {
             Player = this,
             NationFlag = Nation.Flag,
@@ -2938,7 +2942,7 @@ public class User : Creature
             CanGroup = Grouping,
             GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
             Class = (byte)Class,
-            ClassName = IsMaster ? "Master" : Constants.REVERSE_CLASSES[(int)Class].Capitalize(),
+            ClassName = IsMaster ? "Master" : Game.ActiveConfiguration.GetClassName((byte)Class).Capitalize(),
             GuildName = GetGuildInfo().GuildName,
             PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
         };
@@ -2973,7 +2977,7 @@ public class User : Creature
 
     public void SendAnimation(uint id, byte motion, short speed)
     {
-        var anim = new ServerPacketStructures.PlayerAnimation { Animation = motion, Speed = speed, UserId = id };
+        var anim = new PlayerAnimation { Animation = motion, Speed = speed, UserId = id };
         Enqueue(anim.Packet());
     }
 
@@ -3067,6 +3071,17 @@ public class User : Creature
             if (Game.World.WorldData.TryGetValueByIndex(skill.Name, out Castable result))
             {
                 if (SkillBook.Contains(result.Id)) continue;
+                var requirement =
+                    result.Requirements.FirstOrDefault(x => x.Class.Contains(Class) || x.Class.Contains(Class.None));
+                if (requirement != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(requirement.ForbidCookie) &&
+                        GetCookie(requirement.ForbidCookie) != null)
+                        continue;
+                    if (!string.IsNullOrWhiteSpace(requirement.RequireCookie) &&
+                        GetCookie(requirement.RequireCookie) == null)
+                        continue;
+                }
                 merchantSkills.Skills.Add(new MerchantSkill
                 {
                     IconType = 3,
@@ -3078,7 +3093,7 @@ public class User : Creature
 
         merchantSkills.Id = (ushort)MerchantMenuItem.LearnSkill;
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantSkills,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3103,7 +3118,7 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.ForgetSkillAccept
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserSkillBook,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3128,7 +3143,7 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3155,7 +3170,7 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.ForgetSpellAccept
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserSpellBook,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3180,7 +3195,7 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3219,7 +3234,7 @@ public class User : Creature
             Text = "No"
         });
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3261,35 +3276,46 @@ public class User : Creature
                         $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
         if (classReq.Prerequisites != null)
-            foreach (var preReq in classReq.Prerequisites)
+        {
+            if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.ForbidCookie) &&
+                GetCookie(classReq.Prerequisites.ForbidCookie) != null)
+                prompt = classReq.Prerequisites.ForbidMessage;
+            else if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.RequireCookie) &&
+                GetCookie(classReq.Prerequisites.RequireCookie) == null)
+                prompt = classReq.Prerequisites.RequireMessage;
+            else
             {
-                BookSlot slot;
-                if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
+                foreach (var preReq in classReq.Prerequisites.Prerequisite)
                 {
-                    if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
-                    }
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                        {
+                            prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
 
-                    if (SkillBook.Contains(castablePrereq.Id))
-                        slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+
+                        if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
+                        {
+                            prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
+                    }
                     else
-                        slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
-
-                    if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
                     {
-                        prompt = merchant.GetLocalString("learn_skill_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
+                        prompt = merchant.GetLocalString("learn_error");
                     }
-                }
-                else
-                {
-                    prompt = merchant.GetLocalString("learn_error");
                 }
             }
+        }
 
         if (prompt == string.Empty) //this is so bad
         {
@@ -3319,7 +3345,7 @@ public class User : Creature
         }
 
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3366,7 +3392,7 @@ public class User : Creature
             prompt = merchant.GetLocalString("learn_skill_success");
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3390,7 +3416,7 @@ public class User : Creature
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3421,6 +3447,17 @@ public class User : Creature
             // Verify the spell exists first
             if (!Game.World.WorldData.TryGetValueByIndex(spell.Name, out Castable result)) continue;
             if (SpellBook.Contains(result.Id)) continue;
+            var requirement =
+                result.Requirements.FirstOrDefault(x => x.Class.Contains(Class) || x.Class.Contains(Class.None));
+            if (requirement != null)
+            {
+                if (!string.IsNullOrWhiteSpace(requirement.ForbidCookie) &&
+                    GetCookie(requirement.ForbidCookie) != null)
+                    continue;
+                if (!string.IsNullOrWhiteSpace(requirement.RequireCookie) &&
+                    GetCookie(requirement.RequireCookie) == null)
+                    continue;
+            }
             merchantSpells.Spells.Add(new MerchantSpell
             {
                 IconType = 2,
@@ -3432,7 +3469,7 @@ public class User : Creature
 
         merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantSpells,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3469,7 +3506,7 @@ public class User : Creature
             Text = "No"
         });
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3511,34 +3548,45 @@ public class User : Creature
                         $"\n[STR {classReq.Physical.Str} INT {classReq.Physical.Int} WIS {classReq.Physical.Wis} CON {classReq.Physical.Con} DEX {classReq.Physical.Dex}]")
                 );
         if (classReq.Prerequisites != null)
-            foreach (var preReq in classReq.Prerequisites)
+        {
+            if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.ForbidCookie) &&
+                GetCookie(classReq.Prerequisites.ForbidCookie) != null)
+                prompt = classReq.Prerequisites.ForbidMessage;
+            else if (!string.IsNullOrWhiteSpace(classReq.Prerequisites.RequireCookie) &&
+                     GetCookie(classReq.Prerequisites.RequireCookie) == null)
+                prompt = classReq.Prerequisites.RequireMessage;
+            else
             {
-                BookSlot slot;
-                if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
+                foreach (var preReq in classReq.Prerequisites.Prerequisite)
                 {
-                    if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                    BookSlot slot;
+                    if (Game.World.WorldData.TryGetValueByIndex(preReq.Value, out Castable castablePrereq))
                     {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
-                    }
+                        if (!SkillBook.Contains(castablePrereq.Id) && !SpellBook.Contains(castablePrereq.Id))
+                        {
+                            prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
 
-                    if (SkillBook.Contains(castablePrereq.Id))
-                        slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
-                    else
-                        slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
-                    if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
-                    {
-                        prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
-                            ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
-                        break;
+                        if (SkillBook.Contains(castablePrereq.Id))
+                            slot = SkillBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        else
+                            slot = SpellBook.Single(predicate: x => x.Castable.Name == preReq.Value);
+                        if (Math.Floor(slot.UseCount / (double)slot.Castable.Mastery.Uses * 100) < preReq.Level)
+                        {
+                            prompt = merchant.GetLocalString("learn_spell_prereq_level", ("$NAME", castable.Name),
+                                ("$PREREQ", preReq.Value), ("$LEVEL", preReq.Level.ToString()));
+                            break;
+                        }
                     }
-                }
-                else
-                {
-                    prompt = merchant.GetLocalString("learn_error");
+                    else
+                    {
+                        prompt = merchant.GetLocalString("learn_error");
+                    }
                 }
             }
+        }
 
         if (prompt == string.Empty) //this is so bad
         {
@@ -3574,7 +3622,7 @@ public class User : Creature
             });
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3622,7 +3670,7 @@ public class User : Creature
             prompt = merchant.GetLocalString("learn_spell_success");
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3647,7 +3695,7 @@ public class User : Creature
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3689,7 +3737,7 @@ public class User : Creature
         merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
 
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantShopItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3717,7 +3765,7 @@ public class User : Creature
             input.Id = (ushort)MerchantMenuItem.BuyItemAccept;
 
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3793,7 +3841,7 @@ public class User : Creature
         }
         else
         {
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3829,7 +3877,7 @@ public class User : Creature
             }
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserInventoryItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3856,7 +3904,7 @@ public class User : Creature
 
             input.Id = (ushort)MerchantMenuItem.SellItem;
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3907,7 +3955,7 @@ public class User : Creature
                 prompt = merchant.GetLocalString("sell_failure_quantity");
 
         if (prompt == string.Empty)
-            if (PendingMerchantOffer + Gold > Constants.MAXIMUM_GOLD)
+            if (PendingMerchantOffer + Gold > Game.ActiveConfiguration.Constants.PlayerMaxGold)
                 prompt = merchant.GetLocalString("sell_failure_gold_limit");
 
         if (prompt == string.Empty)
@@ -3929,7 +3977,7 @@ public class User : Creature
         }
 
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -3966,7 +4014,7 @@ public class User : Creature
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4023,7 +4071,7 @@ public class User : Creature
 
         userItems.Id = (ushort)MerchantMenuItem.SendParcelQuantity;
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserInventoryItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4049,7 +4097,7 @@ public class User : Creature
                 Id = (ushort)MerchantMenuItem.SendParcelRecipient
             };
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4082,7 +4130,7 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.SendParcelAccept
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Input,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4146,7 +4194,7 @@ public class User : Creature
             PendingSendableParcel = null;
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4171,7 +4219,7 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4202,7 +4250,7 @@ public class User : Creature
         var input = new MerchantInput();
         input.Id = (ushort)MerchantMenuItem.DepositGoldQuantity;
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Input,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4266,7 +4314,7 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.WithdrawGoldQuantity
         };
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Input,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4327,7 +4375,7 @@ public class User : Creature
                 inventoryItems.InventorySlots.Add(i);
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.UserInventoryItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4355,7 +4403,7 @@ public class User : Creature
                 Id = (ushort)MerchantMenuItem.DepositItem
             };
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4443,7 +4491,7 @@ public class User : Creature
             {
                 Options = new List<MerchantDialogOption>()
             };
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4481,7 +4529,7 @@ public class User : Creature
 
         if (inventoryItems.InventorySlots.Count > 0)
         {
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.UserInventoryItems,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4501,7 +4549,7 @@ public class User : Creature
         {
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4553,7 +4601,7 @@ public class User : Creature
             });
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4579,7 +4627,7 @@ public class User : Creature
                 Options = new List<MerchantDialogOption>()
             };
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4661,7 +4709,7 @@ public class User : Creature
                 });
             }
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4679,7 +4727,7 @@ public class User : Creature
         }
         else
         {
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4705,7 +4753,7 @@ public class User : Creature
         };
         if (Gold < PendingRepairCost)
         {
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4746,7 +4794,7 @@ public class User : Creature
                 }
             }
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4789,7 +4837,7 @@ public class User : Creature
         merchantItems.Id = (ushort)MerchantMenuItem.WithdrawItemQuantity;
 
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.MerchantShopItems,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4816,7 +4864,7 @@ public class User : Creature
             var input = new MerchantInput();
             input.Id = (ushort)MerchantMenuItem.WithdrawItem;
 
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Input,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4913,7 +4961,7 @@ public class User : Creature
         }
         else
         {
-            var packet = new ServerPacketStructures.MerchantResponse
+            var packet = new MerchantResponse
             {
                 MerchantDialogType = MerchantDialogType.Options,
                 MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
@@ -4961,11 +5009,10 @@ public class User : Creature
         Enqueue(x0A);
     }
 
-    public void SendRedirectAndLogoff(World world, Login login, string name, int transmitDelay = 1200)
+    public void SendRedirect(World world, Login login, string name, bool logoff = true, int transmitDelay = 1200)
     {
-        GlobalConnectionManifest.DeregisterClient(Client);
         Client.Redirect(
-            new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), true,
+            new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), logoff,
             transmitDelay);
     }
 
@@ -5014,7 +5061,7 @@ public class User : Creature
     public void SendExchangeInitiation(User requestor)
     {
         if (!Condition.InExchange || !requestor.Condition.InExchange) return;
-        Enqueue(new ServerPacketStructures.Exchange
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.Initiate,
             RequestorId = requestor.Id,
@@ -5030,7 +5077,7 @@ public class User : Creature
     {
         if (!Condition.InExchange) return;
         Enqueue(
-            new ServerPacketStructures.Exchange
+            new ExchangeControl
             {
                 Action = ExchangeActions.QuantityPrompt,
                 ItemSlot = itemSlot
@@ -5046,7 +5093,7 @@ public class User : Creature
     public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
     {
         if (!Condition.InExchange) return;
-        var update = new ServerPacketStructures.Exchange
+        var update = new ExchangeControl
         {
             Action = ExchangeActions.ItemUpdate,
             Side = source,
@@ -5066,7 +5113,7 @@ public class User : Creature
     public void SendExchangeUpdate(uint gold, bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ServerPacketStructures.Exchange
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.GoldUpdate,
             Side = source,
@@ -5081,7 +5128,7 @@ public class User : Creature
     public void SendExchangeCancellation(bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ServerPacketStructures.Exchange
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.Cancel,
             Side = source
@@ -5095,7 +5142,7 @@ public class User : Creature
     public void SendExchangeConfirmation(bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ServerPacketStructures.Exchange
+        Enqueue(new ExchangeControl
         {
             Action = ExchangeActions.Confirm,
             Side = source
@@ -5159,6 +5206,7 @@ public class User : Creature
 
     public void ReapplyStatuses()
     {
+        Statuses ??= new List<StatusInfo>();
         foreach (var status in Statuses)
             try
             {
@@ -5197,7 +5245,7 @@ public class User : Creature
     public void CancelCasting()
     {
         if (!Condition.Casting) return;
-        var packet = new ServerPacketStructures.CancelCast();
+        var packet = new CancelCast();
         Enqueue(packet.Packet());
         Condition.Casting = false;
     }
@@ -5264,9 +5312,9 @@ public class User : Creature
     [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
 
     public List<string> UseCastRestrictions =>
-        _currentStatuses.SelectMany(selector: e => e.Value.UseCastRestrictions).ToList();
+        CurrentStatuses.SelectMany(selector: e => e.Value.UseCastRestrictions).ToList();
 
-    public List<string> ReceiveCastRestrictions => _currentStatuses
+    public List<string> ReceiveCastRestrictions => CurrentStatuses
         .SelectMany(selector: e => e.Value.ReceiveCastRestrictions).ToList();
 
     private Nation _nation;

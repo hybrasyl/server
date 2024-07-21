@@ -1,28 +1,25 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
-using System;
 
 namespace Hybrasyl.Objects;
 
@@ -48,7 +45,7 @@ public class StatInfo
     // The actual lockable private properties
     private object _lock = new();
 
-    public decimal HpPercentage => (decimal)Hp / MaximumHp * 100m;
+    public decimal HpPercentage => (decimal) Hp / MaximumHp * 100m;
 
     [FormulaVariable]
     [JsonProperty]
@@ -70,8 +67,7 @@ public class StatInfo
         }
     }
 
-    [FormulaVariable]
-    public int FormulaLevel => Level;
+    [FormulaVariable] public int FormulaLevel => Level;
 
     [FormulaVariable]
     [JsonProperty]
@@ -100,12 +96,16 @@ public class StatInfo
         get
         {
             lock (_lock)
+            {
                 return _faith;
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _faith = value;
+            }
         }
     }
 
@@ -1252,13 +1252,16 @@ public class StatInfo
         get
         {
             lock (_lock)
+            {
                 return _baseExtraFaith;
-
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _baseExtraFaith = value;
+            }
         }
     }
 
@@ -1268,13 +1271,16 @@ public class StatInfo
         get
         {
             lock (_lock)
+            {
                 return _bonusExtraFaith;
-
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _bonusExtraFaith = value;
+            }
         }
     }
 
@@ -1403,6 +1409,14 @@ public class StatInfo
 
     [FormulaVariable] public double InboundDamageToMp => BaseInboundDamageToMp + BonusInboundDamageToMp;
 
+    [FormulaVariable]
+    public double Shield
+    {
+        get => _shield;
+        set => _shield = value < 0 ? 0 : value;
+    }
+
+    private double _shield { get; set; }
 
     public ElementType BaseOffensiveElement
     {
@@ -1491,31 +1505,39 @@ public class StatInfo
 
     [FormulaVariable]
     public uint MaximumHp =>
-        (uint)Math.Clamp(BaseHp + BonusHp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+        (uint) Math.Clamp(BaseHp + BonusHp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp,
+            Game.ActiveConfiguration.Constants.PlayerMaxBaseHpMp);
 
     [FormulaVariable]
     public uint MaximumMp =>
-        (uint)Math.Clamp(BaseMp + BonusMp, StatLimitConstants.MIN_BASE_HPMP, StatLimitConstants.MAX_BASE_HPMP);
+        (uint) Math.Clamp(BaseMp + BonusMp, Game.ActiveConfiguration.Constants.PlayerMinBaseHpMp,
+            Game.ActiveConfiguration.Constants.PlayerMaxBaseHpMp);
 
     [FormulaVariable]
-    public byte Str => (byte)Math.Clamp(BaseStr + BonusStr, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Str => (byte) Math.Clamp(BaseStr + BonusStr, Game.ActiveConfiguration.Constants.PlayerMinStat,
+        Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Int => (byte)Math.Clamp(BaseInt + BonusInt, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Int => (byte) Math.Clamp(BaseInt + BonusInt, Game.ActiveConfiguration.Constants.PlayerMinStat,
+        Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Wis => (byte)Math.Clamp(BaseWis + BonusWis, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Wis => (byte) Math.Clamp(BaseWis + BonusWis, Game.ActiveConfiguration.Constants.PlayerMinStat,
+        Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Con => (byte)Math.Clamp(BaseCon + BonusCon, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Con => (byte) Math.Clamp(BaseCon + BonusCon, Game.ActiveConfiguration.Constants.PlayerMinStat,
+        Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
     [FormulaVariable]
-    public byte Dex => (byte)Math.Clamp(BaseDex + BonusDex, StatLimitConstants.MIN_STAT, StatLimitConstants.MAX_STAT);
+    public byte Dex => (byte) Math.Clamp(BaseDex + BonusDex, Game.ActiveConfiguration.Constants.PlayerMinStat,
+        Game.ActiveConfiguration.Constants.PlayerMaxStat);
 
 
     [FormulaVariable]
     // Normalize to a double between 0.84 / 1.16
-    public double Dmg => Math.Clamp(BonusDmg, StatLimitConstants.MIN_DMG, StatLimitConstants.MAX_DMG) + 1.0;
+    public double Dmg => Math.Clamp(BonusDmg, Game.ActiveConfiguration.Constants.PlayerMinDmg,
+        Game.ActiveConfiguration.Constants.PlayerMaxDmg) + 1.0;
 
     // These are for the client 0x08, specifically, which has some annoying limitations.
     // MR in particular can only be displayed as multiples of 10% and no negatives can be
@@ -1563,36 +1585,44 @@ public class StatInfo
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
-    public double Hit => Math.Clamp(BonusHit, StatLimitConstants.MIN_HIT, StatLimitConstants.MAX_HIT) + 1.0;
+    public double Hit => Math.Clamp(BonusHit, Game.ActiveConfiguration.Constants.PlayerMinHit,
+        Game.ActiveConfiguration.Constants.PlayerMaxHit) + 1.0;
 
     [FormulaVariable]
     public sbyte Ac =>
-        (sbyte)Math.Clamp(BaseAc - Level / 3 + BonusAc, StatLimitConstants.MIN_AC, StatLimitConstants.MAX_AC);
+        (sbyte) Math.Clamp(BaseAc - Level / 3 + BonusAc, Game.ActiveConfiguration.Constants.PlayerMinAc,
+            Game.ActiveConfiguration.Constants.PlayerMaxAc);
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
-    public double Mr => Math.Clamp(BonusMr, StatLimitConstants.MIN_MR, StatLimitConstants.MAX_MR) + 1.0;
+    public double Mr => Math.Clamp(BonusMr, Game.ActiveConfiguration.Constants.PlayerMinMr,
+        Game.ActiveConfiguration.Constants.PlayerMaxMr) + 1.0;
 
     [FormulaVariable]
     // Normalize to a double between -0.84 / 1.16
     public double Regen =>
-        Math.Clamp(BonusRegen, StatLimitConstants.MIN_REGEN, StatLimitConstants.MAX_REGEN) + 1.0;
-
-    public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
+        Math.Clamp(BonusRegen, Game.ActiveConfiguration.Constants.PlayerMinRegen,
+            Game.ActiveConfiguration.Constants.PlayerMaxRegen) + 1.0;
 
     public ElementalModifiers ElementalModifiers
     {
         get
         {
             lock (_lock)
+            {
                 return _elementalModifiers;
+            }
         }
         set
         {
             lock (_lock)
+            {
                 _elementalModifiers = value;
+            }
         }
     }
+
+    public override string ToString() => $"Lv {Level} Hp {Hp} Mp {Mp} Stats {Str}/{Con}/{Int}/{Wis}/{Dex}";
 
 
     #region private properties
@@ -1689,14 +1719,14 @@ public class StatInfo
     {
         if (si1 == null || si1.Empty) return;
         // Always apply current hp/mp/gold changes
-        var hp = (long)Hp;
+        var hp = (long) Hp;
         hp += si1.DeltaHp;
         if (hp < 0) hp = 0;
-        Hp = (uint)Math.Clamp(hp, 0, uint.MaxValue);
-        var mp = (long)Mp;
+        Hp = (uint) Math.Clamp(hp, 0, uint.MaxValue);
+        var mp = (long) Mp;
         mp += si1.DeltaMp;
         if (mp < 0) mp = 0;
-        Mp = (uint)Math.Clamp(mp, 0, uint.MaxValue);
+        Mp = (uint) Math.Clamp(mp, 0, uint.MaxValue);
         var gold = Gold + si1.Gold;
         Gold = Math.Clamp(gold, 0, uint.MaxValue);
 
@@ -1856,7 +1886,8 @@ public class StatInfo
                                  BaseOutboundDamageModifier == 0 && BaseOutboundHealModifier == 0 &&
                                  BaseReflectMagical == 0 && BaseReflectPhysical == 0 && BaseExtraGold == 0 &&
                                  BaseDodge == 0 && BaseMagicDodge == 0 && BaseExtraXp == 0 && BaseExtraItemFind == 0 &&
-                                 BaseExtraFaith == 0 && BaseLifeSteal == 0 && BaseManaSteal == 0 && BaseInboundDamageToMp == 0 &&
+                                 BaseExtraFaith == 0 && BaseLifeSteal == 0 && BaseManaSteal == 0 &&
+                                 BaseInboundDamageToMp == 0 &&
                                  DeltaHp == 0 && DeltaMp == 0 && Faith == 0;
 
     public bool NoBonusChanges => BonusHp == 0 && BonusMp == 0 && BonusStr == 0 && BonusCon == 0 && BonusDex == 0 &&
@@ -1866,7 +1897,8 @@ public class StatInfo
                                   BonusOutboundDamageModifier == 0 && BonusOutboundHealModifier == 0 &&
                                   BonusReflectMagical == 0 && BonusReflectPhysical == 0 && BonusExtraGold == 0 &&
                                   BonusDodge == 0 && BonusMagicDodge == 0 && BonusExtraXp == 0 &&
-                                  BonusExtraItemFind == 0 && BonusExtraFaith == 0 && BonusLifeSteal == 0 && BonusManaSteal == 0 &&
+                                  BonusExtraItemFind == 0 && BonusExtraFaith == 0 && BonusLifeSteal == 0 &&
+                                  BonusManaSteal == 0 &&
                                   BonusInboundDamageToMp == 0;
 
     public bool NoExperienceChanges => Level == 0 && (Experience == 0) & (Ability == 0) && AbilityExp == 0;

@@ -1,10 +1,23 @@
-﻿using Hybrasyl;
-using Hybrasyl.Objects;
-using Hybrasyl.Tests;
-using Hybrasyl.Xml.Objects;
-using System.Drawing;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using System.Linq;
-using System.Numerics;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -103,7 +116,6 @@ public class CastableRestrictions
         Assert.True(Fixture.TestUser.UseCastable(castable));
         GiveItem("nochdaidh deum");
         Assert.True(Fixture.TestUser.UseCastable(castable));
-
     }
 
     [Fact]
@@ -169,7 +181,7 @@ public class CastableRestrictions
         GiveEquipment("Smol Sword");
         Assert.True(Fixture.TestUser.UseCastable(castable));
     }
-    
+
     [Fact]
     public void RequireWeaponType()
     {
@@ -425,23 +437,23 @@ public class CastableRestrictions
     [Fact]
     public void TestForbidSlot()
     {
-       // <Item Slot="Foot" RestrictionType="NotEquipped" Message="err_forbid_slot">Testinium Foot</Item>
-       Fixture.TestUser.Inventory.Clear();
-       Fixture.TestUser.Equipment.Clear();
+        // <Item Slot="Foot" RestrictionType="NotEquipped" Message="err_forbid_slot">Testinium Foot</Item>
+        Fixture.TestUser.Inventory.Clear();
+        Fixture.TestUser.Equipment.Clear();
 
-       var castable = GetCastable("TestForbidSlot");
+        var castable = GetCastable("TestForbidSlot");
 
-       // Test requirement missing
-       GiveEquipment("Testinium Foot");
-       Assert.False(Fixture.TestUser.UseCastable(castable));
-       Assert.Equal("err_forbid_slot", Fixture.TestUser.LastSystemMessage);
-       Fixture.TestUser.Equipment.Clear();
+        // Test requirement missing
+        GiveEquipment("Testinium Foot");
+        Assert.False(Fixture.TestUser.UseCastable(castable));
+        Assert.Equal("err_forbid_slot", Fixture.TestUser.LastSystemMessage);
+        Fixture.TestUser.Equipment.Clear();
 
-       // Test requirement succeeding
-       GiveEquipment("Testinium Foot2");
-       Assert.True(Fixture.TestUser.UseCastable(castable));
-       GiveEquipment("Testinium Claw");
-       Assert.True(Fixture.TestUser.UseCastable(castable));
+        // Test requirement succeeding
+        GiveEquipment("Testinium Foot2");
+        Assert.True(Fixture.TestUser.UseCastable(castable));
+        GiveEquipment("Testinium Claw");
+        Assert.True(Fixture.TestUser.UseCastable(castable));
     }
 
     [Fact]
@@ -491,7 +503,5 @@ public class CastableRestrictions
         Fixture.TestUser.Equipment.Clear();
         GiveEquipment("Smol Sword");
         Assert.True(Fixture.TestUser.UseCastable(castable));
-
     }
-
 }

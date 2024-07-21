@@ -1,28 +1,27 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Subsystems.Messaging;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -33,18 +32,6 @@ namespace Hybrasyl.Objects;
 
 public class VisibleObject : WorldObject, IVisible
 {
-    public VisibleObject()
-    {
-        DisplayText = string.Empty;
-        DeathPileOwner = string.Empty;
-        ItemDropAllowedLooters = new List<string>();
-        ItemDropTime = null;
-        viewportUsers = new HashSet<User>();
-        Location = new LocationInfo();
-        ItemDropType = ItemDropType.Normal;
-        AllowDead = false;
-    }
-
     // TODO: Clean these up later and simply use Location instead
     public MapObject Map
     {
@@ -73,18 +60,20 @@ public class VisibleObject : WorldObject, IVisible
     // Whether or not to allow a ghost (a dead player) to interact with this object
     public bool AllowDead { get; set; }
 
-    public string DeathPileOwner { get; set; }
-    public List<string> ItemDropAllowedLooters { get; set; }
+    public string DeathPileOwner { get; set; } = string.Empty;
+    public List<string> ItemDropAllowedLooters { get; set; } = new();
     public DateTime? ItemDropTime { get; set; }
-    public ItemDropType ItemDropType { get; set; }
+    public ItemDropType ItemDropType { get; set; } = ItemDropType.Normal;
 
-    public HashSet<User> viewportUsers { get; private set; }
+    public HashSet<User> viewportUsers { get; private set; } = new();
 
-    [JsonProperty] public LocationInfo Location { get; set; }
+    public SpokenEvent LastHeard { get; set; }
+
+    [JsonProperty] public LocationInfo Location { get; set; } = new();
 
     public ushort Sprite { get; set; }
     public string Portrait { get; set; }
-    public string DisplayText { get; set; }
+    public string DisplayText { get; set; } = string.Empty;
     public virtual void ShowTo(IVisible target) { }
 
     public int Distance(IVisible target) => Point.Distance(this, target);
@@ -135,14 +124,14 @@ public class VisibleObject : WorldObject, IVisible
         if (ItemDropType == ItemDropType.MonsterLootPile)
         {
             if (ItemDropAllowedLooters.Contains(username)) return true;
-            if (timeDropDifference > Constants.MONSTER_LOOT_DROP_RANDO_TIMEOUT) return true;
+            if (timeDropDifference > Game.ActiveConfiguration.Constants.MonsterLootDropTimeout) return true;
         }
         else // (ItemDropType == ItemDropType.UserDeathPile)
         {
             if (DeathPileOwner.Equals(username)) return true;
             if (ItemDropAllowedLooters.Contains(username) &&
-                timeDropDifference > Constants.DEATHPILE_GROUP_TIMEOUT) return true;
-            if (timeDropDifference > Constants.DEATHPILE_RANDO_TIMEOUT) return true;
+                timeDropDifference > Game.ActiveConfiguration.Constants.DeathpileOtherTimeout) return true;
+            if (timeDropDifference > Game.ActiveConfiguration.Constants.DeathpileGroupTimeout) return true;
         }
 
         error = "These items are cursed.";
@@ -157,9 +146,10 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void OnHear(SpokenEvent e)
     {
+        LastHeard = e;
         if (Script == null) return;
         var env = ScriptEnvironment.Create(("text", e.Message), ("shout", e.Shout),
-            ("origin", this));
+            ("origin", this), ("source", e.Speaker));
 
         env.Add("event", e);
         Script.ExecuteFunction("OnHear", env);
@@ -169,17 +159,17 @@ public class VisibleObject : WorldObject, IVisible
 
     public Rectangle GetViewport() =>
         new(
-            X - Constants.VIEWPORT_SIZE / 2,
-            Y - Constants.VIEWPORT_SIZE / 2,
-            Constants.VIEWPORT_SIZE + 1,
-            Constants.VIEWPORT_SIZE + 1);
+            X - Game.ActiveConfiguration.Constants.ViewportSize / 2,
+            Y - Game.ActiveConfiguration.Constants.ViewportSize / 2,
+            Game.ActiveConfiguration.Constants.ViewportSize + 1,
+            Game.ActiveConfiguration.Constants.ViewportSize + 1);
 
     public Rectangle GetShoutViewport() =>
         new(
-            X - Constants.VIEWPORT_SIZE,
-            Y - Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE * 2 + 1,
-            Constants.VIEWPORT_SIZE * 2 + 1);
+            X - Game.ActiveConfiguration.Constants.ViewportSize,
+            Y - Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize * 2 + 1,
+            Game.ActiveConfiguration.Constants.ViewportSize * 2 + 1);
 
     public virtual void Show()
     {
@@ -222,6 +212,7 @@ public class VisibleObject : WorldObject, IVisible
             GameLog.Warning($"Teleport to nonexistent map {name}");
             return;
         }
+
         Map?.Remove(this);
         GameLog.DebugFormat("Teleporting {0} to {1}", Name, targetMap.Name);
         targetMap.Insert(this, x, y);
@@ -254,11 +245,11 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void PlaySound(byte Id)
     {
-        var soundPacket = new ServerPacketStructures.PlaySound { Sound = Id };
+        var soundPacket = new PlaySound { Sound = Id };
 
         foreach (var user in viewportUsers)
         {
-            var nPacket = (ServerPacket)soundPacket.Packet().Clone();
+            var nPacket = soundPacket.Packet().Clone();
             user.Enqueue(nPacket);
         }
     }

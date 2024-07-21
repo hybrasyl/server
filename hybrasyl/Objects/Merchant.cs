@@ -1,33 +1,32 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Controllers;
-using Hybrasyl.Dialogs;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Scripting;
-using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Messaging;
+using Hybrasyl.Subsystems.Mundanes;
+using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -114,12 +113,12 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         npcPacket.WriteUInt16(X);
         npcPacket.WriteUInt16(Y);
         npcPacket.WriteUInt32(Id);
-        npcPacket.WriteUInt16((ushort)(Sprite + 0x4000));
+        npcPacket.WriteUInt16((ushort) (Sprite + 0x4000));
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(0);
-        npcPacket.WriteByte((byte)Direction);
+        npcPacket.WriteByte((byte) Direction);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
         npcPacket.WriteString8(Name);
@@ -129,10 +128,10 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
     public string Filename { get; set; }
 
     // TODO: remove this when base(<interface name>) is actually added to the language. .NET 7 maybe
-    public string GetLocalString(string key) => ((IResponseCapable)this).DefaultGetLocalString(key);
+    public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);
 
     public string GetLocalString(string key, params (string Token, string Value)[] replacements) =>
-        ((IResponseCapable)this).DefaultGetLocalString(key, replacements);
+        ((IResponseCapable) this).DefaultGetLocalString(key, replacements);
 
     public uint GetOnHand(string itemName)
     {
@@ -181,8 +180,7 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
 
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        Castable castable = null, bool onDeath = true)
-    { }
+        Castable castable = null, bool onDeath = true) { }
 
     public void OnSpawn()
     {
@@ -194,8 +192,8 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             {
                 foreach (var item in Template.Roles.Vend.Items)
                     if (Game.World.WorldData.TryGetValueByIndex(item.Name, out Item worldItem))
-                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint)item.Quantity,
-                            (uint)item.Quantity, item.Restock, DateTime.Now));
+                        MerchantInventory.Add(new MerchantInventoryItem(worldItem, (uint) item.Quantity,
+                            (uint) item.Quantity, item.Restock, DateTime.Now));
                     else
                         GameLog.Warning("NPC inventory: {name}: {item} not found", Name, item.Name);
             }

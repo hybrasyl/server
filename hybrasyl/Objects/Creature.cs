@@ -1,28 +1,33 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
-using Hybrasyl.Enums;
+using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
+using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Servers;
+using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Formulas;
+using Hybrasyl.Subsystems.Players;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -30,6 +35,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 namespace Hybrasyl.Objects;
 
@@ -37,9 +43,9 @@ public class Creature : VisibleObject
 {
     private readonly object _lock = new();
 
-    protected ConcurrentDictionary<ushort, ICreatureStatus> _currentStatuses;
+    private Guid _mLastHitter = Guid.Empty;
 
-    private uint _mLastHitter;
+    public ConcurrentDictionary<ushort, ICreatureStatus> CurrentStatuses;
 
     public Creature()
     {
@@ -47,19 +53,14 @@ public class Creature : VisibleObject
         Equipment = new Equipment(18);
         Stats = new StatInfo();
         Condition = new ConditionInfo(this);
-        _currentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
+        CurrentStatuses = new ConcurrentDictionary<ushort, ICreatureStatus>();
         LastHitTime = DateTime.MinValue;
-        Statuses = new List<StatusInfo>();
         Cookies = new Dictionary<string, string>();
         SessionCookies = new Dictionary<string, string>();
     }
 
     [JsonProperty(Order = 2)] public StatInfo Stats { get; set; }
     [JsonProperty(Order = 3)] public ConditionInfo Condition { get; set; }
-
-    [JsonProperty] public List<StatusInfo> Statuses { get; set; }
-
-    public List<StatusInfo> CurrentStatusInfo => _currentStatuses.Count > 0 ? _currentStatuses.Values.Select(selector: e => e.Info).ToList() : new List<StatusInfo>();
 
     public uint Gold => Stats.Gold;
 
@@ -75,14 +76,11 @@ public class Creature : VisibleObject
 
     public Creature LastHitter
     {
-        get
-        {
-            if (Game.World.Objects.TryGetValue(_mLastHitter, out var o))
-                return o as Creature;
-            return null;
-        }
-        set => _mLastHitter = value?.Id ?? 0;
+        get => Game.World.WorldState.TryGetWorldObject<Creature>(_mLastHitter, out var o) ? o : null;
+        set => _mLastHitter = value?.Guid ?? Guid.Empty;
     }
+
+    public Creature LastTarget { get; set; }
 
     public bool AbsoluteImmortal { get; set; }
     public bool PhysicalImmortal { get; set; }
@@ -118,6 +116,13 @@ public class Creature : VisibleObject
         }
     }
 
+    public CreatureSnapshot GetSnapshot()
+    {
+        var stats = JsonConvert.SerializeObject(Stats);
+        var statInfo = JsonConvert.DeserializeObject<StatInfo>(stats);
+        return new CreatureSnapshot { Name = Name, Parent = Guid, Stats = statInfo };
+    }
+
     public virtual string Status() => string.Empty;
 
     public override void OnClick(User invoker)
@@ -139,6 +144,61 @@ public class Creature : VisibleObject
         if (invoker.AuthInfo.IsPrivileged)
             ret += $" ({Id})";
         invoker.SendSystemMessage(ret);
+    }
+
+    public List<Direction> GetClearSides()
+    {
+        var sides = new List<Direction>();
+        if (Direction is Direction.North or Direction.South)
+        {
+            // Consider West, East
+            if (GetDirectionalTarget(Direction.West) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.West)))
+                sides.Add(Direction.West);
+            if (GetDirectionalTarget(Direction.East) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.East)))
+                sides.Add(Direction.East);
+        }
+
+        if (Direction is Direction.East or Direction.West)
+        {
+            // consider North, South
+            if (GetDirectionalTarget(Direction.North) == null &&
+                !Map.IsWall(GetCoordinatesInDirection(Direction.North)))
+                sides.Add(Direction.North);
+            if (GetDirectionalTarget(Direction.South) == null &&
+                !Map.IsWall(GetCoordinatesInDirection(Direction.South)))
+                sides.Add(Direction.South);
+        }
+
+        return sides;
+    }
+
+    public (byte x, byte y) GetCoordinatesInDirection(Direction direction)
+    {
+        var a = (int)X;
+        var b = (int)Y;
+
+        switch (direction)
+        {
+            case Direction.East:
+                a = X + 1;
+                b = Y;
+                break;
+            case Direction.West:
+                a = X - 1;
+                b = Y;
+                break;
+            case Direction.North:
+                a = X;
+                b = Y - 1;
+                break;
+            case Direction.South:
+                a = X;
+                b = Y + 1;
+                break;
+        }
+
+        return ((byte)Math.Clamp(a, byte.MinValue, byte.MaxValue),
+            (byte)Math.Clamp(b, byte.MinValue, byte.MaxValue));
     }
 
     public Creature GetDirectionalTarget(Direction direction)
@@ -212,7 +272,7 @@ public class Creature : VisibleObject
 
         GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
         ret.AddRange(Map.EntityTree.GetObjects(rect)
-            .OfType<Creature>().OrderBy(x => x.Distance(this)));
+            .OfType<Creature>().OrderBy(keySelector: x => x.Distance(this)));
         return ret;
     }
 
@@ -232,21 +292,16 @@ public class Creature : VisibleObject
     public void ProcessProcs(ProcEventType type, Castable castable, Creature target)
     {
         if (castable.Effects?.Procs != null)
-        {
-            foreach (var proc in castable.Effects.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
-            {
+            foreach (var proc in castable.Effects.Procs.Where(predicate: proc =>
+                         Random.Shared.NextDouble() <= proc.Chance))
                 // Proc fires
                 Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
-            }
-        }
 
         if (!castable.IsAssail || Equipment?.Weapon?.Procs == null)
             return;
 
-        foreach (var proc in Equipment.Weapon.Procs.Where(proc => Random.Shared.NextDouble() <= proc.Chance))
-        {
+        foreach (var proc in Equipment.Weapon.Procs.Where(predicate: proc => Random.Shared.NextDouble() <= proc.Chance))
             Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
-        }
     }
 
 
@@ -350,6 +405,26 @@ public class Creature : VisibleObject
                     possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
                 }
 
+            foreach (var tile in intent.Cone)
+            {
+                var radius = Math.Min(tile.Radius, Game.ActiveConfiguration.Constants.ViewportSize / 2);
+                if (radius == 0)
+                    continue;
+                var coneDirection = tile.Direction.Resolve(Direction);
+                for (var i = 1; i <= radius; i++)
+                {
+                    var rect = coneDirection switch
+                    {
+                        Direction.North => new Rectangle(X - i + 1, Y - i, 2 * i - 1, 1),
+                        Direction.South => new Rectangle(X - i + 1, Y + i, 2 * i - 1, 1),
+                        Direction.East => new Rectangle(X + i, Y - i + 1, 1, 2 * i - 1),
+                        Direction.West => new Rectangle(X - i, Y - i + 1, 1, 2 * i - 1),
+                        _ => throw new ArgumentOutOfRangeException(nameof(coneDirection))
+                    };
+                    possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(predicate: e => e is Creature));
+                }
+            }
+
             var possible = intent.MaxTargets > 0
                 ? possibleTargets.Take(intent.MaxTargets).OfType<Creature>().ToList()
                 : possibleTargets.OfType<Creature>().ToList();
@@ -363,38 +438,54 @@ public class Creature : VisibleObject
 
             // Process intent flags
 
-            var this_id = Id;
-
-            if (this is Monster)
+            switch (this)
             {
                 // No hostile flag: remove players
-                if (intent.Flags.Contains(IntentFlags.Hostile)) finalTargets.AddRange(actualTargets.OfType<User>());
+                case Monster when Condition.Charmed:
+                    {
+                        if (intent.Flags.Contains(IntentFlags.Hostile))
+                            finalTargets.AddRange(actualTargets.OfType<Monster>());
 
-                // No friendly flag: remove monsters
-                if (intent.Flags.Contains(IntentFlags.Friendly)) finalTargets.AddRange(actualTargets.OfType<Monster>());
+                        // No friendly flag, or not charmed - remove monsters
+                        if (intent.Flags.Contains(IntentFlags.Friendly))
+                            finalTargets.AddRange(actualTargets.OfType<User>());
+                        break;
+                    }
                 // Group / pvp: n/a
-            }
-            else if (this is User userobj)
-            {
-                // No PVP flag: remove PVP flagged players
-                // No hostile flag: remove monsters
-                // No friendly flag: remove non-PVP flagged players
-                // No group flag: remove group members
-                if (intent.Flags.Contains(IntentFlags.Hostile)) finalTargets.AddRange(actualTargets.OfType<Monster>());
+                case Monster:
+                    {
+                        if (intent.Flags.Contains(IntentFlags.Hostile))
+                            finalTargets.AddRange(actualTargets.OfType<User>());
 
-                if (intent.Flags.Contains(IntentFlags.Friendly))
-                    finalTargets.AddRange(actualTargets.OfType<User>()
-                        .Where(predicate: e => e.Condition.PvpEnabled == false && e.Id != Id));
+                        // No friendly flag, or not charmed - remove monsters
+                        if (intent.Flags.Contains(IntentFlags.Friendly))
+                            finalTargets.AddRange(actualTargets.OfType<Monster>());
+                        break;
+                    }
+                case User userobj:
+                    {
+                        // No PVP flag: remove PVP flagged players
+                        // No hostile flag: remove monsters
+                        // No friendly flag: remove non-PVP flagged players
+                        // No group flag: remove group members
+                        if (intent.Flags.Contains(IntentFlags.Hostile))
+                            finalTargets.AddRange(actualTargets.OfType<Monster>());
 
-                if (intent.Flags.Contains(IntentFlags.Pvp))
-                    finalTargets.AddRange(actualTargets.OfType<User>()
-                        .Where(predicate: e => e.Condition.PvpEnabled && e.Id != Id));
+                        if (intent.Flags.Contains(IntentFlags.Friendly))
+                            finalTargets.AddRange(actualTargets.OfType<User>()
+                                .Where(predicate: e => e.Condition.PvpEnabled == false && e.Id != Id));
 
-                if (intent.Flags.Contains(IntentFlags.Group))
-                    // Remove group members
-                    if (userobj.Group != null)
-                        finalTargets.AddRange(actualTargets.OfType<User>()
-                            .Where(predicate: e => userobj.Group.Contains(e)));
+                        if (intent.Flags.Contains(IntentFlags.Pvp))
+                            finalTargets.AddRange(actualTargets.OfType<User>()
+                                .Where(predicate: e => e.Condition.PvpEnabled && e.Id != Id));
+
+                        if (intent.Flags.Contains(IntentFlags.Group))
+                            // Remove group members
+                            if (userobj.Group != null)
+                                finalTargets.AddRange(actualTargets.OfType<User>()
+                                    .Where(predicate: e => userobj.Group.Contains(e)));
+                        break;
+                    }
             }
 
             // No Self flag: remove self 
@@ -409,7 +500,7 @@ public class Creature : VisibleObject
         }
 
         // Lastly, remove any duplicates
-        return finalTargets.DistinctBy(x => x.Guid).ToList();
+        return finalTargets.DistinctBy(keySelector: x => x.Guid).ToList();
     }
 
     public virtual bool UseCastable(Castable castableXml, Creature target = null)
@@ -427,14 +518,6 @@ public class Creature : VisibleObject
         if (!targets.Any() && castableXml.IsAssail == false && string.IsNullOrEmpty(castableXml.Script))
         {
             GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
-            return false;
-        }
-
-        // Check to see if creature is immune.
-        // Only handle monster immunity for now
-        if (target is Monster monster && monster.Immunities.Contains(castableXml.Name) && this is User client)
-        {
-            client.SendSystemMessage($"{Name} cannot be harmed by {castableXml.Name}.");
             return false;
         }
 
@@ -464,7 +547,7 @@ public class Creature : VisibleObject
                     castableXml.Effects.Animations.OnCast.SpellEffect.Speed);
             }
         }
-        
+
         if (castableXml.IsAssail)
         {
             if (Equipment?.Weapon?.AssailSound != null)
@@ -475,7 +558,9 @@ public class Creature : VisibleObject
                 PlaySound(castableXml.Effects.Sound.Id);
         }
         else if (castableXml.Effects?.Sound != null)
+        {
             PlaySound(castableXml.Effects.Sound.Id);
+        }
 
         GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
 
@@ -514,12 +599,13 @@ public class Creature : VisibleObject
                 var actualX = (byte)(X + reactor.RelativeX);
                 var actualY = (byte)(Y + reactor.RelativeY);
                 var reactorObj =
-                    new Reactor(actualX, actualY, tar.Map, reactor.Script,
-                        reactor.Expiration, $"{Name}'s {castableXml.Name}", reactor.Blocking);
-                reactorObj.Sprite = reactor.Sprite;
-                reactorObj.CreatedBy = Guid;
-                reactorObj.Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
-                    new FormulaEvaluation { Castable = castableXml, Source = this }));
+                    new Reactor(actualX, actualY, tar.Map, reactor, this, $"{Name}'s {castableXml.Name}")
+                    {
+                        Sprite = reactor.Sprite,
+                        CreatedBy = Guid,
+                        Uses = Convert.ToInt32(FormulaParser.Eval(reactor.Uses,
+                            new FormulaEvaluation { Castable = castableXml, Source = this }))
+                    };
                 // Don't insert a reactor with no uses into the world
                 if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
@@ -547,7 +633,10 @@ public class Creature : VisibleObject
                 GameLog.UserActivityInfo(
                     $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
 
-                tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, castableXml, false);
+                tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, castableXml,
+                    false);
+                if (tar is Monster m)
+                    m.ThreatInfo.LastCaster = this;
                 ProcessProcs(ProcEventType.OnHit, castableXml, tar);
 
                 if (tar is User u && !castableXml.IsAssail)
@@ -572,12 +661,13 @@ public class Creature : VisibleObject
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} healing: {healOutput}");
                     if (Equipment.Weapon is { Undamageable: false })
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability * (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
+                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
+                                                            (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
                 }
             }
 
             // Handle statuses
-        
+
             foreach (var status in castableXml.AddStatuses)
                 if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
@@ -585,23 +675,36 @@ public class Creature : VisibleObject
                     var tick = status.Tick == 0 ? applyStatus.Tick : status.Tick;
                     GameLog.UserActivityInfo(
                         $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
-                    if (tar.CurrentStatusInfo.Count > 0)
+                    if (!tar.CurrentStatuses.IsEmpty)
                     {
-                        var overlap = tar.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
-                        if (overlap.Any())
+                        var overlap =
+                            tar.CurrentStatuses.Values.FirstOrDefault(predicate: x => x.Icon == applyStatus.Icon);
+
+                        if (overlap != null)
                         {
                             if (this is User user)
-                            {
                                 user.SendSystemMessage(
-                                    $"Another {overlap.First().Category} already affects your target.");
-                            }
-
+                                    $"Another {overlap.Category.First().ToLower()} already affects your target.");
                             continue;
                         }
                     }
 
-                    tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
-                        status.Intensity));
+                    // Check immunities
+                    var apply = true;
+                    CreatureImmunity immunity = null;
+                    if (tar is Monster m &&
+                        (m.BehaviorSet.ImmuneToCastableCategories(castableXml.CategoryList, out immunity) ||
+                         m.BehaviorSet.ImmuneToStatusCategories(castableXml.CategoryList, out immunity) ||
+                         m.BehaviorSet.ImmuneToStatus(applyStatus, out immunity) ||
+                         m.BehaviorSet.ImmuneToCastable(castableXml, out immunity)))
+                    {
+                        m.SendImmunityMessage(immunity, this);
+                        apply = false;
+                    }
+
+                    if (apply)
+                        tar.ApplyStatus(new CreatureStatus(applyStatus, tar, castableXml, this, duration, tick,
+                            status.Intensity));
                 }
                 else
                 {
@@ -610,7 +713,19 @@ public class Creature : VisibleObject
                 }
 
             foreach (var status in castableXml.RemoveStatuses)
-                if (World.WorldData.TryGetValue<Status>(status.ToLower(), out var applyStatus))
+                if (status.IsCategory)
+                {
+                    for (var x = 0; x <= status.Quantity; x++)
+                    {
+                        var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(predicate: s =>
+                            s.Category.Contains(status.Value));
+                        if (toRemove == null) break;
+                        tar.RemoveStatus(toRemove.Icon);
+                        GameLog.UserActivityInfo(
+                            $"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
+                    }
+                }
+                else if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
@@ -621,6 +736,8 @@ public class Creature : VisibleObject
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - failed to remove status {status}, does not exist!");
                 }
+
+            LastTarget = tar;
         }
 
         // Now flood away
@@ -636,7 +753,7 @@ public class Creature : VisibleObject
         GameLog.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = (ServerPacket)packet.Clone();
+            var nPacket = packet.Clone();
             GameLog.DebugFormat($"SendCastLine to {user.Name}");
             user.Enqueue(nPacket);
         }
@@ -652,7 +769,7 @@ public class Creature : VisibleObject
             var arrivingViewport = Rectangle.Empty;
             var departingViewport = Rectangle.Empty;
             var commonViewport = Rectangle.Empty;
-            var halfViewport = Constants.VIEWPORT_SIZE / 2;
+            var halfViewport = Game.ActiveConfiguration.Constants.ViewportSize / 2;
             Warp targetWarp;
 
             switch (direction)
@@ -666,31 +783,35 @@ public class Creature : VisibleObject
 
                 case Direction.North:
                     --newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                    arrivingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport,
+                        Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
-                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                    departingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport,
+                        Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
                     break;
                 case Direction.South:
                     ++newY;
-                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport, Constants.VIEWPORT_SIZE,
+                    arrivingViewport = new Rectangle(oldX - halfViewport, oldY + halfViewport,
+                        Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
-                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
+                    departingViewport = new Rectangle(oldX - halfViewport, newY - halfViewport,
+                        Game.ActiveConfiguration.Constants.ViewportSize,
                         1);
                     break;
                 case Direction.West:
                     --newX;
                     arrivingViewport = new Rectangle(newX - halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     departingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     break;
                 case Direction.East:
                     ++newX;
                     arrivingViewport = new Rectangle(oldX + halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     departingViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, 1,
-                        Constants.VIEWPORT_SIZE);
+                        Game.ActiveConfiguration.Constants.ViewportSize);
                     break;
             }
 
@@ -741,10 +862,12 @@ public class Creature : VisibleObject
 
             // Calculate the common viewport between the old and new position
 
-            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport, Constants.VIEWPORT_SIZE,
-                Constants.VIEWPORT_SIZE);
-            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport, Constants.VIEWPORT_SIZE,
-                Constants.VIEWPORT_SIZE));
+            commonViewport = new Rectangle(oldX - halfViewport, oldY - halfViewport,
+                Game.ActiveConfiguration.Constants.ViewportSize,
+                Game.ActiveConfiguration.Constants.ViewportSize);
+            commonViewport.Intersect(new Rectangle(newX - halfViewport, newY - halfViewport,
+                Game.ActiveConfiguration.Constants.ViewportSize,
+                Game.ActiveConfiguration.Constants.ViewportSize));
             GameLog.DebugFormat("Moving from {0},{1} to {2},{3}", oldX, oldY, newX, newY);
             GameLog.DebugFormat("Arriving viewport is a rectangle starting at {0}, {1}", arrivingViewport.X,
                 arrivingViewport.Y);
@@ -762,7 +885,6 @@ public class Creature : VisibleObject
             // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
             foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
-            {
                 if (obj != this && obj is User)
                 {
                     var user = obj as User;
@@ -775,7 +897,6 @@ public class Creature : VisibleObject
                     x0C.WriteByte(0x00);
                     user.Enqueue(x0C);
                 }
-            }
 
             Map.EntityTree.Move(this);
 
@@ -841,11 +962,17 @@ public class Creature : VisibleObject
 
     public virtual void Heal(double heal, Creature source = null, Castable castable = null)
     {
-        var bonusHeal = (heal * Stats.BaseInboundHealModifier) + (heal * source?.Stats.BaseOutboundHealModifier ?? 0.0);
+        var bonusHeal = heal * Stats.BaseInboundHealModifier + (heal * source?.Stats.BaseOutboundHealModifier ?? 0.0);
         heal += bonusHeal;
 
-        OnHeal(new HealEvent { Amount = Convert.ToUInt32(heal), BonusHeal = Convert.ToInt32(bonusHeal), 
-            Source = source, SourceCastable = castable, Target = this });
+        OnHeal(new HealEvent
+        {
+            Amount = Convert.ToUInt32(heal),
+            BonusHeal = Convert.ToInt32(bonusHeal),
+            Source = source,
+            SourceCastable = castable,
+            Target = this
+        });
 
         if (AbsoluteImmortal || PhysicalImmortal) return;
         if (Stats.Hp == Stats.MaximumHp) return;
@@ -900,7 +1027,8 @@ public class Creature : VisibleObject
         if (attacker is User && this is Monster)
         {
             if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) ||
-                (DateTime.Now - LastHitTime).TotalSeconds > Constants.MONSTER_TAGGING_TIMEOUT) FirstHitter = attacker;
+                (DateTime.Now - LastHitTime).TotalSeconds > Game.ActiveConfiguration.Constants.MonsterTaggingTimeout)
+                FirstHitter = attacker;
             if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
         }
 
@@ -916,6 +1044,7 @@ public class Creature : VisibleObject
         }
 
         // handle elements
+
         if (damageType != DamageType.Direct && !damageFlags.HasFlag(DamageFlags.NoElement))
         {
             var elementTable = Game.World.WorldData.Get<ElementTable>("ElementTable");
@@ -1010,14 +1139,30 @@ public class Creature : VisibleObject
         damageEvent.ElementalAugmented = Convert.ToInt32(damage * augment);
 
         // Handle straight damage buff / debuff from inbound modifiers
-        var modified = (damage * Stats.InboundDamageModifier) +
+        var modified = damage * Stats.InboundDamageModifier +
                        (damage * attacker?.Stats?.OutboundDamageModifier ?? 0.0);
         damage += modified;
         damageEvent.ModifierDmg = Convert.ToInt32(modified);
-        
-        
+
+
         // Negative damage (possible with augments and resistances) 
         if (damage < 0) damage = 1;
+
+        // lastly, handle shield
+
+        if (Stats.Shield > 0)
+        {
+            if (Stats.Shield >= damage)
+            {
+                damage = 0;
+                Stats.Shield -= damage;
+            }
+            else
+            {
+                damage -= Stats.Shield;
+                Stats.Shield = 0;
+            }
+        }
 
         // Now, normalize damage for uint (max hp)
         var normalized = (uint)damage;
@@ -1037,7 +1182,7 @@ public class Creature : VisibleObject
         }
 
         damageEvent.Amount = normalized;
-        _mLastHitter = attacker?.Id ?? 0;
+        _mLastHitter = attacker?.Guid ?? Guid.Empty;
         OnDamage(damageEvent);
 
         // Handle reflection and steals. For now these are handled as straight hp/mp effects
@@ -1046,7 +1191,8 @@ public class Creature : VisibleObject
         {
             var reflected = Stats.ReflectMagical * normalized;
             if (reflected > 0)
-                attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)(reflected * -1) },
+                attacker.World.EnqueueGuidStatUpdate(attacker.Guid,
+                    new StatInfo { DeltaHp = (long)(reflected * -1) },
                     new StatChangeEvent
                     {
                         Amount = Convert.ToUInt32(reflected * -1),
@@ -1132,7 +1278,7 @@ public class Creature : VisibleObject
     {
         if (Map == null) return;
         var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
-        var healthbar = new ServerPacketStructures.HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
+        var healthbar = new HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
@@ -1185,8 +1331,29 @@ public class Creature : VisibleObject
     /// <param name="status">The status to apply to the player.</param>
     public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
     {
-        if (!_currentStatuses.TryAdd(status.Icon, status)) return false;
-        if (this is User && sendUpdates) (this as User).SendStatusUpdate(status);
+        // Check for immunities to status effects
+        if (this is Monster { BehaviorSet: not null } m)
+            if (m.BehaviorSet.ImmuneToStatus(status.Name, out var immunity) ||
+                m.BehaviorSet.ImmuneToStatusCategories(status.Category, out immunity))
+            {
+                m.SendImmunityMessage(immunity);
+                return false;
+            }
+
+        if (!CurrentStatuses.TryAdd(status.Icon, status))
+            return false;
+        if (this is User u)
+        {
+            if (sendUpdates)
+                u.SendStatusUpdate(status);
+
+            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                    reactor.ShowTo(this);
+        }
+
+        if (this is Monster m2)
+            m2.ThreatInfo.LastCaster = status.Source;
 
         status.OnStart(sendUpdates);
         if (sendUpdates)
@@ -1216,7 +1383,7 @@ public class Creature : VisibleObject
     }
 
     /// <summary>
-    ///     Remove a status from a client.
+    ///     Remove a status from a creature.
     /// </summary>
     /// <param name="icon">The icon of the status we are removing.</param>
     /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
@@ -1224,29 +1391,33 @@ public class Creature : VisibleObject
     public bool RemoveStatus(ushort icon, bool onEnd = true)
     {
         ICreatureStatus status;
-        if (!_currentStatuses.TryRemove(icon, out status)) return false;
+        if (!CurrentStatuses.TryRemove(icon, out status)) return false;
         _removeStatus(status, onEnd);
         UpdateAttributes(StatUpdateFlags.Full);
+        if (this is User u)
+            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                    reactor.AoiDeparture(this);
         return true;
     }
 
     public bool TryGetStatus(string name, out ICreatureStatus status)
     {
-        status = _currentStatuses.Values.FirstOrDefault(predicate: s => s.Name == name);
+        status = CurrentStatuses.Values.FirstOrDefault(predicate: s => s.Name == name);
         return status != null;
     }
 
     /// <summary>
-    ///     Remove all statuses from a user.
+    ///     Remove all statuses from a creature.
     /// </summary>
     public void RemoveAllStatuses()
     {
-        lock (_currentStatuses)
+        lock (CurrentStatuses)
         {
-            foreach (var status in _currentStatuses.Values) _removeStatus(status, false);
+            foreach (var status in CurrentStatuses.Values) _removeStatus(status, false);
 
-            _currentStatuses.Clear();
-            GameLog.Debug($"Current status count is {_currentStatuses.Count}");
+            CurrentStatuses.Clear();
+            GameLog.Debug($"Current status count is {CurrentStatuses.Count}");
         }
     }
 
@@ -1255,7 +1426,7 @@ public class Creature : VisibleObject
     /// </summary>
     public void ProcessStatusTicks()
     {
-        foreach (var kvp in _currentStatuses)
+        foreach (var kvp in CurrentStatuses)
         {
             GameLog.DebugFormat("OnTick: {0}, {1}", Name, kvp.Value.Name);
 
@@ -1277,7 +1448,7 @@ public class Creature : VisibleObject
         }
     }
 
-    public int ActiveStatusCount => _currentStatuses.Count;
+    public int ActiveStatusCount => CurrentStatuses.Count;
 
     #endregion
 }

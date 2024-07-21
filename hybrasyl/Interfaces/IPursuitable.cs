@@ -1,6 +1,26 @@
-﻿using Hybrasyl.Dialogs;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Objects;
-using Hybrasyl.Scripting;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Scripting;
 using System.Collections.Generic;
 
 namespace Hybrasyl.Interfaces;
@@ -25,13 +45,13 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         SequenceIndex = new Dictionary<string, DialogSequence>();
     }
 
-    public virtual void AddPursuit(DialogSequence pursuit)
+    public void AddPursuit(DialogSequence pursuit)
     {
         if (pursuit.Id == null)
         {
             // This is a local sequence, so assign it into the pursuit range and
             // assign an ID
-            pursuit.Id = (uint)(Constants.DIALOG_SEQUENCE_SHARED + Pursuits.Count);
+            pursuit.Id = (uint)(Game.ActiveConfiguration.Constants.DialogSequenceShared + Pursuits.Count);
             Pursuits.Add(pursuit);
         }
         else
@@ -60,7 +80,8 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
         if (merchant?.Jobs.HasFlag(MerchantJob.Vend) ?? false)
         {
             optionsCount += 2;
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)MerchantMenuItem.BuyItemMenu, Text = "Buy" });
+            options.Options.Add(new MerchantDialogOption
+            { Id = (ushort)MerchantMenuItem.BuyItemMenu, Text = "Buy" });
             options.Options.Add(new MerchantDialogOption
             { Id = (ushort)MerchantMenuItem.SellItemMenu, Text = "Sell" });
         }
@@ -141,7 +162,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             optionsCount++;
         }
 
-        var packet = new ServerPacketStructures.MerchantResponse
+        var packet = new MerchantResponse
         {
             MerchantDialogType = MerchantDialogType.Options,
             MerchantDialogObjectType = MerchantDialogObjectType.Merchant,

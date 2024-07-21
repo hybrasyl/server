@@ -1,6 +1,26 @@
-﻿using C3;
-using Hybrasyl.Enums;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Crc;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
@@ -19,7 +39,7 @@ public class MapObject : IStateStorable
     /// </summary>
     /// <param name="newMap">An XSD.Map object representing the XML map file.</param>
     /// <param name="theWorld">A world object where the map will be placed</param>
-    public MapObject(Xml.Objects.Map newMap, World theWorld)
+    public MapObject(Map newMap, World theWorld)
     {
         Init();
         World = theWorld;
@@ -38,6 +58,12 @@ public class MapObject : IStateStorable
 
         LoadMapFile();
         LoadXml(newMap);
+        for (byte x = 0; x <= X; x++)
+            for (byte y = 0; y <= Y; y++)
+            {
+                if (IsWall(x, y)) continue;
+                UsableTiles.Add((x, y));
+            }
     }
 
     public ushort Id { get; set; }
@@ -58,17 +84,7 @@ public class MapObject : IStateStorable
     public ushort Checksum { get; set; }
 
     private HashSet<(byte x, byte y)> Collisions { get; set; } = new();
-
-    public bool IsWall(int x, int y) => IsWall((byte)x, (byte)y);
-    public bool IsWall(byte x, byte y) => Collisions.Contains((x, y));
-
-    public void ToggleCollisions(byte x, byte y)
-    {
-        if (Collisions.Contains((x, y)))
-            Collisions.Remove((x, y));
-        else
-            Collisions.Add((x, y));
-    }
+    private HashSet<(byte x, byte y)> UsableTiles { get; } = new();
 
     public bool AllowCasting { get; set; }
     public bool AllowSpeaking { get; set; }
@@ -120,6 +136,33 @@ public class MapObject : IStateStorable
     public bool SpawnDebug { get; set; }
     public bool SpawningDisabled { get; set; }
 
+    public bool IsWall(int x, int y) => IsWall((byte)x, (byte)y);
+    public bool IsWall(byte x, byte y) => Collisions.Contains((x, y));
+    public bool IsWall((byte x, byte y) coordinate) => IsWall(coordinate.x, coordinate.y);
+
+    public (int x, int y) FindEmptyTile()
+    {
+        var tiles = new HashSet<(byte x, byte y)>(UsableTiles);
+
+        do
+        {
+            var rand = Random.Shared.Next(0, tiles.Count);
+            var randTile = tiles.ElementAt(rand);
+            if (IsCreatureAt(randTile.x, randTile.y)) continue;
+            return (randTile.x, randTile.y);
+        } while (tiles.Count > 0);
+
+        return (-1, -1);
+    }
+
+    public void ToggleCollisions(byte x, byte y)
+    {
+        if (Collisions.Contains((x, y)))
+            Collisions.Remove((x, y));
+        else
+            Collisions.Add((x, y));
+    }
+
     public void MapMute()
     {
         AllowSpeaking = false;
@@ -130,12 +173,20 @@ public class MapObject : IStateStorable
         AllowSpeaking = true;
     }
 
+    /// <summary>
+    ///     Remove all objects on a map except for NPCs. This function is only intended to be used by unit tests.
+    ///     It is almost assuredly not what you want in a live environment.
+    /// </summary>
     public void Clear()
     {
-        Objects = new HashSet<VisibleObject>();
+        foreach (var obj in EntityTree.GetAllObjects().Where(predicate: obj => obj is not Merchant))
+        {
+            EntityTree.Remove(obj);
+            Objects.Remove(obj);
+        }
+
         Users = new Dictionary<string, User>();
         Warps = new Dictionary<Tuple<byte, byte>, Warp>();
-        EntityTree = new QuadTree<VisibleObject>(1, 1, X, Y);
         Reactors = new Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>>();
     }
 
@@ -152,7 +203,7 @@ public class MapObject : IStateStorable
         AllowSpeaking = true;
     }
 
-    public void LoadXml(Xml.Objects.Map newMap)
+    public void LoadXml(Map newMap)
     {
         foreach (var warpElement in newMap.Warps)
         {
@@ -212,8 +263,10 @@ public class MapObject : IStateStorable
         foreach (var reactorElement in newMap.Reactors)
         {
             var reactor = new Reactor(reactorElement.X, reactorElement.Y, this,
-                reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking);
-            reactor.AllowDead = reactorElement.AllowDead;
+                reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking)
+            {
+                AllowDead = reactorElement.AllowDead
+            };
             InsertReactor(reactor);
             GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
         }
@@ -241,10 +294,8 @@ public class MapObject : IStateStorable
 
     public List<Creature> GetCreatures(int x1, int y1) => GetTileContents(x1, y1).OfType<Creature>().ToList();
 
-    public bool IsCreatureAt(int x1, int y1)
-    {
-        return GetTileContents(x1, y1).Any(predicate: x => x is Creature);
-    }
+    public bool IsCreatureAt(int x1, int y1) =>
+        GetTileContents(x1, y1).Any(predicate: x => x is Creature);
 
     // TODO: remove World.Insert here
     public void InsertNpc(Merchant toInsert)
@@ -332,7 +383,7 @@ public class MapObject : IStateStorable
                     GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
                         Name, x, y, Collisions.Contains((x, y)));
 
-                    InsertDoor((byte)x, (byte)y, Collisions.Contains((x, y)), true,
+                    InsertDoor(x, y, Collisions.Contains((x, y)), true,
                         Game.IsDoorCollision(lfgu));
                 }
                 else if (Game.DoorSprites.ContainsKey(rfgu))
@@ -340,7 +391,7 @@ public class MapObject : IStateStorable
                     GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
                         Name, x, y, Collisions.Contains((x, y)));
                     // THis is an up-down door 
-                    InsertDoor((byte)x, (byte)y, Collisions.Contains((x, y)), false,
+                    InsertDoor(x, y, Collisions.Contains((x, y)), false,
                         Game.IsDoorCollision(rfgu));
                 }
             }
@@ -364,7 +415,9 @@ public class MapObject : IStateStorable
                 if (obj is User u) Users.Add(u.Name, u);
             }
             else
+            {
                 throw new Exception("What in the fuck");
+            }
 
             if (obj is User user)
                 if (updateClient)
@@ -467,14 +520,14 @@ public class MapObject : IStateStorable
 
 
     public Rectangle GetViewport(byte x, byte y) =>
-        new(x - Constants.VIEWPORT_SIZE / 2,
-            y - Constants.VIEWPORT_SIZE / 2, Constants.VIEWPORT_SIZE,
-            Constants.VIEWPORT_SIZE);
+        new(x - Game.ActiveConfiguration.Constants.ViewportSize / 2,
+            y - Game.ActiveConfiguration.Constants.ViewportSize / 2, Game.ActiveConfiguration.Constants.ViewportSize,
+            Game.ActiveConfiguration.Constants.ViewportSize);
 
     public Rectangle GetShoutViewport(byte x, byte y) =>
-        new(x - Constants.VIEWPORT_SIZE,
-            y - Constants.VIEWPORT_SIZE, Constants.VIEWPORT_SIZE * 2,
-            Constants.VIEWPORT_SIZE * 2);
+        new(x - Game.ActiveConfiguration.Constants.ViewportSize,
+            y - Game.ActiveConfiguration.Constants.ViewportSize, Game.ActiveConfiguration.Constants.ViewportSize * 2,
+            Game.ActiveConfiguration.Constants.ViewportSize * 2);
 
     public void Remove(VisibleObject obj)
     {

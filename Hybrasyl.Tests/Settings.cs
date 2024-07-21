@@ -16,20 +16,21 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace Hybrasyl.Tests;
 
 public class Settings
 {
     private static Settings _settings;
-    public JsonSettings JsonSettings;
+    public PlatformSettings PlatformSettings;
 
     private Settings()
     {
         var json = File.ReadAllText("hybrasyltest-settings.json");
-        JsonSettings = JsonConvert.DeserializeObject<JsonSettings>(json);
+        PlatformSettings = JsonConvert.DeserializeObject<PlatformSettings>(json);
     }
 
     private static object _lock { get; } = new();
@@ -47,7 +48,12 @@ public class Settings
     }
 }
 
-public class JsonSettings
+public class PlatformSettings
+{
+    public Dictionary<string, DirectorySettings> Directories { get; init; }
+}
+
+public class DirectorySettings
 {
     public string WorldDataDirectory { get; init; }
     public string LogDirectory { get; init; }

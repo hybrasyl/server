@@ -1,6 +1,24 @@
-﻿using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using System.Linq;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -48,7 +66,7 @@ public class Reactor
     {
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport(Fixture.Map.Id, 15, 15);
         // Test trap formula for uses is 2 uses > 40, 1 use otherwise
         Fixture.TestUser.Stats.Level = 39;
@@ -68,7 +86,7 @@ public class Reactor
                 Hp = 500
             },
             Name = "Bee Bait",
-            X = (byte)(Fixture.TestUser.X - 1),
+            X = (byte) (Fixture.TestUser.X - 1),
             Y = Fixture.TestUser.Y
         };
 
@@ -79,7 +97,7 @@ public class Reactor
         // caster / other player walking over the reactor should not trigger it.
         // Note that this is done by the *script* itself and not by Hybrasyl, to allow maximum
         // flexibility for reactor event handling / scripting.
-        Assert.Equal((uint)1000, Fixture.TestUser.Stats.Hp);
+        Assert.Equal((uint) 1000, Fixture.TestUser.Stats.Hp);
 
         Fixture.Map.InsertCreature(bait);
 
@@ -91,7 +109,7 @@ public class Reactor
         Assert.Equal(12, Fixture.TestUser.Y);
 
         // Bait should be undamaged
-        Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.Equal((uint) 500, bait.Stats.Hp);
         var reactors = Fixture.Map.Reactors[(15, 15)];
         Assert.Single(reactors.Values);
         var reactor = reactors.Values.First();
@@ -107,12 +125,23 @@ public class Reactor
         Assert.Equal(bait.X, reactor.X);
         Assert.Equal(bait.Y, reactor.Y);
 
-        Assert.Equal((uint)475, bait.Stats.Hp);
+        Assert.Equal((uint) 475, bait.Stats.Hp);
         Assert.True(bait.Walk(Direction.East), "Walk failed");
         Assert.True(bait.Walk(Direction.West), "Walk failed");
         // Reactor is expired so it should not have impacted bait's HP
-        Assert.Equal((uint)475, bait.Stats.Hp);
+        Assert.Equal((uint) 475, bait.Stats.Hp);
     }
 
+    [Fact]
+    public void ReactorCasterSnapshot()
+    {
+        Fixture.TestUser.SkillBook.Clear();
+        Fixture.TestUser.SpellBook.Clear();
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 15, 15);
+        // Test trap formula for uses is 2 uses > 40, 1 use otherwise
+        Fixture.TestUser.Stats.Level = 39;
 
+        var trapTest = Game.World.WorldData.GetByIndex<Castable>("TestTrapSingle");
+    }
 }

@@ -1,13 +1,31 @@
-﻿using Hybrasyl.Objects;
-using Hybrasyl.Xml.Objects;
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
+
 using System.Linq;
+using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 using Xunit;
 
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
 public class Merchants
-{ 
+{
     public Merchants(HybrasylFixture fixture)
     {
         Fixture = fixture;
@@ -18,7 +36,7 @@ public class Merchants
     [Fact]
     public void CheckOnDeposit()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Fixture.TestUser.Say("how many epee do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
@@ -56,7 +74,7 @@ public class Merchants
     [Fact]
     public void CheckGoldOnDeposit()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Fixture.TestUser.Say("how much gold do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
@@ -87,7 +105,7 @@ public class Merchants
     [Fact]
     public void BuyAllCategory()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         var before = Fixture.TestUser.Stats.Gold;
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Prayer Book", out Item junk),
@@ -112,7 +130,7 @@ public class Merchants
     [Fact]
     public void BuyItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -129,7 +147,7 @@ public class Merchants
     [Fact]
     public void RepairAll()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var before = Fixture.TestUser.Stats.Gold;
@@ -156,7 +174,7 @@ public class Merchants
     [Fact]
     public void RepairItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk),
             "Couldn't find epee in very test items");
@@ -180,7 +198,7 @@ public class Merchants
     [Fact]
     public void DepositGold()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Fixture.TestUser.Say("how much gold do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
@@ -201,13 +219,13 @@ public class Merchants
         msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
         Assert.Equal("You have 30000 coins on deposit.", msg.Message);
-        Assert.Equal(Fixture.TestUser.Stats.Gold, (uint)70000);
+        Assert.Equal(Fixture.TestUser.Stats.Gold, (uint) 70000);
     }
 
     [Fact]
     public void DepositItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk),
             "Couldn't find prayer book in test items");
@@ -220,13 +238,13 @@ public class Merchants
         Assert.Equal("Epee, that'll be 50 coins.", msg.Message);
         Assert.False(Fixture.TestUser.Inventory.ContainsName("Epee"));
         Assert.True(Fixture.TestUser.Vault.Items.ContainsKey("Epee"));
-        Assert.Equal(Fixture.TestUser.Vault.Items["Epee"], (uint)1);
+        Assert.Equal(Fixture.TestUser.Vault.Items["Epee"], (uint) 1);
     }
 
     [Fact]
     public void WithdrawGold()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         var before = Fixture.TestUser.Stats.Gold;
         Fixture.TestUser.Vault.AddGold(30000);
@@ -234,14 +252,14 @@ public class Merchants
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
         Assert.Equal("Here are your 30000 coins.", msg.Message);
-        Assert.Equal(Fixture.TestUser.Vault.CurrentGold, (uint)0);
+        Assert.Equal(Fixture.TestUser.Vault.CurrentGold, (uint) 0);
         Assert.Equal(Fixture.TestUser.Stats.Gold, before + 30000);
     }
 
     [Fact]
     public void WithdrawItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -252,7 +270,7 @@ public class Merchants
     [Fact]
     public void WithdrawStackableItem()
     {
-        Fixture.ResetUserStats();
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Bent Needle", out Item junk),
             "Couldn't find bent needle in test items");
@@ -260,7 +278,7 @@ public class Merchants
         item.Count = item.MaximumStack - 1;
         Fixture.TestUser.AddItem(item);
         var item2 = new ItemObject(junk, Fixture.TestUser.World.Guid);
-        Fixture.TestUser.Vault.AddItem(item2.Name, (ushort)item2.Count);
+        Fixture.TestUser.Vault.AddItem(item2.Name, (ushort) item2.Count);
         Fixture.TestUser.Say("withdraw Bent Needle");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);

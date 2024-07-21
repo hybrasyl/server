@@ -1,33 +1,33 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Dialogs;
-using Hybrasyl.Enums;
-using Hybrasyl.Interfaces;
-using Hybrasyl.Scripting;
-using Hybrasyl.Threading;
-using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Interfaces;
+using Hybrasyl.Internals;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Formulas;
+using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;
 
@@ -88,7 +88,8 @@ public class ItemObject : VisibleObject, IInteractable
     {
         get
         {
-            if ((Template?.Properties?.Equipment?.Slot ?? Xml.Objects.EquipmentSlot.None) != Xml.Objects.EquipmentSlot.None)
+            if ((Template?.Properties?.Equipment?.Slot ?? Xml.Objects.EquipmentSlot.None) !=
+                Xml.Objects.EquipmentSlot.None)
                 return ItemObjectType.Equipment;
             if (Template.Properties.Flags.HasFlag(ItemFlags.Consumable) || Template.Use != null)
                 return ItemObjectType.CanUse;
@@ -118,7 +119,7 @@ public class ItemObject : VisibleObject, IInteractable
         get
         {
             if (MaximumDurability != 0)
-                return Durability == 0 ? Value : (uint)(Durability / MaximumDurability * Value);
+                return Durability == 0 ? Value : (uint) (Durability / MaximumDurability * Value);
             return 0;
         }
     }
@@ -182,7 +183,7 @@ public class ItemObject : VisibleObject, IInteractable
     public bool Undamageable => Template.Properties.Flags.HasFlag(ItemFlags.Undamageable);
 
     public bool Bound => Template.Properties.Flags.HasFlag(ItemFlags.Bound);
-    
+
     public bool IsVariant => Template.IsVariant;
 
     public Item ParentItem => Template.ParentItem;
@@ -283,7 +284,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a shield while holding a two-handed weapon
 
-        if (EquipmentSlot == (byte)ItemSlots.Shield && userobj.Equipment.Weapon != null &&
+        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon != null &&
             userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHand)
         {
             message = World.GetLocalString("item_equip_shield_2h");
@@ -292,7 +293,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a two-handed weapon while holding a shield
 
-        if (EquipmentSlot == (byte)ItemSlots.Weapon &&
+        if (EquipmentSlot == (byte) ItemSlots.Weapon &&
             (WeaponType == WeaponType.TwoHand || WeaponType == WeaponType.Staff) &&
             userobj.Equipment.Shield != null)
         {
@@ -321,7 +322,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
-                    (userobj.Equipment[(byte)restriction.Slot] != null)
+                    userobj.Equipment[(byte) restriction.Slot] != null
                 )
                 {
                     message = restrictionMessage;
@@ -333,7 +334,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if (
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
-                    (userobj.Equipment[(byte)restriction.Slot] == null)
+                    userobj.Equipment[(byte) restriction.Slot] == null
                 )
                 {
                     message = restrictionMessage;
@@ -355,11 +356,12 @@ public class ItemObject : VisibleObject, IInteractable
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
                 if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring &&
-                     EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.LeftHand) ||
-                    EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.RightHand ||
+                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftHand) ||
+                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightHand ||
                     (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
-                     EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.LeftArm) ||
-                    EquipmentSlot == (byte)Xml.Objects.EquipmentSlot.RightArm || EquipmentSlot == (byte)restriction.Slot)
+                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftArm) ||
+                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightArm ||
+                    EquipmentSlot == (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -370,7 +372,7 @@ public class ItemObject : VisibleObject, IInteractable
                 if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
                     userobj.Equipment.RRing != null || (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
                                                         userobj.Equipment.LGauntlet != null) ||
-                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte)restriction.Slot)
+                    userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
                     return false;
@@ -452,15 +454,16 @@ public class ItemObject : VisibleObject, IInteractable
         if (Use?.Statuses != null)
         {
             foreach (var add in Use.Statuses.Add)
-            {
                 if (World.WorldData.TryGetValue<Status>(add.Value.ToLower(), out var applyStatus))
                 {
                     var duration = add.Duration == 0 ? applyStatus.Duration : add.Duration;
                     var tick = add.Tick == 0 ? applyStatus.Tick : add.Tick;
-                    var overlap = trigger.CurrentStatusInfo.Where(x => applyStatus.IsCategory(x.Category)).ToList();
-                    if (overlap.Any())
+                    var overlap =
+                        trigger.CurrentStatuses.Values
+                            .FirstOrDefault(predicate: x => x.Category.Union(applyStatus.CategoryList).Any());
+                    if (overlap != null)
                     {
-                        trigger.SendSystemMessage($"You already have an active {overlap.First().Category}.");
+                        trigger.SendSystemMessage($"You already have an active {overlap.Category}.");
                     }
                     else
                     {
@@ -476,12 +479,8 @@ public class ItemObject : VisibleObject, IInteractable
                         $"Invoke: {trigger.Name} using {Name} - failed to add status {add.Value}, does not exist!");
                 }
 
-            }
-            
             foreach (var remove in Use.Statuses.Remove)
-            {
-
-                if (World.WorldData.TryGetValue<Status>(remove.ToLower(), out var applyStatus))
+                if (World.WorldData.TryGetValue<Status>(remove.Value.ToLower(), out var applyStatus))
                 {
                     GameLog.UserActivityError(
                         $"Invoke: {trigger.Name} using {Name} - removing status {remove}");
@@ -492,17 +491,12 @@ public class ItemObject : VisibleObject, IInteractable
                     GameLog.UserActivityError(
                         $"Invoke: {trigger.Name} using {Name} - failed to remove status {remove}, does not exist!");
                 }
-            }
         }
 
         if (Procs != null)
-        {
-            foreach (var proc in Procs.Where(proc =>
+            foreach (var proc in Procs.Where(predicate: proc =>
                          Random.Shared.NextDouble() <= proc.Chance && proc.Type == ProcEventType.OnUse))
-            {
                 Game.World.EnqueueProc(proc, null, trigger.Guid, Guid.Empty);
-            }
-        }
 
         if (Consumable) Count--;
     }

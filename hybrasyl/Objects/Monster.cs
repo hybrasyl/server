@@ -1,34 +1,36 @@
-﻿/*
- * This file is part of Project Hybrasyl.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the Affero General Public License as published by
- * the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
- * for more details.
- *
- * You should have received a copy of the Affero General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * (C) 2020 ERISCO, LLC 
- *
- * For contributors and individual authors please refer to CONTRIBUTORS.MD.
- * 
- */
+﻿// This file is part of Project Hybrasyl.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the Affero General Public License as published by
+// the Free Software Foundation, version 3.
+// 
+// This program is distributed in the hope that it will be useful, but
+// without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+// or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
+// for more details.
+// 
+// You should have received a copy of the Affero General Public License along
+// with this program. If not, see <http://www.gnu.org/licenses/>.
+// 
+// (C) 2020-2023 ERISCO, LLC
+// 
+// For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
-using Hybrasyl.Enums;
 using Hybrasyl.Interfaces;
-using Hybrasyl.Messaging;
-using Hybrasyl.Scripting;
+using Hybrasyl.Internals.Enums;
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Formulas;
+using Hybrasyl.Subsystems.Loot;
+using Hybrasyl.Subsystems.Messaging;
+using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using MessageType = Hybrasyl.Xml.Objects.MessageType;
 
 namespace Hybrasyl.Objects;
 
@@ -37,33 +39,25 @@ public enum MobAction
     Attack,
     Move,
     Idle,
-    Death
+    Death,
+    Flee
 }
 
 public class Monster : Creature, ICloneable, IEphemeral
 {
     private readonly ConcurrentQueue<MobAction> _actionQueue;
     private readonly object _lock = new();
-
     private bool _idle = true;
+    private Guid _target = Guid.Empty;
 
-    private uint _mTarget;
 
     public int ActionDelay = 800;
-
-    public Tile CurrentPath;
-
-    public (int X, int Y) Destination;
-
-    public bool HasCastNearDeath;
-
-    public Loot Loot;
-
-    public SpawnFlags SpawnFlags;
-
     public byte AssailSound;
-
-    public List<string> Immunities { get; set; }
+    public Tile CurrentPath;
+    public (int X, int Y) Destination;
+    public HashSet<Guid> HitByUsers = new();
+    public Loot Loot;
+    public SpawnFlags SpawnFlags;
 
     public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
@@ -74,7 +68,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         {
             BehaviorSet = behaviorsetOverride;
         }
-        else if (!string.IsNullOrEmpty(creature.BehaviorSet))
+        else if (!string.IsNullOrEmpty(creature.BehaviorSet) && World != null)
         {
             if (World.WorldData.TryGetValue<CreatureBehaviorSet>(creature.BehaviorSet, out var behaviorSet))
                 BehaviorSet = behaviorSet;
@@ -92,7 +86,6 @@ public class Monster : Creature, ICloneable, IEphemeral
         Name = creature.Name;
         Sprite = creature.Sprite;
         AssailSound = creature.AssailSound;
-        Immunities = BehaviorSet?.Immunities ?? new List<string>();
 
         // TODO: remove this and fix
         Stats.Level = level;
@@ -107,18 +100,181 @@ public class Monster : Creature, ICloneable, IEphemeral
         ThreatInfo = new ThreatInfo(Guid);
         DeathProcessed = false;
         AllocateStats();
+        if (BehaviorSet == null) return;
+        if (BehaviorSet.StatModifiers != null)
+        {
+            var toApply = NumberCruncher.CalculateStatBonus(this, BehaviorSet.StatModifiers);
+            Stats.Apply(toApply);
+        }
+
         Stats.Hp = Stats.MaximumHp;
         Stats.Mp = Stats.MaximumMp;
-        if (BehaviorSet?.Behavior?.SetCookies == null) return;
+
+        if (BehaviorSet.Behavior?.SetCookies == null) return;
+
         foreach (var cookie in BehaviorSet.Behavior.SetCookies.Where(predicate: cookie => !HasCookie(cookie.Name)))
             SetCookie(cookie.Name, cookie.Value);
     }
 
+    private bool _active { get; set; }
     public CastableController CastableController { get; set; }
     private CreatureBehaviorSet _behaviorSet { get; set; }
     public CreatureHostilitySettings Hostility { get; set; }
-    public DateTime CreationTime { get; set; }
     public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
+    public DateTime LastAction { get; set; } = DateTime.MinValue;
+    public DateTime LastSkill { get; set; } = DateTime.MinValue;
+    public DateTime LastSpell { get; set; } = DateTime.MinValue;
+    public bool ShouldWander { get; set; }
+    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
+    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
+    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
+    public bool DeathProcessed { get; set; }
+    public bool ScriptExists { get; set; }
+    public ThreatInfo ThreatInfo { get; private set; }
+    public DateTime ActiveSince { get; set; }
+    public bool HasAssailSkills { get; set; }
+    public uint LootableGold => Loot?.Gold ?? 0;
+    public List<string> LootableItems => Loot?.Items ?? new List<string>();
+
+    public CreatureBehaviorSet BehaviorSet
+    {
+        get => _behaviorSet;
+        set
+        {
+            if (_behaviorSet == null)
+            {
+                _behaviorSet = value;
+            }
+            else
+            {
+                _behaviorSet = value;
+                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+            }
+        }
+    }
+
+    public double ActiveSeconds
+    {
+        get
+        {
+            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
+            return -1;
+        }
+    }
+
+    public bool Active
+    {
+        get => _active;
+        set
+        {
+            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
+            _active = value;
+        }
+    }
+
+
+    public uint LootableXp
+    {
+        get => Loot?.Xp ?? 0;
+        set => Loot.Xp = value;
+    }
+
+    public Creature Target
+    {
+        get => World.WorldState.TryGetWorldObject<Creature>(_target, out var o) ? o : null;
+        set => _target = value?.Guid ?? Guid.Empty;
+    }
+
+    public object Clone() => MemberwiseClone();
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+
+    public bool TryGetImmunity(ElementType element, out CreatureImmunity immunity)
+    {
+        immunity = BehaviorSet?.Immunities?.FirstOrDefault(predicate: x =>
+            x.Type == CreatureImmunityType.Element
+            && x.Value == element.ToString());
+        return immunity != null;
+    }
+
+    public bool TryGetImmunity(Castable castable, out CreatureImmunity immunity)
+    {
+        immunity = BehaviorSet?.Immunities?.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.Castable);
+        return immunity != null;
+    }
+
+    public bool TryGetImmunityCategory(string category, bool isStatus, out CreatureImmunity immunity)
+    {
+        if (isStatus)
+        {
+            immunity = BehaviorSet?.Immunities?.FirstOrDefault(predicate: x =>
+                x.Type == CreatureImmunityType.StatusCategory &&
+                x.Value == category);
+            return immunity != null;
+        }
+
+        immunity = BehaviorSet?.Immunities?.FirstOrDefault(predicate: x =>
+            x.Type == CreatureImmunityType.CastableCategory);
+        return immunity != null;
+    }
+
+    public void SendImmunityMessage(CreatureImmunity immunity, Creature attacker = null)
+    {
+        if (immunity == null || string.IsNullOrWhiteSpace(immunity.Message)) return;
+
+        switch (immunity.MessageType)
+        {
+            case MessageType.Say:
+                Say(immunity.Message);
+                break;
+            case MessageType.Shout:
+                Shout(immunity.Message);
+                break;
+            case MessageType.Whisper:
+                if (attacker is User u)
+                    u.SendWhisper(Name, immunity.Message);
+                break;
+        }
+    }
+
+    public override void Damage(double damage, ElementType element = ElementType.None,
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
+        Creature attacker = null, Castable castable = null, bool onDeath = true)
+    {
+        if (element != ElementType.None && BehaviorSet.ImmuneToElement(element, out var immunity))
+        {
+            switch (damageType)
+            {
+                case DamageType.Physical:
+                    // Physical immunity to fire: you're hit by a flaming sword - you don't take
+                    // fire damage, but you still got hit by a sword (elemental modifier is removed)
+                    base.Damage(damage, ElementType.None, damageType, damageFlags, attacker,
+                        castable,
+                        onDeath);
+                    break;
+                case DamageType.Magical:
+                    // Magical immunity to fire: magic fire does no damage to you
+                    break;
+            }
+
+            SendImmunityMessage(immunity, attacker);
+            return;
+        }
+
+        if (castable != null && (BehaviorSet.ImmuneToCastable(castable, out immunity) ||
+                                 castable.Categories.Any(predicate: x =>
+                                     BehaviorSet.ImmuneToCastableCategory(x.Value, out immunity))))
+        {
+            SendImmunityMessage(immunity, attacker);
+            return;
+        }
+
+        base.Damage(damage, element, damageType, damageFlags, attacker, castable, onDeath);
+        if (attacker is User u)
+            HitByUsers.Add(u.Guid);
+    }
 
     public bool IsHostile(Creature hostile = null)
     {
@@ -147,87 +303,6 @@ public class Monster : Creature, ICloneable, IEphemeral
         return true;
     }
 
-    public CreatureBehaviorSet BehaviorSet
-    {
-        get => _behaviorSet;
-        set
-        {
-            if (_behaviorSet == null)
-            {
-                _behaviorSet = value;
-            }
-            else
-            {
-                _behaviorSet = value;
-                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
-            }
-        }
-    }
-
-    public DateTime LastAction { get; set; } = DateTime.MinValue;
-    public DateTime LastSkill { get; set; } = DateTime.MinValue;
-    public DateTime LastSpell { get; set; } = DateTime.MinValue;
-    public bool ShouldWander { get; set; }
-    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
-    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
-    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
-    public bool DeathProcessed { get; set; }
-
-    public bool ScriptExists { get; set; }
-
-    public ThreatInfo ThreatInfo { get; private set; }
-
-    private bool _active { get; set; }
-    public DateTime ActiveSince { get; set; }
-
-    public double ActiveSeconds
-    {
-        get
-        {
-            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
-            return -1;
-        }
-    }
-
-    public bool Active
-    {
-        get => _active;
-        set
-        {
-            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
-            _active = value;
-        }
-    }
-
-    public bool HasAssailSkills { get; set; }
-
-    public uint LootableXP
-    {
-        get => Loot?.Xp ?? 0;
-        set => Loot.Xp = value;
-    }
-
-    public uint LootableGold => Loot?.Gold ?? 0;
-
-    public List<string> LootableItems => Loot?.Items ?? new List<string>();
-
-    public Creature Target
-    {
-        get
-        {
-            if (World.Objects.TryGetValue(_mTarget, out var o))
-                return o as Creature;
-            return null;
-        }
-        set => _mTarget = value?.Id ?? 0;
-    }
-
-    public object Clone() => MemberwiseClone();
-
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
-
     public override void OnInsert()
     {
         CastableController = new CastableController(Guid);
@@ -250,7 +325,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             if (DeathDisabled)
             {
                 Stats.Hp = Stats.MaximumHp;
-                Condition.Alive = true; 
+                Condition.Alive = true;
                 return;
             }
 
@@ -262,69 +337,97 @@ public class Monster : Creature, ICloneable, IEphemeral
             DeathProcessed = true;
             _actionQueue.Clear();
 
-            if (!(LastHitter is User hitter))
+            User hitter = null;
+            switch (LastHitter)
             {
-                Map.Remove(this);
-                World.Remove(this);
-                GameLog.Error("OnDeath: lasthitter was null");
-                return; // Don't handle cases of MOB ON MOB COMBAT just yet
+                case Monster monster:
+                    {
+                        var hitterStatuses = monster.Condition.Charmed
+                            ? monster.CurrentStatuses.Values
+                            : CurrentStatuses.Values;
+                        var statuses = hitterStatuses.Cast<CreatureStatus>().Where(predicate: x =>
+                                x.ConditionChanges != null && (x.ConditionChanges.Set & CreatureCondition.Charm) != 0)
+                            .ToList();
+                        if (statuses.Count != 0) hitter = statuses.First().Source as User;
+                        break;
+                    }
+                case User:
+                    hitter = LastHitter as User;
+                    break;
             }
 
-            try
-            {
-                var deadTime = DateTime.Now;
+            // hitter should now resolve either to someone who cast a charm on us, or the last player to damage us.
+            // however, we also ensure the player, or someone in their group, has actually hit the monster at some point in its
+            // lifecycle - if not, we skip loot + experience allowance
 
-                if (hitter.Grouped)
+            if (hitter != null && (HitByUsers.Contains(hitter.Guid) ||
+                                   (hitter.Group != null &&
+                                    hitter.Group.Members.Any(predicate: x => HitByUsers.Contains(x.Guid)))))
+                try
                 {
-                    ItemDropAllowedLooters = hitter.Group.Members.Select(selector: user => user.Name).ToList();
-                    hitter.Group.Members.ForEach(action: x => x.TrackKill(Name, deadTime));
-                }
-                else
-                {
-                    ItemDropAllowedLooters.Add(hitter.Name);
-                    hitter.TrackKill(Name, deadTime);
-                }
+                    var lootEvent = new LootEvent();
+                    var deadTime = DateTime.Now;
 
-                hitter.ShareExperience(LootableXP, Stats.Level);
-                if (hitter.Stats.ExtraXp > 0)
-                    hitter.GiveExperience(LootableXP, true);
-
-                var itemDropTime = DateTime.Now;
-
-                if (LootableGold > 0)
-                {
-                    var goldObj = new Gold(hitter.CalculateGold(LootableGold))
+                    if (hitter.Grouped)
                     {
-                        ItemDropType = ItemDropType.MonsterLootPile,
-                        ItemDropAllowedLooters = ItemDropAllowedLooters,
-                        ItemDropTime = itemDropTime
-                    };
-                    World.Insert(goldObj);
-                    Map.Insert(goldObj, X, Y);
-                }
-
-                foreach (var itemname in LootableItems)
-                {
-                    var item = Game.World.CreateItem(itemname);
-                    if (item == null)
+                        ItemDropAllowedLooters = hitter.Group.Members.Select(selector: user => user.Name).ToList();
+                        hitter.Group.Members.ForEach(action: x => x.TrackKill(Name, deadTime));
+                    }
+                    else
                     {
-                        GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing",
-                            hitter.Name, Name, itemname);
-                        continue;
+                        ItemDropAllowedLooters.Add(hitter.Name);
+                        hitter.TrackKill(Name, deadTime);
                     }
 
-                    item.ItemDropType = ItemDropType.MonsterLootPile;
-                    item.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                    item.ItemDropTime = itemDropTime;
-                    World.Insert(item);
-                    Map.Insert(item, X, Y);
+                    lootEvent.Xp = LootableXp;
+
+                    hitter.ShareExperience(LootableXp, Stats.Level);
+                    if (hitter.Stats.ExtraXp > 0)
+                        hitter.GiveExperience(LootableXp, true);
+
+                    var itemDropTime = DateTime.Now;
+
+                    if (LootableGold > 0)
+                    {
+                        var goldObj = new Gold(hitter.CalculateGold(LootableGold))
+                        {
+                            ItemDropType = ItemDropType.MonsterLootPile,
+                            ItemDropAllowedLooters = ItemDropAllowedLooters,
+                            ItemDropTime = itemDropTime
+                        };
+                        World.Insert(goldObj);
+                        Map.Insert(goldObj, X, Y);
+                        lootEvent.Gold = goldObj.Amount;
+                    }
+
+                    foreach (var itemname in LootableItems)
+                    {
+                        var item = Game.World.CreateItem(itemname);
+                        if (item == null)
+                        {
+                            GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing",
+                                hitter.Name, Name, itemname);
+                            continue;
+                        }
+
+                        item.ItemDropType = ItemDropType.MonsterLootPile;
+                        item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                        item.ItemDropTime = itemDropTime;
+                        World.Insert(item);
+                        Map.Insert(item, X, Y);
+                        lootEvent.Items.Add(item.Name);
+                    }
+
+                    hitter.SendCombatLogMessage(lootEvent);
                 }
-            }
-            catch (Exception e)
-            {
-                GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
-                Game.ReportException(e);
-            }
+                catch (Exception e)
+                {
+                    GameLog.Error("OnDeath for {Name}: exception encountered, loot/gold cancelled {e}", Name, e);
+                    Game.ReportException(e);
+                }
+            else
+                hitter?.SendCombatLogMessage(new NoLootEvent
+                { Reason = "You or your group must hit a monster to collect loot" });
 
             Game.World.RemoveStatusCheck(this);
             // TODO: ondeath castables
@@ -418,7 +521,7 @@ public class Monster : Creature, ICloneable, IEphemeral
     {
         Stats.BaseHp = (uint)(Stats.BaseHp * (1 + modifier));
         Stats.BaseMp = (uint)(Stats.BaseMp * (1 + modifier));
-        LootableXP = (uint)(LootableXP * (1 + modifier));
+        LootableXp = (uint)(LootableXp * (1 + modifier));
         if (Loot?.Gold > 0)
             Loot.Gold = (uint)(Loot.Gold * (1 + modifier));
         Stats.BaseOutboundDamageModifier = 1 + modifier;
@@ -455,9 +558,9 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
                 var bonusHpGain =
-                    (int) Math.Ceiling((double) (Stats.BaseCon / (float) Stats.Level) * 50 * randomBonus);
+                    (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
                 var bonusMpGain =
-                    (int) Math.Ceiling((double) (Stats.BaseWis / (float) Stats.Level) * 50 * randomBonus);
+                    (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
 
                 Stats.BaseHp += bonusHpGain + 25;
                 Stats.BaseMp += bonusMpGain + 25;
@@ -765,6 +868,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
+        Target = target;
     }
 
     public void Attack()
@@ -774,6 +878,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             AssailAttack(Direction, ThreatInfo.HighestThreat);
         else
             Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
+        Target = Target;
     }
 
 
@@ -786,9 +891,25 @@ public class Monster : Creature, ICloneable, IEphemeral
             return;
         }
 
-        if (ThreatInfo.HighestThreat != null)
+        if (Condition.Feared)
         {
-            if (Distance(ThreatInfo.HighestThreat) == 1)
+            _actionQueue.Enqueue(MobAction.Flee);
+            return;
+        }
+
+        var target = Target;
+
+        if (Condition.Charmed)
+        {
+            // Our target is dead, get a new one
+            if (Target == null || Target.Stats.Hp <= 0)
+                _actionQueue.Enqueue(MobAction.Move);
+        }
+
+
+        if (target != null)
+        {
+            if (Distance(target) == 1)
             {
                 _actionQueue.Enqueue(MobAction.Attack);
             }
@@ -809,44 +930,105 @@ public class Monster : Creature, ICloneable, IEphemeral
         while (!_actionQueue.IsEmpty)
         {
             _actionQueue.TryDequeue(out var action);
+            List<Creature> targets = new();
+            var nextCastable = CastableController.GetNextCastable();
+
             GameLog.SpawnDebug($"ActionQueue: {action}");
             switch (action)
             {
-                case MobAction.Attack:
-                    var next = CastableController.GetNextCastable();
-                    if (next is null)
+                case MobAction.Flee:
+                    // Run awaaaay!
+                    var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? Target;
+                    if (fleeFrom != null)
                     {
+                        var dir = Relation(fleeFrom.X, fleeFrom.Y);
+                        if (Direction != Opposite(dir))
+                            Turn(Opposite(dir));
+                        if (Walk(Direction))
+                            return;
+                        // Something is blocking our path, can we move to either side?
+                        var sides = GetClearSides();
+                        if (sides.Count == 0)
+                            return; // cower in fear, we can't move anywhere
+                        Walk(Extensions.EnumerableExtension.PickRandom(sides));
+                    }
+
+                    break;
+                case MobAction.Attack:
+
+                    if (nextCastable == null)
+                    {
+                        GameLog.SpawnError($"{Name} ({Map.Name}@{X},{Y}): nextCastable null?");
                         Attack();
                         return;
                     }
 
-                    var targets = ThreatInfo.GetTargets(next.CurrentPriority);
-                    if (targets.Count == 0)
+                    targets = ThreatInfo.GetTargets(nextCastable.CurrentPriority);
+
+                    if (targets == null && Target == null)
                     {
                         GameLog.SpawnDebug(
-                            $"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {next.CurrentPriority}");
+                            $"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {nextCastable.CurrentPriority} and no current target");
                         return;
                     }
 
-                    if (targets.Count == 1 && next.Slot.Castable.IsAssail)
+                    // If the monster is charmed and it doesn't already have a target, the target is a user, or the target is dead (or in the process of getting dead)
+                    // get a new target. If it is not charmed, our castable determines targeting priority and we take the first target.
+                    if (!Condition.Charmed)
+                        Target = targets.FirstOrDefault();
+                    else if (Target is null || Target is User || Target.Stats.Hp <= 0)
+                        Target = targets.FirstOrDefault();
+
+                    if (Target == null)
                     {
-                        if (Distance(ThreatInfo.HighestThreat) > 1)
+                        GameLog.SpawnError($"{Name} ({Map}@{X},{Y}): unable to calculate target, aborting attack");
+                        return;
+                    }
+
+                    if (nextCastable == null || nextCastable.Slot.Castable.IsAssail)
+                    {
+                        if (Condition.Disarmed)
                         {
-                            _actionQueue.Enqueue(MobAction.Move);
+                            // Disarmed means we can't use assails, so we mark them as having been used so the next rotation entry can hit
+                            nextCastable.Slot.LastCast = DateTime.Now;
+                            nextCastable.Slot.UseCount++;
                             return;
                         }
 
-                        if (!CheckFacing(Direction, ThreatInfo.HighestThreat))
-                            Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
+                        if (Distance(Target) > 1)
+                        {
+                            _actionQueue.Enqueue(MobAction.Move);
+                        }
+                        else
+                        {
+                            if (!CheckFacing(Direction, Target))
+                                Turn(Relation(Target.X, Target.Y));
+
+                            Cast(nextCastable.Slot, Target);
+                        }
+
+                        return;
                     }
 
-                    foreach (var target in targets) Cast(next.Slot, target);
+                    Cast(nextCastable.Slot, Target);
 
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
                 case MobAction.Move when ShouldWander || Condition.Blinded:
                     {
+                        if (!Condition.Blinded)
+                        {
+                            var target = ThreatInfo
+                                .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
+                                .FirstOrDefault();
+                            if (target != null)
+                            {
+                                ShouldWander = false;
+                                return;
+                            }
+                        }
+
                         var rand = Random.Shared.NextDouble();
                         var dir = Random.Shared.Next(0, 4);
                         if (rand > 0.33)
@@ -858,16 +1040,24 @@ public class Monster : Creature, ICloneable, IEphemeral
                                     Walk(Opposite(Direction));
                                 }
                                 else
+                                {
                                     Turn((Direction)dir);
+                                }
                         }
                         else
+                        {
                             Walk(Direction);
+                        }
 
                         break;
                     }
                 case MobAction.Move:
                     {
-                        if (ThreatInfo.HighestThreat == null)
+                        var target = ThreatInfo
+                            .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
+                            .FirstOrDefault();
+
+                        if (target == null)
                         {
                             ShouldWander = true;
                             return;
@@ -881,9 +1071,9 @@ public class Monster : Creature, ICloneable, IEphemeral
                             {
                                 if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
                                 if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
-                                Target = ThreatInfo.HighestThreat;
-                                CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
-                                    ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                Target = target;
+                                CurrentPath = AStarPathFind(target.Location.X,
+                                    target.Location.Y, X, Y);
                             }
 
                             if (CurrentPath != null)
@@ -891,13 +1081,13 @@ public class Monster : Creature, ICloneable, IEphemeral
                                 // We have a path, check its validity
                                 // We recalculate our path if we're within five spaces of the target and they have moved
 
-                                if (Distance(ThreatInfo.HighestThreat) < 5 &&
-                                    CurrentPath.Target.X != ThreatInfo.HighestThreat.Location.X &&
-                                    CurrentPath.Target.Y != ThreatInfo.HighestThreat.Location.Y)
+                                if (Distance(target) < 5 &&
+                                    CurrentPath.Target.X != target.Location.X &&
+                                    CurrentPath.Target.Y != target.Location.Y)
                                 {
                                     GameLog.Info("Distance less than five and target moved, recalculating path");
-                                    CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
-                                        ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                    CurrentPath = AStarPathFind(target.Location.X,
+                                        target.Location.Y, X, Y);
                                 }
 
                                 if (Walk(AStarGetDirection()))
@@ -911,8 +1101,8 @@ public class Monster : Creature, ICloneable, IEphemeral
                                 else
                                 // Couldn't move, attempt to recalculate path
                                 {
-                                    CurrentPath = AStarPathFind(ThreatInfo.HighestThreat.Location.X,
-                                        ThreatInfo.HighestThreat.Location.Y, X, Y);
+                                    CurrentPath = AStarPathFind(target.Location.X,
+                                        target.Location.Y, X, Y);
                                 }
                             }
                             else
@@ -969,7 +1159,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0) Active = true;
 
-                if (IsHostile(user) && ThreatInfo.HighestThreat == null)
+                if (IsHostile(user))
                 {
                     ThreatInfo.OnRangeEnter(user);
                     ShouldWander = false;
