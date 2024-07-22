@@ -58,10 +58,10 @@ public class HybrasylMonster : HybrasylWorldObject
     /// <summary>
     /// Forcibly change the active target of the monster to the specified user.
     /// </summary>
-    /// <param name="invoker"><see cref="HybrasylUser"/> representing the target user.</param>
-    public void ChangeActiveTarget(HybrasylUser invoker)
+    /// <param name="target"><see cref="HybrasylUser"/> representing the target user.</param>
+    public void ChangeActiveTarget(HybrasylUser target)
     {
-        Monster.ThreatInfo.ForceThreatChange(invoker.User);
+        Monster.ThreatInfo.ForceThreatChange(target.User);
     }
 
     /// <summary>
