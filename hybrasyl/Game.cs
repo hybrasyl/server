@@ -155,7 +155,7 @@ public static class Game
     public static AssemblyInfo Assemblyinfo { get; set; }
 
     public static DateTime StartDate { get; set; }
-    public static string CommitLog { get; private set; }
+    public static string CommitLog { get; private set; } = "There was an error fetching commit log information from GitHub. Sorry.";
 
     public static ServerConfig ActiveConfiguration { get; set; }
     public static string WorldDataDirectory { get; set; }
@@ -276,9 +276,9 @@ public static class Game
         rootCommand.Invoke(args);
     }
 
-    public static void StartServer(string dataDir = null, string worldDir = null, string logDir = null,
-        string configName = null,
-        string redisHost = null, int? redisPort = null, int? redisDb = null, string redisPw = null)
+    public static void StartServer(string? dataDir = null, string? worldDir = null, string? logDir = null,
+        string? configName = null,
+        string? redisHost = null, int? redisPort = null, int? redisDb = null, string? redisPw = null)
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
@@ -286,10 +286,9 @@ public static class Game
 
         // Initialize OTel
 
-
         using var activity = ActivitySource.StartActivity("Startup");
-
         activity?.SetTag("host", Dns.GetHostName());
+
         // Gather our directories from env vars / command line switches
 
         var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
@@ -299,6 +298,7 @@ public static class Game
         var rHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? redisHost;
         var rawPort = Environment.GetEnvironmentVariable("REDIS_PORT");
         var rawDb = Environment.GetEnvironmentVariable("REDIS_DB");
+
         var rPort = string.IsNullOrWhiteSpace(rawPort)
             ? redisPort
             : Convert.ToInt32(rawPort);
@@ -712,18 +712,25 @@ public static class Game
         try
         {
             using var client = new HttpClient();
-            using var res = await client.GetAsync("https://www.hybrasyl.com/builds/latest.json");
-            using var content = res.Content;
+            client.DefaultRequestHeaders.Add("User-Agent", "hybrasyl-server-version-check");
+            using var releaseResponse = await client.GetAsync("https://api.github.com/repos/hybrasyl/server/releases/latest");
 
-            var data = await content.ReadAsStringAsync();
-            var jsonobj = JObject.Parse(data);
-            var theirhash = jsonobj["commit"].ToString().ToLower();
-            if (theirhash != Assemblyinfo.GitHash)
+            var lR = await releaseResponse.Content.ReadAsStringAsync();
+            var latestRelease = JObject.Parse(lR);
+            var latestTag = latestRelease["tag_name"].ToString();
+            var latestReleaseDate = DateTime.Parse(latestRelease["published_at"].ToString());
+
+            using var theirHashResponse =
+                await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/git/refs/tags/{latestTag}");
+
+            var theirHash = JObject.Parse(await theirHashResponse.Content.ReadAsStringAsync())["object"]["sha"]
+                .ToString().ToLower()[..8];
+
+            if (theirHash != Assemblyinfo.GitHash[..8])
             {
-                GameLog.Warning("THIS VERSION OF HYBRASYL IS OUT OF DATE");
-                GameLog.Warning(
-                    $"You have {Assemblyinfo.GitHash} but {theirhash} is available as of {jsonobj["build_date"]}");
-                GameLog.Warning("You can download the new version at https://www.hybrasyl.com/builds/ .");
+                GameLog.Warning("This version of Hybrasyl may be out of date!");
+                GameLog.Warning($"Latest release: {latestTag} - {theirHash}, released {latestReleaseDate} - ours is {Assemblyinfo.GitHash[..8]}");
+                GameLog.Warning($"You can download the newest version at https://github.com/hybrasyl/server/releases/tag/{latestTag}.");
             }
             else
             {
@@ -745,6 +752,7 @@ public static class Game
             return;
         }
 
+
         try
         {
             using var client = new HttpClient();
@@ -756,16 +764,13 @@ public static class Game
             var data = await content.ReadAsStringAsync();
             var jsonobj = JObject.Parse(data);
 
-            if (res.StatusCode == HttpStatusCode.OK)
+            if (res.StatusCode == System.Net.HttpStatusCode.OK)
                 CommitLog = jsonobj["commit"]["message"].ToString();
-            else
-                CommitLog = "There was an error fetching commit log information from Github. Sorry.";
         }
         catch (Exception e)
         {
             ReportException(e);
             GameLog.Error("Couldn't fetch version information from GitHub: {e}", e);
-            CommitLog = "There was an error fetching commit log information from Github. Sorry.";
         }
     }
 
@@ -790,9 +795,9 @@ public static class Game
     /// <returns>true/false indicating whether the sprite should trigger a collision.</returns>
     public static bool IsDoorCollision(ushort sprite)
     {
-        if (OpenDoorSprites.ContainsKey(sprite))
+        if (OpenDoorSprites.TryGetValue(sprite, out var doorSprite))
             return (Collisions[sprite - 1] & 0x0F) == 0x0F ||
-                   (Collisions[OpenDoorSprites[sprite] - 1] & 0x0F) == 0x0F;
+                   (Collisions[doorSprite - 1] & 0x0F) == 0x0F;
         return (Collisions[sprite - 1] & 0x0F) == 0x0F ||
                (Collisions[ClosedDoorSprites[sprite] - 1] & 0x0F) == 0x0F;
     }
@@ -800,9 +805,9 @@ public static class Game
 
 public static class Crypto
 {
-    public static string HashString(string value, string hashName)
+    public static string Md5HashString(string value)
     {
-        var algo = HashAlgorithm.Create(hashName);
+        var algo = MD5.Create();
         var buffer = Encoding.ASCII.GetBytes(value);
         var hash = algo.ComputeHash(buffer);
         return BitConverter.ToString(hash).Replace("-", string.Empty).ToLower();

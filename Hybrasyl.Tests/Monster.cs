@@ -231,6 +231,7 @@ public class Monsters
 
         Assert.NotNull(immunityTriggered);
         Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
         if (immunityTriggered.MessageType == MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
@@ -279,6 +280,7 @@ public class Monsters
 
         Assert.NotNull(immunityTriggered);
         Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
         if (immunityTriggered.MessageType == MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
@@ -383,6 +385,7 @@ public class Monsters
         var beforeStr = bait.Stats.Str;
         Assert.NotNull(immunityTriggered);
         Assert.Equal(beforeStr, bait.Stats.Str);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
 
         if (immunityTriggered.MessageType == MessageType.Shout)
