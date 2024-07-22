@@ -21,6 +21,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Statuses;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System.Globalization;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
@@ -47,16 +48,37 @@ public class HybrasylMonster : HybrasylWorldObject
 
     public WorldObject FirstHitter => Monster.FirstHitter;
     public WorldObject LastHitter => Monster.LastHitter;
-    public string LastHitTime => Monster.LastHitTime.ToString();
+    public string LastHitTime => Monster.LastHitTime.ToString(CultureInfo.CurrentCulture);
 
     /// <summary>
     ///     Access the StatInfo of the specified user directly (all stats).
     /// </summary>
     public StatInfo Stats => Monster.Stats;
 
-    public void ForceThreatChange(HybrasylUser invoker)
+    /// <summary>
+    /// Forcibly change the active target of the monster to the specified user.
+    /// </summary>
+    /// <param name="invoker"><see cref="HybrasylUser"/> representing the target user.</param>
+    public void ChangeActiveTarget(HybrasylUser invoker)
     {
         Monster.ThreatInfo.ForceThreatChange(invoker.User);
+    }
+
+    /// <summary>
+    /// Forcibly set a monster to be hostile.
+    /// </summary>
+    public void SetHostile()
+    {
+        Monster.Hostility ??= new CreatureHostilitySettings();
+        Monster.Hostility.Players ??= new CreatureHostility();
+    }
+
+    /// <summary>
+    /// Forcibly set a monster to be neutral (won't attack until attacked).
+    /// </summary>
+    public void SetNeutral()
+    {
+        Monster.Hostility = null;
     }
 
     /// <summary>
