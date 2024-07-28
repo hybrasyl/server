@@ -24,65 +24,9 @@ using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections;
-using System.Collections.Specialized;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.Subsystems.Scripting;
-
-/// <summary>
-///     A collection of dialog options that can be used by an options dialog (a dialog that displays a list of options for
-///     a player to select).
-/// </summary>
-[MoonSharpUserData]
-public class HybrasylDialogOptions
-{
-    public OrderedDictionary Options;
-
-    public HybrasylDialogOptions()
-    {
-        Options = new OrderedDictionary();
-    }
-
-    /// <summary>
-    ///     Add a dialog option which will fire a function when selected by a player.
-    /// </summary>
-    /// <param name="option">The option text</param>
-    /// <param name="luaExpr">The lua expression to be evaluated when the option is selected by a player</param>
-    public void AddOption(string option, string luaExpr = null)
-    {
-        if (string.IsNullOrEmpty(option) || string.IsNullOrEmpty(luaExpr))
-            GameLog.ScriptingError(
-                "AddOption: either option (first argument) or lua expression (second argument) was null or empty");
-        Options.Add(option, luaExpr);
-    }
-
-    /// <summary>
-    ///     Add a dialog option which will fire a JumpDialog when selected by a player.
-    /// </summary>
-    /// <param name="option">The option text</param>
-    /// <param name="nextDialog">The JumpDialog that will be used by this option</param>
-    public void AddOption(string option, HybrasylDialog nextDialog)
-    {
-        if (string.IsNullOrEmpty(option) || nextDialog is null)
-            GameLog.ScriptingError(
-                "AddOption: for options set, option (first argument) or dialog (second argument) was null or empty");
-        if (nextDialog.DialogType == typeof(JumpDialog))
-            Options.Add(option, nextDialog);
-        else
-            GameLog.ScriptingError(
-                $"AddOption: Dialog option {option}: dialog must be JumpDialog, but was a {nextDialog.DialogType.Name}, ignored");
-    }
-
-    /// <summary>
-    ///     Add a dialog option that will start a new sequence when selected by a player.
-    /// </summary>
-    /// <param name="option">The option text</param>
-    /// <param name="sequence">The DialogSequence that wil be started when the option is selected by a player</param>
-    public void AddOption(string option, HybrasylDialogSequence sequence)
-    {
-        Options.Add(option, sequence);
-    }
-}
 
 /// <summary>
 ///     The world, as represented in Lua.

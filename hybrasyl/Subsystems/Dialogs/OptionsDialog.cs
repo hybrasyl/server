@@ -16,53 +16,79 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Collections.Generic;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Subsystems.Scripting;
 using MoonSharp.Interpreter;
 using Serilog;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Subsystems.Dialogs;
 
-public class OptionsDialog : InputDialog
+public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS_DIALOG, displayText)
 {
-    public OptionsDialog(string displayText)
-        : base(DialogTypes.OPTIONS_DIALOG, displayText)
-    {
-        Options = new List<DialogOption>();
-    }
-
-    protected List<DialogOption> Options { get; }
+    protected List<DialogOption> Options { get; } = new();
     public int OptionCount => Options.Count;
 
     public override void ShowTo(DialogInvocation invocation)
     {
         var dialogPacket = GenerateBasePacket(invocation);
         if (Options.Count <= 0) return;
-        dialogPacket.WriteByte((byte) Options.Count);
-        foreach (var option in Options) dialogPacket.WriteString8(option.OptionText);
+
+        // Handle check expressions on individual options
+
+        var displayedOptions = Options.Where(x => RunCheckExpression(x, invocation)).ToList();
+        if (displayedOptions.Count <= 0) return;
+
+        dialogPacket.WriteByte((byte)displayedOptions.Count);
+        foreach (var option in displayedOptions)
+            dialogPacket.WriteString8(option.OptionText);
         invocation.Target.Enqueue(dialogPacket);
         RunCallback(invocation);
     }
 
-    public void AddDialogOption(string option, string callback = null)
+    public bool RunCheckExpression(DialogOption option, DialogInvocation invocation)
     {
-        Options.Add(new DialogOption(option, callback));
+        if (string.IsNullOrEmpty(option.CheckExpression)) return true;
+        var env = ScriptEnvironment.CreateWithTargetAndSource(invocation.Target, invocation.Source);
+        env.DialogPath = $"{invocation.Source.Name}:DisplayPursuits:MenuCheckExpression";
+        var ret = invocation.Script.ExecuteExpression(option.CheckExpression, env);
+        return !ret.Return.CastToBool() || ret.Return.CastToBool();
     }
 
-    public void AddDialogOption(string option, JumpDialog jumpTo)
+    public void AddDialogOption(string option, string callback = null, string checkExpression = null)
     {
-        Options.Add(new DialogOption(option, jumpTo));
+        Options.Add(new DialogOption
+        {
+            OptionText = option,
+            CallbackFunction = callback,
+            CheckExpression = checkExpression
+        });
     }
 
-    public void AddDialogOption(string option, DialogSequence sequence)
+    public void AddDialogOption(string option, JumpDialog jumpTo, string checkExpression = null)
     {
-        Options.Add(new DialogOption(option, sequence));
+        Options.Add(new DialogOption
+        {
+            OptionText = option,
+            JumpDialog = jumpTo,
+            CheckExpression = checkExpression,
+        });
+    }
+
+    public void AddDialogOption(string option, DialogSequence sequence, string checkExpression = null)
+    {
+        Options.Add(new DialogOption
+        {
+            OptionText = option,
+            OverrideSequence = sequence,
+            CheckExpression = checkExpression
+        });
     }
 
     public bool HandleResponse(int optionSelected, DialogInvocation invocation)
     {
-        var Expression = string.Empty;
+        var expression = string.Empty;
         // Quick sanity check
         if (optionSelected < 0 || optionSelected > Options.Count)
         {
@@ -91,9 +117,9 @@ public class OptionsDialog : InputDialog
 
         // If the individual options don't have callbacks, use the dialog callback instead.
         if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
-            Expression = Handler;
+            expression = Handler;
         else if (Options[optionSelected - 1].CallbackFunction != null)
-            Expression = Options[optionSelected - 1].CallbackFunction;
+            expression = Options[optionSelected - 1].CallbackFunction;
         // Regardless of what handler we use, make sure the script can see the value.
         // We pass everything as string to not make UserData barf, as it can't handle dynamics.
         // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.
@@ -101,7 +127,7 @@ public class OptionsDialog : InputDialog
         invocation.Environment.Add("player_selection", optionSelected.ToString());
         invocation.Environment.Add("player_response", Options[optionSelected - 1].OptionText);
         invocation.Environment.DialogPath = DialogPath;
-        LastScriptResult = invocation.ExecuteExpression(Expression);
+        LastScriptResult = invocation.ExecuteExpression(expression);
         return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
     }
 }
