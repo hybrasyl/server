@@ -56,35 +56,7 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
         return !ret.Return.CastToBool() || ret.Return.CastToBool();
     }
 
-    public void AddDialogOption(string option, string callback = null, string checkExpression = null)
-    {
-        Options.Add(new DialogOption
-        {
-            OptionText = option,
-            CallbackFunction = callback,
-            CheckExpression = checkExpression
-        });
-    }
-
-    public void AddDialogOption(string option, JumpDialog jumpTo, string checkExpression = null)
-    {
-        Options.Add(new DialogOption
-        {
-            OptionText = option,
-            JumpDialog = jumpTo,
-            CheckExpression = checkExpression,
-        });
-    }
-
-    public void AddDialogOption(string option, DialogSequence sequence, string checkExpression = null)
-    {
-        Options.Add(new DialogOption
-        {
-            OptionText = option,
-            OverrideSequence = sequence,
-            CheckExpression = checkExpression
-        });
-    }
+    public void AddDialogOption(DialogOption option) => Options.Add(option);
 
     public bool HandleResponse(int optionSelected, DialogInvocation invocation)
     {

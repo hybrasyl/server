@@ -227,10 +227,7 @@ public class HybrasylWorld
             return null;
         }
 
-        if (name == null)
-            sequence = new DialogSequence(Guid.NewGuid().ToString());
-        else
-            sequence = new DialogSequence(name);
+        sequence = name == null ? new DialogSequence(Guid.NewGuid().ToString()) : new DialogSequence(name);
 
         var dialog = new SimpleDialog(simpleDialog);
 
@@ -301,38 +298,23 @@ public class HybrasylWorld
 
         var dialog = new OptionsDialog(displayText);
         foreach (DictionaryEntry entry in dialogOptions.Options)
-            if (entry.Value is string)
-            // Callback
-            {
-                dialog.AddDialogOption(entry.Key as string, entry.Value as string);
-            }
-            else if (entry.Value is HybrasylDialog)
-            {
-                var hd = entry.Value as HybrasylDialog;
-                if (hd.DialogType == typeof(JumpDialog))
-                    // Dialog jump
-                    dialog.AddDialogOption(entry.Key as string, hd.Dialog as JumpDialog);
-                else
-                    GameLog.ScriptingError(
-                        "NewOptionsDialog: one or more passed option(s) uses type {type} - only jump dialogs are allowed currently",
-                        entry.Value.GetType().Name);
-            }
-            else if (entry.Value is null)
-            // This is JUST an option, with no callback or jump dialog. The dialog handler will process the option itself.
-            {
-                dialog.AddDialogOption(entry.Key as string);
-            }
-            else if (entry.Value is HybrasylDialogSequence)
-            {
-                var hds = entry.Value as HybrasylDialogSequence;
-                dialog.AddDialogOption(entry.Key as string, hds.Sequence);
-            }
-            else
+        {
+            if (entry.Value is null)
             {
                 GameLog.ScriptingError(
-                    "NewOptionsDialog: one or more passed option(s) was an unknown type {type} - this will not work",
-                    entry.Value.GetType().Name);
+                    $"NewOptionsDialog: expected DialogOption, but null was encountered");
+                return null;
             }
+
+            if (entry.Value is not DialogOption o)
+            {
+                GameLog.ScriptingError(
+                    $"NewOptionsDialog: expected DialogOption, but {entry.Value.GetType()} was encountered");
+                return null;
+            }
+            dialog.AddDialogOption(o);
+
+        }
 
         if (dialog.OptionCount == 0)
             GameLog.ScriptingError(
