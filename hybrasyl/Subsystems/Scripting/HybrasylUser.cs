@@ -16,9 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
@@ -27,6 +24,9 @@ using Hybrasyl.Statuses;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Subsystems.Scripting;
@@ -382,8 +382,7 @@ public class HybrasylUser : HybrasylWorldObject
                 legendtext = $"Wizard by oath of {oathGiver}";
                 break;
             default:
-                GameLog.ScriptingError("ChangeClass: {user} - unknown class (first argument) passed", User.Name);
-                throw new ArgumentException("Invalid class");
+                throw new ArgumentException($"{nameof(ChangeClass)}: newClass argument was invalid");
         }
 
         User.Legend.AddMark(icon, LegendColor.White, legendtext, "CLS");

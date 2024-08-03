@@ -170,7 +170,7 @@ public class HybrasylWorldObject : IScriptable
 
         if (Obj is not IEphemeral ephemeral) return;
         ephemeral.SetEphemeral(key, value);
-        GameLog.ScriptingInfo("{Function}: {Name}, stored key {Key} with value {Value}",
+        GameLog.ScriptingDebug("{Function}: {Name}, stored key {Key} with value {Value}",
             MethodBase.GetCurrentMethod().Name, Obj.Name, key, value);
     }
 
@@ -194,7 +194,7 @@ public class HybrasylWorldObject : IScriptable
 
         if (Obj is not IEphemeral ephemeral) return;
         ephemeral.SetEphemeral($"{user.ToLower()}:{key}", value);
-        GameLog.ScriptingInfo("{Function}: {Name}, stored scoped key {Key} with value {Value} for {user}",
+        GameLog.ScriptingDebug("{Function}: {Name}, stored scoped key {Key} with value {Value} for {user}",
             MethodBase.GetCurrentMethod().Name, Obj.Name, key, value, user);
     }
 
