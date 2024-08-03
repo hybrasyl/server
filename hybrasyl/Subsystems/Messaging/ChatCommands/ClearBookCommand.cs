@@ -23,7 +23,7 @@ namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 internal class ClearBookCommand : ChatCommand
 {
     public new static string Command = "clearbook";
-    public new static string ArgumentText = "";
+    public new static string ArgumentText = "none";
     public new static string HelpText = "Clear all skills and spells from your books.";
     public new static bool Privileged = true;
 
