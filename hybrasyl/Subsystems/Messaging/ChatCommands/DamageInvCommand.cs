@@ -21,19 +21,25 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class DamageInvCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "damageinv";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Damage the items in your inventory (useful for testing repair)";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var dura = string.Empty;
+        foreach (var item in user.Inventory)
+            if (item.Durability != 0)
+            {
+                item.Durability /= 2;
+                dura += $"{item.Name} -> {item.Durability} / {item.MaximumDurability}\n";
+            }
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
+        user.SendInventory();
 
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Success(dura, (byte) MessageType.SlateScrollbar);
+    }
 }

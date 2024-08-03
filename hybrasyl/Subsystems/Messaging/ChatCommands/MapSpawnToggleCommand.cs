@@ -16,24 +16,21 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class MapSpawnToggleCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "mapspawntoggle";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Toggle spawning for the current map.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        user.Map.SpawningDisabled = !user.Map.SpawningDisabled;
+        var str = user.Map.SpawningDisabled ? "on" : "off";
+        return Success($"Spawning on {user.Map.Name}: {str}");
+    }
 }

@@ -16,24 +16,25 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class ClearFlagsCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "clearflags";
+    public new static string ArgumentText = "<string username>";
+    public new static string HelpText = "Clear player flags for a specified user.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (Game.World.TryGetActiveUser(args[0], out var target))
+        {
+            target.Condition.ClearFlags();
+            return Success($"{target.Name}: Alive, all flags cleared");
+        }
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Fail($"{args[1]} is not online");
+    }
 }

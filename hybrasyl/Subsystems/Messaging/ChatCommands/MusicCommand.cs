@@ -16,24 +16,27 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class MusicCommand : ChatCommand
+
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "music";
+    public new static string ArgumentText = "<byte music>";
+    public new static string HelpText = "Plays the specified background music.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (byte.TryParse(args[0], out var track))
+        {
+            user.Map.Music = track;
+            foreach (var mapuser in user.Map.Users.Values) mapuser.SendMusic(track);
+            return Success($"Music track changed to {track} for all users on {user.Map.Name}.");
+        }
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Fail("The value you specified could not be parsed (byte)");
+    }
 }

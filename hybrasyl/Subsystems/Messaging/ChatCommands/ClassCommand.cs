@@ -16,24 +16,26 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
+using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class ClassCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "class";
+    public new static string ArgumentText = "<string class>";
+    public new static string HelpText = "Change your class to the one specified.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var cls = args[0].ToLower().Capitalize();
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        var classId = Game.ActiveConfiguration.GetClassId(cls);
+        if (classId == 254) return Fail("I know nothing about that class");
+        user.Class = (Class) classId;
+        return Success($"Class changed to {cls}");
+    }
 }

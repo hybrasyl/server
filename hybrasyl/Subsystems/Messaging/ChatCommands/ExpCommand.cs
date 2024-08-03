@@ -16,24 +16,22 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class ExpCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "exp";
+    public new static string ArgumentText = "<uint experience>";
+    public new static string HelpText = "Award yourself a given amount of experience.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (!uint.TryParse(args[0], out var amount))
+            return Fail("The value you specified could not be parsed (uint)");
+        user.ShareExperience(amount, user.Stats.Level);
+        return Success($"{user.Name} - awarded {amount} XP.");
+    }
 }

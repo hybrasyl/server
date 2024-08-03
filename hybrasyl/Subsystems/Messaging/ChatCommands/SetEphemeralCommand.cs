@@ -16,24 +16,26 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class SetEphemeralCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "setephemeral";
+    public new static string ArgumentText = "<string mundane> <string key> <string value>";
+    public new static string HelpText = "Set a given ephemeral store value for a specified mundane";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (Game.World.WorldState.TryGetValue(args[0], out Merchant merchant))
+        {
+            (merchant as IEphemeral).SetEphemeral(args[1], args[2]);
+            return Success($"{merchant.Name}: {args[1]} set to {args[2]}");
+        }
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Fail($"NPC {args[0]} not found.");
+    }
 }

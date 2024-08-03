@@ -18,22 +18,19 @@
 
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Servers;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class QueuedepthCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "queuedepth";
+    public new static string ArgumentText = "None";
+    public new static string HelpText = "Display current queue depths.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Success(
+            $"Packet Queue Depth: {World.MessageQueue.Count}\n\nControl Message Queue Depth: {World.ControlMessageQueue.Count}",
+            MessageTypes.SLATE_WITH_SCROLLBAR);
 }

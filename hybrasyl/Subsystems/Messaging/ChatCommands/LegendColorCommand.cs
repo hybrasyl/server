@@ -21,19 +21,17 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class LegendColorCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "legendcolors";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Adds a legend mark for each color code to your legend.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        for (var i = 0; i < 256; i++)
+            user.Legend.AddMark(LegendIcon.Community, (LegendColor) i, $"This is color {i}.", $"COLOR{i}");
+        return Success("View the colors.");
+    }
 }

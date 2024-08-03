@@ -21,19 +21,22 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class BaseMpCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "basemp";
+    public new static string ArgumentText = "<uint mp>";
+    public new static string HelpText = "Set base HP to the specified uint value.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (uint.TryParse(args[0], out var mp))
+        {
+            user.Stats.BaseMp = mp;
+            user.UpdateAttributes(StatUpdateFlags.Full);
+            return Success($"Base MP now {mp}");
+        }
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Fail("The value you specified could not be parsed (uint)");
+    }
 }

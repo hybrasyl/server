@@ -16,12 +16,12 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Objects;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using XmlBook = Hybrasyl.Xml.Objects.Book;
 
 namespace Hybrasyl.Casting;
@@ -86,7 +86,10 @@ public class Book : IEnumerable<BookSlot>
     {
         for (var i = 0; i < Size; ++i)
             if (_items[i] != null)
+            {
+                _items[i].Slot = i;
                 yield return _items[i];
+            }
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

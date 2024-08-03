@@ -17,23 +17,23 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Enums;
+using Hybrasyl.Networking;
 using Hybrasyl.Objects;
+using Hybrasyl.Servers;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class AnnounceClassCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "announceclass";
+    public new static string ArgumentText = "<string subject>";
+    public new static string HelpText = "Announce a class for the specified subject";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.GlobalMessage,
+            $"{user.Name} will be giving a {char.ToUpper(args[0][0])}{args[0][1..]} class at Loures College."));
+        return Success();
+    }
 }

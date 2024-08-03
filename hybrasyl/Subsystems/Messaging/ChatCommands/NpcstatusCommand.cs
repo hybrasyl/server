@@ -21,19 +21,15 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class NpcstatusCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "npcstatus";
+    public new static string ArgumentText = "<string npcname>";
+    public new static string HelpText = "Display detailed debugging info for the given NPC";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Game.World.WorldState.TryGetValue(args[0], out Merchant merchant)
+            ? Success(merchant.Status(), (byte) MessageType.SlateScrollbar)
+            : Fail($"NPC {args[0]} not found.");
 }

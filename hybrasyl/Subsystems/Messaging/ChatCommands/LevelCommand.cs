@@ -21,19 +21,21 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class LevelCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "level";
+    public new static string ArgumentText = "<byte level>";
+    public new static string HelpText = "Change your level to the one specified.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (!byte.TryParse(args[0], out var newLevel))
+            return Fail("The value you specified could not be parsed (byte)");
+        user.Stats.Level = newLevel > Game.ActiveConfiguration.Constants.PlayerMaxLevel
+            ? (byte) Game.ActiveConfiguration.Constants.PlayerMaxLevel
+            : newLevel;
+        user.UpdateAttributes(StatUpdateFlags.Full);
+        return Success($"Level changed to {newLevel}");
+    }
 }

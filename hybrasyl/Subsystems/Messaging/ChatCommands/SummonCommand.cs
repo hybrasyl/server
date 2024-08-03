@@ -16,24 +16,28 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class SummonCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "summon";
+    public new static string ArgumentText = "<string playerName>";
+    public new static string HelpText = "Summon a specified player to you";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (Game.World.TryGetActiveUser(args[0], out var target))
+        {
+            if (target.AuthInfo.IsExempt)
+                return Fail($"User {target.Name} is exempt from your meddling.");
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
+            target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
+            return Success($"User {target.Name} has been summoned.");
+        }
 
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Fail($"User {args[0]} not logged in");
+    }
 }

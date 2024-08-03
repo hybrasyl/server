@@ -16,32 +16,19 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Xml.Objects;
-using System;
+using Hybrasyl.Objects;
 
-namespace Hybrasyl.Casting;
+namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public class BookSlot
+internal class DeleteLegendCommand : ChatCommand
 {
-    public Castable Castable { get; set; }
-    public uint UseCount { get; set; }
-    public uint MasteryLevel { get; set; }
-    public DateTime LastCast { get; set; }
-    public int Slot { get; set; }
+    public new static string Command = "deletelegend";
+    public new static string ArgumentText = "<string prefix>";
+    public new static string HelpText = "Delete a legend with the specified prefix from your legend.";
+    public new static bool Privileged = true;
 
-    public bool OnCooldown => Castable.Cooldown > 0 &&
-                              (DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown;
-
-    public bool HasBeenUsed => LastCast != default;
-    public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
-
-    public void TriggerCooldown()
-    {
-        LastCast = DateTime.Now;
-    }
-
-    public void ClearCooldown()
-    {
-        LastCast = DateTime.MinValue;
-    }
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        user.Legend.RemoveMark(args[0])
+            ? Success($"{args[0]}: legend mark removed.")
+            : Fail($"{args[0]}: legend mark removal failed (prefix may not exist?)");
 }

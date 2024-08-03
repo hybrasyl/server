@@ -16,24 +16,28 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System.Linq;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class ListMobCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "listmob";
+    public new static string ArgumentText = "None";
+    public new static string HelpText = "List all mobs on the current map.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var moblist = string.Format("{0,25}", "Name") + " " + string.Format("{0,40}", "Details") + "\n";
+        foreach (var mob in user.Map.Objects.Where(predicate: x => x is Monster).Select(selector: y => y as Monster))
+        {
+            var mobdetails = $"({mob.X},{mob.Y}) {mob.Stats}";
+            moblist += string.Format("{0,25}", "Name") + " " + string.Format("{0,40}", mobdetails) + "\n";
+        }
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        return Success(moblist, MessageTypes.SLATE_WITH_SCROLLBAR);
+    }
 }

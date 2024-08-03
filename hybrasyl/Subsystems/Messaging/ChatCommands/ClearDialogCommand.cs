@@ -16,24 +16,28 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class ClearDialogCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "cleardialog";
+    public new static string ArgumentText = "<string username>";
+    public new static string HelpText = "Completely clear the dialog state for a given user.";
+    public new static bool Privileged = true;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        if (!Game.World.WorldState.ContainsKey<User>(args[0]))
+            return Fail($"User {args[0]} not logged in");
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
+        var target = Game.World.WorldState.Get<User>(args[0]);
 
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        if (target.AuthInfo.IsExempt)
+            return Fail($"User {target.Name} is exempt from your meddling.");
+        target.ClearDialogState();
+
+        return Success($"User {target.Name}: dialog state cleared.");
+    }
 }

@@ -16,24 +16,27 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Internals.Enums;
+using System;
 using Hybrasyl.Objects;
+using Hybrasyl.Xml.Objects;
+using MessageType = Hybrasyl.Internals.Enums.MessageType;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class ResistancesCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "resistances";
+    public new static string ArgumentText = "";
+    public new static string HelpText = "Display current elemental resistances.";
+    public new static bool Privileged = false;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        var str = "Resistances\n-----------\n";
+        foreach (var element in Enum.GetValues<ElementType>())
+            str += $"{element} {user.Stats.ElementalModifiers.GetResistance(element)}\n";
 
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+        user.SendMessage(str, MessageType.SlateScrollbar);
+        return Success();
+    }
 }

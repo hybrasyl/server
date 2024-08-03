@@ -21,19 +21,15 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class VersionCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "version";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Displays the current version of the running server.";
+    public new static bool Privileged = false;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args) =>
+        Success(
+            $"Hybrasyl {Game.Assemblyinfo.Version}\n\nRunning commit {Game.Assemblyinfo.GitHash}:\n\n{Game.CommitLog}\n\n(C) 2020 ERISCO, LLC",
+            MessageTypes.SLATE_WITH_SCROLLBAR);
 }

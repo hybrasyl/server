@@ -16,32 +16,14 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Xml.Objects;
 using System;
+using System.Text.RegularExpressions;
+using Hybrasyl.Objects;
 
-namespace Hybrasyl.Casting;
+namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public class BookSlot
+public class EvalSubcommand
 {
-    public Castable Castable { get; set; }
-    public uint UseCount { get; set; }
-    public uint MasteryLevel { get; set; }
-    public DateTime LastCast { get; set; }
-    public int Slot { get; set; }
-
-    public bool OnCooldown => Castable.Cooldown > 0 &&
-                              (DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown;
-
-    public bool HasBeenUsed => LastCast != default;
-    public double SecondsSinceLastUse => (DateTime.Now - LastCast).TotalSeconds;
-
-    public void TriggerCooldown()
-    {
-        LastCast = DateTime.Now;
-    }
-
-    public void ClearCooldown()
-    {
-        LastCast = DateTime.MinValue;
-    }
+    public Func<User, Match, CommandResult> Delegate;
+    public string UsageText;
 }

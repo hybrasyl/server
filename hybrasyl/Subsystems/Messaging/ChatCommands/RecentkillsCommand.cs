@@ -16,24 +16,23 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System.Linq;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public abstract class ChatCommand
+internal class RecentkillsCommand : ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
-    public bool Privileged { get; }
-    public int ArgumentCount { get; }
+    public new static string Command = "recentkills";
+    public new static string ArgumentText = "none";
+    public new static string HelpText = "Displays your last 25 (monster) kills, along with timestamps.";
+    public new static bool Privileged = false;
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
-        new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
-
-    public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()
-        { Success = false, Message = ErrorMessage, MessageType = MessageType };
-
-    public static ChatCommandResult Run(User user, params string[] args) => Success();
+    public new static ChatCommandResult Run(User user, params string[] args)
+    {
+        return Success(
+            $"Kill List\n---------\n\n{string.Join("", user.RecentKills.Select(selector: x => $"{x.Name} - {x.Timestamp}\n").ToList())}",
+            MessageTypes.SLATE_WITH_SCROLLBAR);
+    }
 }
