@@ -27,7 +27,7 @@ public class BookSlot
     public uint UseCount { get; set; }
     public uint MasteryLevel { get; set; }
     public DateTime LastCast { get; set; }
-    public int Slot { get; set; }
+    public int ClientSlot { get; set; }
 
     public bool OnCooldown => Castable.Cooldown > 0 &&
                               (DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown;

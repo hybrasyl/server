@@ -87,7 +87,7 @@ public class Book : IEnumerable<BookSlot>
         for (var i = 0; i < Size; ++i)
             if (_items[i] != null)
             {
-                _items[i].Slot = i;
+                _items[i].ClientSlot = i + 1;
                 yield return _items[i];
             }
     }

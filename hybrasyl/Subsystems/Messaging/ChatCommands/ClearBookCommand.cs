@@ -31,10 +31,10 @@ internal class ClearBookCommand : ChatCommand
     {
         // of course because of the client we need to do this in a teeth-grindingly stupid way
         foreach (var x in user.SpellBook)
-            user.SendClearSpell(x.Slot);
+            user.SendClearSpell(x.ClientSlot);
 
         foreach (var y in user.SkillBook)
-            user.SendClearSkill(y.Slot);
+            user.SendClearSkill(y.ClientSlot);
 
         user.SpellBook.Clear();
         user.SkillBook.Clear();
