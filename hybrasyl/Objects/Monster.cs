@@ -49,12 +49,11 @@ public class Monster : Creature, ICloneable, IEphemeral
     private readonly object _lock = new();
     private bool _idle = true;
     private Guid _target = Guid.Empty;
-
-
     public int ActionDelay = 800;
     public byte AssailSound;
     public Tile CurrentPath;
-    public (int X, int Y) Destination;
+    public LocationInfo SpawnPoint { get; set; }
+    public LocationInfo Destination { get; set; }
     public HashSet<Guid> HitByUsers = new();
     public Loot Loot;
     public SpawnFlags SpawnFlags;
@@ -152,6 +151,19 @@ public class Monster : Creature, ICloneable, IEphemeral
             }
         }
     }
+
+    public LocationInfo RandomDestination => new()
+    {
+        X = (byte) Math.Clamp(X + Random.Shared.Next(
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
+            byte.MaxValue),
+        Y = (byte) Math.Clamp(X + Random.Shared.Next(
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
+            byte.MaxValue),
+        MapId = Map.Id
+    };
 
     public double ActiveSeconds
     {
@@ -913,6 +925,12 @@ public class Monster : Creature, ICloneable, IEphemeral
             {
                 _actionQueue.Enqueue(MobAction.Attack);
             }
+            else if (target.Map != null && target.Map.Id != Map.Id || 
+                     Distance(target) > Math.Floor(Game.ActiveConfiguration.Constants.ViewportSize * 0.75))
+            {
+                ShouldWander = true;
+                _actionQueue.Enqueue(MobAction.Move);
+            }
             else
             {
                 next = Random.Shared.Next(1, 3); //cast or move
@@ -921,6 +939,7 @@ public class Monster : Creature, ICloneable, IEphemeral
         }
         else
         {
+            ShouldWander = true;
             _actionQueue.Enqueue(MobAction.Move);
         }
     }
@@ -932,6 +951,7 @@ public class Monster : Creature, ICloneable, IEphemeral
             _actionQueue.TryDequeue(out var action);
             List<Creature> targets = new();
             var nextCastable = CastableController.GetNextCastable();
+            Direction dir;
 
             GameLog.SpawnDebug($"ActionQueue: {action}");
             switch (action)
@@ -941,7 +961,7 @@ public class Monster : Creature, ICloneable, IEphemeral
                     var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? Target;
                     if (fleeFrom != null)
                     {
-                        var dir = Relation(fleeFrom.X, fleeFrom.Y);
+                        dir = Relation(fleeFrom.X, fleeFrom.Y);
                         if (Direction != Opposite(dir))
                             Turn(Opposite(dir));
                         if (Walk(Direction))
@@ -1015,40 +1035,62 @@ public class Monster : Creature, ICloneable, IEphemeral
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
                     return;
-                case MobAction.Move when ShouldWander || Condition.Blinded:
+                case MobAction.Move when Condition.Blinded:
+
+                    var rand = Random.Shared.NextDouble();
+                    dir = (Direction)Random.Shared.Next(0, 4);
+                    if (rand > 0.33)
                     {
-                        if (!Condition.Blinded)
-                        {
-                            var target = ThreatInfo
-                                .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
-                                .FirstOrDefault();
-                            if (target != null)
+                        if (Direction == (Direction)dir)
+                            if (!Walk(Direction))
                             {
-                                ShouldWander = false;
-                                return;
+                                Turn(Opposite(Direction));
+                                Walk(Opposite(Direction));
                             }
+                            else
+                            {
+                                Turn((Direction)dir);
+                            }
+                    }
+                    else
+                    {
+                        Walk(Direction);
+                    }
+                    break;
+                case MobAction.Move when ShouldWander:
+                    {
+                        var target = ThreatInfo
+                            .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
+                            .FirstOrDefault();
+
+                        if (target != null)
+                        {
+                            ShouldWander = false;
+                            return;
                         }
 
-                        var rand = Random.Shared.NextDouble();
-                        var dir = Random.Shared.Next(0, 4);
-                        if (rand > 0.33)
-                        {
-                            if (Direction == (Direction)dir)
-                                if (!Walk(Direction))
-                                {
-                                    Turn(Opposite(Direction));
-                                    Walk(Opposite(Direction));
-                                }
-                                else
-                                {
-                                    Turn((Direction)dir);
-                                }
-                        }
+                        // Make sure mob is on a map, and the right map at that (we don't support mobs wandering between maps yet)
+                        if (SpawnPoint == null || SpawnPoint.MapId != Map.Id)
+                            return;
+
+                        // Wander up to 0.75 * ViewportSize away from spawnpoint. 
+                        // If > that distance, return home. 
+                        // Otherwise, pick a random destination and move there.
+                        if (Distance(SpawnPoint.X, SpawnPoint.Y) >
+                            (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.75))
+                            Destination = SpawnPoint;
+
+                        if (Destination == null || Destination != SpawnPoint || (SpawnPoint.X == X && SpawnPoint.Y == Y))
+                            Destination = RandomDestination;
+
+                        CurrentPath = AStarPathFind(Destination.X, Destination.Y, X, Y);
+
+                        if (Walk(AStarGetDirection()))
+                            CurrentPath = CurrentPath.Parent;
                         else
-                        {
-                            Walk(Direction);
-                        }
-
+                            // Couldn't move, attempt to recalculate path
+                            CurrentPath = AStarPathFind(Destination.X,
+                                Destination.Y, X, Y);
                         break;
                     }
                 case MobAction.Move:

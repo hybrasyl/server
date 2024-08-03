@@ -316,6 +316,8 @@ public class MapObject : IStateStorable
     {
         World.Insert(toInsert);
         Insert(toInsert, toInsert.X, toInsert.Y);
+        if (toInsert is Monster m)
+            m.SpawnPoint = new LocationInfo { Map = this, X = toInsert.X, Y = toInsert.Y };
         GameLog.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
     }
 

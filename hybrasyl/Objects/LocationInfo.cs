@@ -18,11 +18,12 @@
 
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
+using System;
 
 namespace Hybrasyl.Objects;
 
 [JsonObject(MemberSerialization.OptIn)]
-public class LocationInfo
+public class LocationInfo : IEquatable<LocationInfo>
 {
     private MapObject _map { get; set; }
     private MapObject _deathmap { get; set; }
@@ -54,11 +55,7 @@ public class LocationInfo
     [JsonProperty]
     public ushort MapId
     {
-        get
-        {
-            if (Map != null) return Map.Id;
-            return _mapId;
-        }
+        get => Map?.Id ?? _mapId;
         set
         {
             if (Game.World.WorldState.TryGetValue(value, out MapObject map))
@@ -72,11 +69,7 @@ public class LocationInfo
     [JsonProperty]
     public ushort DeathMapId
     {
-        get
-        {
-            if (DeathMap != null) return DeathMap.Id;
-            return _deathmapId;
-        }
+        get => DeathMap?.Id ?? _deathmapId;
         set
         {
             if (Game.World.WorldState.TryGetValue(value, out MapObject map))
@@ -96,4 +89,25 @@ public class LocationInfo
     [JsonProperty] public byte DeathMapX { get; set; }
 
     [JsonProperty] public byte DeathMapY { get; set; }
+
+    public override bool Equals(object obj) => Equals(obj as LocationInfo);
+    public override int GetHashCode() => (X, Y, MapId).GetHashCode();
+
+    public bool Equals(LocationInfo locationInfo)
+    {
+        if (locationInfo == null) return false;
+        if (ReferenceEquals(locationInfo, this)) return true;
+        if (GetType() != locationInfo.GetType()) return false;
+        return X == locationInfo.X && Y == locationInfo.Y && MapId.Equals(locationInfo.MapId);
+    }
+
+    public static bool operator ==(LocationInfo left, LocationInfo right)
+    {
+        if (left is null)
+            return right is null;
+
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(LocationInfo left, LocationInfo right) => !(left == right);
 }
