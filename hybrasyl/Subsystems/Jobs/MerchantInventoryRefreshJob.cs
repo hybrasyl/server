@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Logging;
+using Hybrasyl.Objects;
 using System;
 using System.Linq;
 using System.Timers;
-using Hybrasyl.Internals.Logging;
-using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Jobs;
 

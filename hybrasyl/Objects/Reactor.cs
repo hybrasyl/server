@@ -31,9 +31,8 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
 
-public class Reactor : VisibleObject, IPursuitable
+public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
 {
-    private bool _ready;
     public bool Blocking;
     public CreatureSnapshot Caster;
     public string Description;
@@ -108,16 +107,7 @@ public class Reactor : VisibleObject, IPursuitable
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
     public bool OnTakeCapable => Ready && !Expired && Script.HasFunction("OnTake");
 
-    public bool Ready
-    {
-        get
-        {
-            if (!_ready)
-                OnSpawn();
-            return _ready;
-        }
-        set => _ready = value;
-    }
+    public bool Ready { get; set; } = false;
 
     public bool Expired => Uses != -1 && (Expiration < DateTime.Now || Uses == 0);
 
@@ -125,8 +115,8 @@ public class Reactor : VisibleObject, IPursuitable
     public List<DialogSequence> Pursuits { get; set; } = new();
     public Dictionary<string, string> Strings { get; set; } = new();
     public Dictionary<string, string> Responses { get; set; } = new();
-    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
-    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
+    public List<DialogSequence> DialogSequences { get; set; } = new();
+    public Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
     public override void ShowTo(IVisible obj)
     {
@@ -161,6 +151,7 @@ public class Reactor : VisibleObject, IPursuitable
     {
         CreatedAt = DateTime.Now;
         Expiration = DateTime.MaxValue;
+        Name = $"{Map.Name}@{X},{Y}";
         if (ExpirationSeconds <= 0) return;
         Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
         Task.Run(OnExpiration);
@@ -193,26 +184,39 @@ public class Reactor : VisibleObject, IPursuitable
     public void OnSpawn()
     {
         if (Expired) return;
+
+        if (string.IsNullOrWhiteSpace(ScriptName))
+        {
+            Ready = true;
+            return;
+        }
+
         if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out var myScript))
         {
             Script = myScript;
-            Script.AssociateScriptWithObject(this);
-            _ready = Script.Run(false).Result == ScriptResult.Success;
+            World.ScriptProcessor.RegisterScriptAttachment(myScript, this);
         }
         else
         {
             GameLog.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
+            return;
         }
 
-        // Now run our actual OnSpawn function
-        if (_ready)
-            Script.ExecuteFunction("OnSpawn");
+        if (Script.HasFunction("OnSpawn"))
+        {
+            // Now run our actual OnSpawn function
+            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
+            if (ret.Result == ScriptResult.Success)
+                Ready = true;
+        }
+        else
+            Ready = true;
     }
 
     public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
         ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
 
-    public virtual void OnEntry(VisibleObject obj)
+    public void OnEntry(VisibleObject obj)
     {
         if (Expired) return;
         if (obj is User user)
@@ -236,7 +240,7 @@ public class Reactor : VisibleObject, IPursuitable
         Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 
-    public virtual void OnLeave(VisibleObject obj)
+    public void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
@@ -259,7 +263,7 @@ public class Reactor : VisibleObject, IPursuitable
         }
     }
 
-    public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
+    public void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
         if (!Ready) return;

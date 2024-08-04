@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Humanizer;
 using Hybrasyl.Casting;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals;
@@ -47,6 +48,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,12 +67,12 @@ public class World : Server
     private static uint worldObjectId;
     private static uint asyncSessionId;
 
-    public static BlockingCollection<HybrasylMessage> MessageQueue;
-    public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
+    public static BlockingCollection<HybrasylMessage> MessageQueue = new();
+    public static BlockingCollection<HybrasylMessage> ControlMessageQueue = new();
 
     private static Lazy<ConnectionMultiplexer> _lazyConnector;
 
-    public static ChatCommandHandler CommandHandler;
+    public static ChatCommandHandler CommandHandler = new();
 
     private readonly object _lock = new();
     private readonly object asyncLock = new();
@@ -80,17 +82,16 @@ public class World : Server
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-
     public World(int port, bool isDefault = false) : base(port, isDefault)
     {
-        InitializeWorld();
+        ScriptProcessor = new ScriptProcessor(this);
     }
 
     public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale,
         bool adminEnabled = false, bool isDefault = false)
         : base(port, isDefault)
     {
-        InitializeWorld();
+        ScriptProcessor = new ScriptProcessor(this);
         WorldData = dataManager;
 
         var datastoreConfig = new ConfigurationOptions
@@ -112,18 +113,19 @@ public class World : Server
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));
         Locale = locale;
+
     }
 
     public static DateTime StartDate => Game.ActiveConfiguration.Time != null
         ? Game.ActiveConfiguration.Time.ServerStart.Value
         : Game.StartDate;
 
-    public Dictionary<uint, WorldObject> Objects { get; set; }
+    public Dictionary<uint, WorldObject> Objects { get; set; } = new();
 
-    public Dictionary<string, string> Portraits { get; set; }
+    public Dictionary<string, string> Portraits { get; set; } = new();
     public string Locale { get; set; }
     public Localization Localizations => WorldData.Get<Localization>(Locale);
-    public WorldStateStore WorldState { set; get; }
+    public WorldStateStore WorldState { set; get; } = new();
     public IWorldDataManager WorldData { get; set; }
 
     public Nation DefaultNation
@@ -135,7 +137,7 @@ public class World : Server
         }
     }
 
-    public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
+    public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; } = new();
 
     public ScriptProcessor ScriptProcessor { get; set; }
 
@@ -168,22 +170,6 @@ public class World : Server
         RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 50, 0, 0));         //Item
     }
 
-
-    private void InitializeWorld()
-    {
-        Objects = new Dictionary<uint, WorldObject>();
-        Portraits = new Dictionary<string, string>();
-
-        GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
-
-        ScriptProcessor = new ScriptProcessor(this);
-        MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-        ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-
-        WorldState = new WorldStateStore();
-        CommandHandler = new ChatCommandHandler();
-    }
-
     /// <summary>
     ///     Check to see if Redis migrations are run for the current data set.
     /// </summary>
@@ -191,7 +177,7 @@ public class World : Server
         // Removed until migrations are redone in C# / needed again
         true;
 
-    public bool InitWorld()
+    public bool Init()
     {
         try
         {
@@ -219,7 +205,6 @@ public class World : Server
         SetMerchantMenuHandlers();
         RegisterWorldThrottles();
         LoadPlugins();
-        GameLog.InfoFormat("Hybrasyl server ready");
         return true;
     }
 
@@ -863,8 +848,7 @@ public class World : Server
             Script itemscript;
             if (Game.World.ScriptProcessor.TryGetScript(i.Name, out itemscript))
             {
-                var clone = itemscript.Clone();
-                itemscript.AssociateScriptWithObject(obj);
+                var clone = itemscript;
             }
         }
 
@@ -1111,35 +1095,49 @@ public class World : Server
     public void StartTimers()
     {
         var jobList =
-            Assembly.GetExecutingAssembly().GetTypes().ToList().Where(predicate: t => t.Namespace == "Hybrasyl.Subsystems.Jobs")
+            Assembly.GetExecutingAssembly().GetTypes().Where(predicate: t => t.Namespace == "Hybrasyl.Subsystems.Jobs")
                 .ToList();
 
         foreach (var jobClass in jobList)
-        {
+        { 
             var executeMethod = jobClass.GetMethod("Execute");
+            
+            var attr = Attribute.GetCustomAttribute(jobClass, typeof(CompilerGeneratedAttribute));
+
+            if (attr != null)
+                continue;
+
             if (executeMethod != null)
             {
                 var aTimer = new Timer();
                 aTimer.Elapsed +=
                     (ElapsedEventHandler)Delegate.CreateDelegate(typeof(ElapsedEventHandler), executeMethod);
                 // Interval is set to whatever is in the class
-                var interval = jobClass.GetField("Interval").GetValue(null);
+                var intervalField = jobClass.GetField("Interval");
+
+                if (intervalField == null)
+                {
+                    GameLog.ErrorFormat($"Job class {jobClass} has no Interval defined! Job will not be scheduled.");
+                    continue;
+                }
+
+                var interval = intervalField.GetValue(null);
 
                 if (interval == null)
                 {
-                    GameLog.ErrorFormat("Job class {0} has no Interval defined! Job will not be scheduled.");
+                    GameLog.ErrorFormat($"Job class {jobClass} Interval is null! Job will not be scheduled.");
                     continue;
                 }
 
                 aTimer.Interval = (int)interval * 1000; // Interval is in ms; interval in Job classes is s
 
-                GameLog.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, aTimer.Interval);
+                GameLog.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, TimeSpan.FromMilliseconds(aTimer.Interval).Humanize());
                 aTimer.Enabled = true;
                 aTimer.Start();
             }
             else
             {
-                GameLog.ErrorFormat("Job class {0} has no Execute method! Job will not be scheduled.", jobClass.Name);
+                GameLog.ErrorFormat($"Job class {jobClass} has no Execute method! Job will not be scheduled.");
             }
         }
     }

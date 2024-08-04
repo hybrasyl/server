@@ -471,8 +471,6 @@ public static class Game
         Trace.Listeners.RemoveAt(0);
 
         Log.Information("Hybrasyl: server start");
-        Log.Information("Welcome to Project Hybrasyl: this is Hybrasyl server {0}\n\n", Assemblyinfo.Version);
-
         Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash}) starting.");
         Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.",
             Assemblyinfo.Copyright);
@@ -510,7 +508,7 @@ public static class Game
         _monolith = new Monolith();
         _monolithControl = new MonolithControl();
 
-        if (!World.InitWorld())
+        if (!World.Init())
         {
             activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(

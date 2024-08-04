@@ -343,6 +343,6 @@ public class HybrasylWorld
         spawn.Y = y;
         spawn.Name = displayName ?? name;
 
-        map.InsertCreature(spawn);
+        map.InsertMonster(spawn);
     }
 }

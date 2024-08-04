@@ -43,7 +43,7 @@ public enum MobAction
     Flee
 }
 
-public class Monster : Creature, ICloneable, IEphemeral
+public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 {
     private readonly ConcurrentQueue<MobAction> _actionQueue;
     private readonly object _lock = new();
@@ -251,6 +251,29 @@ public class Monster : Creature, ICloneable, IEphemeral
         }
     }
 
+    public void OnSpawn()
+    {
+        if (Stats.Hp == 0) return;
+
+        if (Game.World.ScriptProcessor.TryGetScript(Name, out var damageScript))
+        {
+            Script = damageScript;
+            ScriptExists = true;
+        }
+        else
+        {
+            ScriptExists = false;
+            return;
+        }
+        
+        World.ScriptProcessor.RegisterScriptAttachment(damageScript, this);
+        if (!Script.HasFunction("OnSpawn"))
+            return;
+
+        Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
+    }
+
+
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
         Creature attacker = null, Castable castable = null, bool onDeath = true)
@@ -443,33 +466,11 @@ public class Monster : Creature, ICloneable, IEphemeral
 
             Game.World.RemoveStatusCheck(this);
             // TODO: ondeath castables
-            InitScript();
             // FIXME: in the glorious future, run asynchronously with locking
             Script?.ExecuteFunction("OnDeath",
                 ScriptEnvironment.Create(("origin", this), ("target", this), ("source", LastHitter)));
             Map?.Remove(this);
             World?.Remove(this);
-        }
-    }
-
-    // We follow a different pattern here due to the fact that monsters
-    // are not intended to be long-lived objects, and we don't want to a
-    // spend a lot of overhead and resources creating a full script (eg via
-    // OnSpawn) when not needed 99% of the time.
-    private void InitScript()
-    {
-        if (Script != null || ScriptExists || string.IsNullOrEmpty(Name))
-            return;
-
-        if (Game.World.ScriptProcessor.TryGetScript(Name, out var damageScript))
-        {
-            Script = damageScript;
-            Script.AssociateScriptWithObject(this);
-            ScriptExists = true;
-        }
-        else
-        {
-            ScriptExists = false;
         }
     }
 
@@ -486,7 +487,6 @@ public class Monster : Creature, ICloneable, IEphemeral
             return;
 
         // FIXME: in the glorious future, run asynchronously with locking
-        InitScript();
         base.OnHear(e);
     }
 
@@ -507,7 +507,6 @@ public class Monster : Creature, ICloneable, IEphemeral
             ShouldWander = false;
 
             // FIXME: in the glorious future, run asynchronously with locking
-            InitScript();
             if (damageEvent.Source is User user)
                 user.SendCombatLogMessage(damageEvent);
 
@@ -522,7 +521,6 @@ public class Monster : Creature, ICloneable, IEphemeral
     public override void OnHeal(HealEvent healEvent)
     {
         // FIXME: in the glorious future, run asynchronously with locking
-        InitScript();
         if (Script == null) return;
         var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healEvent.Source, this, healEvent.Source);
         env.Add("heal", healEvent);

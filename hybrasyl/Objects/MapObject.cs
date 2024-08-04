@@ -312,7 +312,7 @@ public class MapObject : IStateStorable
         }
     }
 
-    public void InsertCreature(Creature toInsert)
+    public void InsertMonster(Monster toInsert)
     {
         World.Insert(toInsert);
         Insert(toInsert, toInsert.X, toInsert.Y);
@@ -321,12 +321,6 @@ public class MapObject : IStateStorable
         GameLog.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
     }
 
-    public void RemoveCreature(Creature toRemove)
-    {
-        World.Remove(toRemove);
-        Remove(toRemove);
-        GameLog.DebugFormat("Removing creature {0} (id {1})", toRemove.Name, toRemove.Id);
-    }
 
     public void InsertReactor(Reactor toInsert)
     {
@@ -335,6 +329,7 @@ public class MapObject : IStateStorable
         if (!Reactors.ContainsKey((toInsert.X, toInsert.Y)))
             Reactors[(toInsert.X, toInsert.Y)] = new Dictionary<Guid, Reactor>();
         Reactors[(toInsert.X, toInsert.Y)].Add(toInsert.Guid, toInsert);
+        toInsert.OnSpawn();
     }
 
     public void InsertSignpost(Signpost post)

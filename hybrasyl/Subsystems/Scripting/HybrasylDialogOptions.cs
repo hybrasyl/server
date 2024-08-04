@@ -1,6 +1,6 @@
-﻿using Hybrasyl.Internals.Logging;
-using Hybrasyl.Subsystems.Dialogs;
+﻿using Hybrasyl.Subsystems.Dialogs;
 using MoonSharp.Interpreter;
+using System;
 using System.Collections.Specialized;
 
 namespace Hybrasyl.Subsystems.Scripting;
@@ -23,16 +23,13 @@ public class HybrasylDialogOptions
     public void AddOption(string option, string luaExpr = null, string checkExpr = null)
     {
         if (string.IsNullOrWhiteSpace(option) || string.IsNullOrWhiteSpace(luaExpr))
-        {
-            GameLog.ScriptingError(
-                "AddOption: either option (first argument) or lua expression (second argument) was null or empty");
-            return;
-        }
+            throw new ArgumentException($"{nameof(AddOption)}: option or luaExpr argument was null or empty");
 
         Options.Add(option, new DialogOption
         {
             CallbackFunction = luaExpr,
-            CheckExpression = checkExpr
+            CheckExpression = checkExpr,
+            OptionText = option
         });
     }
 
@@ -45,21 +42,17 @@ public class HybrasylDialogOptions
     public void AddOption(string option, HybrasylDialog nextDialog, string checkExpr = null)
     {
         if (string.IsNullOrEmpty(option) || nextDialog is null)
-        {
-            GameLog.ScriptingError(
-                "AddOption: for options set, option (first argument) or dialog (second argument) was null or empty");
-            return;
-        }
+            throw new ArgumentException($"{nameof(AddOption)}: option or nextDialog argument was null or empty");
 
         if (nextDialog.Dialog is JumpDialog j)
             Options.Add(option, new DialogOption
             {
                 JumpDialog = j,
-                CheckExpression = checkExpr
+                CheckExpression = checkExpr,
+                OptionText = option
             });
         else
-            GameLog.ScriptingError(
-                $"AddOption: Dialog option {option}: dialog must be JumpDialog, but was a {nextDialog.DialogType.Name}, ignored");
+            throw new ArgumentException($"{nameof(AddOption)}: Dialog option {option}: nextDialog argument must be JumpDialog, but was a {nextDialog.DialogType.Name}");
     }
 
     /// <summary>
@@ -70,10 +63,14 @@ public class HybrasylDialogOptions
     /// <param name="checkExpr">A lua expression returning a boolean which controls whether this option is displayed to the player</param>
     public void AddOption(string option, HybrasylDialogSequence sequence, string checkExpr = null)
     {
+        if (string.IsNullOrEmpty(option) || sequence is null)
+            throw new ArgumentException($"{nameof(AddOption)}: option or sequence argument was null or empty");
+
         Options.Add(option, new DialogOption
         {
             OverrideSequence = sequence.Sequence,
-            CheckExpression = checkExpr
+            CheckExpression = checkExpr,
+            OptionText = option
         });
 
     }

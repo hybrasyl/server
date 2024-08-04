@@ -387,7 +387,7 @@ internal class Monolith
 
                     foreach (var cookie in spawn.SetCookies) baseMob.SetCookie(cookie.Name, cookie.Value);
 
-                    spawnmap.InsertCreature(baseMob);
+                    spawnmap.InsertMonster(baseMob);
                 }
                 else
                 {

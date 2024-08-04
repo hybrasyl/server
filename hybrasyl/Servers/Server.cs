@@ -90,7 +90,6 @@ public class Server
                 var client = kvp.Value;
                 switch (client.Connected)
                 {
-                    //GameLog.ErrorFormat($"Server {this.GetType().Name} Client {client.ConnectionId}: buffer sending");
                     case true when client.ClientState.SendBufferDepth > 0:
                         await Task.Run(client.FlushSendBuffer, StopToken);
                         break;
