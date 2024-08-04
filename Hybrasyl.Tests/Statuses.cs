@@ -74,7 +74,7 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
         Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
-        Fixture.TestUser.Map.InsertCreature(monster);
+        Fixture.TestUser.Map.InsertMonster(monster);
         Assert.NotNull(castable);
         Fixture.TestUser.SpellBook.Add(castable);
         Fixture.TestUser.UseCastable(castable, monster);
@@ -190,7 +190,7 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
         Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
-        Fixture.TestUser.Map.InsertCreature(monster);
+        Fixture.TestUser.Map.InsertMonster(monster);
 
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd2));
@@ -237,7 +237,7 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
         Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
-        Fixture.TestUser.Map.InsertCreature(monster);
+        Fixture.TestUser.Map.InsertMonster(monster);
 
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd2));

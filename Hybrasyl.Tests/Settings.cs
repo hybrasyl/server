@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Tests;
 

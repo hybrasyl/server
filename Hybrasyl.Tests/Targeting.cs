@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Linq;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -55,7 +55,7 @@ public class Targeting(HybrasylFixture fixture)
                 X = (byte) (Fixture.TestUser.X - i),
                 Y = Fixture.TestUser.Y
             };
-            Fixture.Map.InsertCreature(bait);
+            Fixture.Map.InsertMonster(bait);
         }
 
         var targets = Fixture.TestUser.GetDirectionalTargets(Direction.West);
@@ -104,8 +104,8 @@ public class Targeting(HybrasylFixture fixture)
             Y = bait.Y
         };
 
-        Fixture.Map.InsertCreature(bait);
-        Fixture.Map.InsertCreature(bait2);
+        Fixture.Map.InsertMonster(bait);
+        Fixture.Map.InsertMonster(bait2);
 
         var castable = Game.World.WorldData.GetByIndex<Castable>("athar meall");
         Assert.NotNull(castable);
@@ -113,7 +113,7 @@ public class Targeting(HybrasylFixture fixture)
         var targets = Fixture.TestUser.GetTargets(castable, bait);
         Assert.Equal(2, targets.Count);
         Fixture.Map.Clear();
-        Fixture.Map.InsertCreature(bait2);
+        Fixture.Map.InsertMonster(bait2);
         var targets2 = Fixture.TestUser.GetTargets(castable, bait2);
         Assert.Single(targets2);
     }

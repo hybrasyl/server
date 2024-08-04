@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Linq;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -99,7 +99,7 @@ public class Reactor
         // flexibility for reactor event handling / scripting.
         Assert.Equal((uint) 1000, Fixture.TestUser.Stats.Hp);
 
-        Fixture.Map.InsertCreature(bait);
+        Fixture.Map.InsertMonster(bait);
 
         Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
         Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
