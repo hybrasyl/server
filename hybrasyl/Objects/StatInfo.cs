@@ -16,10 +16,10 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
+using System;
 
 namespace Hybrasyl.Objects;
 
@@ -66,8 +66,6 @@ public class StatInfo
             }
         }
     }
-
-    [FormulaVariable] public int FormulaLevel => Level;
 
     [FormulaVariable]
     [JsonProperty]
