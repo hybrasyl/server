@@ -98,6 +98,18 @@ public class HybrasylMonster : HybrasylWorldObject
         Monster.Sprite = (ushort)displaySprite;
     }
 
+    /// <summary>
+    /// Directly damage the monster for the specified amount.
+    /// </summary>
+    /// <param name="damage">Amount of damage</param>
+    public void DirectDamage(int damage) => Monster.Damage(damage);
+
+    /// <summary>
+    /// Directly heal the monster for the specified amount.
+    /// </summary>
+    /// <param name="heal">Amount of damage</param>
+    public void DirectHeal(int heal) => Monster.Heal(heal);
+
     public int GetCreatureDisplaySprite() => Monster.Sprite;
 
 

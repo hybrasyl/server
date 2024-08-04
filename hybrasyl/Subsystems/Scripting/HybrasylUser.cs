@@ -996,6 +996,21 @@ public class HybrasylUser : HybrasylWorldObject
         return false;
     }
 
+    public void DirectDamage(int damage)
+    {
+        if (User.AbsoluteImmortal) return;
+        User.Damage(damage);
+    }
+
+    public void DirectHeal(int heal)
+    {
+        if (User.Condition.IsHpIncreaseProhibited)
+            User.SendSystemMessage("You cannot be healed at this time.");
+        else
+            User.Heal(heal);
+
+    }
+
 
     /// <summary>
     ///     Check to see if the specified skill exists in the user's skill book.

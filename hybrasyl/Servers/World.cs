@@ -1378,7 +1378,7 @@ public class World : Server
         // Don't handle control messages for dead/removed mobs, or mobs that cannot move or attack
         if (!monster.Condition.Alive || monster.DeathProcessed ||
             monster.Id == 0 || monster.Map == null ||
-            monster.Condition.Asleep || monster.Condition.Frozen) return;
+            monster.Condition.Asleep || monster.Condition.Stunned) return;
 
         monster.NextAction();
         monster.ProcessActions();
@@ -1479,10 +1479,26 @@ public class World : Server
                 break;
         }
 
-        GameLog.UserActivityInfo(
-            $"User {user.Name}: regen HP {hpRegen}, MP {mpRegen}, regen bonus {user.Stats.Regen}%");
-        user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
-        user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
+        if (!user.Condition.IsHpRegenProhibited)
+        {
+            user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
+            GameLog.UserActivityInfo(
+                $"User {user.Name}: regen HP {hpRegen}, regen bonus {user.Stats.Regen}%");
+        }
+        else
+            user.SendSystemMessage("You cannot regenerate health at this time.");
+
+        if (!user.Condition.IsMpRegenProhibited)
+        {
+            user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
+            GameLog.UserActivityInfo(
+                $"User {user.Name}: regen MP {mpRegen},regen bonus {user.Stats.Regen}%");
+
+        }
+        else 
+            user.SendSystemMessage("You cannot regenerate mana at this time.");
+
+
         user.UpdateAttributes(StatUpdateFlags.Current);
     }
 
@@ -1738,6 +1754,7 @@ public class World : Server
         {
             var x3C = new ServerPacket(0x3C);
             x3C.WriteUInt16(row);
+            x3C.WriteUInt16(row);
             for (var col = 0; col < user.Map.X * 6; col += 2)
             {
                 x3C.WriteByte(user.Map.RawData[index + 1]);
@@ -1750,7 +1767,7 @@ public class World : Server
     }
 
     [PacketHandler(0x06)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
     {
@@ -1762,7 +1779,7 @@ public class World : Server
     }
 
     [PacketHandler(0x07)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
     {
@@ -1897,7 +1914,7 @@ public class World : Server
     }
 
     [PacketHandler(0x08)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
     {
@@ -2028,7 +2045,7 @@ public class World : Server
     }
 
     [PacketHandler(0x0F)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
@@ -2222,7 +2239,7 @@ public class World : Server
     }
 
     [PacketHandler(0x11)]
-    [Prohibited(CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Stun, PlayerFlags.InDialog)]
     private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -2233,7 +2250,7 @@ public class World : Server
     }
 
     [PacketHandler(0x13)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
     {
@@ -2445,7 +2462,7 @@ public class World : Server
     }
 
     [PacketHandler(0x1C)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1C_UseItem(object obj, ClientPacket packet)
@@ -2623,7 +2640,7 @@ public class World : Server
     }
 
     [PacketHandler(0x1D)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
     {
@@ -2637,7 +2654,7 @@ public class World : Server
     }
 
     [PacketHandler(0x24)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
     {
@@ -2868,7 +2885,7 @@ public class World : Server
     }
 
     [PacketHandler(0x2A)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
     {
@@ -2923,7 +2940,7 @@ public class World : Server
     }
 
     [PacketHandler(0x29)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
     {
@@ -3113,7 +3130,7 @@ public class World : Server
     }
 
     [PacketHandler(0x3E)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
@@ -3125,7 +3142,7 @@ public class World : Server
     }
 
     [PacketHandler(0x3F)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3158,7 +3175,7 @@ public class World : Server
     }
 
     [PacketHandler(0x39)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3248,7 +3265,7 @@ public class World : Server
     }
 
     [PacketHandler(0x3A)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3498,7 +3515,7 @@ public class World : Server
     }
 
     [PacketHandler(0x43)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3582,7 +3599,7 @@ public class World : Server
     }
 
     [PacketHandler(0x44)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
     {
@@ -3641,7 +3658,7 @@ public class World : Server
     }
 
     [PacketHandler(0x47)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
     {
@@ -3680,7 +3697,7 @@ public class World : Server
     }
 
     [PacketHandler(0x4A)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
     {

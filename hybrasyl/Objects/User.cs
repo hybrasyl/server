@@ -1319,6 +1319,9 @@ public class User : Creature
         // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
         // in the caster's HP being reduced to zero.
 
+        if (Condition.IsMpDecreaseProhibited) 
+            cost.Mp = 0;
+
         if (cost.Hp >= Stats.Hp)
             message = "You lack the required vitality.";
 
@@ -2627,7 +2630,9 @@ public class User : Creature
     public override void Heal(double heal, Creature source = null, Castable castable = null)
     {
         base.Heal(heal, source, castable);
-        if (this is User) UpdateAttributes(StatUpdateFlags.Current);
+        if (Condition.IsHpIncreaseProhibited)
+            SendSystemMessage("You cannot currently receive healing.");
+        UpdateAttributes(StatUpdateFlags.Current);
     }
 
     private bool CheckCastableRestriction(EquipmentRestriction restriction, out string message)

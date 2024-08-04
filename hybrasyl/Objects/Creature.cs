@@ -962,6 +962,8 @@ public class Creature : VisibleObject
 
     public virtual void Heal(double heal, Creature source = null, Castable castable = null)
     {
+        if (Condition.IsHpIncreaseProhibited)
+            return;
         var bonusHeal = heal * Stats.BaseInboundHealModifier + (heal * source?.Stats.BaseOutboundHealModifier ?? 0.0);
         heal += bonusHeal;
 
@@ -982,7 +984,7 @@ public class Creature : VisibleObject
 
     public virtual void RegenerateMp(double mp, Creature regenerator = null)
     {
-        if (AbsoluteImmortal)
+        if (AbsoluteImmortal || Condition.IsMpIncreaseProhibited)
             return;
 
         if (Stats.Mp == Stats.MaximumMp || mp > Stats.MaximumMp)
@@ -1176,7 +1178,7 @@ public class Creature : VisibleObject
         {
             case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
             case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
-            case DamageType.Direct when AbsoluteImmortal || Condition.IsInvulnerable:
+            case DamageType.Direct when AbsoluteImmortal:
                 damageEvent.Applied = false;
                 return;
         }
@@ -1261,10 +1263,7 @@ public class Creature : VisibleObject
                     });
         }
 
-        if ((MagicalImmortal && damageType != DamageType.Magical) ||
-            (PhysicalImmortal && damageType != DamageType.Physical) ||
-            !AbsoluteImmortal)
-            Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
+        Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
 
         SendDamageUpdate(this);
 
