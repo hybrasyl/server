@@ -193,6 +193,7 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         // Do we have a script? If so, get it and run OnSpawn.
         if (World.ScriptProcessor.TryGetScript(Name, out var script))
         {
+            DialogSequences.Clear();
             Script = script;
             // Clear existing pursuits, in case the OnSpawn crashes / has a bug
             (this as IPursuitable).ResetPursuits();

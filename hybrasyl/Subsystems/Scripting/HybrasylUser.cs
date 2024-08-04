@@ -996,20 +996,17 @@ public class HybrasylUser : HybrasylWorldObject
         return false;
     }
 
-    public void DirectDamage(int damage)
-    {
-        if (User.AbsoluteImmortal) return;
-        User.Damage(damage);
-    }
+    /// <summary>
+    /// Directly damage the user for the specified amount.
+    /// </summary>
+    /// <param name="damage">Amount of damage</param>
+    public void DirectDamage(int damage) => User.Damage(damage);
 
-    public void DirectHeal(int heal)
-    {
-        if (User.Condition.IsHpIncreaseProhibited)
-            User.SendSystemMessage("You cannot be healed at this time.");
-        else
-            User.Heal(heal);
-
-    }
+    /// <summary>
+    /// Directly heal the user for the specified amount.
+    /// </summary>
+    /// <param name="heal">Amount of damage</param>
+    public void DirectHeal(int heal) => User.Heal(heal);
 
 
     /// <summary>

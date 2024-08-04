@@ -204,6 +204,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
 
         if (Script.HasFunction("OnSpawn"))
         {
+            DialogSequences.Clear();
             // Now run our actual OnSpawn function
             var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
             if (ret.Result == ScriptResult.Success)
