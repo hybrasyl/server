@@ -189,7 +189,7 @@ public class World : Server
             return false;
         }
 
-        CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
+        ScriptProcessor.CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
         if (!LoadData())
         {
             GameLog.Fatal("There were errors loading basic world data. Hybrasyl has halted.");
@@ -693,38 +693,6 @@ public class World : Server
         foreach (var f in files) WorldState.Set(f.Name, f.Compile());
 
         #endregion
-    }
-
-    public void CompileScripts()
-    {
-        // Scan each directory for *.lua files
-        var numFiles = 0;
-        var numErrors = 0;
-        foreach (var file in Directory.GetFiles(ScriptDirectory, "*.lua", SearchOption.AllDirectories))
-        {
-            var path = file.Replace(ScriptDirectory, "");
-            var scriptname = Path.GetFileName(file);
-            if (path.StartsWith("_"))
-                continue;
-            GameLog.ScriptingInfo($"Loading script: {path}");
-            try
-            {
-                var script = new Script(file, ScriptProcessor);
-                ScriptProcessor.RegisterScript(script);
-                if (path.StartsWith("common"))
-                    script.Run();
-                numFiles++;
-            }
-            catch (Exception e)
-            {
-                GameLog.ScriptingError($"Script {scriptname}: Registration failed: {e}");
-                numErrors++;
-            }
-        }
-
-        GameLog.Info($"Scripts: loaded {numFiles} scripts");
-        if (numErrors > 0)
-            GameLog.Error($"Scripts: {numErrors} scripts had errors - check scripting log");
     }
 
     public IMessageHandler ResolveMessagingPlugin(MessageType type, Message message)

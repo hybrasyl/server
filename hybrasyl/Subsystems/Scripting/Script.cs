@@ -22,7 +22,6 @@ using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Serilog;
 using System;
 using System.IO;
 using System.Linq;
@@ -31,61 +30,33 @@ using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
-/// <summary>
-///     A logging class that can be used by scripts natively in Lua.
-/// </summary>
-[MoonSharpUserData]
-public class ScriptLogger
-{
-    public ScriptLogger(string name)
-    {
-        ScriptName = name;
-    }
-
-    public string ScriptName { get; set; }
-
-    public void Info(string message)
-    {
-        Log.Information("{ScriptName} : {Message}", ScriptName, message);
-    }
-
-    public void Error(string message)
-    {
-        Log.Error("{ScriptName} : {Message}", ScriptName, message);
-    }
-}
-
-public class Script
+public class Script(string path, ScriptProcessor processor)
 {
     private static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
-    public string RawSource { get; set; }
-    public string Name { get; set; }
-    public string FullPath { get; }
+    public string RawSource { get; set; } = string.Empty;
+    public string Name { get; set; } = Path.GetFileName((string) path).ToLower();
+    public string FullPath { get; } = path;
     public string FileName => Path.GetFileName(FullPath);
     public string Locator { get; set; } = string.Empty;
-    public ScriptProcessor Processor { get; set; }
+    public ScriptProcessor Processor { get; set; } = processor;
     public MoonSharp.Interpreter.Script Compiled { get; private set; }
     public bool Disabled { get; set; }
     public ScriptExecutionResult LoadExecutionResult { get; set; }
     public Guid Guid { get; set; } =  Guid.Empty;
 
-    private object _lock = new();
-    
-    public Script(string path, ScriptProcessor processor)
-    {
-        FullPath = path;
-        Name = Path.GetFileName(path).ToLower();
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        RawSource = string.Empty;
-        Processor = processor;
-    }
+    private readonly object _lock = new();
 
-    public Script(string script, string name)
+    private void NewMoonsharpScript()
     {
-        FullPath = string.Empty;
-        Name = name;
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        RawSource = script;
+        Compiled = new MoonSharp.Interpreter.Script(CoreModules.GlobalConsts | CoreModules.TableIterators | 
+                                                     CoreModules.String | CoreModules.Table | CoreModules.Basic | 
+                                                     CoreModules.Math | CoreModules.Bit32 | CoreModules.LoadMethods)
+        {
+            Options =
+            {
+                ScriptLoader = new WorldModuleLoader(Processor.World.ScriptDirectory, "modules")
+            }
+        };
     }
 
     public ScriptExecutionResult Reload()
@@ -93,7 +64,7 @@ public class Script
         lock (_lock)
         {
             Disabled = true;
-            Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
+            NewMoonsharpScript();
             return Run();
         }
     }
@@ -222,10 +193,11 @@ public class Script
             var result = new ScriptExecutionResult();
             try
             {
+                NewMoonsharpScript();
                 SetGlobals();
                 // Load file into RawSource so we have access to it later
                 RawSource = File.ReadAllText(FullPath);
-                result.Return = Compiled.DoFile(FullPath);
+                result.Return = Compiled.DoString(RawSource);
                 result.Result = ScriptResult.Success;
                 LoadExecutionResult = result;
                 if (!onLoad)

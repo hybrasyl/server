@@ -269,10 +269,9 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         World.ScriptProcessor.RegisterScriptAttachment(damageScript, this);
         if (!Script.HasFunction("OnSpawn"))
             return;
-
+        
         Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
     }
-
 
     public override void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,

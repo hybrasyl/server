@@ -25,13 +25,23 @@ using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
 public class ScriptProcessor(World world)
 {
+    public World World { get; } = world;
+    private Dictionary<Guid, Script> _scripts = new();
+    private Dictionary<string, Guid> _locatorIndex = new();
+    private Dictionary<string, Guid> _nameIndex = new();
+    private Dictionary<Guid, List<Guid>> _scriptAttachments = new();
+
     static ScriptProcessor()
     {
+        // Register UserData types for MoonScript. This only needs to be done once.
+        // NB registering assemblies is required for RegisterType of
+        // any type in that assembly to work correctly
         UserData.RegisterAssembly(typeof(Game).Assembly);
         UserData.RegisterType<Gender>();
         UserData.RegisterType<LegendIcon>();
@@ -46,17 +56,43 @@ public class ScriptProcessor(World world)
             DynValue.NewString(v.ToString()));
     }
 
-    // Register UserData types for MoonScript
-    // NB registering assemblies is required for RegisterType of
-    // any type in that assembly to work correctly
+    public void CompileScripts()
+    {
+        // Scan each directory for *.lua files
+        var numFiles = 0;
+        var numErrors = 0;
+        foreach (var file in Directory.GetFiles(World.ScriptDirectory, "*.lua", SearchOption.AllDirectories))
+        {
+            var path = file.Replace(World.ScriptDirectory, "");
+            var scriptName = Path.GetFileName(file);
+            if (path.StartsWith("_") || path.StartsWith("modules"))
+                continue;
 
-    public World World { get; } = world;
+            try
+            {
+                var script = new Script(file, this);
+                RegisterScript(script);
+                if (path.StartsWith("common") || path.StartsWith("startup"))
+                {
+                    GameLog.ScriptingInfo($"{nameof(CompileScripts)}: Loading & executing script {path}");
+                    script.Run();
+                }
+                else
+                    GameLog.ScriptingInfo($"{nameof(CompileScripts)}: Loading {path}");
+                numFiles++;
+            }
+            catch (Exception e)
+            {
+                GameLog.ScriptingError($"{nameof(CompileScripts)}: {scriptName}: Registration failed: {e}");
+                numErrors++;
+            }
+        }
 
-    private Dictionary<Guid, Script> _scripts = new();
-    private Dictionary<string, Guid> _locatorIndex = new();
-    private Dictionary<string, Guid> _nameIndex = new();
-    private Dictionary<Guid, List<Guid>> _scriptAttachments = new();
-    
+        GameLog.Info($"{nameof(CompileScripts)}: loaded {numFiles} scripts");
+        if (numErrors > 0)
+            GameLog.Error($"{nameof(CompileScripts)}: {numErrors} scripts had errors - check scripting log");
+    }
+
     private string GenerateLocator(string path)
     {
         var locator = path.Replace(World.ScriptDirectory, "").Replace(@"\", ":").Replace("/", ":");
