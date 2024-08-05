@@ -16,38 +16,24 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Subsystems.Scripting;
 using MoonSharp.Interpreter;
+using System.Collections.Generic;
+using System.Linq;
 using Script = Hybrasyl.Subsystems.Scripting.Script;
 
 namespace Hybrasyl.Subsystems.Dialogs;
 
-public class DialogSequence
+public class DialogSequence(string sequenceName, bool closeOnEnd = false)
 {
-    private Script _script;
-    public string ScriptName;
+    private Script _script = null;
+    public string ScriptName = string.Empty;
 
-    public DialogSequence(string sequenceName, bool closeOnEnd = false)
-    {
-        Name = sequenceName;
-        Dialogs = new List<Dialog>();
-        Id = null;
-        CloseOnEnd = closeOnEnd;
-        PreDisplayCallback = string.Empty;
-        MenuCheckExpression = string.Empty;
-        Sprite = ushort.MinValue;
-        ScriptName = string.Empty;
-        _script = null;
-        DisplayName = string.Empty;
-    }
-
-    public List<Dialog> Dialogs { get; }
-    public string Name { get; set; }
-    public string DisplayName { get; set; }
-    public uint? Id { get; set; }
+    public List<Dialog> Dialogs { get; } = new();
+    public string Name { get; set; } = sequenceName;
+    public string DisplayName { get; set; } = string.Empty;
+    public uint? Id { get; set; } = null;
 
     private Dictionary<string, string> Tokens { get; set; }
 
@@ -72,11 +58,11 @@ public class DialogSequence
         set => _script = value;
     }
 
-    public string PreDisplayCallback { get; private set; }
-    public string MenuCheckExpression { get; private set; }
-    public bool CloseOnEnd { get; set; }
+    public string PreDisplayCallback { get; private set; } = string.Empty;
+    public string MenuCheckExpression { get; private set; } = string.Empty;
+    public bool CloseOnEnd { get; set; } = closeOnEnd;
 
-    public ushort Sprite { get; set; }
+    public ushort Sprite { get; set; } = ushort.MinValue;
 
     /// <summary>
     ///     Show a dialog sequence to a user.

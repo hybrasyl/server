@@ -141,7 +141,7 @@ public class Dialog
     public ServerPacket GenerateBasePacket(DialogInvocation invocation)
     {
         if (invocation.Origin == null)
-            throw new ArgumentNullException("Invocations must have origin");
+            throw new ArgumentNullException(nameof(invocation), "Invocations must have origin");
 
         byte color = 0;
         ushort sprite = 0;
@@ -181,14 +181,14 @@ public class Dialog
         dialogPacket.WriteByte((byte)objType);
         dialogPacket.WriteUInt32(invocation.Origin.Id);
         dialogPacket.WriteByte(0); // Unknown value
-        GameLog.Info("Sprite is {Sprite}", sprite);
-        GameLog.Info($"Object type is {objType}");
+        GameLog.Debug("Sprite is {Sprite}", sprite);
+        GameLog.Debug($"Object type is {objType}");
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
         dialogPacket.WriteByte(0); // Unknown value
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
-        Log.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
+        GameLog.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
         dialogPacket.WriteUInt16((ushort)Sequence.Id);
         dialogPacket.WriteUInt16((ushort)Index);
 
@@ -196,9 +196,12 @@ public class Dialog
         dialogPacket.WriteBoolean(HasNextDialog());
 
         dialogPacket.WriteByte(0);
-        // TODO: Allow override here from DialogSequence
-        dialogPacket.WriteString8(invocation.Origin?.Name ??
-                                  invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName);
+
+        if (invocation.Origin == null)
+            dialogPacket.WriteString8(Sequence.DisplayName);
+        else 
+            dialogPacket.WriteString8(string.IsNullOrWhiteSpace(invocation.Origin.DisplayName) ? invocation.Origin.Name ??
+                                  invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName : invocation.Origin.DisplayName);
         var displayText = EvaluateDisplayText(invocation);
 
         if (!string.IsNullOrEmpty(displayText))

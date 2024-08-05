@@ -16,13 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System;
+using System.Collections.Generic;
 using Script = Hybrasyl.Subsystems.Scripting.Script;
 
 namespace Hybrasyl.Casting;
@@ -43,6 +43,7 @@ public class CastableObject : IInteractable, IStateStorable
 
     public ushort DialogSprite { get; set; }
     public string Name => Template.Name;
+    public string DisplayName => Template.Name;
     public bool AllowDead => false;
     public Script Script { get; set; }
 

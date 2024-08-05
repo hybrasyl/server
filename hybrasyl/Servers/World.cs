@@ -31,6 +31,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
 using Hybrasyl.Subsystems;
 using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Subsystems.Players;
@@ -1426,14 +1427,18 @@ public class World : Server
         uint hpRegen = 0;
         uint mpRegen = 0;
         if (user.Stats.Hp != user.Stats.MaximumHp)
-            hpRegen = (uint)Math.Min(
-                user.Stats.MaximumHp * (0.1 + Math.Max(user.Stats.Con, user.Stats.Con - user.Stats.Level) * 0.01),
-                user.Stats.MaximumHp * 0.20);
+            hpRegen = (uint) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.HpRegenPerTick, new FormulaEvaluation
+            {
+                Source = user,
+                User = user
+            });
 
         if (user.Stats.Mp != user.Stats.MaximumMp)
-            mpRegen = (uint)Math.Ceiling(Math.Min(
-                user.Stats.MaximumMp * (0.1 + Math.Max(user.Stats.Wis, user.Stats.Wis - user.Stats.Level) * 0.01),
-                user.Stats.MaximumMp * 0.20));
+            mpRegen = (uint) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.MpRegenPerTick, new FormulaEvaluation
+            {
+                Source = user,
+                User = user
+            });
 
         switch (user.Stats.Regen)
         {

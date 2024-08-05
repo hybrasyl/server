@@ -145,7 +145,7 @@ public class Client : AbstractClient, IClient
     {
         var now = DateTime.Now.Ticks;
         var idletime = new TimeSpan(now - _lastReceived);
-        if (idletime.TotalSeconds > Game.ActiveConfiguration.Constants.PlayerIdleTime)
+        if (idletime.TotalSeconds > Game.ActiveConfiguration.Constants.PlayerIdleCheck)
         {
             GameLog.DebugFormat("cid {0}: idle for {1} seconds, marking as idle", ConnectionId, idletime.TotalSeconds);
             ToggleIdle();
@@ -228,8 +228,8 @@ public class Client : AbstractClient, IClient
         GameLog.DebugFormat("cid {0}: tick heartbeat elapsed seconds {1}, byte heartbeat elapsed seconds {2}",
             ConnectionId, tickSpan.TotalSeconds, byteSpan.TotalSeconds);
 
-        if (tickSpan.TotalSeconds > Game.ActiveConfiguration.Constants.ReapHeartbeatInterval ||
-            byteSpan.TotalSeconds > Game.ActiveConfiguration.Constants.ReapHeartbeatInterval)
+        if (tickSpan.TotalSeconds > Game.ActiveConfiguration.Constants.HeartbeatReaperInterval ||
+            byteSpan.TotalSeconds > Game.ActiveConfiguration.Constants.HeartbeatReaperInterval)
         {
             // DON'T FEAR THE REAPER
             GameLog.InfoFormat("cid {0}: heartbeat expired", ConnectionId);

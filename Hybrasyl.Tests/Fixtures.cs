@@ -89,7 +89,7 @@ public class HybrasylFixture : IDisposable
         Game.ActiveConfiguration.Constants ??= new ServerConstants();
         Game.ActiveConfiguration.Time = new Time { Ages = new List<HybrasylAge>() };
 
-        Game.World.CompileScripts();
+        Game.World.ScriptProcessor.CompileScripts();
         Game.World.SetPacketHandlers();
         Game.World.SetControlMessageHandlers();
         Game.World.StartControlConsumers();

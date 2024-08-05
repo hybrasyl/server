@@ -147,15 +147,24 @@ public class User : Creature
     public bool UnreadMail => Mailbox.HasUnreadMessages;
     public bool HasParcels => ParcelStore.Items.Count > 0;
 
+
     public uint ExpToLevel
     {
         get
         {
-            var levelExp = (uint)Math.Pow(Stats.Level, 3) * 250;
-            if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel || Stats.Experience >= levelExp)
+            if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel)
                 return 0;
 
-            return (uint)(Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
+            var levelExp = (uint) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.XpToNextLevel, new FormulaEvaluation
+            {
+                Source = this,
+                User = this,
+            });
+
+            if (Stats.Experience >= levelExp)
+                return 0;
+
+            return levelExp - Stats.Experience;
         }
     }
 
@@ -228,7 +237,12 @@ public class User : Creature
          */
     public int CurrentWeight => Inventory.Weight + Equipment.Weight;
 
-    public ushort MaximumWeight => (ushort)(Stats.BaseStr + Stats.Level / 4 + 48);
+    public ushort MaximumWeight => (ushort) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.AllowedCarryWeight,
+        new FormulaEvaluation
+        {
+            Source = this,
+            User = this
+        });
 
     public string LastSystemMessage { get; private set; } = string.Empty;
 
@@ -848,21 +862,24 @@ public class User : Creature
                     Stats.Level++;
                     LevelPoints += 2;
 
-                    // For level up we use Biomagus' formulas with a random 85% - 115% tweak
-                    // HP: (CON/(Lv+1)*50*randomfactor)+25
-                    // MP: (WIS/(Lv+1)*50*randomfactor)+25
-                    var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
-                    var bonusHpGain =
-                        (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
-                    var bonusMpGain =
-                        (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
+                    var bonusHpGain = (int) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.HpGainPerLevel,
+                        new FormulaEvaluation
+                        {
+                            Source = this,
+                            User = this
+                        });
+                    var bonusMpGain = (int) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.MpGainPerLevel,
+                        new FormulaEvaluation
+                        {
+                            Source = this,
+                            User = this
+                        });
 
-                    Stats.BaseHp += bonusHpGain + 25;
-                    Stats.BaseMp += bonusMpGain + 25;
+                    Stats.BaseHp += bonusHpGain;
+                    Stats.BaseMp += bonusMpGain;
+
                     GameLog.UserActivityInfo(
-                        "User {name}: level increased to {Level}, random factor {factor}, CON {Con}, WIS {Wis}: HP +{Hp}/+25, MP +{Mp}/+25",
-                        Name, Stats.Level, randomBonus, Stats.BaseCon, Stats.BaseWis,
-                        bonusHpGain, bonusMpGain);
+                        $"User {Name}: level increased to {Stats.Level}, CON {Stats.Con}, WIS {Stats.Wis}: HP {bonusHpGain} MP {bonusMpGain}");
                 }
             }
 
@@ -878,6 +895,7 @@ public class User : Creature
                 UpdateAttributes(StatUpdateFlags.Full);
             }
         }
+        // Update ur mom accor
 
         UpdateAttributes(StatUpdateFlags.Experience);
     }

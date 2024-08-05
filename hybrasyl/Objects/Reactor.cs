@@ -37,15 +37,23 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
     public CreatureSnapshot Caster;
     public string Description;
     public string ScriptName;
+    public string DisplayName { get; } = string.Empty;
 
     public bool VisibleToGroup;
     public bool VisibleToOwner;
 
-    public Reactor(Xml.Objects.Reactor reactor)
+    public Reactor(Xml.Objects.Reactor reactor, MapObject map)
     {
         X = reactor.X;
         Y = reactor.Y;
-        DialogSequences = new List<DialogSequence>();
+        DisplayName = reactor.DisplayName;
+        ScriptName = reactor.Script;
+        Blocking = reactor.Blocking;
+        CreatedAt = DateTime.Now;
+        Description = reactor.Description;
+        AllowDead = reactor.AllowDead;
+        Map = map; 
+        Init();
     }
 
     public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null,
@@ -65,33 +73,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         VisibleToOwner = reactor.DisplayOwner;
         VisibleToCookies = reactor.DisplayCookie?.Split(" ").ToList() ?? new List<string>();
         VisibleToStatuses = reactor.DisplayStatus?.Split(" ").ToList() ?? new List<string>();
-        Init();
-    }
-
-    public Reactor(Reactor reactor, MapObject map, int expiration = 0)
-    {
-        X = reactor.X;
-        Y = reactor.Y;
-        Map = map;
-        Script = reactor.Script;
-        ExpirationSeconds = expiration;
-        Description = reactor.Description;
-        Blocking = reactor.Blocking;
-        AllowDead = reactor.AllowDead;
-        Init();
-    }
-
-    public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
-        bool blocking = true, Creature caster = null)
-    {
-        X = x;
-        Y = y;
-        Map = map;
-        Description = description;
-        ScriptName = scriptName;
-        Blocking = blocking;
-        Caster = caster?.GetSnapshot();
-        ExpirationSeconds = expiration;
+        DisplayName = reactor.DisplayName;
         Init();
     }
 
@@ -143,12 +125,13 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         p.WriteByte(0);
         p.WriteByte(0); // unknown d                                                                                                                                                                                               
         p.WriteByte((byte)MonsterType.Reactor);
-        p.WriteString8(Name);
+        p.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
         user.Enqueue(p);
     }
 
     private void Init()
     {
+        DialogSequences = new List<DialogSequence>();
         CreatedAt = DateTime.Now;
         Expiration = DateTime.MaxValue;
         Name = $"{Map.Name}@{X},{Y}";

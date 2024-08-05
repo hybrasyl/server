@@ -92,6 +92,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
     }
 
     public string Name => Origin.Name;
+    public string DisplayName => Origin.DisplayName;
     public uint Id { get; set; }
     public Script Script => Origin.Script;
     public bool AllowDead => Origin.AllowDead;

@@ -46,6 +46,20 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
 
     public bool Ready;
     public Npc Template;
+    public string Filename { get; set; }
+    public MerchantJob Jobs { get; set; }
+    private MerchantController Controller { get; set; }
+    public List<MerchantInventoryItem> MerchantInventory { get; set; }
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+    public List<DialogSequence> Pursuits { get; set; } = new();
+    public Dictionary<string, string> Strings { get; set; } = new();
+    public Dictionary<string, string> Responses { get; set; } = new();
+    public List<DialogSequence> DialogSequences { get; set; } = new();
+    public Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
+    public string DisplayName { get; set; }
 
     public Merchant(Npc npc)
     {
@@ -83,19 +97,6 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         Ready = false;
     }
 
-    public MerchantJob Jobs { get; set; }
-    private MerchantController Controller { get; set; }
-    public List<MerchantInventoryItem> MerchantInventory { get; set; }
-
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
-    public List<DialogSequence> Pursuits { get; set; } = new();
-    public Dictionary<string, string> Strings { get; set; } = new();
-    public Dictionary<string, string> Responses { get; set; } = new();
-    public List<DialogSequence> DialogSequences { get; set; } = new();
-    public Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
-
     public override void ShowTo(IVisible obj)
     {
         if (obj is not User user) return;
@@ -112,11 +113,10 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         npcPacket.WriteByte((byte) Direction);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-        npcPacket.WriteString8(Name);
+        npcPacket.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
         user.Enqueue(npcPacket);
     }
 
-    public string Filename { get; set; }
 
     // TODO: remove this when base(<interface name>) is actually added to the language. .NET 7 maybe
     public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);

@@ -16,9 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals;
 using Hybrasyl.Internals.Enums;
@@ -28,6 +25,9 @@ using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -100,6 +100,7 @@ public class ItemObject : VisibleObject, IInteractable
     public WeaponType WeaponType => Template.Properties.Equipment.WeaponType;
     public byte EquipmentSlot => Convert.ToByte(Template.Properties.Equipment.Slot);
     public string SlotName => Enum.GetName(typeof(EquipmentSlot), EquipmentSlot) ?? "None";
+    public string DisplayName => Name;
 
     public int Weight => Template.Properties.Physical.Weight > int.MaxValue
         ? int.MaxValue
@@ -276,7 +277,11 @@ public class ItemObject : VisibleObject, IInteractable
             return false;
         }
 
-        if (userobj.Equipment.Weight + Weight > userobj.MaximumWeight / 2)
+        if (userobj.Equipment.Weight + Weight > FormulaParser.Eval(Game.ActiveConfiguration.Formulas.AllowedEquipmentWeight, new FormulaEvaluation
+            {
+                Source = userobj,
+                User = userobj
+            }))
         {
             message = World.GetLocalString("item_equip_too_heavy");
             return false;
@@ -284,8 +289,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a shield while holding a two-handed weapon
 
-        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon != null &&
-            userobj.Equipment.Weapon.WeaponType == WeaponType.TwoHand)
+        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon is { WeaponType: WeaponType.TwoHand })
         {
             message = World.GetLocalString("item_equip_shield_2h");
             return false;
@@ -294,7 +298,7 @@ public class ItemObject : VisibleObject, IInteractable
         // Check if user is equipping a two-handed weapon while holding a shield
 
         if (EquipmentSlot == (byte) ItemSlots.Weapon &&
-            (WeaponType == WeaponType.TwoHand || WeaponType == WeaponType.Staff) &&
+            WeaponType is WeaponType.TwoHand or WeaponType.Staff &&
             userobj.Equipment.Shield != null)
         {
             message = World.GetLocalString("item_equip_2h_shield");

@@ -564,17 +564,30 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             }
 
             if (x % 2 == 0)
-            {
-                var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
-                var bonusHpGain =
-                    (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
-                var bonusMpGain =
-                    (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
-
-                Stats.BaseHp += bonusHpGain + 25;
-                Stats.BaseMp += bonusMpGain + 25;
-            }
+                MpHpIncrease();
         }
+    }
+
+    private void MpHpIncrease()
+    {
+        var bonusHpGain = (int) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.MonsterHpGainPerLevel,
+            new FormulaEvaluation
+            {
+                Source = this,
+            });
+        var bonusMpGain = (int) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.MonsterMpGainPerLevel,
+            new FormulaEvaluation
+            {
+                Source = this,
+            });
+
+        Stats.BaseHp += bonusHpGain;
+        Stats.BaseMp += bonusMpGain;
+
+        Stats.Hp = Stats.MaximumHp;
+        Stats.Mp = Stats.MaximumMp;
+
+
     }
 
     public void AllocateStats()
@@ -614,21 +627,9 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
                     totalPoints--;
                     if (totalPoints % 2 == 0)
-                    {
-                        var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
-                        var bonusHpGain =
-                            (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
-                        var bonusMpGain =
-                            (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
-
-                        Stats.BaseHp += bonusHpGain + 25;
-                        Stats.BaseMp += bonusMpGain + 25;
-                    }
+                        MpHpIncrease();
                 }
         }
-
-        Stats.Hp = Stats.MaximumHp;
-        Stats.Mp = Stats.MaximumMp;
     }
 
     public override int GetHashCode() => Name.GetHashCode() * Id.GetHashCode() - 1;

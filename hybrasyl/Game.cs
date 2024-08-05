@@ -429,7 +429,6 @@ public static class Game
         }
 
         // Sanity check: ensure our localization exists
-        // TODO: alpha9
         if (!manager.TryGetValue(activeConfiguration.Locale, out Localization locale))
         {
             Log.Fatal(
@@ -492,6 +491,7 @@ public static class Game
 
         Lobby = new Lobby(activeConfiguration.Network.Lobby.Port, true);
         Login = new Login(activeConfiguration.Network.Login.Port, true);
+
         var redisConnection = new RedisConnection();
         redisConnection.Host = string.IsNullOrWhiteSpace(rHost) ? activeConfiguration.DataStore.Host : rHost;
         redisConnection.Port = rPort ?? activeConfiguration.DataStore.Port;

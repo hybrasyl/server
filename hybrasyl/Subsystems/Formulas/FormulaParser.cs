@@ -16,14 +16,14 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using NCalc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Subsystems.Formulas;
@@ -85,6 +85,7 @@ internal static class FormulaParser
         e.Parameters["RAND_10"] = Random.Shared.Next(0, 11);
         e.Parameters["RAND_100"] = Random.Shared.Next(0, 101);
         e.Parameters["RAND_1000"] = Random.Shared.Next(0, 1001);
+        e.Parameters["RANDDOUBLE"] = Random.Shared.NextDouble();
 
         return e;
     }

@@ -253,7 +253,8 @@ public class MapObject : IStateStorable
                 X = npcElement.X,
                 Y = npcElement.Y,
                 Name = npcElement.Name,
-                Direction = npcElement.Direction
+                Direction = npcElement.Direction,
+                DisplayName = string.IsNullOrWhiteSpace(npcElement.DisplayName) ? npcTemplate.DisplayName : npcElement.DisplayName
             };
             InsertNpc(merchant);
             // Keep the actual spawned object around in the index for later use
@@ -262,11 +263,7 @@ public class MapObject : IStateStorable
 
         foreach (var reactorElement in newMap.Reactors)
         {
-            var reactor = new Reactor(reactorElement.X, reactorElement.Y, this,
-                reactorElement.Script, 0, reactorElement.Description, reactorElement.Blocking)
-            {
-                AllowDead = reactorElement.AllowDead
-            };
+            var reactor = new Reactor(reactorElement, this);
             InsertReactor(reactor);
             GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
         }
