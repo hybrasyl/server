@@ -16,21 +16,63 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
+using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Creature = Hybrasyl.Objects.Creature;
 
-namespace Hybrasyl.Statuses;
+namespace Hybrasyl.Subsystems.Statuses;
 
-public class CreatureStatus : ICreatureStatus
+public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
 {
+    protected User TargetUser => Target as User;
+    protected User SourceUser => Source as User;
+
+    public Guid Guid { get; } = Guid.NewGuid();
+    public Guid OriginSnapshotId { get; set; } = Guid.Empty;
+    public World World => Target.World;
+
+    public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
+
+    public Castable Castable { get; set; }
+    public Status XmlStatus { get; set; }
+    public StatInfo BonusModifiers { get; set; } = new();
+
+    // TODO: xmlfix
+    public List<string> Category => XmlStatus.CategoryList;
+    public string Name => XmlStatus.Name;
+    public ushort Icon => XmlStatus.Icon;
+    public double Tick { get; }
+
+    public double Duration { get; }
+
+    public double Intensity { get; set; } = 1;
+
+    public Creature Target { get; }
+    public Creature Source { get; }
+
+    public DateTime Start { get; }
+
+    public DateTime LastTick { get; private set; }
+    public string ActionProhibitedMessage { get; set; }
+    public SimpleStatusEffect OnTickEffect { get; }
+    public SimpleStatusEffect OnStartEffect { get; }
+    public SimpleStatusEffect OnRemoveEffect { get; }
+    public SimpleStatusEffect OnExpireEffect { get; }
+
+    public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
+    public double Elapsed => (DateTime.Now - Start).TotalSeconds;
+    public double Remaining => Duration - Elapsed;
+
+    public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
+
     public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source = null,
         int duration = -1, int tickFrequency = -1, double intensity = 1.0)
     {
@@ -59,7 +101,7 @@ public class CreatureStatus : ICreatureStatus
             xmlstatus.Effects.OnApply.StatModifiers, source, target);
     }
 
-    public CreatureStatus(StatusInfo serialized, Creature target)
+    public CreatureStatus(StatusSnapshot serialized, Creature target)
     {
         Target = target;
         if (!string.IsNullOrEmpty(serialized.Name))
@@ -84,23 +126,6 @@ public class CreatureStatus : ICreatureStatus
         }
     }
 
-    protected User TargetUser => Target as User;
-    protected User SourceUser => Target as User;
-
-    public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
-
-    public Castable Castable { get; set; }
-    public Status XmlStatus { get; set; }
-    public StatInfo BonusModifiers { get; set; } = new();
-
-    // TODO: xmlfix
-    public List<string> Category => XmlStatus.CategoryList;
-    public string Name => XmlStatus.Name;
-    public ushort Icon => XmlStatus.Icon;
-    public double Tick { get; }
-
-    public double Duration { get; }
-
     // TODO: xmlfix
     public List<string> UseCastRestrictions => XmlStatus.CastRestrictions
         .Where(predicate: x => !string.IsNullOrEmpty(x.Use)).Select(selector: y => y.Use).ToList();
@@ -109,9 +134,8 @@ public class CreatureStatus : ICreatureStatus
         XmlStatus.CastRestrictions.Where(predicate: x => !string.IsNullOrEmpty(x.Receive))
             .Select(selector: y => y.Receive).ToList();
 
-    public double Intensity { get; set; } = 1;
 
-    public StatusInfo Info => new()
+    public StatusSnapshot Snapshot => new()
     {
         Name = Name,
         Icon = Icon,
@@ -123,14 +147,6 @@ public class CreatureStatus : ICreatureStatus
         Tick = Tick,
         Intensity = Intensity
     };
-
-    public Creature Target { get; }
-    public Creature Source { get; }
-
-    public DateTime Start { get; }
-
-    public DateTime LastTick { get; private set; }
-    public string ActionProhibitedMessage { get; set; }
 
     public void OnStart(bool displaySfx = true)
     {
@@ -151,17 +167,6 @@ public class CreatureStatus : ICreatureStatus
     {
         _processExpire();
     }
-
-    public SimpleStatusEffect OnTickEffect { get; }
-    public SimpleStatusEffect OnStartEffect { get; }
-    public SimpleStatusEffect OnRemoveEffect { get; }
-    public SimpleStatusEffect OnExpireEffect { get; }
-
-    public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
-    public double Elapsed => (DateTime.Now - Start).TotalSeconds;
-    public double Remaining => Duration - Elapsed;
-
-    public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
     private void ProcessSfx(ModifierEffect effect)
     {
@@ -208,7 +213,6 @@ public class CreatureStatus : ICreatureStatus
                 Target.Shout(string.Format(effect.Messages.Shout, Target.Name ?? string.Empty));
         }
     }
-
 
     private void ProcessConditions(ModifierEffect effect)
     {

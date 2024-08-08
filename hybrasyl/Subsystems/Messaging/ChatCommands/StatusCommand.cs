@@ -17,7 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Objects;
-using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;

@@ -20,11 +20,11 @@ using Hybrasyl.Casting;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
-using Hybrasyl.Statuses;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Loot;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
@@ -191,7 +191,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         set => Loot.Xp = value;
     }
 
-    public Creature Target
+    public Creature ActiveTarget
     {
         get => World.WorldState.TryGetWorldObject<Creature>(_target, out var o) ? o : null;
         set => _target = value?.Guid ?? Guid.Empty;
@@ -489,6 +489,9 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         base.OnHear(e);
     }
 
+    private Creature GetTarget(CreatureTargetPriority priority = CreatureTargetPriority.RandomAttacker) => ThreatInfo
+            .GetTargets(CastableController.GetNextCastable()?.CurrentPriority ?? priority)
+            .FirstOrDefault();
 
     public override void OnDamage(DamageEvent damageEvent)
     {
@@ -734,7 +737,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             if (adj.X >= Map.X || adj.Y >= Map.Y || adj.X < 0 || adj.Y < 0) continue;
             if (Map.IsWall(adj.X, adj.Y)) continue;
             var creatureContents = Map.GetCreatures(adj.X, adj.Y);
-            if (creatureContents.Count == 0 || creatureContents.Contains(Target) || creatureContents.Contains(this))
+            if (creatureContents.Count == 0 || creatureContents.Contains(ActiveTarget) || creatureContents.Contains(this))
                 ret.Add(adj);
         }
 
@@ -878,23 +881,21 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
-        Target = target;
+        ActiveTarget = target;
     }
 
     public void Attack()
     {
-        if (ThreatInfo.HighestThreat == null) return;
-        if (CheckFacing(Direction, ThreatInfo.HighestThreat))
-            AssailAttack(Direction, ThreatInfo.HighestThreat);
+        if (ActiveTarget == null) return;
+        if (CheckFacing(Direction, ActiveTarget))
+            AssailAttack(Direction, ActiveTarget);
         else
-            Turn(Relation(ThreatInfo.HighestThreat.X, ThreatInfo.HighestThreat.Y));
-        Target = Target;
+            Turn(Relation(ActiveTarget.X, ActiveTarget.Y));
     }
 
 
     public void NextAction()
     {
-        var next = 0;
         if (Stats.Hp == 0)
         {
             _actionQueue.Enqueue(MobAction.Death);
@@ -907,37 +908,31 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             return;
         }
 
-        var target = Target;
+        if (ActiveTarget?.Stats.Hp == 0)
+            ActiveTarget = GetTarget();
 
-        if (Condition.Charmed)
+        if (ActiveTarget != null)
         {
-            // Our target is dead, get a new one
-            if (Target == null || Target.Stats.Hp <= 0)
-                _actionQueue.Enqueue(MobAction.Move);
-        }
-
-
-        if (target != null)
-        {
-            if (Distance(target) == 1)
+            if (Distance(ActiveTarget) == 1)
             {
                 _actionQueue.Enqueue(MobAction.Attack);
             }
-            else if (target.Map != null && target.Map.Id != Map.Id || 
-                     Distance(target) > Math.Floor(Game.ActiveConfiguration.Constants.ViewportSize * 0.75))
+            else if ((ActiveTarget.Map != null && ActiveTarget.Map.Id != Map.Id) ||
+                     Distance(ActiveTarget) > (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.75))
             {
                 ShouldWander = true;
+                ActiveTarget = null;
                 _actionQueue.Enqueue(MobAction.Move);
             }
             else
             {
-                next = Random.Shared.Next(1, 3); //cast or move
-                _actionQueue.Enqueue((MobAction)next);
+                _actionQueue.Enqueue((MobAction) Random.Shared.Next(1,3));
             }
         }
         else
         {
-            ShouldWander = true;
+            ActiveTarget = GetTarget();
+            ShouldWander = ActiveTarget == null;
             _actionQueue.Enqueue(MobAction.Move);
         }
     }
@@ -948,7 +943,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         {
             _actionQueue.TryDequeue(out var action);
             List<Creature> targets = new();
-            var nextCastable = CastableController.GetNextCastable();
             Direction dir;
 
             GameLog.SpawnDebug($"ActionQueue: {action}");
@@ -956,7 +950,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             {
                 case MobAction.Flee:
                     // Run awaaaay!
-                    var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? Target;
+                    var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? ActiveTarget;
                     if (fleeFrom != null)
                     {
                         dir = Relation(fleeFrom.X, fleeFrom.Y);
@@ -974,36 +968,14 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                     break;
                 case MobAction.Attack:
 
+                    var nextCastable = CastableController.GetNextCastable();
+
                     if (nextCastable == null)
-                    {
-                        GameLog.SpawnError($"{Name} ({Map.Name}@{X},{Y}): nextCastable null?");
-                        Attack();
                         return;
-                    }
 
-                    targets = ThreatInfo.GetTargets(nextCastable.CurrentPriority);
+                    if (ActiveTarget == null) return;
 
-                    if (targets == null && Target == null)
-                    {
-                        GameLog.SpawnDebug(
-                            $"{Name}: ({Map.Name}@{X},{Y}): no targets returned from priority {nextCastable.CurrentPriority} and no current target");
-                        return;
-                    }
-
-                    // If the monster is charmed and it doesn't already have a target, the target is a user, or the target is dead (or in the process of getting dead)
-                    // get a new target. If it is not charmed, our castable determines targeting priority and we take the first target.
-                    if (!Condition.Charmed)
-                        Target = targets.FirstOrDefault();
-                    else if (Target is null || Target is User || Target.Stats.Hp <= 0)
-                        Target = targets.FirstOrDefault();
-
-                    if (Target == null)
-                    {
-                        GameLog.SpawnError($"{Name} ({Map}@{X},{Y}): unable to calculate target, aborting attack");
-                        return;
-                    }
-
-                    if (nextCastable == null || nextCastable.Slot.Castable.IsAssail)
+                    if (nextCastable.Slot.Castable.IsAssail)
                     {
                         if (Condition.Disarmed)
                         {
@@ -1013,22 +985,22 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                             return;
                         }
 
-                        if (Distance(Target) > 1)
+                        if (Distance(ActiveTarget) > 1)
                         {
                             _actionQueue.Enqueue(MobAction.Move);
                         }
                         else
                         {
-                            if (!CheckFacing(Direction, Target))
-                                Turn(Relation(Target.X, Target.Y));
+                            if (!CheckFacing(Direction, ActiveTarget))
+                                Turn(Relation(ActiveTarget.X, ActiveTarget.Y));
 
-                            Cast(nextCastable.Slot, Target);
+                            Cast(nextCastable.Slot, ActiveTarget);
                         }
 
                         return;
                     }
 
-                    Cast(nextCastable.Slot, Target);
+                    Cast(nextCastable.Slot, ActiveTarget);
 
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:
@@ -1057,16 +1029,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                     break;
                 case MobAction.Move when ShouldWander:
                     {
-                        var target = ThreatInfo
-                            .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
-                            .FirstOrDefault();
-
-                        if (target != null)
-                        {
-                            ShouldWander = false;
-                            return;
-                        }
-
                         // Make sure mob is on a map, and the right map at that (we don't support mobs wandering between maps yet)
                         if (SpawnPoint == null || SpawnPoint.MapId != Map.Id)
                             return;
@@ -1092,72 +1054,55 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                         break;
                     }
                 case MobAction.Move:
+                {
+                    
+                    if (CurrentPath == null || !AStarPathClear())
+                        // If we don't have a current path to our threat target, OR if there is something in the way of
+                        // our existing path, calculate a new one
                     {
-                        var target = ThreatInfo
-                            .GetTargets(nextCastable?.CurrentPriority ?? CreatureTargetPriority.RandomAttacker)
-                            .FirstOrDefault();
+                        if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
+                        if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
+                        CurrentPath = AStarPathFind(ActiveTarget.Location.X,
+                            ActiveTarget.Location.Y, X, Y);
+                    }
 
-                        if (target == null)
+                    if (CurrentPath != null)
+                    {
+                        // We have a path, check its validity
+                        // We recalculate our path if we're within five spaces of the target and they have moved
+
+                        if (Distance(ActiveTarget) < 5 &&
+                            CurrentPath.Target.X != ActiveTarget.Location.X &&
+                            CurrentPath.Target.Y != ActiveTarget.Location.Y)
                         {
-                            ShouldWander = true;
-                            return;
+                            GameLog.Info("Distance less than five and target moved, recalculating path");
+                            CurrentPath = AStarPathFind(ActiveTarget.Location.X,
+                                ActiveTarget.Location.Y, X, Y);
                         }
 
-                        if (Condition.MovementAllowed)
+                        if (Walk(AStarGetDirection()))
                         {
-                            if (CurrentPath == null || !AStarPathClear())
-                            // If we don't have a current path to our threat target, OR if there is something in the way of
-                            // our existing path, calculate a new one
-                            {
-                                if (CurrentPath == null) GameLog.Info("Path is null. Recalculating");
-                                if (!AStarPathClear()) GameLog.Info("Path wasn't clear. Recalculating");
-                                Target = target;
-                                CurrentPath = AStarPathFind(target.Location.X,
-                                    target.Location.Y, X, Y);
-                            }
-
-                            if (CurrentPath != null)
-                            {
-                                // We have a path, check its validity
-                                // We recalculate our path if we're within five spaces of the target and they have moved
-
-                                if (Distance(target) < 5 &&
-                                    CurrentPath.Target.X != target.Location.X &&
-                                    CurrentPath.Target.Y != target.Location.Y)
-                                {
-                                    GameLog.Info("Distance less than five and target moved, recalculating path");
-                                    CurrentPath = AStarPathFind(target.Location.X,
-                                        target.Location.Y, X, Y);
-                                }
-
-                                if (Walk(AStarGetDirection()))
-                                {
-                                    if (X != CurrentPath.X || Y != CurrentPath.Y)
-                                        GameLog.SpawnError(
-                                            $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
-                                    // We've moved; update our path
-                                    CurrentPath = CurrentPath.Parent;
-                                }
-                                else
-                                // Couldn't move, attempt to recalculate path
-                                {
-                                    CurrentPath = AStarPathFind(target.Location.X,
-                                        target.Location.Y, X, Y);
-                                }
-                            }
-                            else
-                            // If we can't find a path, return to wandering
-                            {
-                                ShouldWander = true;
-                            }
+                            if (X != CurrentPath.X || Y != CurrentPath.Y)
+                                GameLog.SpawnError(
+                                    $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
+                            // We've moved; update our path
+                            CurrentPath = CurrentPath.Parent;
                         }
                         else
+                            // Couldn't move, attempt to recalculate path
                         {
-                            GameLog.SpawnError("Can't move");
+                            CurrentPath = AStarPathFind(ActiveTarget.Location.X,
+                                ActiveTarget.Location.Y, X, Y);
                         }
-
-                        break;
                     }
+                    else
+                        // If we can't find a path, return to wandering
+                    {
+                        ShouldWander = true;
+                    }
+
+                    break;
+                }
                 case MobAction.Idle:
                     //do nothing
                     break;
@@ -1180,7 +1125,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                 {
                     ShouldWander = true;
                     FirstHitter = null;
-                    Target = null;
+                    ActiveTarget = null;
                     Stats.Hp = Stats.MaximumHp;
                 }
             }

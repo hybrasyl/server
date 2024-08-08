@@ -16,12 +16,12 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-namespace Hybrasyl.Statuses;
+namespace Hybrasyl.Subsystems.Statuses;
 
 /// <summary>
 ///     Serializable representation of statuses. Used to save a player's active statuses on logout.
 /// </summary>
-public class StatusInfo
+public class StatusSnapshot
 {
     public string Name { get; set; }
     public ushort Icon { get; set; }

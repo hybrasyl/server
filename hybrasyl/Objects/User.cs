@@ -25,7 +25,6 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Servers;
-using Hybrasyl.Statuses;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Manufacturing;
@@ -33,6 +32,7 @@ using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Players.Guilds;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -109,7 +109,7 @@ public class User : Creature
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 
-    [JsonProperty] private List<StatusInfo> Statuses { get; set; } = new();
+    [JsonProperty] private List<StatusSnapshot> Statuses { get; set; } = new();
 
     public int LevelCircle
     {
@@ -1031,8 +1031,8 @@ public class User : Creature
             {
                 if (ActiveStatusCount > 0)
                     Statuses = CurrentStatuses.Count > 0
-                        ? CurrentStatuses.Values.Select(selector: e => e.Info).ToList()
-                        : new List<StatusInfo>();
+                        ? CurrentStatuses.Values.Select(selector: e => e.Snapshot).ToList()
+                        : new List<StatusSnapshot>();
                 else
                     Statuses.Clear();
             }
@@ -5229,7 +5229,7 @@ public class User : Creature
 
     public void ReapplyStatuses()
     {
-        Statuses ??= new List<StatusInfo>();
+        Statuses ??= new List<StatusSnapshot>();
         foreach (var status in Statuses)
             try
             {

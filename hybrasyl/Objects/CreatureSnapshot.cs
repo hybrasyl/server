@@ -16,14 +16,16 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
+using Hybrasyl.Interfaces;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Objects;
 
 [MoonSharpUserData]
-public record CreatureSnapshot
+public record CreatureSnapshot : IStateStorable
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public required StatInfo Stats { get; init; }
     public required string Name { get; init; }
     public Guid Parent { get; init; }

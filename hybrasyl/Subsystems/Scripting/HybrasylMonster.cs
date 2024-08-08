@@ -18,7 +18,7 @@
 
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
-using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System.Globalization;
@@ -41,7 +41,7 @@ public class HybrasylMonster : HybrasylWorldObject
     internal HybrasylMap Map { get; set; }
 
     public ThreatInfo ThreatInfo => Monster.ThreatInfo;
-    public WorldObject Target => Monster.Target;
+    public WorldObject Target => Monster.ActiveTarget;
     public bool AbsoluteImmortal => Monster.AbsoluteImmortal;
     public bool PhysicalImmortal => Monster.PhysicalImmortal;
     public bool MagicalImmortal => Monster.MagicalImmortal;
@@ -141,7 +141,7 @@ public class HybrasylMonster : HybrasylWorldObject
 
         s += $"ShouldWander: {Monster.ShouldWander}\n";
 
-        if (Monster.Target != null) s += $"Target: {Monster.Target.Name}\n";
+        if (Monster.ActiveTarget != null) s += $"Target: {Monster.ActiveTarget.Name}\n";
         if (Monster.FirstHitter != null) s += $"FirstHitter: {Monster.FirstHitter.Name}\n";
         if (Monster.LastHitter != null) s += $"LastHitter: {Monster.LastHitter.Name}\n";
         if (Monster.LastHitTime != default) s += $"LastHitTime: {Monster.LastHitTime}\n";

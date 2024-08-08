@@ -31,10 +31,21 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
 
-public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
+public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable, ICreatureSnapshotRequester
 {
     public bool Blocking;
-    public CreatureSnapshot Caster;
+
+    public Guid OriginSnapshotId { get; set; }
+
+    public CreatureSnapshot OriginSnapshot
+    {
+        get
+        {
+            if (OriginSnapshotId == Guid.Empty) return null;
+            return World.WorldState.TryGetValue<CreatureSnapshot>(OriginSnapshotId, out var creatureSnapshot) ? creatureSnapshot : null;
+        }
+    }
+
     public string Description;
     public string ScriptName;
     public string DisplayName { get; } = string.Empty;
@@ -67,7 +78,6 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         CreatedAt = DateTime.Now;
         Expiration = CreatedAt.AddSeconds(reactor.Expiration);
         ExpirationSeconds = reactor.Expiration;
-        Caster = caster?.GetSnapshot();
         Description = description;
         VisibleToGroup = reactor.DisplayGroup;
         VisibleToOwner = reactor.DisplayOwner;
@@ -144,13 +154,14 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
     {
         if (Expired) return false;
         if (obj is not User user) return false;
-        var casterObj = Caster?.GetUserObject();
+        var casterObj = OriginSnapshot?.GetUserObject();
         if (VisibleToCookies.Any(user.HasCookie)) return true;
         if (InvisibleToCookies.Any(user.HasCookie)) return false;
         if (user.CurrentStatuses.Values.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
         if (casterObj == null) return false;
-        if (VisibleToOwner && user.Name == Caster.Name) return true;
+        if (VisibleToOwner && OriginSnapshot != null && user.Name == OriginSnapshot.Name) return true;
         if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;
+
         return false;
     }
 
@@ -198,7 +209,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
     }
 
     public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
-        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
+        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", OriginSnapshot), ("target", obj));
 
     public void OnEntry(VisibleObject obj)
     {

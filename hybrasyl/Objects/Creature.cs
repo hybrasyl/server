@@ -24,10 +24,10 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Servers;
-using Hybrasyl.Statuses;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -39,7 +39,7 @@ using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 namespace Hybrasyl.Objects;
 
-public class Creature : VisibleObject
+public class Creature : VisibleObject, ICreatureSnapshotProvider
 {
     private readonly object _lock = new();
 
@@ -114,13 +114,6 @@ public class Creature : VisibleObject
             if (maxdmg == 0) maxdmg = 1;
             return (ushort)Random.Shared.Next(mindmg, maxdmg + 1);
         }
-    }
-
-    public CreatureSnapshot GetSnapshot()
-    {
-        var stats = JsonConvert.SerializeObject(Stats);
-        var statInfo = JsonConvert.DeserializeObject<StatInfo>(stats);
-        return new CreatureSnapshot { Name = Name, Parent = Guid, Stats = statInfo };
     }
 
     public virtual string Status() => string.Empty;
