@@ -40,7 +40,8 @@ public enum MobAction
     Move,
     Idle,
     Death,
-    Flee
+    Flee,
+    Waiting
 }
 
 public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
@@ -57,6 +58,92 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     public HashSet<Guid> HitByUsers = new();
     public Loot Loot;
     public SpawnFlags SpawnFlags;
+    public MobAction? NextAction => _actionQueue.TryPeek(out var result) ? result : null;
+    private bool _active;
+    public CastableController CastableController { get; set; }
+    private CreatureBehaviorSet _behaviorSet;
+    public CreatureHostilitySettings Hostility { get; set; }
+    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
+    public DateTime LastAction { get; set; } = DateTime.MinValue;
+    public DateTime LastSkill { get; set; } = DateTime.MinValue;
+    public DateTime LastSpell { get; set; } = DateTime.MinValue;
+    public bool ShouldWander { get; set; }
+    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
+    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
+    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
+    public bool DeathProcessed { get; set; }
+    public bool ScriptExists { get; set; }
+    public ThreatInfo ThreatInfo { get; private set; }
+    public DateTime ActiveSince { get; set; }
+    public bool HasAssailSkills { get; set; }
+    public uint LootableGold => Loot?.Gold ?? 0;
+    public List<string> LootableItems => Loot?.Items ?? new List<string>();
+    public DateTime WaitExpires { get; set; } = DateTime.MinValue;
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+
+    public CreatureBehaviorSet BehaviorSet
+    {
+        get => _behaviorSet;
+        set
+        {
+            if (_behaviorSet == null)
+            {
+                _behaviorSet = value;
+            }
+            else
+            {
+                _behaviorSet = value;
+                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
+            }
+        }
+    }
+
+    public LocationInfo RandomDestination => new()
+    {
+        X = (byte) Math.Clamp(X + Random.Shared.Next(
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
+            byte.MaxValue),
+        Y = (byte) Math.Clamp(X + Random.Shared.Next(
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
+                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
+            byte.MaxValue),
+        MapId = Map.Id
+    };
+
+    public double ActiveSeconds
+    {
+        get
+        {
+            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
+            return -1;
+        }
+    }
+
+    public bool Active
+    {
+        get => _active;
+        set
+        {
+            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
+            _active = value;
+        }
+    }
+
+    public uint LootableXp
+    {
+        get => Loot?.Xp ?? 0;
+        set => Loot.Xp = value;
+    }
+
+    public Creature ActiveTarget
+    {
+        get => World.WorldState.TryGetWorldObject<Creature>(_target, out var o) ? o : null;
+        set => _target = value?.Guid ?? Guid.Empty;
+    }
 
     public Monster(Xml.Objects.Creature creature, SpawnFlags flags, byte level, Loot loot = null,
         CreatureBehaviorSet behaviorsetOverride = null)
@@ -115,93 +202,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             SetCookie(cookie.Name, cookie.Value);
     }
 
-    private bool _active { get; set; }
-    public CastableController CastableController { get; set; }
-    private CreatureBehaviorSet _behaviorSet { get; set; }
-    public CreatureHostilitySettings Hostility { get; set; }
-    public double AliveSeconds => (DateTime.Now - CreationTime).TotalSeconds;
-    public DateTime LastAction { get; set; } = DateTime.MinValue;
-    public DateTime LastSkill { get; set; } = DateTime.MinValue;
-    public DateTime LastSpell { get; set; } = DateTime.MinValue;
-    public bool ShouldWander { get; set; }
-    public bool DeathDisabled => SpawnFlags.HasFlag(SpawnFlags.DeathDisabled);
-    public bool MovementDisabled => SpawnFlags.HasFlag(SpawnFlags.MovementDisabled);
-    public bool AiDisabled => SpawnFlags.HasFlag(SpawnFlags.AiDisabled);
-    public bool DeathProcessed { get; set; }
-    public bool ScriptExists { get; set; }
-    public ThreatInfo ThreatInfo { get; private set; }
-    public DateTime ActiveSince { get; set; }
-    public bool HasAssailSkills { get; set; }
-    public uint LootableGold => Loot?.Gold ?? 0;
-    public List<string> LootableItems => Loot?.Items ?? new List<string>();
-
-    public CreatureBehaviorSet BehaviorSet
-    {
-        get => _behaviorSet;
-        set
-        {
-            if (_behaviorSet == null)
-            {
-                _behaviorSet = value;
-            }
-            else
-            {
-                _behaviorSet = value;
-                CastableController.ProcessCastingSets(value.Behavior?.CastingSets ?? new List<CreatureCastingSet>());
-            }
-        }
-    }
-
-    public LocationInfo RandomDestination => new()
-    {
-        X = (byte) Math.Clamp(X + Random.Shared.Next(
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
-            byte.MaxValue),
-        Y = (byte) Math.Clamp(X + Random.Shared.Next(
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
-            byte.MaxValue),
-        MapId = Map.Id
-    };
-
-    public double ActiveSeconds
-    {
-        get
-        {
-            if (ActiveSince != DateTime.MinValue) return (DateTime.Now - ActiveSince).TotalSeconds;
-            return -1;
-        }
-    }
-
-    public bool Active
-    {
-        get => _active;
-        set
-        {
-            ActiveSince = value == false ? DateTime.MinValue : DateTime.Now;
-            _active = value;
-        }
-    }
-
-
-    public uint LootableXp
-    {
-        get => Loot?.Xp ?? 0;
-        set => Loot.Xp = value;
-    }
-
-    public Creature ActiveTarget
-    {
-        get => World.WorldState.TryGetWorldObject<Creature>(_target, out var o) ? o : null;
-        set => _target = value?.Guid ?? Guid.Empty;
-    }
-
     public object Clone() => MemberwiseClone();
-
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
 
     public bool TryGetImmunity(ElementType element, out CreatureImmunity immunity)
     {
@@ -894,8 +895,11 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     }
 
 
-    public void NextAction()
+    public void DetermineNextAction()
     {
+        if (WaitExpires > DateTime.Now)
+            _actionQueue.Enqueue(MobAction.Waiting);
+
         if (Stats.Hp == 0)
         {
             _actionQueue.Enqueue(MobAction.Death);
@@ -933,7 +937,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         {
             ActiveTarget = GetTarget();
             ShouldWander = ActiveTarget == null;
-            _actionQueue.Enqueue(MobAction.Move);
+            _actionQueue.Enqueue(Distance(ActiveTarget) == 1 ? MobAction.Attack : MobAction.Move);
         }
     }
 
@@ -941,13 +945,16 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     {
         while (!_actionQueue.IsEmpty)
         {
-            _actionQueue.TryDequeue(out var action);
-            List<Creature> targets = new();
+            if (!_actionQueue.TryDequeue(out var action))
+                return;
+            
             Direction dir;
 
             GameLog.SpawnDebug($"ActionQueue: {action}");
             switch (action)
             {
+                case MobAction.Waiting:
+                    return;
                 case MobAction.Flee:
                     // Run awaaaay!
                     var fleeFrom = ThreatInfo.LastCaster ?? ThreatInfo.HighestThreat ?? ActiveTarget;
@@ -964,7 +971,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                             return; // cower in fear, we can't move anywhere
                         Walk(Extensions.EnumerableExtension.PickRandom(sides));
                     }
-
                     break;
                 case MobAction.Attack:
 

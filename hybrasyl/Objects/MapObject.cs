@@ -312,12 +312,10 @@ public class MapObject : IStateStorable
     public void InsertMonster(Monster toInsert)
     {
         World.Insert(toInsert);
-        Insert(toInsert, toInsert.X, toInsert.Y);
-        if (toInsert is Monster m)
-            m.SpawnPoint = new LocationInfo { Map = this, X = toInsert.X, Y = toInsert.Y };
+        Insert(toInsert, toInsert.X, toInsert.Y); 
+        toInsert.SpawnPoint = new LocationInfo { Map = this, X = toInsert.X, Y = toInsert.Y };
         GameLog.DebugFormat("Monster {0} with id {1} spawned.", toInsert.Name, toInsert.Id);
     }
-
 
     public void InsertReactor(Reactor toInsert)
     {

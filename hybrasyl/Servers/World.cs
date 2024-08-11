@@ -1349,7 +1349,7 @@ public class World : Server
             monster.Id == 0 || monster.Map == null ||
             monster.Condition.Asleep || monster.Condition.Stunned) return;
 
-        monster.NextAction();
+        monster.DetermineNextAction();
         monster.ProcessActions();
     }
 
