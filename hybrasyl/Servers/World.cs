@@ -1727,7 +1727,6 @@ public class World : Server
         {
             var x3C = new ServerPacket(0x3C);
             x3C.WriteUInt16(row);
-            x3C.WriteUInt16(row);
             for (var col = 0; col < user.Map.X * 6; col += 2)
             {
                 x3C.WriteByte(user.Map.RawData[index + 1]);
