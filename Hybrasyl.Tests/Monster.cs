@@ -445,7 +445,7 @@ public class Monsters
     [Fact]
     public void MonsterWithAggressionEnabledShouldPathTowardsTarget()
     {
-        var baitTemplate = Game.World.WorldData.Get<Creature>("Aggro Gabbaghoul");
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Dynamic Gabbaghoul");
         Assert.NotNull(baitTemplate);
 
         var bait = new Monster(baitTemplate, SpawnFlags.Active, 99, null)
@@ -497,7 +497,7 @@ public class Monsters
     [Fact]
     public void MonsterShouldAttackWithCorrectRotation()
     {
-        var baitTemplate = Game.World.WorldData.Get<Creature>("Aggro Gabbaghoul");
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Dynamic Gabbaghoul");
         var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabbaDynamic");
         Assert.NotNull(baitTemplate);
         Assert.NotNull(behaviorSet);
@@ -518,11 +518,12 @@ public class Monsters
         Assert.NotNull(bait.NextAction);
         Assert.Equal(MobAction.Attack, bait.NextAction);
         var nextCastable = bait.CastableController.GetNextCastable();
-        Assert.Null(nextCastable);
-        Thread.Sleep(TimeSpan.FromSeconds(7)); 
+        Assert.NotNull(nextCastable);
+        nextCastable.Use();
         nextCastable = bait.CastableController.GetNextCastable();
         Assert.Contains(nextCastable.Name, behaviorSet.Behavior.CastingSets.First().Castable.Select(x => x.Value));
         bait.ProcessActions();
+        
         var nextCastable2 = bait.CastableController.GetNextCastable();
         Assert.DoesNotContain(nextCastable.Name,
             behaviorSet.Behavior.CastingSets.First().Castable.Select(x => x.Value));

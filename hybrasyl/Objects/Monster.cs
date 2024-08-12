@@ -874,15 +874,17 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         return Direction.North;
     }
 
-    public void Cast(BookSlot slot, Creature target)
+    public bool Cast(BookSlot slot, Creature target)
     {
-        if (!Condition.CastingAllowed) return;
+        if (!Condition.CastingAllowed) return false;
         Condition.Casting = true;
-        UseCastable(slot.Castable, target);
+        var ret = UseCastable(slot.Castable, target);
         Condition.Casting = false;
         slot.LastCast = DateTime.Now;
         slot.UseCount++;
+        
         ActiveTarget = target;
+        return ret;
     }
 
     public void Attack()
@@ -1000,13 +1002,15 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                             if (!CheckFacing(Direction, ActiveTarget))
                                 Turn(Relation(ActiveTarget.X, ActiveTarget.Y));
 
-                            Cast(nextCastable.Slot, ActiveTarget);
+                            if (Cast(nextCastable.Slot, ActiveTarget))
+                                nextCastable.Use();
                         }
 
                         return;
                     }
 
-                    Cast(nextCastable.Slot, ActiveTarget);
+                    if (Cast(nextCastable.Slot, ActiveTarget))
+                        nextCastable.Use();
 
                     return;
                 case MobAction.Move when !Condition.MovementAllowed:

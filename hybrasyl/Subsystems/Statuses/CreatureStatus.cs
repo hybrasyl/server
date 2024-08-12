@@ -199,9 +199,9 @@ public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
             if (TargetUser != null)
             {
                 if (effect.Messages?.Target != null)
-                    TargetUser.SendSystemMessage(string.Format(effect.Messages.Target, SourceUser.Name));
+                    TargetUser.SendSystemMessage(string.Format(effect.Messages.Target, SourceUser?.Name));
                 if (effect.Messages?.Group != null)
-                    TargetUser.Group?.SendMessage(string.Format(effect.Messages.Group, SourceUser.Name));
+                    TargetUser.Group?.SendMessage(string.Format(effect.Messages.Group, SourceUser?.Name));
             }
 
             if (effect.Messages?.Source != null && TargetUser != null && TargetUser != SourceUser)

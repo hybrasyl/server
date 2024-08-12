@@ -201,17 +201,30 @@ public class CastableController : IEnumerable<Rotation>
             return null;
         }
 
-        // Find the "most expired" rotation
-        var rotations = Rotations.Values.Where(predicate: x => x.Active && x.Priority >= 0);
+        // Find the "most expired" rotation which is no longer expired
+        var rotations = Rotations.Values.Where(predicate: x => x.Active
+                                                               && x.Priority >= 0 && (x.SecondsSinceLastUse >= x.Interval)).OrderByDescending(x => x.SecondsSinceLastUse)
+            .ToList();
+
+        foreach (var x in rotations)
+        {
+            GameLog.Error($"{x.SecondsSinceLastUse} {x.Interval} {x.SecondsSinceLastUse > x.Interval}");
+        }
 
         if (type != null)
-            rotations = rotations.Where(predicate: x => x.Type == type);
+            rotations = rotations.Where(predicate: x => x.Type == type).ToList();
 
-        var rotation = rotations.OrderByDescending(keySelector: y => y.Priority).FirstOrDefault();
+        var rotation = rotations.MaxBy(keySelector: y => y.Priority);
 
         if (rotation == null)
         {
             GameLog.SpawnDebug($"{DebugLogHeader}: no active rotations or not enough time elapsed since last use");
+            return null;
+        }
+
+        if (rotation.CurrentCastable == null)
+        {
+            GameLog.SpawnError($"{MonsterObj.Name}: processing rotation but no castables defined (CurrentCastable null)");
             return null;
         }
 

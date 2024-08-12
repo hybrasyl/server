@@ -16,8 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
 using Hybrasyl.Xml.Objects;
+using System;
 
 namespace Hybrasyl.Casting;
 
@@ -67,6 +67,7 @@ public class RotationEntry
 
     public void Use()
     {
+        LastUse = DateTime.Now;
         Parent.Use();
     }
 }
