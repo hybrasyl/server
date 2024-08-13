@@ -67,7 +67,8 @@ public class Reactor
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport(Fixture.Map.Id, 15, 15);
+
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 25, 25);
         // Test trap formula for uses is 2 uses > 40, 1 use otherwise
         Fixture.TestUser.Stats.Level = 39;
 
@@ -99,18 +100,18 @@ public class Reactor
         // flexibility for reactor event handling / scripting.
         Assert.Equal((uint) 1000, Fixture.TestUser.Stats.Hp);
 
+        Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
+        Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
+        Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
+
+        Assert.Equal(25, Fixture.TestUser.X);
+        Assert.Equal(22, Fixture.TestUser.Y);
+
         Fixture.Map.InsertMonster(bait);
-
-        Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
-        Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
-        Assert.True(Fixture.TestUser.Walk(Direction.North), "Walk failed");
-
-        Assert.Equal(15, Fixture.TestUser.X);
-        Assert.Equal(12, Fixture.TestUser.Y);
 
         // Bait should be undamaged
         Assert.Equal((uint) 500, bait.Stats.Hp);
-        var reactors = Fixture.Map.Reactors[(15, 15)];
+        var reactors = Fixture.Map.Reactors[(25, 25)];
         Assert.Single(reactors.Values);
         var reactor = reactors.Values.First();
 
