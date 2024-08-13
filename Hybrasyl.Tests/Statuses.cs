@@ -131,6 +131,7 @@ public class Status
         Assert.True(Fixture.TestUser.Condition.IsInvisible);
         // Using a spell with BreakStealth set, breaks stealth
         Fixture.TestUser.UseCastable(castable);
+        Thread.Sleep(250);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
         Thread.Sleep(200);
