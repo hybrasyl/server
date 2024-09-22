@@ -191,7 +191,7 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         }
 
         // Do we have a script? If so, get it and run OnSpawn.
-        if (World.ScriptProcessor.TryGetScript(Name, out var script))
+        if (World.ScriptProcessor.TryGetScript(Name, out Script script) || World.ScriptProcessor.TryGetScript(DisplayName, out script))
         {
             DialogSequences.Clear();
             Script = script;

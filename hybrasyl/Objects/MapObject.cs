@@ -254,7 +254,7 @@ public class MapObject : IStateStorable
                 Y = npcElement.Y,
                 Name = npcElement.Name,
                 Direction = npcElement.Direction,
-                DisplayName = string.IsNullOrWhiteSpace(npcElement.DisplayName) ? npcTemplate.DisplayName : npcElement.DisplayName
+                DisplayName = string.IsNullOrWhiteSpace(npcElement.DisplayName) ? npcTemplate.Name : npcElement.DisplayName
             };
             InsertNpc(merchant);
             // Keep the actual spawned object around in the index for later use
