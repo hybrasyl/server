@@ -142,6 +142,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         sourceClosed = true;
         user.ActiveDialogSession = null;
         user.ClearDialogState();
+        user.SendCloseDialog();
     }
 
     public void CloseTarget()
@@ -149,6 +150,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         targetClosed = true;
         Target.ActiveDialogSession = null;
         Target.ClearDialogState();
+        Target.SendCloseDialog();
     }
 
     public void Close()
