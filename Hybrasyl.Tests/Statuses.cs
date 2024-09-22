@@ -145,7 +145,7 @@ public class Status
         Assert.True(scriptUser.ApplyStatus("TestMinusStr", 30));
         Assert.NotEmpty(Fixture.TestUser.CurrentStatuses.Values.Where(predicate: x => x.Name == "TestMinusStr"));
     }
-
+    
     [Fact]
     public void ApplyStatusToMonsterFromScript()
     {

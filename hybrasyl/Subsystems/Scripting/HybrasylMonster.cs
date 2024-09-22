@@ -124,6 +124,7 @@ public class HybrasylMonster : HybrasylWorldObject
         s +=
             $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
         s += $"Experience: {Monster.LootableXp}\n\n";
+        s += $"Elements: Defensive {Monster.Stats.DefensiveElement} Offensive {Monster.Stats.OffensiveElement}\n\n";
         s += "Castables:\n";
 
         foreach (var rotation in Monster.CastableController)

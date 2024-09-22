@@ -1334,6 +1334,7 @@ public class Creature : VisibleObject, ICreatureSnapshotProvider
 
         if (!CurrentStatuses.TryAdd(status.Icon, status))
             return false;
+
         if (this is User u)
         {
             if (sendUpdates)

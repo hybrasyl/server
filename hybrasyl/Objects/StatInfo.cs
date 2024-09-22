@@ -1489,12 +1489,12 @@ public class StatInfo
     }
 
     public ElementType OffensiveElement => OffensiveElementOverride == ElementType.None
-        ? OffensiveElementOverride
-        : BaseOffensiveElement;
+        ? BaseOffensiveElement
+        : OffensiveElementOverride;
 
     public ElementType DefensiveElement => DefensiveElementOverride == ElementType.None
-        ? DefensiveElementOverride
-        : BaseDefensiveElement;
+        ? BaseDefensiveElement
+        : DefensiveElementOverride;
 
     public string OffensiveElementStr => Enum.GetName(typeof(ElementType), OffensiveElement);
     public string DefensiveElementStr => Enum.GetName(typeof(ElementType), DefensiveElement);
