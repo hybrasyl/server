@@ -23,21 +23,21 @@ namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 internal class ClearSessionCookieCommand : ChatCommand
 {
     public new static string Command = "clearsessioncookie";
-    public new static string ArgumentText = "<string playername> <string cookie>";
-    public new static string HelpText = "Clear a given session cookie for a specified player";
+    public new static string ArgumentText = "<string playername> <string ns> <string cookie>";
+    public new static string HelpText = "Clear a given session cookie for a specified player in a given namespace";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (Game.World.WorldState.TryGetValue(args[0], out User target))
         {
-            if (target.HasSessionCookie(args[1]))
+            if (target.HasSessionCookie(args[1], args[2]))
             {
                 target.DeleteSessionCookie(args[1]);
-                return Success($"User {target.Name}: session cookie {args[1]} deleted");
+                return Success($"User {target.Name}: session cookie {args[1]}:{args[2]} deleted");
             }
 
-            return Fail($"User {args[0]} doesn't have session cookie {args[1]}");
+            return Fail($"User {args[0]} doesn't have session cookie {args[2]} in ns {args[1]}");
         }
 
         return Fail($"User {args[0]} not logged in");

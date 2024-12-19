@@ -23,16 +23,18 @@ namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 internal class SetCookieCommand : ChatCommand
 {
     public new static string Command = "setcookie";
-    public new static string ArgumentText = "<string playername> <string cookie> <string value>";
-    public new static string HelpText = "Set a given (permament) cookie for a specified player";
+    public new static string ArgumentText = "<string playername> <string ns> <string cookie> <string value>";
+    public new static string HelpText = "Set a given (permament) cookie for a specified player in a given namespace";
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         if (Game.World.WorldState.TryGetValue(args[0], out User target))
         {
-            target.SetCookie(args[1], args[2]);
-            return Success($"User {target.Name}: cookie {args[1]} set");
+            if (args.Length == 4)
+                target.SetCookie(args[1], args[2], args[3]);
+                    
+            return Success($"User {target.Name}: cookie {args[2]} set in ns {args[1]}");
         }
 
         return Fail($"User {args[0]} not logged in");

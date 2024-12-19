@@ -829,6 +829,9 @@ public class World : Server
 
         WorldState.SetWorldObject(obj.Guid, obj);
         obj.OnInsert();
+        if (obj is ISpawnable spawn)
+            spawn.OnSpawn();
+
     }
 
     public void Remove(WorldObject obj)

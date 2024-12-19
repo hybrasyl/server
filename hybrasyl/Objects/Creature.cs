@@ -1287,34 +1287,73 @@ public class Creature : VisibleObject, ICreatureSnapshotProvider
 
     public virtual void Refresh() { }
 
-    public void SetCookie(string cookieName, string value)
+    public void SetCookie(string cookieName, string value, bool defaultNamespace = true)
     {
-        Cookies[cookieName] = value;
+        if (defaultNamespace)
+            Cookies[$"default:{cookieName}"] = value;
+        else
+            Cookies[cookieName] = value;
     }
 
-    public void SetSessionCookie(string cookieName, string value)
+    public void SetCookie(string ns, string cookieName, string value) => SetCookie($"{ns.ToLower()}:{cookieName}", value, false);
+
+    public void SetSessionCookie(string cookieName, string value, bool defaultNamespace = true)
     {
-        SessionCookies[cookieName] = value;
+        if (defaultNamespace)
+            SessionCookies[$"default:{cookieName}"] = value;
+        else
+            SessionCookies[cookieName] = value;
     }
+
+    public void SetSessionCookie(string ns, string cookieName, string value) =>
+        SetSessionCookie($"{ns.ToLower()}:{cookieName}", value, false);
 
     public IReadOnlyDictionary<string, string> GetCookies() => Cookies;
 
     public IReadOnlyDictionary<string, string> GetSessionCookies() => SessionCookies;
 
-    public string GetCookie(string cookieName) => Cookies.TryGetValue(cookieName, out var value) ? value : null;
+    public string GetCookie(string cookieName, bool defaultNamespace = true)
+    {
+        if (defaultNamespace)
+            return Cookies.TryGetValue($"default:{cookieName}", out var value) ? value : null;
+        else
+            return Cookies.TryGetValue(cookieName, out var value) ? value : null;
+    }
 
-    public string GetSessionCookie(string cookieName) =>
-        SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
+    public string GetCookie(string ns, string cookieName) => GetCookie($"{ns.ToLower()}:{cookieName}", false);
 
-    public bool HasCookie(string cookieName) => Cookies.ContainsKey(cookieName);
+    public string GetSessionCookie(string cookieName, bool defaultNamespace = true)
+    {
+        if (defaultNamespace)
+            return SessionCookies.TryGetValue($"default:{cookieName}", out var value) ? value : null;
+        else
+            return SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
+    }
 
-    public bool HasSessionCookie(string cookieName) => SessionCookies.ContainsKey(cookieName);
+    public string GetSessionCookie(string ns, string cookieName) =>
+        GetSessionCookie($"{ns.ToLower()}:{cookieName}", false);
 
-    public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
+    public bool HasCookie(string cookieName, bool defaultNamespace = true) => 
+        Cookies.ContainsKey(defaultNamespace ? $"default:{cookieName}" : cookieName);
 
-    public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
+    public bool HasCookie(string ns, string cookieName) => HasCookie($"{ns.ToLower()}:{cookieName}", false);
 
+    public bool HasSessionCookie(string cookieName, bool defaultNamespace = true) => 
+        SessionCookies.ContainsKey(defaultNamespace ? $"default:{cookieName}" : cookieName);
 
+    public bool HasSessionCookie(string ns, string cookieName) =>
+        HasSessionCookie($"{ns.ToLower()}:{cookieName}", false);
+
+    public bool DeleteCookie(string cookieName, bool defaultNamespace = true) => 
+        Cookies.Remove(defaultNamespace ? $"default:{cookieName}" : cookieName);
+
+    public bool DeleteCookie(string ns, string cookieName) => DeleteCookie($"{ns.ToLower()}:{cookieName}", false);
+
+    public bool DeleteSessionCookie(string cookieName, bool defaultNamespace = true) => SessionCookies.Remove(defaultNamespace ? $"default:{cookieName}" : cookieName);
+
+    public bool DeleteSessionCookie(string ns, string cookieName) =>
+        DeleteSessionCookie($"{ns.ToLower()}:{cookieName}", false);
+    
     #region Status handling
 
     /// <summary>

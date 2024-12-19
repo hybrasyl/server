@@ -155,8 +155,8 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable, ICreature
         if (Expired) return false;
         if (obj is not User user) return false;
         var casterObj = OriginSnapshot?.GetUserObject();
-        if (VisibleToCookies.Any(user.HasCookie)) return true;
-        if (InvisibleToCookies.Any(user.HasCookie)) return false;
+        if (VisibleToCookies.Any(x => user.HasCookie(x))) return true;
+        if (InvisibleToCookies.Any(x => user.HasCookie(x))) return false;
         if (user.CurrentStatuses.Values.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
         if (casterObj == null) return false;
         if (VisibleToOwner && OriginSnapshot != null && user.Name == OriginSnapshot.Name) return true;

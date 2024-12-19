@@ -30,6 +30,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using MessageType = Hybrasyl.Xml.Objects.MessageType;
 
 namespace Hybrasyl.Objects;
@@ -256,7 +257,8 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     {
         if (Stats.Hp == 0) return;
 
-        if (Game.World.ScriptProcessor.TryGetScript(Name, out var damageScript))
+        if (Game.World.ScriptProcessor.TryGetScript(Name, out var damageScript) || 
+            Game.World.ScriptProcessor.TryGetScript(Regex.Replace(Name, @"\s+", ""), out damageScript))
         {
             Script = damageScript;
             ScriptExists = true;

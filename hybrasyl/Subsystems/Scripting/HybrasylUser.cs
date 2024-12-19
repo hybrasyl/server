@@ -613,15 +613,14 @@ public class HybrasylUser : HybrasylWorldObject
         if (string.IsNullOrEmpty(cookieName) || value is null)
         {
             GameLog.ScriptingError(
-                "SetSessionCookie: {user} - session cookie name (first argument) or value (second) was null or empty",
-                User.Name);
+                $"SetSessionCookie: {User.Name} - session cookie name (first argument) or value (second) was null or empty");
             return;
         }
 
         try
         {
-            User.SetSessionCookie(cookieName, value is string ? (string) value : (string) value.ToString());
-            GameLog.DebugFormat("{0} - set session cookie {1} to {2}", User.Name, cookieName, value);
+            User.SetSessionCookie(cookieName, value.ToString());
+            GameLog.DebugFormat($"SetSessionCookies: {User.Name} - set default:{cookieName} to {value.ToString()}");
         }
         catch (Exception e)
         {
@@ -633,33 +632,89 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
-    ///     Set a cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string
-    ///     key). NPCs and other scripting functionality can
-    ///     use this to store independent state to track quest progress / etc. Cookies set by SetCookie are permanent.
+    ///     Set a session cookie in a specified namespace. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a
+    ///     string key). NPCs and other scripting functionality can use this to store independent state to track quest progress / etc.
+    ///     Session cookies are deleted when a player is logged out.
     /// </summary>
+    /// <param name="ns">The namespace of the cookie</param>
     /// <param name="cookieName">Name of the cookie</param>
     /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
-    public void SetCookie(string cookieName, dynamic value)
+    public void SetSessionCookie(string ns, string cookieName, dynamic value)
     {
-        if (string.IsNullOrEmpty(cookieName) || value is null)
+        if (string.IsNullOrEmpty(cookieName) || string.IsNullOrEmpty(ns) || value is null)
+        {
             GameLog.ScriptingError(
-                "SetCookie: {user} - session cookie name (first argument) or value (second) was null or empty",
-                User.Name);
+                $"SetSessionCookie: {User.Name} - one or more values was null");
+            return;
+        }
+
         try
         {
-            if (value.GetType() == typeof(string))
-                User.SetCookie(cookieName, value);
-            else
-                User.SetCookie(cookieName, value.ToString());
-            GameLog.DebugFormat("{0} - set cookie {1} to {2}", User.Name, cookieName, value);
+            User.SetSessionCookie(ns, cookieName, value.ToString());
+            GameLog.DebugFormat($"SetSessionCookies: {User.Name} - set {ns}:{cookieName} to {value}");
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.ScriptingError(
-                "SetCookie: {user} - value (second argument) could not be converted to string? {exception}", User.Name,
-                e.ToString());
+                $"SetSessionCookie: {User.Name}: value (second argument) could not be converted to string? {e}");
         }
+
+    }
+
+    /// <param name="cookieName">Name of the cookie</param>
+    /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
+    public void SetCookie(string cookieName, dynamic value)
+    {
+        if (string.IsNullOrEmpty(cookieName) || value is null)
+        {
+            GameLog.ScriptingError(
+                $"SetCookie: {User.Name} - session cookie name (first argument) or value (second) was null or empty");
+            return;
+        }
+
+        try
+        {
+            User.SetCookie(cookieName, value.ToString());
+            GameLog.DebugFormat($"SetCookie: {User.Name}: set default:{cookieName} to {value.ToString()}");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.ScriptingError(
+                $"SetCookie: {User.Name} - value (second argument) could not be converted to string? {e}");
+        }
+    }
+
+    /// <summary>
+    ///     Set a cookie. A cookie is a key-value pair with a dynamic value (of any type) associated to a given name (a string
+    ///     key). NPCs and other scripting functionality can
+    ///     use this to store independent state to track quest progress / etc. Cookies set by SetCookie are permanent.
+    /// </summary>
+    /// <param name="ns">The namespace of the cookie</param>
+    /// <param name="cookieName">Name of the cookie</param>
+    /// <param name="value">Dynamic (any type) value to be stored with the given name.</param>
+    public void SetCookie(string ns, string cookieName, dynamic value)
+    {
+        if (string.IsNullOrEmpty(cookieName) || value is null)
+        {
+            GameLog.ScriptingError(
+                $"SetCookie: {User.Name} - session cookie name (first argument) or value (second) was null or empty");
+            return;
+        }
+
+        try
+        {
+            User.SetCookie(ns, cookieName, value.ToString());
+            GameLog.DebugFormat($"SetCookie: {User.Name}: set default:{cookieName} to {value.ToString()}");
+        }
+        catch (Exception e)
+        {
+            Game.ReportException(e);
+            GameLog.ScriptingError(
+                $"SetCookie: {User.Name} - value (second argument) could not be converted to string? {e}");
+        }
+
     }
 
     /// <summary>
@@ -680,9 +735,29 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
+    ///     Get the value of a session cookie in a namespace, if it exists.
+    /// </summary>
+    /// <param name="ns">The namespace to consult</param>
+    /// <param name="cookieName">The name of the cookie to fetch</param>
+    /// <returns>string representation of the cookie value</returns>
+    public string GetSessionCookie(string ns, string cookieName)
+    {
+        if (string.IsNullOrEmpty(cookieName))
+        {
+            GameLog.ScriptingError(
+                "GetSessionCookie: {user} - cookie name (first argument) was null or empty - returning nil", User.Name);
+            return null;
+        }
+
+        return User.GetSessionCookie(ns, cookieName);
+
+    }
+
+    /// <summary>
     ///     Get the value of a cookie, if it exists.
     /// </summary>
     /// <param name="cookieName">The name of the cookie to fetch</param>
+    /// <param name="defaultNamespace">Whether or not to use the default namespace (defaults to true, eg when retrieving an unscoped cookie)</param>
     /// <returns>string representation of the cookie value</returns>
     public string GetCookie(string cookieName)
     {
@@ -693,6 +768,21 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
+    ///     Get the value of a cookie, if it exists.
+    /// </summary>
+    /// <param name="ns">The namespace to consult</param>
+    /// <param name="cookieName">The name of the cookie to fetch</param>
+    /// <returns>string representation of the cookie value</returns>
+    public string GetCookie(string ns, string cookieName)
+    {
+        if (!string.IsNullOrEmpty(cookieName)) return User.GetCookie(ns, cookieName);
+        GameLog.ScriptingError("GetCookie: {user} - cookie name (first argument) was null or empty - returning nil",
+            User.Name);
+        return null;
+
+    }
+
+    /// <summary>
     ///     Check to see if a player has a specified cookie or not.
     /// </summary>
     /// <param name="cookieName">Cookie name to check</param>
@@ -700,6 +790,20 @@ public class HybrasylUser : HybrasylWorldObject
     public bool HasCookie(string cookieName)
     {
         if (!string.IsNullOrEmpty(cookieName)) return User.HasCookie(cookieName);
+        GameLog.ScriptingError("HasCookie: {user} - cookie name (first argument) was null or empty - returning false",
+            User.Name);
+        return false;
+    }
+
+    /// <summary>
+    ///     Check to see if a player has a specified cookie or not in the specified namespace.
+    /// </summary>
+    /// <param name="ns">The namespace of the cookie</param>
+    /// <param name="cookieName">Cookie name to check</param>
+    /// <returns>Boolean indicating whether or not the named cookie exists</returns>
+    public bool HasCookie(string ns, string cookieName)
+    {
+        if (!string.IsNullOrEmpty(cookieName)) return User.HasCookie(ns, cookieName);
         GameLog.ScriptingError("HasCookie: {user} - cookie name (first argument) was null or empty - returning false",
             User.Name);
         return false;
@@ -719,6 +823,21 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
+    ///     Check to see if a player has a specified session cookie or not in the specified namespace.
+    /// </summary>
+    /// <param name="ns">The namespace of the cookie</param>
+    /// <param name="cookieName">Cookie name to check</param>
+    /// <returns>Boolean indicating whether or not the named cookie exists</returns>
+    public bool HasSessionCookie(string ns, string cookieName)
+    {
+        if (!string.IsNullOrEmpty(cookieName)) return User.HasSessionCookie(ns, cookieName);
+        GameLog.ScriptingError(
+            "HasSessionCookie: {user} - cookie name (first argument) was null or empty - returning false", User.Name);
+        return false;
+
+    }
+
+    /// <summary>
     ///     Permanently remove a cookie from a player.
     /// </summary>
     /// <param name="cookieName">The name of the cookie to be deleted.</param>
@@ -732,6 +851,20 @@ public class HybrasylUser : HybrasylWorldObject
     }
 
     /// <summary>
+    ///     Permanently remove a cookie from a player in the specified namespace.
+    /// </summary>
+    /// <param name="ns">The namespace of the cookie</param>
+    /// <param name="cookieName">The name of the cookie to be deleted.</param>
+    /// <returns></returns>
+    public bool DeleteCookie(string ns, string cookieName)
+    {
+        if (!string.IsNullOrEmpty(cookieName)) return User.DeleteCookie(ns, cookieName);
+        GameLog.ScriptingError("DeleteCookie: {user} cookie name (first argument) was null or empty - returning false",
+            User.Name);
+        return false;
+    }
+
+    /// <summary>
     ///     Permanently remove a session cookie from a player.
     /// </summary>
     /// <param name="cookieName">The name of the cookie to be deleted.</param>
@@ -739,6 +872,21 @@ public class HybrasylUser : HybrasylWorldObject
     public bool DeleteSessionCookie(string cookieName)
     {
         if (!string.IsNullOrEmpty(cookieName)) return User.DeleteSessionCookie(cookieName);
+        GameLog.ScriptingError(
+            "DeleteSessionCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
+        return false;
+    }
+
+    /// <summary>
+    ///     Permanently remove a session cookie from a player in the specified namespace.
+    /// </summary>
+    ///     /// <param name="ns">The namespace of the cookie</param>
+
+    /// <param name="cookieName">The name of the cookie to be deleted.</param>
+    /// <returns></returns>
+    public bool DeleteSessionCookie(string ns, string cookieName)
+    {
+        if (!string.IsNullOrEmpty(cookieName)) return User.DeleteSessionCookie(ns, cookieName);
         GameLog.ScriptingError(
             "DeleteSessionCookie: {user} cookie name (first argument) was null or empty - returning false", User.Name);
         return false;
