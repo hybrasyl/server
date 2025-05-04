@@ -57,6 +57,9 @@ internal static class FormulaParser
                 e.Parameters[$"SOURCE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Source.Stats);
             if (eval.Target != null)
                 e.Parameters[$"TARGET{prop.Name.ToUpper()}"] = prop.GetValue(eval.Target.Stats);
+            if (eval.OriginalCaster != null)
+                e.Parameters[$"ORIGINALCASTER{prop.Name.ToUpper()}"] = prop.GetValue(eval.OriginalCaster);
+
         }
 
         foreach (var prop in FormulaTokens[typeof(Creature)])
@@ -65,19 +68,18 @@ internal static class FormulaParser
                 e.Parameters[$"SOURCE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Source);
             if (eval.Target != null)
                 e.Parameters[$"TARGET{prop.Name.ToUpper()}"] = prop.GetValue(eval.Target);
+            if (eval.OriginalCaster != null)
+                e.Parameters[$"ORIGINALCASTER{prop.Name.ToUpper()}"] = prop.GetValue(eval.OriginalCaster);
         }
 
-        foreach (var prop in FormulaTokens[typeof(Castable)])
-            if (eval.Castable != null)
-                e.Parameters[$"CASTABLE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Castable);
+        foreach (var prop in FormulaTokens[typeof(Castable)].Where(prop => eval.Castable != null))
+            e.Parameters[$"CASTABLE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Castable);
 
-        foreach (var prop in FormulaTokens[typeof(MapObject)])
-            if (eval.Map != null)
-                e.Parameters[$"MAP{prop.Name.ToUpper()}"] = prop.GetValue(eval.Map);
+        foreach (var prop in FormulaTokens[typeof(MapObject)].Where(prop => eval.Map != null))
+            e.Parameters[$"MAP{prop.Name.ToUpper()}"] = prop.GetValue(eval.Map);
 
-        foreach (var prop in FormulaTokens[typeof(ItemObject)])
-            if (eval.ItemObject != null)
-                e.Parameters[$"ITEM{prop.Name.ToUpper()}"] = prop.GetValue(eval.ItemObject);
+        foreach (var prop in FormulaTokens[typeof(ItemObject)].Where(prop => eval.ItemObject != null))
+            e.Parameters[$"ITEM{prop.Name.ToUpper()}"] = prop.GetValue(eval.ItemObject);
 
         // Handle non-typebound variables, or static values
         e.Parameters["DAMAGE"] = eval.Damage ?? 0;

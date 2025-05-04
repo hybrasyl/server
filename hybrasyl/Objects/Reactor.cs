@@ -31,7 +31,7 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
 
-public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable, ICreatureSnapshotRequester
+public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
 {
     public bool Blocking;
 

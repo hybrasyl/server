@@ -39,7 +39,7 @@ using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 namespace Hybrasyl.Objects;
 
-public class Creature : VisibleObject, ICreatureSnapshotProvider
+public class Creature : VisibleObject, IStatSnapshotProvider
 {
     private readonly object _lock = new();
 
@@ -723,6 +723,7 @@ public class Creature : VisibleObject, ICreatureSnapshotProvider
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
                     tar.RemoveStatus(applyStatus.Icon);
+
                 }
                 else
                 {
@@ -1362,6 +1363,14 @@ public class Creature : VisibleObject, ICreatureSnapshotProvider
     /// <param name="status">The status to apply to the player.</param>
     public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
     {
+        var statusEvent = new StatusEvent
+        {
+            StatusName = status.Name,
+            Applied = true, // this is an application
+            Source = status.Source,
+            Target = this
+        };
+
         // Check for immunities to status effects
         if (this is Monster { BehaviorSet: not null } m)
             if (m.BehaviorSet.ImmuneToStatus(status.Name, out var immunity) ||
@@ -1382,6 +1391,9 @@ public class Creature : VisibleObject, ICreatureSnapshotProvider
             foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
                 if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
                     reactor.ShowTo(this);
+            u.SendCombatLogMessage(statusEvent);
+            if (status.Source is User u2)
+                u2.SendCombatLogMessage(statusEvent);
         }
 
         if (this is Monster m2)
@@ -1419,17 +1431,58 @@ public class Creature : VisibleObject, ICreatureSnapshotProvider
     /// </summary>
     /// <param name="icon">The icon of the status we are removing.</param>
     /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
-    /// <returns></returns>
-    public bool RemoveStatus(ushort icon, bool onEnd = true)
+    /// <param name="remover">The creature removing the status (can be used in formulas for removal chance)</param>
+    /// <returns>true or false depending on whether removal was  successful or not</returns>
+    public bool RemoveStatus(ushort icon, bool onEnd = true, Creature remover = null)
     {
         ICreatureStatus status;
-        if (!CurrentStatuses.TryRemove(icon, out status)) return false;
+        if (!CurrentStatuses.TryGetValue(icon, out status)) return false;
+        var statusEvent = new StatusEvent
+        {
+            StatusName = status.Name,
+            RemoverName = remover?.Name ?? "unknown",
+            Applied = false // this is a removal
+        };
+
+        if (string.IsNullOrEmpty(status.RemoveChance))
+        {
+            var snapshot = World.WorldState.Get<CreatureSnapshot>(status.OriginSnapshotId);
+
+            var result = FormulaParser.Eval(status.RemoveChance, new FormulaEvaluation
+            {
+                OriginalCaster = snapshot.Stats,
+                Target = this,
+                Source = remover,
+            });
+
+            var chance = Random.Shared.NextDouble();
+
+            statusEvent.RemovalRoll = chance;
+            statusEvent.RequiredRoll = result;
+
+            if (chance >= result)
+            {
+                if (remover is User user)
+                {
+                    user.SendSystemMessage("You try your best, but nothing happens.");
+                    user.SendCombatLogMessage(statusEvent);
+                }
+                return false;
+            }
+        }
+
+        // Actually remove status
+        if (!CurrentStatuses.TryRemove(icon, out status))
+            return false;
+
         _removeStatus(status, onEnd);
         UpdateAttributes(StatUpdateFlags.Full);
-        if (this is User u)
-            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
-                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
-                    reactor.AoiDeparture(this);
+        if (this is not User u) return true;
+        foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+            if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                reactor.AoiDeparture(this);
+        u.SendSystemMessage("You succeed in removing the affliction.");
+        u.SendCombatLogMessage(statusEvent);
         return true;
     }
 

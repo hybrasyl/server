@@ -261,4 +261,50 @@ public class Status
         Assert.True(monster.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestCurse2") == 0);
         Assert.True(monster.CurrentStatuses.Count == 0);
     }
+
+    [Fact]
+    public void RemoveStatusWithRemovalChance()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.ResetSecondTestUserStats();
+
+        Fixture.TestUser.SetCookie("combatlog", "on");
+        Fixture.SecondTestUser.SetCookie("combatlog", "on");
+
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+
+        Assert.True(Game.World.WorldData.TryGetValueByIndex<Castable>("TestAddScaleCurse", out var scaleCurse),
+            "Castable TestAddScaleCurse not found");
+        Assert.True(Game.World.WorldData.TryGetValueByIndex<Castable>("TestRemScaleCurse", out var remScaleCurse),
+            "Castable TestRemScaleCurse not found");
+
+        var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99);
+        // Should spawn, and not have a null behaviorset
+        Assert.NotNull(monster.BehaviorSet);
+        monster.X = 11;
+        monster.Y = 11;
+
+        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.SecondTestUser.Teleport("XUnit Test Realm", 9, 9);
+        
+        Fixture.TestUser.Map.InsertMonster(monster);
+
+        monster.UseCastable(scaleCurse, Fixture.SecondTestUser);
+        // Second user now has curse applied
+        Assert.True(Fixture.SecondTestUser.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestScalingCurse") > 0);
+
+        // Attempt to remove the curse
+        Fixture.TestUser.UseCastable(remScaleCurse, Fixture.SecondTestUser);
+
+        Assert.True(Fixture.SecondTestUser.CurrentStatuses.Values.Count(predicate: x => x.Name == "TestScalingCurse") ==
+                    0, "Curse was not removed");
+
+        Assert.True(Fixture.SecondTestUser.CombatEvents.TryPop(out var result));
+        Assert.True(result is StatusEvent);
+        var statusEvent = (StatusEvent)result;
+        Assert.True(statusEvent.StatusName == "TestScalingCurse", "Status name does not match");
+
+
+    }
 }

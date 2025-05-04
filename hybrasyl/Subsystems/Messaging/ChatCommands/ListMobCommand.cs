@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Linq;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
+using System.Linq;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
@@ -31,11 +31,12 @@ internal class ListMobCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        var moblist = string.Format("{0,25}", "Name") + " " + string.Format("{0,40}", "Details") + "\n";
-        foreach (var mob in user.Map.Objects.Where(predicate: x => x is Monster).Select(selector: y => y as Monster))
+        string moblist = string.Empty;
+        foreach (var mob in user.Map.Objects.Where(predicate: x => x is Monster).Select(selector: y => y as Monster).OrderBy(z=> z.Name))
         {
-            var mobdetails = $"({mob.X},{mob.Y}) {mob.Stats}";
-            moblist += string.Format("{0,25}", "Name") + " " + string.Format("{0,40}", mobdetails) + "\n";
+            var mobdetails = $"{mob.Name}@({mob.X},{mob.Y}) Spawned at ({mob.SpawnPoint.X},{mob.SpawnPoint.Y})";
+            mobdetails += $"\n-->ID {mob.Id} {mob.Stats}";
+            moblist += $"{mobdetails}\n";
         }
 
         return Success(moblist, MessageTypes.SLATE_WITH_SCROLLBAR);

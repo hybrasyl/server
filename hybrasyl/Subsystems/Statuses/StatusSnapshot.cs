@@ -16,6 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System;
+
 namespace Hybrasyl.Subsystems.Statuses;
 
 /// <summary>
@@ -25,6 +27,8 @@ public class StatusSnapshot
 {
     public string Name { get; set; }
     public ushort Icon { get; set; }
+    public Guid OriginSnapshotId { get; set; }
+    public string RemovalFormula { get; set; }
     public SimpleStatusEffect OnStartEffect { get; set; }
     public SimpleStatusEffect OnTickEffect { get; set; }
     public SimpleStatusEffect OnRemoveEffect { get; set; }

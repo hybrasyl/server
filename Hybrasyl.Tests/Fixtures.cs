@@ -156,6 +156,7 @@ public class HybrasylFixture : IDisposable
 
         TestUser = CreateUser("TestUser");
         SerializableUser = CreateUser("TestSaveUser");
+        SecondTestUser = CreateUser("TestSecond");
 
         Game.World.Insert(TestUser);
         TestUser.Teleport(TestUser.Map.Id, TestUser.X, TestUser.Y);
@@ -169,6 +170,7 @@ public class HybrasylFixture : IDisposable
     public static byte InventorySize => 59;
 
     public User TestUser { get; init; }
+    public User SecondTestUser { get; init; }
     public User SerializableUser { get; init; }
 
     public CreatureBehaviorSet TestSet { get; set; }
@@ -238,6 +240,7 @@ public class HybrasylFixture : IDisposable
 
     public void ResetTestUserStats() => ResetUserStats(TestUser);
     public void ResetSerializableUserStats() => ResetUserStats(SerializableUser);
+    public void ResetSecondTestUserStats() => ResetUserStats(SecondTestUser);
 
     private void ResetUserStats(User user)
     {

@@ -34,6 +34,7 @@ public interface ICreatureStatus
     DateTime Start { get; }
     DateTime LastTick { get; }
     ushort Icon { get; }
+    string RemoveChance { get; set; }
 
     StatusSnapshot Snapshot { get; }
     Creature Target { get; }
@@ -49,6 +50,7 @@ public interface ICreatureStatus
     SimpleStatusEffect OnTickEffect { get; }
     SimpleStatusEffect OnRemoveEffect { get; }
     SimpleStatusEffect OnExpireEffect { get; }
+    Guid OriginSnapshotId { get; }
 
     void OnStart(bool displaySfx = true);
     void OnTick();

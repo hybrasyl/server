@@ -25,8 +25,9 @@ namespace Hybrasyl.Subsystems.Formulas;
 public class FormulaEvaluation
 {
     public Creature Source { get; set; } = null;
-    public Castable Castable { get; set; } = null;
     public Creature Target { get; set; } = null;
+    public StatInfo OriginalCaster { get; set; } = null;
+    public Castable Castable { get; set; } = null;
     public MapObject Map { get; set; } = null;
     public Monster Spawn { get; set; } = null;
     public User User { get; set; } = null;

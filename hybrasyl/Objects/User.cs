@@ -40,7 +40,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Book = Hybrasyl.Casting.Book;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
@@ -1004,22 +1003,6 @@ public class User : Creature
     {
         var guild = World.WorldState.Get<Guild>(GuildGuid);
         return guild?.GetUserDetails(GuildGuid) ?? ("", "");
-    }
-
-    private void SetValue(PropertyInfo info, object instance, object value)
-    {
-        try
-        {
-            GameLog.DebugFormat("Setting property value {0} to {1}", info.Name, value.ToString());
-            info.SetValue(instance, Convert.ChangeType(value, info.PropertyType));
-        }
-        catch (Exception e)
-        {
-            Game.ReportException(e);
-            GameLog.ErrorFormat("Exception trying to set {0} to {1}", info.Name, value.ToString());
-            GameLog.ErrorFormat(e.ToString());
-            throw;
-        }
     }
 
     public void Save(bool serializeStatus = false)
@@ -5258,6 +5241,7 @@ public class User : Creature
 
     public void SendCombatLogMessage(ICombatEvent e)
     {
+        CombatEvents.Push(e);
         if (GetCookie("combatlog") != "on") return;
 
         foreach (var line in e.ToString().Split("\n"))
@@ -5329,6 +5313,8 @@ public class User : Creature
     public uint PendingRepairCost { get; private set; }
 
     [JsonProperty] public List<KillRecord> RecentKills { get; private set; }
+
+    public Stack<ICombatEvent> CombatEvents { get; } = new(50);
 
     public List<SpokenEvent> MessagesReceived { get; private set; }
 

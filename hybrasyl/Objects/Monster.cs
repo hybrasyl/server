@@ -916,7 +916,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             return;
         }
 
-        if (ActiveTarget?.Stats.Hp == 0)
+        if (ActiveTarget?.Stats.Hp == 0 || ActiveTarget?.Map.Id != Map.Id)
             ActiveTarget = GetTarget();
 
         if (ActiveTarget != null)

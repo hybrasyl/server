@@ -30,13 +30,14 @@ using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Subsystems.Statuses;
 
-public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
+public class CreatureStatus : ICreatureStatus
 {
     protected User TargetUser => Target as User;
     protected User SourceUser => Source as User;
 
     public Guid Guid { get; } = Guid.NewGuid();
     public Guid OriginSnapshotId { get; set; } = Guid.Empty;
+    public string RemoveChance { get; set; } = string.Empty;
     public World World => Target.World;
 
     public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
@@ -76,6 +77,12 @@ public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
     public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source = null,
         int duration = -1, int tickFrequency = -1, double intensity = 1.0)
     {
+        if (source != null)
+        {
+            var provider = source as IStatSnapshotProvider; 
+            OriginSnapshotId = provider.CreateStatSnapshot();
+        }
+
         Target = target;
         XmlStatus = xmlstatus;
         Start = DateTime.Now;
@@ -84,6 +91,7 @@ public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
         Duration = duration == -1 ? xmlstatus.Duration : duration;
         Tick = tickFrequency == -1 ? xmlstatus.Tick : tickFrequency;
         Intensity = intensity;
+        RemoveChance = xmlstatus.RemoveChance;
 
         // Calculate damage/heal effects. Note that a castable MUST be passed here for a status 
         // to have damage effects as the castable itself has fields we need to access 
@@ -104,25 +112,25 @@ public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
     public CreatureStatus(StatusSnapshot serialized, Creature target)
     {
         Target = target;
-        if (!string.IsNullOrEmpty(serialized.Name))
+        if (string.IsNullOrEmpty(serialized.Name)) return;
+        if (Game.World.WorldData.TryGetValue(serialized.Name, out Status status))
         {
-            if (Game.World.WorldData.TryGetValue(serialized.Name, out Status status))
-            {
-                XmlStatus = status;
-                Start = DateTime.Now;
-                Duration = serialized.Remaining;
-                Tick = serialized.Tick;
-                OnTickEffect = serialized.OnTickEffect;
-                OnRemoveEffect = serialized.OnRemoveEffect;
-                OnStartEffect = serialized.OnStartEffect;
-                OnRemoveEffect = serialized.OnRemoveEffect;
-                Intensity = serialized.Intensity;
-            }
-            else
-            {
-                throw new ArgumentException(
-                    $"Serialized status {serialized.Name} does not exist or could not be found");
-            }
+            XmlStatus = status;
+            Start = DateTime.Now;
+            Duration = serialized.Remaining;
+            Tick = serialized.Tick;
+            OnTickEffect = serialized.OnTickEffect;
+            OnRemoveEffect = serialized.OnRemoveEffect;
+            OnStartEffect = serialized.OnStartEffect;
+            OnRemoveEffect = serialized.OnRemoveEffect;
+            Intensity = serialized.Intensity;
+            RemoveChance = serialized.RemovalFormula;
+            OriginSnapshotId = serialized.OriginSnapshotId;
+        }
+        else
+        {
+            throw new ArgumentException(
+                $"Serialized status {serialized.Name} does not exist or could not be found");
         }
     }
 
@@ -145,7 +153,9 @@ public class CreatureStatus : ICreatureStatus, ICreatureSnapshotRequester
         OnExpireEffect = OnExpireEffect,
         Remaining = Remaining,
         Tick = Tick,
-        Intensity = Intensity
+        Intensity = Intensity,
+        RemovalFormula = RemoveChance,
+        OriginSnapshotId = OriginSnapshotId
     };
 
     public void OnStart(bool displaySfx = true)

@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
@@ -176,4 +176,23 @@ public record LootEvent : CombatEvent
             // Deal with client vagaries
             Items.Aggregate(ret, func: (current, item) => current + $"[combat] [Loot] Item: {item}\n");
     }
+}
+
+[MoonSharpUserData]
+public record StatusEvent : CombatEvent
+{
+    public bool Applied { get; set; } = true;
+    public bool Success { get; set; } = false;
+    public string StatusName { get; set; }
+    public string RemoverName { get; set; } = string.Empty;
+
+    public double RemovalRoll { get; set; } = 0.0;
+    public double RequiredRoll { get; set; } = 0.0;
+
+    public override CombatLogEventType EventType => CombatLogEventType.StatusEffect;
+
+    public override string ToString() => Applied
+        ? "[combat] [Status] " + (Success ? "Applied" : "Apply fail") + $": {StatusName} on {TargetName}"
+        : "[combat] [Status] " + (Success ? "Removed" : "Removal fail") +
+          $": {RemoverName}: {StatusName} from {TargetName} ({RemovalRoll}, req {RequiredRoll})";
 }
