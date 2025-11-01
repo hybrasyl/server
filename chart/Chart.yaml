@@ -1,0 +1,15 @@
+apiVersion: v2
+description: Hybrasyl Server
+name: hybrasyl-server
+version: 0.9.4
+appVersion: 0.9.4
+home: https://www.hybrasyl.com
+maintainers:
+  - name: ERISCO, LLC
+    url: https://github.com/hybrasyl/server
+dependencies:
+  - name: valkey
+    version: 0.7.5
+    repository: https://valkey.io/valkey-helm
+    condition: localEnv
+

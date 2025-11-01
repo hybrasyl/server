@@ -1,0 +1,135 @@
+serverVersion: 0.9.4
+serverCommit: d34db33f
+
+environment: dev
+
+image: 
+  repository: ghcr.io/hybrasyl/server
+  tag: 0.9.4
+  pullPolicy: Always
+
+server:
+  configName: butts
+  motd: "Welcome to Hybrasyl! This is Hybrasyl $VERSION ($COMMIT)!"
+  worldData:
+    git:
+      url: github.com/eriscorp/world 
+      pullSecret: hybrasyl-world-access # Must be an ssh key
+      volumeName: hybrasyl-world-volume
+      sync:
+        enabled: true
+        grpcHook: "hybrasyl.v1.worldUpdate"
+    #volume: <persistent volume name> 
+  logging: []
+  datastore:
+    host: 127.0.0.1
+    port: 6379
+    username: hybrasyl
+    password: hybrasyl
+  apiEndpoints: 
+    sentry: "https://butts.com"
+    encryptionEndpoint: "https://butts.biz"
+    validationEndpoint: "https://butts.net"
+  plugins:
+    messaging:
+      - type: Mail
+        passthrough: false
+        name: Hybrasyl.Plugins.BugReporter
+        configuration:
+          - key: WebhookUrl
+            value: "https://butts.org"
+          - key: OutputDir
+            value: "/dev/null"
+        targets:
+          - BugReport
+      - type: Mail
+        passthrough: false
+        name: Hybrasyl.Plugins.FeedbackReporter
+        configuration:
+          - key: WebhookUrl
+            value: "https://butts.int"
+          - key: OutputDir
+            value: "/dev/null"
+        targets:
+          - Feedback
+  network:
+    lobby:
+      bindAddress: 0.0.0.0
+      port: 2610
+      externalAddress: "envvar:HYBRASYL_LOBBY_SERVICE_HOST"
+    login:
+      bindAddress: 0.0.0.0
+      port: 2611
+      externalAddress: "envvar:HYBRASYL_LOGIN_SERVICE_HOST"
+    world:
+      bindAddress: 0.0.0.0
+      port: 2612
+      externalAddress: "envvar:HYBRASYL_WORLD_SERVICE_HOST"
+    grpc:
+      enabled: true
+      bindAddress: 0.0.0.0
+      port: 2613
+      chainCert: buttsChain.pem
+      cert: buttsCert.pem
+      key: buttsKey.pem
+  access:
+    privileged:
+      - Kedian
+    reserved:
+      - Danaan
+      - Deoch
+      - Glioca
+      - Cail
+      - Luathas
+      - Gramail
+      - Fiosachd
+      - Ceannlaidir
+      - Sgrios
+      - Chadul
+  boards:
+    - name: discuss
+      displayName: Discussions
+      moderators:
+        - Kedian
+        - Sabrael
+        - Dalta
+  time:
+    ages:
+      - name: Danaan
+        startDate: 1639-01-03T01:00:00Z
+        endDate: 2025-01-01T00:00:00Z
+      - name: Deoch
+        startDate: 2025-01-01T00:00:01Z
+        startYear: 1
+    serverStart: 2025-01-01T00:00:01Z
+  handlers:
+    death:
+      isActive: true
+      perishable: true
+      notifyGroup: true
+      map:
+        name: Chaotic Threshold
+        x: 5
+        y: 5
+      coma:
+        timeout: 30
+        effect: 24
+        statusName: Coma
+      penalty:
+        xp: 0.02
+        hp: 0.02
+      legendMark:
+        increment: true
+        text: "Scar of Sgrios"
+    newPlayer:
+      maps:
+        - name: Piet Inn Room 1
+          x: 2
+          y: 3
+        - name: Piet Inn Room 2
+          x: 2
+          y: 4
+        - name: Piet Inn Room 3
+          x: 3
+          y: 4
+

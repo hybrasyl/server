@@ -1,0 +1,77 @@
+{{- if not (or (hasKey .Values.server.worldData "git") (hasKey .Values.server.worldData "volume")) }}
+{{- fail "server.worldData must define only one of 'git' or 'volume'" }}
+{{ end }}
+---
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "hybrasyl.name" . }}
+    helm.sh/chart: {{ include "hybrasyl.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "hybrasyl.name" . }}
+  template:
+    spec:
+      serviceAccount: hybrasyl-pod-server-access
+    - name: server
+      image: {{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      env:
+        - name: HYB_ENV
+          value: "{{ .Values.environment }}"
+      volumeMounts:
+{{ if not .Values.server.configName }}
+        - name: {{ include "hybrasyl.fullname" }}-config
+          mountPath: /config
+          readOnly: true
+{{ end }}
+{{ if hasKey .Values.server.worldData "volume" }}
+       - name: {{ .server.worldData.volume }}
+         mountPath: /config/world
+         readOnly: true
+{{ end }}
+{{ if hasKey .Values.server.worldData "git" }}
+       - name: {{ include "hybrasyl.fullname" . }}-world
+         mountPath: /config/world
+         readOnly: true
+       - name: {{ include "hybrasyl.fullname" . }}-gitsecret
+         mountPath: /home/hybrasyl/.ssh 
+         readOnly: true 
+{{ end }}
+      ports:
+        - name: login
+          containerPort: 2610
+          protocol: TCP
+        - name: lobby
+          containerPort: 2611
+          protocol: TCP
+        - name: world
+          containerPort: 2612
+          protocol: TCP
+{{ if .Values.server.network.grpc.enabled }}
+        - name: grpc
+          containerPort: {{ .Values.server.network.grpc.port }}
+          protocol: TCP
+{{ end }}
+      livenessProbe:
+        tcpSocket:
+          port: 2610
+        initialDelaySeconds: 30
+        periodSeconds: 5
+      readinessProbe:
+{{ if .Values.server.network.grpc.enabled }}
+        grpc:
+          port: 2613
+          service: {{ .Values.server.network.grpc.healthCheckService }}
+{{ else }}
+        tcpSocket:       
+          port: 2612
+{{ end }}
+        initialDelaySeconds: 30
+        periodSeconds: 5

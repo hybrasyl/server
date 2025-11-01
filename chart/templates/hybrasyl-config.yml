@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}-server-config
+  namespace: {{ .Release.Namespace }}
+data:
+  config.xml: |
+    <?xml version="1.0"?>
+    <ServerConfig xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02" Name="{{ .Values.server.configName | default "hybrasyl"}}">
+      <Motd>{{ .Values.server.motd }}</Motd>
+      <Logging>
+{{- range .Values.server.logging }}
+        <Log Type="{{ .type }}" Destination="{{ .destination }}" Level="{{ .level }}"/>
+{{- end }}
+      </Logging>
+      <DataStore Host="{{ .Values.server.datastore.host }}" Port={{ .Values.server.datastore.port }}">
+{{- if .Values.server.datastore.username }}
+        <Username>{{ .Values.server.datastore.username }}</Username>
+{{- end }}
+{{- if .Values.server.datastore.password }}
+        <Password>{{ .Values.server.datastore.password }}</Password>
+{{- end }}
+      </DataStore>
+{{- if hasKey .Values.server "apiEndpoints" }}
+      <ApiEndpoints>
+{{- with .Values.server.apiEndpoints }}
+        {{- if .sentry }}<Sentry Url="{{ .sentry }}"/>{{ end }}
+        {{- if .encryptionEndpoint }}<EncryptionEndpoint Url="{{ .encryptionEndpoint }}"/>{{- end }}
+        {{- if .validationEndpoint }}<ValidationEndpoint Url="{{ .validationEndpoint }}"/>{{- end }}
+{{- end }}
+      </ApiEndpoints>
+{{- end }}
+{{- if hasKey .Values.server "plugins" }}
+      <Plugins>
+{{- if gt (len .Values.server.plugins.messaging) 0 }}
+        <Message>
+{{- range .Values.server.plugins.messaging }}
+          <Plugin Type="{{ .type }}" Passthrough="{{ .passthrough }}" Name="{{ .name }}">
+            <Configuration>
+{{- if hasKey . "configuration" }}
+{{- range .configuration }}
+              <Config Key="{{ .key }}" Value="{{ .value }}"/>
+{{- end }}
+{{- end }} 
+            <Targets>
+{{- range .targets }}
+              <Target>{{ . }}</Target>
+{{- end }}
+            </Targets>
+{{- end }}
+          </Plugin>
+
+{{- end }}
+        </Message>
+{{- end }}
+      </Plugins>
+      <Network>
+        <Lobby BindAddress="{{ .Values.server.network.lobby.bindAddress }}" 
+               Port="{{ .Values.server.network.lobby.port }}"
+{{- if hasKey .Values.server.network.lobby "externalAddress" }}
+               ExternalAddress="{{ .Values.server.network.lobby.externalAddress }}"
+{{- end }}     
+        />
+        <Login BindAddress="{{ .Values.server.network.login.bindAddress }}" 
+               Port="{{ .Values.server.network.login.port }}"
+{{- if hasKey .Values.server.network.login "externalAddress" }}
+               ExternalAddress="{{ .Values.server.network.login.externalAddress }}"
+{{- end }}     
+        />
+        <World BindAddress="{{ .Values.server.network.world.bindAddress }}" 
+               Port="{{ .Values.server.network.world.port }}"
+{{- if hasKey .Values.server.network.world "externalAddress" }}
+               ExternalAddress="{{ .Values.server.network.world.externalAddress }}"
+{{- end }}     
+        />
+{{- if .Values.server.network.grpc.enabled }}           
+        <Grpc BindAddress="{{ .Values.server.network.grpc.bindAddress }}" 
+               Port="{{ .Values.server.network.grpc.port }}">
+{{- if hasKey .Values.server.network.grpc "chainCert" }}
+               <ChainCertificateFile>{{ .Values.server.network.grpc.chainCert }}</ChainCertificateFile>
+{{- end }}     
+               <ServerCertificateFile>{{ .Values.server.network.grpc.cert }}</ServerCertificateFile>
+               <ServerKeyFile>{{ .Values.server.network.grpc.key }}</ServerKeyFile>
+        </Grpc>
+{{- end }}
+      </Network>
+      <Access>
+{{- if gt (len .Values.server.access.privileged) 0 }}
+        <Privileged>{{- join " " .Values.server.access.privileged }}</Privileged>
+{{- end }}
+{{- if gt (len .Values.server.access.privileged) 0 }}
+        <Reserved>{{- join " " .Values.server.access.reserved }}</Reserved>
+{{- end }}
+      </Access>
