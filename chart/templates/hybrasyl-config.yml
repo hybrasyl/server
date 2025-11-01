@@ -93,3 +93,51 @@ data:
         <Reserved>{{- join " " .Values.server.access.reserved }}</Reserved>
 {{- end }}
       </Access>
+      <Boards>
+{{- if gt (len .Values.server.boards) 0 }}
+{{- range .Values.server.boards }}
+        <Board Name="{{ .name }}" DisplayName="{{ .displayName }}">
+          <AccessList>
+{{- if hasKey . "readers" }}
+{{- range .readers }}
+            <Read>{{ . }}</Read>
+{{- end }}
+{{- else }}
+            <Read>*</Read>
+{{- end -}}
+{{- if hasKey . "writers" }}
+{{- range .writers }}
+            <Write>{{ . }}</Read>
+{{- end }}
+{{- else }}
+            <Write>*</Read>
+{{- end -}}
+{{- if hasKey . "moderators" }}
+{{- range .moderators }}
+            <Moderator>{{ . }}
+{{- end }}
+{{- end }}
+          </AccessList>
+{{- end }}
+        </Board>
+{{- end }}
+      </Boards>
+      <Time>
+{{- if gt (len .Values.server.time.ages) 0 }}
+        <Ages>
+{{- range .Values.server.time.ages }}
+          <Age Name="{{ .name }}" StartDate="{{ .startDate }}"
+{{- if hasKey . "endDate" }}
+            EndDate="{{ .endDate }}"
+{{- end }}
+{{- if hasKey . "startYear" }}
+            StartYear="{{ .startYear }}"
+{{- end }}
+          />
+{{- end }}
+        </Ages>
+{{- end }}
+      <ServerStart>{{ .Values.server.time.serverStart }}</ServerStart>
+      </Time>
+    </ServerConfig>
+ 
