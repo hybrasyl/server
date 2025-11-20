@@ -24,21 +24,22 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      valkey:
+        image: valkey
     environment: deploy
     steps:
       - name: Install dotnet
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - name: start local redis 
-        run: redis-server --port 6379 &
       - name: Check out ceridwen (test data)
         uses: actions/checkout@v3
         with:
           repository: hybrasyl/ceridwen
           path: ceridwen
       - name: Check out server
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           path: server
       - name: generate short sha for release filename
