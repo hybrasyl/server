@@ -25,8 +25,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-      valkey:
-        image: valkey
+      redis:
+        image: valkey/valkey
     environment: deploy
     steps:
       - name: Install dotnet
