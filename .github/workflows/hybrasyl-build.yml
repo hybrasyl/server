@@ -58,7 +58,7 @@ jobs:
           cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test 
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
-          REDIS_HOST: localhost
+          REDIS_HOST: redis
           REDIS_PORT: 6379
       - name: Codecov
         uses: codecov/codecov-action@v4.2.0
