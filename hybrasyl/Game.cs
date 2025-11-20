@@ -36,16 +36,19 @@ using Serilog.Core;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Help;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Hybrasyl.Internals.CommandLine;
 using Server = Hybrasyl.Servers.Server;
 
 namespace Hybrasyl;
@@ -81,67 +84,6 @@ public static class Game
 
     public static readonly ActivitySource ActivitySource = new("erisco.hybrasyl.server");
     public static TracerProvider TracerProvider;
-
-    public static readonly Dictionary<ushort, ushort> ClosedDoorSprites = new()
-    {
-        { 1994, 1997 }, { 2000, 2003 }, { 2163, 2164 }, { 2165, 2196 }, { 2197, 2198 }, { 2227, 2228 },
-        { 2229, 2260 }, { 2261, 2262 }, { 2291, 2292 }, { 2293, 2328 }, { 2329, 2330 }, { 2432, 2436 },
-        { 2461, 2465 }, { 2673, 2674 }, { 2675, 2680 }, { 2681, 2682 }, { 2687, 2688 }, { 2689, 2694 },
-        { 2695, 2696 }, { 2714, 2715 }, { 2721, 2722 }, { 2727, 2728 }, { 2734, 2735 }, { 2761, 2762 },
-        { 2768, 2769 }, { 2776, 2777 }, { 2783, 2784 }, { 2850, 2851 }, { 2852, 2857 }, { 2858, 2859 },
-        { 2874, 2875 }, { 2876, 2881 }, { 2882, 2883 }, { 2897, 2898 }, { 2903, 2904 }, { 2923, 2924 },
-        { 2929, 2930 }, { 2945, 2946 }, { 2951, 2952 }, { 2971, 2972 }, { 2977, 2978 }, { 2993, 2994 },
-        { 2999, 3000 }, { 3019, 3020 }, { 3025, 3026 }, { 3058, 3059 }, { 3066, 3067 }, { 3090, 3091 },
-        { 3098, 3099 }, { 3118, 3119 }, { 3126, 3127 }, { 3150, 3151 }, { 3158, 3159 }, { 3178, 3179 },
-        { 3186, 3187 }, { 3210, 3211 }, { 3218, 3219 }, { 4519, 4520 }, { 4521, 4523 }, { 4524, 4525 },
-        { 4527, 4528 }, { 4529, 4532 }, { 4533, 4534 }, { 4536, 4537 }, { 4538, 4540 }, { 4541, 4542 }
-    };
-
-    public static readonly Dictionary<ushort, ushort> OpenDoorSprites = new()
-    {
-        { 1997, 1994 }, { 2003, 2000 }, { 2164, 2163 }, { 2196, 2165 }, { 2198, 2197 }, { 2228, 2227 },
-        { 2260, 2229 }, { 2262, 2261 }, { 2292, 2291 }, { 2328, 2293 }, { 2330, 2329 }, { 2436, 2432 },
-        { 2465, 2461 }, { 2674, 2673 }, { 2680, 2675 }, { 2682, 2681 }, { 2688, 2687 }, { 2694, 2689 },
-        { 2696, 2695 }, { 2715, 2714 }, { 2722, 2721 }, { 2728, 2727 }, { 2735, 2734 }, { 2762, 2761 },
-        { 2769, 2768 }, { 2777, 2776 }, { 2784, 2783 }, { 2851, 2850 }, { 2857, 2852 }, { 2859, 2858 },
-        { 2875, 2874 }, { 2881, 2876 }, { 2883, 2882 }, { 2898, 2897 }, { 2904, 2903 }, { 2924, 2923 },
-        { 2930, 2929 }, { 2946, 2945 }, { 2952, 2951 }, { 2972, 2971 }, { 2978, 2977 }, { 2994, 2993 },
-        { 3000, 2999 }, { 3020, 3019 }, { 3026, 3025 }, { 3059, 3058 }, { 3067, 3066 }, { 3091, 3090 },
-        { 3099, 3098 }, { 3119, 3118 }, { 3127, 3126 }, { 3151, 3150 }, { 3159, 3158 }, { 3179, 3178 },
-        { 3187, 3186 }, { 3211, 3210 }, { 3219, 3218 }, { 4520, 4519 }, { 4523, 4521 }, { 4525, 4524 },
-        { 4528, 4527 }, { 4532, 4529 }, { 4534, 4533 }, { 4537, 4536 }, { 4540, 4538 }, { 4542, 4541 }
-    };
-
-    public static readonly Dictionary<ushort, bool> DoorSprites = new()
-    {
-        { 1994, true }, { 1997, true }, { 2000, true }, { 2003, true }, { 2163, true },
-        { 2164, true }, { 2165, true }, { 2196, true }, { 2197, true }, { 2198, true },
-        { 2227, true }, { 2228, true }, { 2229, true }, { 2260, true }, { 2261, true },
-        { 2262, true }, { 2291, true }, { 2292, true }, { 2293, true }, { 2328, true },
-        { 2329, true }, { 2330, true }, { 2432, true }, { 2436, true }, { 2461, true },
-        { 2465, true }, { 2673, true }, { 2674, true }, { 2675, true }, { 2680, true },
-        { 2681, true }, { 2682, true }, { 2687, true }, { 2688, true }, { 2689, true },
-        { 2694, true }, { 2695, true }, { 2696, true }, { 2714, true }, { 2715, true },
-        { 2721, true }, { 2722, true }, { 2727, true }, { 2728, true }, { 2734, true },
-        { 2735, true }, { 2761, true }, { 2762, true }, { 2768, true }, { 2769, true },
-        { 2776, true }, { 2777, true }, { 2783, true }, { 2784, true }, { 2850, true },
-        { 2851, true }, { 2852, true }, { 2857, true }, { 2858, true }, { 2859, true },
-        { 2874, true }, { 2875, true }, { 2876, true }, { 2881, true }, { 2882, true },
-        { 2883, true }, { 2897, true }, { 2898, true }, { 2903, true }, { 2904, true },
-        { 2923, true }, { 2924, true }, { 2929, true }, { 2930, true }, { 2945, true },
-        { 2946, true }, { 2951, true }, { 2952, true }, { 2971, true }, { 2972, true },
-        { 2977, true }, { 2978, true }, { 2993, true }, { 2994, true }, { 2999, true },
-        { 3000, true }, { 3019, true }, { 3020, true }, { 3025, true }, { 3026, true },
-        { 3058, true }, { 3059, true }, { 3066, true }, { 3067, true }, { 3090, true },
-        { 3091, true }, { 3098, true }, { 3099, true }, { 3118, true }, { 3119, true },
-        { 3126, true }, { 3127, true }, { 3150, true }, { 3151, true }, { 3158, true },
-        { 3159, true }, { 3178, true }, { 3179, true }, { 3186, true }, { 3187, true },
-        { 3210, true }, { 3211, true }, { 3218, true }, { 3219, true }, { 4519, true },
-        { 4520, true }, { 4521, true }, { 4523, true }, { 4524, true }, { 4525, true },
-        { 4527, true }, { 4528, true }, { 4529, true }, { 4532, true }, { 4533, true },
-        { 4534, true }, { 4536, true }, { 4537, true }, { 4538, true }, { 4540, true },
-        { 4541, true }, { 4542, true }
-    };
 
     public static Lobby Lobby { get; set; }
     public static Login Login { get; set; }
@@ -223,66 +165,157 @@ public static class Game
         // Stop consumers, which will also empty queues
         World?.StopQueueConsumer();
         World?.StopControlConsumers();
-
         Thread.Sleep(2000);
         Log.Warning("Hybrasyl {Version}: shutdown complete.", Assemblyinfo.Version);
         ShutdownComplete = true;
         //host.Close();
     }
 
+    private static string DefaultDataDir =>
+        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "hybrasyl");
+    private static string DefaultWorldDir => Path.Join(DefaultDataDir, "world");
+
     // <summary>Hybrasyl, a DOOMVAS-compatible MMO server</summary>
-    // <param name="worldDir">The world data directory to use. Defaults to ~/Hybrasyl on Linux or My Documents\Hybrasyl on Windows.</param>
-    // <param name="logDir">The directory to use to write logs. Defaults to ~/Hybrasyl/logs on Linux or My Documents\Hybrasyl\logs on Windows.</param>
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
-        var dataOption = new Option<string>("--datadir",
-            "The data directory to be used for the server. Defaults to ~\\Hybrasyl\\world");
+        var dataOption = new Option<string>("--dataDir", "-d")
+        {
+            HelpName = "DIRPATH",
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("HYB_DATA_DIR") ?? DefaultDataDir,
+            Description =
+                @"[$HYB_DATA_DIR] The data directory to be used for the server. Defaults to ~/hybrasyl on non-Windows, or %USERPROFILE%\hybrasyl on Windows."
+        };
+        dataOption.Validators.Add(result =>
+        {
+            var dir = result.GetValue(dataOption);
+            if (!Path.Exists(dir))
+                result.AddError($"The data directory {dir} does not exist or cannot be read");
+        });
 
-        var worldDataOption = new Option<string>("--worlddatadir",
-            "The XML data directory to be used for the server. Defaults to DATADIR\\xml");
+        var worldDataOption = new Option<string>("--worldDataDir", "-w")
+        {
+            DefaultValueFactory =
+                _ => Environment.GetEnvironmentVariable("HYB_WORLD_DIR") ?? DefaultWorldDir,
+            HelpName = "DIRPATH",
+            Description = @"[$HYB_WORLD_DIR] The XML data directory to be used for the server. Defaults to DATADIR\xml"
+        };
+        worldDataOption.Validators.Add(result =>
+        {
+            var dir = result.GetValue(worldDataOption);
+            if (!Path.Exists(dir))
+                result.AddError($"The world data directory {dir} does not exist or cannot be read");
+        });
 
-        var logdirOption = new Option<string>("--logdir",
-            "The directory for log output from the server. Defaults to DATADIR\\logs");
+        var logdirOption = new Option<string>("--logDir", "-l")
+        {
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("HYB_LOG_DIR"),
+            HelpName = "DIRPATH",
+            Description = @"[$HYB_LOG_DIR] The directory for log output from the server. If undefined, logs are send to stdout."
+        };
 
-        var configOption = new Option<string>("--config",
-            "The named configuration to use in the world directory. Defaults to default");
+        logdirOption.Validators.Add(result =>
+        {
+            var dir = result.GetValue(logdirOption);
+            if (!string.IsNullOrEmpty(dir) && !Path.Exists(dir))
+                result.AddError($"The log directory {dir} does not exist or cannot be read");
+        });
 
-        var redisHost = new Option<string>("--redisHost",
-            "The redis server to use. Overrides any setting in config xml.");
+        var configName = new Option<string>("--config", "-c")
+        {
+            DefaultValueFactory = (_) => Environment.GetEnvironmentVariable("HYB_CONFIG_NAME") ?? "default",
+            Description = "[$HYB_CONFIG_NAME] The named configuration to use in the world directory. Defaults to default",
+            HelpName = "CONFIG_NAME"
+        };
 
-        var redisPort = new Option<int?>("--redisPort",
-            "The port to use for Redis. Overrides any setting in config xml.");
 
-        var redisDb = new Option<int?>("--redisDb",
-            "The redis DB to use. Overrides any setting in config xml.");
+        var configFile = new Option<string>("--configFile", "-cf")
+        {
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("HYB_CONFIG_FILE") ?? string.Empty,
+            Description = "[$HYB_CONFIG_FILE] A path to a configuration file that will be used for the server, instead of a config file in a world repository",
+            HelpName = "CONFIG_FILE_PATH"
+        };
+        configFile.Validators.Add(result =>
+        {
+            var file = result.GetValue(configFile);
+            if (!string.IsNullOrEmpty(file) && !File.Exists(file))
+                result.AddError($"The specified config file {file} could not be found or read");
+        });
 
-        var redisPassword = new Option<string>("--redisPassword",
-            "The password to use for Redis. Overrides any setting in config xml.");
+        var redisPort = new Option<int>("--redisPort", "-rpt")
+        {
+            DefaultValueFactory = _ =>
+                int.TryParse(Environment.GetEnvironmentVariable("HYB_REDIS_PORT"), out var value) ? value : 6379,
+            Description =
+                "[$HYB_REDIS_PORT] The port to use for Redis. Overrides any setting in config xml. Defaults to 6379 in the absence of any other config.",
+            HelpName = "PORT_NUMBER"
+        };
+        redisPort.Validators.Add(result =>
+        {
+            var port = result.GetValue(redisPort);
+            if (port > 65535)
+                result.AddError("Redis port value must be between 0 and 65535");
+        });
+
+        var redisHost = new Option<string>("--redisHost", "-rh")
+        {
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("HYB_REDIS_HOST") ?? string.Empty,
+            Description = "[$HYB_REDIS_HOST] The redis server to use. Overrides any setting in config xml. Defaults to localhost in the absence of any other config.",
+            HelpName = "HOST_OR_ADDRESS"
+        };
+
+        var redisDb = new Option<int>("--redisDb", "-rdb")
+        {
+            Description =
+                "[$HYB_REDIS_DB] The redis DB to use. Overrides any setting in config xml. Defaults to 0 in the absence of any other config.",
+            HelpName = "DB_NUMBER"
+        };
+        redisDb.Validators.Add(result =>
+            
+        {
+            var db = result.GetValue(redisDb);
+            if (db > 16)
+                result.AddError("Redis DB value must be between 0 and 16");
+        });
+
+        var redisPassword = new Option<string>("--redisPassword", "-rpw")
+        {
+            DefaultValueFactory = _ =>
+                Environment.GetEnvironmentVariable("HYB_REDIS_PASSWORD") ?? string.Empty,
+            Description = "[$HYB_REDIS_PASSWORD] The password to use for Redis. Overrides any setting in config xml.",
+            HelpName = "REDIS_PW"
+        };
+
 
         var rootCommand = new RootCommand("Hybrasyl, a DOOMVAS-compatible MMO server");
 
-        rootCommand.AddOption(dataOption);
-        rootCommand.AddOption(worldDataOption);
-        rootCommand.AddOption(logdirOption);
-        rootCommand.AddOption(configOption);
-        rootCommand.AddOption(redisHost);
-        rootCommand.AddOption(redisPort);
-        rootCommand.AddOption(redisDb);
-        rootCommand.AddOption(redisPassword);
+        // This is weird, but it is the documented way to do this
+        rootCommand.Add(dataOption);
+        rootCommand.Add(worldDataOption);
+        rootCommand.Add(logdirOption);
+        rootCommand.Add(configName);
+        rootCommand.Add(configFile);
+        rootCommand.Add(redisHost);
+        rootCommand.Add(redisPort);
+        rootCommand.Add(redisDb);
+        rootCommand.Add(redisPassword);
 
-        rootCommand.SetHandler(StartServer,
-            dataOption, worldDataOption, logdirOption, configOption, redisHost, redisPort, redisDb, redisPassword);
+        var helpOption = rootCommand.Options.FirstOrDefault(x => x is HelpOption);
+        if (helpOption != null)
+            helpOption.Action = new OctagramHelpAction((HelpAction) helpOption.Action!);
 
-        rootCommand.Invoke(args);
+        rootCommand.SetAction(parseResult =>
+        {
+            StartServer(StartupConfig.FromParseResult(parseResult));
+        });
+
+        return rootCommand.Parse(args).Invoke();
     }
 
-    public static void StartServer(string? dataDir = null, string? worldDir = null, string? logDir = null,
-        string? configName = null,
-        string? redisHost = null, int? redisPort = null, int? redisDb = null, string? redisPw = null)
+
+    public static void StartServer(StartupConfig startupConfig)
     {
         Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
-
 
         // Initialize OTel
 
@@ -291,29 +324,10 @@ public static class Game
 
         // Gather our directories from env vars / command line switches
 
-        var data = Environment.GetEnvironmentVariable("DATA_DIR") ?? dataDir;
-        var world = Environment.GetEnvironmentVariable("WORLD_DIR") ?? worldDir;
-        var log = Environment.GetEnvironmentVariable("LOG_DIR") ?? logDir;
-        var config = Environment.GetEnvironmentVariable("CONFIG") ?? configName;
-        var rHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? redisHost;
-        var rawPort = Environment.GetEnvironmentVariable("REDIS_PORT");
-        var rawDb = Environment.GetEnvironmentVariable("REDIS_DB");
-
-        var rPort = string.IsNullOrWhiteSpace(rawPort)
-            ? redisPort
-            : Convert.ToInt32(rawPort);
-        var rDb = string.IsNullOrWhiteSpace(rawDb)
-            ? redisDb
-            : Convert.ToInt32(rawDb);
-
-        var rPw = Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? redisHost;
-
-        DataDirectory = string.IsNullOrWhiteSpace(data)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl", "world")
-            : data;
-        WorldDataDirectory = string.IsNullOrWhiteSpace(world) ? Path.Combine(DataDirectory, "xml") : world;
-        LogDirectory = string.IsNullOrWhiteSpace(log) ? Path.Combine(DataDirectory, "logs") : log;
-        ActiveConfigurationName = string.IsNullOrWhiteSpace(config) ? "default" : config;
+        DataDirectory = startupConfig.DataDir;
+        WorldDataDirectory = startupConfig.WorldDataDir;
+        LogDirectory = startupConfig.LogDir;
+        ActiveConfigurationName = startupConfig.ConfigName;
 
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
@@ -321,11 +335,11 @@ public static class Game
         Log.Information($"World directory: {WorldDataDirectory}");
         Log.Information($"Log directory: {LogDirectory}");
 
-        if (!Directory.Exists(LogDirectory))
+        if (!string.IsNullOrEmpty(LogDirectory) && !Path.Exists(LogDirectory))
         {
             Log.Fatal($"The specified log directory {LogDirectory} does not exist or cannot be accessed.");
             Log.Fatal(
-                "Hybrasyl cannot start without a writable log directory, so it will automatically close in 10 seconds.");
+                "If this configuration option is set, Hybrasyl cannot start without this path being usable.");
             Thread.Sleep(10000);
             return;
         }
@@ -336,13 +350,11 @@ public static class Game
         {
             Log.Information("Loading xml...");
             manager.LoadData();
-            //            Task.Run(manager.LoadDataAsync).Wait();
-            // TODO: improve in library
             while (true)
             {
                 if (manager.IsReady)
                     break;
-                Thread.Sleep(250);
+                Thread.Sleep(1000);
             }
 
             Log.Information("Loading xml completed");
@@ -354,9 +366,8 @@ public static class Game
             Log.Fatal($"An XML directory (world data) was not found at {manager.RootPath}.");
             Log.Fatal("This may be the first time you've run the server. If so, please take a look");
             Log.Fatal("at the server documentation at github.com/hybrasyl/server.");
-            Log.Fatal("We also recommend you look at the example config.xml in the community database");
+            Log.Fatal("It is recommended you look at the example config.xml in the community database");
             Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
-            Log.Fatal("A data directory must exist for Hybrasyl to continue loading.");
             Log.Fatal(
                 "Hybrasyl cannot start without a readable world data directory, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -371,6 +382,36 @@ public static class Game
             return;
         }
 
+        ServerConfig activeConfiguration = null;
+
+        if (!string.IsNullOrEmpty(startupConfig.ConfigFile))
+        {
+            if (Path.Exists(startupConfig.ConfigFile))
+            {
+                if (ServerConfig.LoadFromFile(startupConfig.ConfigFile, out activeConfiguration, out var e))
+                {
+                    activeConfiguration.Name = "override";
+                    manager.Add(activeConfiguration);
+                    ActiveConfigurationName = "override";
+
+                }
+                else
+                {
+                    Log.Fatal($"A config file path of {startupConfig.ConfigFile} was specified, but this file could not be processed:");
+                    Log.Fatal($"Exception occurred: {e}");
+                    Thread.Sleep(10000);
+                    return;
+                }
+            }
+            else
+            {
+                Log.Fatal(
+                    $"A config file path of {startupConfig.ConfigFile} was specified but this file either does not exist or cannot be read.");
+                Thread.Sleep(10000);
+                return;
+            }
+        }
+
         if (manager.Count<ServerConfig>() == 0)
         {
             var loadResult = manager.GetLoadResult<ServerConfig>();
@@ -378,13 +419,18 @@ public static class Game
 
             Log.Fatal("A server configuration file was not found or could not be loaded.");
             Log.Fatal("Please take a look at the server documentation at github.com/hybrasyl/server.");
-            Log.Fatal("We also recommend you look at the example config.xml in the community database");
+            Log.Fatal("It is recommended that you look at the example config.xml in the community database");
             Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
-            Log.Fatal(
-                $"We are currently looking in:\n{manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs for a config file.");
-            if (loadResult.ErrorCount > 0)
-                Log.Fatal("Errors were encountered processing server configuration:");
-            foreach (var error in loadResult.Errors) Log.Fatal($"{error.Key}: {error.Value}");
+
+            if (string.IsNullOrEmpty(startupConfig.ConfigFile))
+            {
+                Log.Fatal("Using world repository for configuration.");
+                Log.Fatal(
+                    $"Expected to find config in: {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs.");
+            }
+            else
+                Log.Fatal(
+                    $"A config file of {startupConfig.ConfigFile} was specified but could not be found or was not accessible.");
 
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration file, so it will automatically close in 10 seconds.");
@@ -414,12 +460,12 @@ public static class Game
             return;
         }
 
-        if (!manager.TryGetValue(ActiveConfigurationName, out ServerConfig activeConfiguration))
+        if (ActiveConfigurationName != "override" && !manager.TryGetValue(ActiveConfigurationName, out activeConfiguration))
         {
             activity?.SetStatus(ActivityStatusCode.Error);
 
             Log.Fatal(
-                $"You specified a server configuration name of {ActiveConfigurationName}, but there are no configurations with that name.");
+                $"A server configuration name of {ActiveConfigurationName} was specified but there are no configurations with that name.");
             Log.Fatal(
                 $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(selector: x => x.Name))}");
             Log.Fatal(
@@ -428,11 +474,18 @@ public static class Game
             return;
         }
 
+        // This should never happen
+        if (activeConfiguration == null)
+        {
+            Log.Fatal("Active configuration is null - this should not happen. Aborting!");
+            return;
+        }
+
         // Sanity check: ensure our localization exists
         if (!manager.TryGetValue(activeConfiguration.Locale, out Localization locale))
         {
             Log.Fatal(
-                "You specified a locale of en_us, but there are no locales with that name.");
+                $"You specified a locale of {activeConfiguration.Locale}, but there are no locales with that name.");
             Log.Fatal(
                 $"Make sure a localization configuration exists in {manager.RootPath}{Path.DirectorySeparatorChar}localizations and that it matches what is defined in the server configuration.");
             Log.Fatal(
@@ -451,7 +504,7 @@ public static class Game
         ActiveConfiguration = activeConfiguration;
 
         // Configure logging 
-        GameLog.Initialize(LogDirectory, activeConfiguration.Logging);
+        GameLog.LogInit(LogDirectory, activeConfiguration.Logging);
 
         // Configure OTel forwarder, if set
 
@@ -484,8 +537,37 @@ public static class Game
         // For right now we don't support binding to different addresses; the support in the XML
         // is for a distant future where that may be desirable.
         if (activeConfiguration.Network.Login.ExternalAddress != null)
-            // We can have a hostname here to support ease of running in Docker; try to naively resolve it
-            RedirectTarget = Dns.GetHostAddresses(activeConfiguration.Network.Lobby.ExternalAddress).FirstOrDefault();
+        {
+            // Allow an envvar to define our external address, which is useful when running in Kubernetes
+            // behind a service
+            if (activeConfiguration.Network.Login.ExternalAddress.ToLower().StartsWith("envvar:"))
+            {
+                // ExternalAddress="envvar:k8s-service-name" -> K8S_SERVICE_NAME_SERVICE_HOST
+                var svcName = $"{activeConfiguration.Network.Login.ExternalAddress.Split(":").Last().ToUpper()
+                    .Replace("-", "_")}_SERVICE_HOST";
+
+                var addr = Environment.GetEnvironmentVariable(svcName);
+
+                if (addr == null)
+                    throw new ArgumentNullException(
+                        $"Fatal Error: ExternalAddress set to {activeConfiguration.Network.Login.ExternalAddress}, but {svcName} is not defined!");
+
+                try
+                {
+                    RedirectTarget = IPAddress.Parse(addr);
+                    Log.Information("dLogin ");
+                }
+                catch (Exception ex)
+                {
+                    Log.Fatal(
+                        $"External address set to {activeConfiguration.Network.Login.ExternalAddress}, but {svcName} value {addr} could not be parsed!");
+                }
+            }
+            else
+                // We can have a hostname here to support ease of running in Docker; try to naively resolve it
+                RedirectTarget = Dns.GetHostAddresses(activeConfiguration.Network.Lobby.ExternalAddress)
+                    .FirstOrDefault();
+        }
 
         IpAddress = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);
 
@@ -493,10 +575,31 @@ public static class Game
         Login = new Login(activeConfiguration.Network.Login.Port, true);
 
         var redisConnection = new RedisConnection();
-        redisConnection.Host = string.IsNullOrWhiteSpace(rHost) ? activeConfiguration.DataStore.Host : rHost;
-        redisConnection.Port = rPort ?? activeConfiguration.DataStore.Port;
-        redisConnection.Database = rDb ?? activeConfiguration.DataStore.Database;
-        redisConnection.Password = string.IsNullOrWhiteSpace(rPw) ? activeConfiguration.DataStore.Password : rPw;
+
+        if (!string.IsNullOrEmpty(startupConfig.RedisHost))
+        {
+            redisConnection.Host = startupConfig.RedisHost;
+            redisConnection.Port = startupConfig.RedisPort;
+            redisConnection.Database = startupConfig.RedisDb;
+            redisConnection.Password = startupConfig.RedisPassword;
+            Log.Information($"Using datastore settings from command line args / env vars");
+        }
+        else if (activeConfiguration.DataStore != null) {
+            redisConnection.Host = activeConfiguration.DataStore.Host;
+            redisConnection.Port = activeConfiguration.DataStore.Port;
+            redisConnection.Database = activeConfiguration.DataStore.Database;
+            redisConnection.Password = activeConfiguration.DataStore.Password;
+            Log.Information($"Using datastore settings from {activeConfiguration.Filename}");
+        }
+        else
+        {
+            Log.Fatal("Datastore settings could not be found. Please either set HYB_REDIS_* environment variables,");
+            Log.Fatal("<Datastore> in your config XML, or use command line switches (-rh / -rp etc)");
+            Thread.Sleep(10000);
+            return;
+        }
+
+        Log.Information($"Datastore: {redisConnection.Host}:{redisConnection.Port}/{redisConnection.Database}");
 
         World = new World(activeConfiguration.Network.World.Port, redisConnection,
             manager, activeConfiguration.Locale, true);
@@ -793,11 +896,11 @@ public static class Game
     /// <returns>true/false indicating whether the sprite should trigger a collision.</returns>
     public static bool IsDoorCollision(ushort sprite)
     {
-        if (OpenDoorSprites.TryGetValue(sprite, out var doorSprite))
+        if (Sprites.OpenDoorSprites.TryGetValue(sprite, out var doorSprite))
             return (Collisions[sprite - 1] & 0x0F) == 0x0F ||
                    (Collisions[doorSprite - 1] & 0x0F) == 0x0F;
         return (Collisions[sprite - 1] & 0x0F) == 0x0F ||
-               (Collisions[ClosedDoorSprites[sprite] - 1] & 0x0F) == 0x0F;
+               (Collisions[Sprites.ClosedDoorSprites[sprite] - 1] & 0x0F) == 0x0F;
     }
 }
 

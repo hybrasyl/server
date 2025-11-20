@@ -70,13 +70,13 @@ public static class LootBox
         if (rolls == 0)
         {
             tables.AddRange(set.Table);
-            GameLog.SpawnInfo("Processing loot set {Name}: set rolls == 0, looting", set.Name);
+            GameLog.SpawnDebug("Processing loot set {Name}: set rolls == 0, looting", set.Name);
         }
 
         for (var x = 0; x < rolls; x++)
             if (Roll() <= chance)
             {
-                GameLog.SpawnInfo("Processing loot set {Name}: set hit, looting", set.Name);
+                GameLog.SpawnDebug("Processing loot set {Name}: set hit, looting", set.Name);
 
                 // Ok, the set fired. Check the subtables, which can have independent chances.
                 // If no chance is present, we simply award something from each table in the set.
@@ -87,7 +87,7 @@ public static class LootBox
                     if (setTable.Rolls == 0)
                     {
                         tables.Add(setTable);
-                        GameLog.SpawnInfo("Processing loot set {Name}: setTable rolls == 0, looting", set.Name);
+                        GameLog.SpawnDebug("Processing loot set {Name}: setTable rolls == 0, looting", set.Name);
                         continue;
                     }
 
@@ -96,13 +96,13 @@ public static class LootBox
                     {
                         if (!(Roll() <= setTable.Chance)) continue;
                         tables.Add(setTable);
-                        GameLog.SpawnInfo("Processing loot set {Name}: set subtable hit, looting ", set.Name);
+                        GameLog.SpawnDebug("Processing loot set {Name}: set subtable hit, looting ", set.Name);
                     }
                 }
             }
             else
             {
-                GameLog.SpawnInfo("Processing loot set {Name}: Set subtable missed", set.Name);
+                GameLog.SpawnDebug("Processing loot set {Name}: Set subtable missed", set.Name);
             }
 
         return tables.Aggregate(loot, func: (current, table) => current + CalculateTable(table));
@@ -122,7 +122,7 @@ public static class LootBox
         foreach (var set in list.Set ?? new List<LootImport>())
         {
             // Is the set present?
-            GameLog.SpawnInfo("Processing loot set {Name}", set.Name);
+            GameLog.SpawnDebug("Processing loot set {Name}", set.Name);
             if (Game.World.WorldData.TryGetValue(set.Name, out LootSet lootset))
                 loot += CalculateLoot(lootset, set.Rolls, set.Chance);
             else
@@ -165,7 +165,7 @@ public static class LootBox
                 tableLoot.Gold += RollBetween(table.Gold.Min, table.Gold.Max);
             else
                 tableLoot.Gold += table.Gold.Min;
-            GameLog.SpawnInfo("Processing loot: added {Gold} gp", tableLoot.Gold);
+            GameLog.SpawnDebug("Processing loot: added {Gold} gp", tableLoot.Gold);
         }
 
         if (table.Xp != null)
@@ -174,7 +174,7 @@ public static class LootBox
                 tableLoot.Xp += RollBetween(table.Xp.Min, table.Xp.Max);
             else
                 tableLoot.Xp += table.Xp.Min;
-            GameLog.SpawnInfo("Processing loot: added {Xp} xp", tableLoot.Xp);
+            GameLog.SpawnDebug("Processing loot: added {Xp} xp", tableLoot.Xp);
         }
 
         // Handle items now
@@ -201,7 +201,7 @@ public static class LootBox
         // First, process any "always" items, which always drop when the container fires
         foreach (var item in list.Item.Where(predicate: i => i.Always))
         {
-            GameLog.SpawnInfo("Processing loot: added always item {item}", item.Value);
+            GameLog.SpawnDebug("Processing loot: added always item {item}", item.Value);
             loot.Add(item);
         }
 

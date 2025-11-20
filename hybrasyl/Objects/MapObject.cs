@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using Hybrasyl.Internals;
 
 namespace Hybrasyl.Objects;
 
@@ -369,7 +370,7 @@ public class MapObject : IStateStorable
                 var lfgu = (ushort)lfg;
                 var rfgu = (ushort)rfg;
 
-                if (Game.DoorSprites.ContainsKey(lfgu))
+                if (Sprites.DoorSprites.ContainsKey(lfgu))
                 {
                     // This is a left-right door
                     GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
@@ -378,7 +379,7 @@ public class MapObject : IStateStorable
                     InsertDoor(x, y, Collisions.Contains((x, y)), true,
                         Game.IsDoorCollision(lfgu));
                 }
-                else if (Game.DoorSprites.ContainsKey(rfgu))
+                else if (Sprites.DoorSprites.ContainsKey(rfgu))
                 {
                     GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
                         Name, x, y, Collisions.Contains((x, y)));

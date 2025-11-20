@@ -153,4 +153,13 @@ internal class PatronServer : Patron.PatronBase
 
         return Task.FromResult(new BooleanMessageReply { Message = "Unknown error", Success = false });
     }
+
+    public override Task<HealthReply> Health(Empty request, ServerCallContext context)
+    {
+        if (Game.GetDefaultServer<Login>().Active && Game.GetDefaultServer<World>().Active &&
+            Game.GetDefaultServer<Lobby>().Active)
+            return Task.FromResult(new HealthReply { Healthy = true, Response = "OK" });
+        return Task.FromResult(new HealthReply { Healthy = false, Response = "One or more servers reported not active"});
+    }
+
 }
