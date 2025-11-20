@@ -25,11 +25,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-      valkey:
-        image: valkey/valkey:latest
-        ports:
-          - 6379:6379
+      redis:
+        image: redis:latest
+      ports:
+        - 6379:6379
+      options: >-
+        --health-cmd "redis-cli ping"
+        --health-interval 10s
+        --health-timeout 5s
+        --health-retries 5
     environment: deploy
+    
     steps:
       - name: Install dotnet
         uses: actions/setup-dotnet@v5
@@ -60,7 +66,7 @@ jobs:
           cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test 
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
-          REDIS_HOST: valkey
+          REDIS_HOST: redis
           REDIS_PORT: 6379
       - name: Codecov
         uses: codecov/codecov-action@v4.2.0
