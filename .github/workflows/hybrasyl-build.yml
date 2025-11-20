@@ -54,7 +54,7 @@ jobs:
         run: cd $GITHUB_WORKSPACE/server && dotnet restore
       - name: build & run tests
         run: >
-          cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test --no-restore
+          cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test 
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
           REDIS_HOST: localhost
