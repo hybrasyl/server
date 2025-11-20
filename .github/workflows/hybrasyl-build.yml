@@ -126,9 +126,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: 
-            - ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:latest
-            - ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ env.SHORT_SHA }}    
+          # wtf
+          tags: | 
+            ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:latest, 
+            ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ env.SHORT_SHA }}    
       - name: Notify discord
         uses: Ilshidur/action-discord@master
         with:
