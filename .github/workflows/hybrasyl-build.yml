@@ -25,14 +25,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     environment: deploy
-    if: github.repository == 'hybrasyl/server'
-    container:
-      image: public.ecr.aws/l6u7z4o9/hybrasyl:build-latest
-    strategy:
-      matrix:
-        dotnet-version: ['10.0.x']
-   
     steps:
+      - name: Install dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
       - name: start local redis 
         run: redis-server --port 6379 &
       - name: Check out ceridwen (test data)
