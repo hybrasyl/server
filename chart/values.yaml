@@ -1,4 +1,3 @@
-serverVersion: 0.9.4
 serverCommit: d34db33f
 
 environment: dev
@@ -13,23 +12,37 @@ server:
   motd: "Welcome to Hybrasyl! This is Hybrasyl $VERSION ($COMMIT)!"
   worldData:
     git:
-      url: github.com/eriscorp/world 
+      repo: git@github.com/hybrasyl/ceridwen.git
+      branch: main
       pullSecret: hybrasyl-world-access # Must be an ssh key
-      volumeName: hybrasyl-world-volume
       sync:
         enabled: true
         grpcHook: "hybrasyl.v1.worldUpdate"
-    #volume: <persistent volume name> 
-  logging: []
+    #volume:
+    #  claimName:
+    #  storageClass: 
+  worldDataDir: /config/world
+  logging:
+    singleStream:
+      enabled: true
+      storageClass:    
+    streams: []
+  volumes:
+    pluginData:
+      enabled: true
+      mountDir: /plugins
   datastore:
-    host: 127.0.0.1
-    port: 6379
-    username: hybrasyl
-    password: hybrasyl
-  apiEndpoints: 
-    sentry: "https://butts.com"
-    encryptionEndpoint: "https://butts.biz"
-    validationEndpoint: "https://butts.net"
+    service:
+      enabled: true
+      serviceName: hyb-valkey
+    #host: 127.0.0.1
+    #port: 6379
+    #username: hybrasyl
+    #password: hybrasyl
+  #apiEndpoints: 
+  #  sentry: "https://butts.com"
+  #  encryptionEndpoint: "https://butts.biz"
+  #  validationEndpoint: "https://butts.net"
   plugins:
     messaging:
       - type: Mail
