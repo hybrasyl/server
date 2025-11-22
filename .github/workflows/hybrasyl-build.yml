@@ -39,13 +39,13 @@ jobs:
     steps:
       - name: Install prerequisites
         run: >
-          apt-get update && 
-          apt-get -yy dist-upgrade && 
-          apt-get -yy install ca-certificates gnupg zip jq curl file openssh-client rsync mono-runtime
+          sudo apt-get update && 
+          sudo apt-get -yy dist-upgrade && 
+          sudo apt-get -yy install ca-certificates gnupg zip jq curl file openssh-client rsync mono-runtime
       - name: Install naturaldocs
         run: >
           curl "https://www.naturaldocs.org/download/natural_docs/2.2/Natural_Docs_2.2.zip" > /tmp/NaturalDocs.zip && 
-          cd /tmp && unzip /tmp/NaturalDocs.zip && mv "/tmp/Natural Docs" /usr/local/bin/naturaldocs
+          cd /tmp && unzip /tmp/NaturalDocs.zip && sudo mv "/tmp/Natural Docs" /usr/local/bin/naturaldocs
       - name: Install dotnet
         uses: actions/setup-dotnet@v5
         with:
@@ -148,7 +148,7 @@ jobs:
       - name: Notify discord
         uses: Ilshidur/action-discord@master
         with:
-          args: "Hybrasyl Server: Job ${GITHUB_RUN_ID}: success, release artifacts updated (${SHORT_SHA} by ${GITHUB_ACTOR}"
+          args: "Hybrasyl Server: Job ${{ github.run_id }}: success, release artifacts updated (${SHORT_SHA} by ${GITHUB_ACTOR}"
         continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -156,7 +156,7 @@ jobs:
         if: ${{ failure() }}
         uses: Ilshidur/action-discord@master
         with:
-          args: "Hybrasyl Server: Job ${GITHUB_RUN_ID}: **FAIL**"
+          args: "Hybrasyl Server: Job ${{ github.run_id }}: **FAIL**"
         continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
