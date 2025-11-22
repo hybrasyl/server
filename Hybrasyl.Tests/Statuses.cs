@@ -121,7 +121,7 @@ public class Status
         var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible")
             .FirstOrDefault();
         var assail = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "Assail").FirstOrDefault();
-        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "beag athar").FirstOrDefault();
+        var castable = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "beag ioc").FirstOrDefault();
 
         Assert.NotNull(invisible);
         Assert.NotNull(assail);
@@ -131,7 +131,7 @@ public class Status
         // Should be invisible
         Assert.True(Fixture.TestUser.Condition.IsInvisible);
         // Using a spell with BreakStealth set, breaks stealth
-        Fixture.TestUser.UseCastable(castable);
+        Assert.True(Fixture.TestUser.UseCastable(castable, Fixture.TestUser), $"Casting {castable.Name} has utterly failed: {Fixture.TestUser.LastSystemMessage}");
         Thread.Sleep(250);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
