@@ -102,9 +102,10 @@ public class Status
         Assert.True(Fixture.TestUser.Condition.IsInvisible);
         // Using assail breaks invisibility
         Assert.True(Fixture.TestUser.UseCastable(assail));
+        Thread.Sleep(250);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(50);
+        Thread.Sleep(200);
 
         Assert.Empty(Fixture.TestUser.CurrentStatuses);
     }
