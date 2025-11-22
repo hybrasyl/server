@@ -377,7 +377,7 @@ public class Monsters
 
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
-        Thread.Sleep(1000);
+        Thread.Sleep(200);
 
         var immunityTriggered =
             behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.StatusCategory);

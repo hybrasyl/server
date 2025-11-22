@@ -924,17 +924,26 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             if (Distance(ActiveTarget) == 1)
             {
                 _actionQueue.Enqueue(MobAction.Attack);
+                return;
             }
-            else if ((ActiveTarget.Map != null && ActiveTarget.Map.Id != Map.Id) ||
-                     Distance(ActiveTarget) > (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.75))
+            if (ActiveTarget.Map != null && ActiveTarget.Map.Id != Map.Id)
             {
                 ShouldWander = true;
                 ActiveTarget = null;
                 _actionQueue.Enqueue(MobAction.Move);
+                return;
+            }
+            if (Distance(ActiveTarget) > (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.75))
+            {
+                ShouldWander = true;
+                ActiveTarget = null;
+                _actionQueue.Enqueue(MobAction.Move);
+                return;
             }
             else
             {
-                _actionQueue.Enqueue((MobAction) Random.Shared.Next(1,3));
+                _actionQueue.Enqueue(MobAction.Move);
+                return;
             }
         }
         else

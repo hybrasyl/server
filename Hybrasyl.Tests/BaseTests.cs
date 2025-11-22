@@ -16,9 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Xunit;
+
 namespace Hybrasyl.Tests;
 
 
-// No really, disable parallelization 
-//[CollectionDefinition("Hybrasyl", DisableParallelization = true)]
-//public class HybrasylTestDefinitionClass { }

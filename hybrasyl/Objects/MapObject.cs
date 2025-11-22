@@ -56,6 +56,7 @@ public class MapObject : IStateStorable
         AllowCasting = newMap.AllowCasting;
         EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
         Music = newMap.Music;
+        Flags = newMap.Flags;
 
         LoadMapFile();
         LoadXml(newMap);
@@ -78,7 +79,7 @@ public class MapObject : IStateStorable
     [FormulaVariable] public byte BaseLevel => byte.TryParse(SpawnDirectives.BaseLevel, out var b) ? b : (byte)1;
 
     public string Name { get; set; }
-    public byte Flags { get; set; }
+    public MapFlags Flags { get; set;}
     public byte Music { get; set; }
     public World World { get; set; }
     public byte[] RawData { get; set; }

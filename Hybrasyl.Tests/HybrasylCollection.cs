@@ -20,5 +20,5 @@ using Xunit;
 
 namespace Hybrasyl.Tests;
 
-[CollectionDefinition("Hybrasyl")]
+[CollectionDefinition("Hybrasyl", DisableParallelization = true)]
 public class HybrasylCollection : ICollectionFixture<HybrasylFixture> { }

@@ -16,12 +16,14 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Discord.Rest;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -190,8 +192,15 @@ public class Inventory(HybrasylFixture fixture)
     public void DropItemPacket(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
-        foreach (var item in items) Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+        Fixture.TestUser.Map.Clear();
+        Fixture.TestUser.Teleport(Fixture.TestUser.Map.Id, 
+            Fixture.TestUser.X, Fixture.TestUser.Y);
 
+
+        foreach (var item in items) 
+            Assert.True(Fixture.TestUser.AddItem(Game.World.CreateItem(item.Id)));
+
+        Assert.Equal(Fixture.TestUser.Inventory.Count, items.Length);
         var guid = Fixture.TestUser.Inventory[1].Guid;
         var testPacket = new DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
             (uint)Fixture.TestUser.Inventory[1].Count);
@@ -199,13 +208,13 @@ public class Inventory(HybrasylFixture fixture)
         var handler = Game.World.WorldPacketHandlers[0x08];
         Assert.NotNull(handler);
         handler(Fixture.TestUser, (ClientPacket)testPacket);
-
+        Thread.Sleep(1000);
         // Assert X,Y contains the item we just dropped
 
         var tileContents = Fixture.TestUser.Map.GetTileContents(Fixture.TestUser.X, Fixture.TestUser.Y);
         var tileGuids = tileContents.Select(selector: x => x.Guid);
         // Tile should contain the user and the dropped object
-        Assert.True(tileContents.Count == 2);
+        Assert.True(tileContents.Count == 2, $"Tile should contain exactly two objects but contains {tileContents.Count}");
         // Tile should contain the test user
         Assert.Contains(Fixture.TestUser, tileContents);
         // Inventory slot should be empty

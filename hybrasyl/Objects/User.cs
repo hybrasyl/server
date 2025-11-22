@@ -1033,14 +1033,27 @@ public class User : Creature
         x15.WriteUInt16(Map.Id);
         x15.WriteByte(Map.X);
         x15.WriteByte(Map.Y);
-        x15.WriteByte(Map.Flags);
+        // I also hate this
+        byte flags = 0;
+        if (Map.Flags.HasFlag(MapFlags.Snow))
+            flags |= 1;
+        if (Map.Flags.HasFlag(MapFlags.Rain))
+            flags |= 2;
+        if (Map.Flags.HasFlag(MapFlags.Dark)) {
+            flags |= 1;
+            flags |= 2;
+        }
+        if (Map.Flags.HasFlag(MapFlags.NoMap))
+            flags |= 64;
+        if (Map.Flags.HasFlag(MapFlags.Snow))
+            flags |= 128;
+        x15.WriteByte(flags);
         x15.WriteUInt16(0);
         x15.WriteByte((byte)(Map.Checksum % 256));
         x15.WriteByte((byte)(Map.Checksum / 256));
         x15.WriteString8(Map.Name);
         x15.TransmitDelay = transmitDelay;
         Enqueue(x15);
-
         if (Map.Music != 0xFF) SendMusic(Map.Music);
         if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
     }

@@ -81,7 +81,7 @@ public class HybrasylFixture : IDisposable
         sink.OnMessage(new DiagnosticMessage($"Redis: {redisConn.Host}:{redisConn.Port}/{redisConn.Database}"));
 
         GameLog.Info();
-        Game.Lobby = new Lobby(1338, true);
+        //Game.Lobby = new Lobby(1338, true);
         Game.Login = new Login(1339, true);
         Game.World = new World(1337, redisConn, manager, "en_us", true);
         Game.ActiveConfiguration = new ServerConfig();

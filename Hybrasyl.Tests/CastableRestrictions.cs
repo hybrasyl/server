@@ -30,11 +30,14 @@ public class CastableRestrictions
     public CastableRestrictions(HybrasylFixture fixture)
     {
         Fixture = fixture;
+        Fixture.ResetTestUserStats();
     }
 
     private Castable GetCastable(string name)
     {
         var castable = Game.World.WorldData.GetByIndex<Castable>(name);
+        Fixture.TestUser.Stats.Mp = uint.MaxValue;
+        Fixture.TestUser.Stats.Hp = uint.MaxValue;
         Assert.NotNull(castable);
         return castable;
     }
