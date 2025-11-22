@@ -82,7 +82,7 @@ jobs:
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win-x64 &&
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net10.0/win-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
-          zip -r $RUNNER_TEMMP/releases/HybrasylServer-${SHORT_SHA}-windows.zip .
+          zip -r $RUNNER_TEMP/releases/HybrasylServer-${SHORT_SHA}-windows.zip .
       - name: Publish Linux
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r linux-x64 &&
@@ -108,7 +108,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: Upload to release archive
         run: >
-          aws s3 sync /releases/ s3://releases.hybrasyl.com/releases/ --region us-east-1
+          aws s3 sync $RUNNER_TEMP/releases/ s3://releases.hybrasyl.com/releases/ --region us-east-1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
@@ -140,8 +140,14 @@ jobs:
         uses: Ilshidur/action-discord@master
         with:
           args: "Hybrasyl Server: Job ${GITHUB_RUN_ID}: success, release artifacts updated (${SHORT_SHA} by ${GITHUB_ACTOR}"
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Notify discord of failure
         if: ${{ failure() }}
         uses: Ilshidur/action-discord@master
         with:
           args: "Hybrasyl Server: Job ${GITHUB_RUN_ID}: **FAIL**"
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
