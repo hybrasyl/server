@@ -76,32 +76,32 @@ jobs:
           fail_ci_if_error: true
           verbose: true
       - name: Create release directory
-        run: mkdir /releases
+        run: mkdir $RUNNER_TEMP/releases
       - name: Publish Win64
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r win-x64 &&
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net10.0/win-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
-          zip -r /releases/HybrasylServer-${SHORT_SHA}-windows.zip .
+          zip -r $RUNNER_TEMMP/releases/HybrasylServer-${SHORT_SHA}-windows.zip .
       - name: Publish Linux
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r linux-x64 &&
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net10.0/linux-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
-          zip -r /releases/HybrasylServer-${SHORT_SHA}-linux.zip .
+          zip -r $RUNNER_TEMP/releases/HybrasylServer-${SHORT_SHA}-linux.zip .
       - name: Publish MacOS
         run: >
           cd $GITHUB_WORKSPACE/server && dotnet publish -c Release -r osx-x64 &&
           cd $GITHUB_WORKSPACE/server/hybrasyl/bin/Release/net10.0/osx-x64/publish &&
           echo "${SHORT_SHA}" > commit.txt &&
-          zip -r /releases/HybrasylServer-${SHORT_SHA}-osx.zip .
+          zip -r $RUNNER_TEMP/releases/HybrasylServer-${SHORT_SHA}-osx.zip .
       - name: Upload to current
         run: >
-          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-windows.zip
+          aws s3 cp $RUNNER_TEMP/releases/HybrasylServer-${SHORT_SHA}-windows.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-windows.zip --region us-east-1 &&
-          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-linux.zip
+          aws s3 cp $RUNNER_TEMP/releases/HybrasylServer-${SHORT_SHA}-linux.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-linux.zip --region us-east-1 &&
-          aws s3 cp /releases/HybrasylServer-${SHORT_SHA}-osx.zip
+          aws s3 cp $RUNNER_TEMP/releases/HybrasylServer-${SHORT_SHA}-osx.zip
           s3://releases.hybrasyl.com/HybrasylServer-current-osx.zip --region us-east-1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
