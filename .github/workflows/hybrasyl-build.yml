@@ -37,6 +37,15 @@ jobs:
     environment: deploy
     
     steps:
+      - name: Install prerequisites
+        run: >
+          apt-get update && 
+          apt-get -yy dist-upgrade && 
+          apt-get -yy install ca-certificates gnupg zip jq curl file openssh-client rsync mono-runtime
+      - name: Install naturaldocs
+        run: >
+          curl "https://www.naturaldocs.org/download/natural_docs/2.2/Natural_Docs_2.2.zip" > /tmp/NaturalDocs.zip && 
+          cd /tmp && unzip /tmp/NaturalDocs.zip && mv "/tmp/Natural Docs" /usr/local/bin/naturaldocs
       - name: Install dotnet
         uses: actions/setup-dotnet@v5
         with:
