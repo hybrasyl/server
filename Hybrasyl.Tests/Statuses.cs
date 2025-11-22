@@ -105,7 +105,7 @@ public class Status
         Thread.Sleep(250);
         Assert.False(Fixture.TestUser.Condition.IsInvisible);
         // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(200);
+        Thread.Sleep(1000);
 
         Assert.Empty(Fixture.TestUser.CurrentStatuses);
     }

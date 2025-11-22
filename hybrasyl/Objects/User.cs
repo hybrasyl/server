@@ -2857,7 +2857,17 @@ public class User : Creature
         {
             if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
             {
-                if (castableXml.BreakStealth && Condition.IsInvisible) Condition.IsInvisible = false;
+                if (castableXml.BreakStealth && Condition.IsInvisible) 
+                { 
+                    Condition.IsInvisible = false;
+                    // Remove statuses that cause invisibility
+                    foreach (var activeStatus in Statuses) {
+                        var xmlStatus = World.WorldData.GetByIndex<Status>(activeStatus.Name);
+                        if (xmlStatus.Effects?.OnApply.Conditions.Set.HasFlag(CreatureCondition.Invisible) == true) {
+                            RemoveStatus(activeStatus.Icon);
+                        }
+                    }
+                }
                 return base.UseCastable(castableXml, target);
             }
 
