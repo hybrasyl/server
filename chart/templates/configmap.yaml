@@ -2,18 +2,21 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "hybrasyl.fullname" . }}-server-config
+  name: {{ include "hybrasyl.fullname" . }}-config
   namespace: {{ .Release.Namespace }}
 data:
   config.xml: |
     <?xml version="1.0"?>
     <ServerConfig xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02" Name="{{ .Values.server.configName | default "hybrasyl"}}">
       <Motd>{{ .Values.server.motd }}</Motd>
+{{- if gt (len .Values.server.logging.streams) 0 }}
       <Logging>
-{{- range .Values.server.logging }}
+{{- range .Values.server.logging.streams }}
         <Log Type="{{ .type }}" Destination="{{ .destination }}" Level="{{ .level }}"/>
 {{- end }}
       </Logging>
+{{- end }}
+{{- if hasKey .Values.server "datastore" }}
       <DataStore Host="{{ .Values.server.datastore.host }}" Port={{ .Values.server.datastore.port }}">
 {{- if .Values.server.datastore.username }}
         <Username>{{ .Values.server.datastore.username }}</Username>
@@ -22,6 +25,7 @@ data:
         <Password>{{ .Values.server.datastore.password }}</Password>
 {{- end }}
       </DataStore>
+{{- end }}
 {{- if hasKey .Values.server "apiEndpoints" }}
       <ApiEndpoints>
 {{- with .Values.server.apiEndpoints }}
@@ -139,5 +143,33 @@ data:
 {{- end }}
       <ServerStart>{{ .Values.server.time.serverStart }}</ServerStart>
       </Time>
+      <Handlers>
+{{- if hasKey .Values.server.handlers "death" }}
+{{- with .Values.server.handlers.death }}
+        <Death Active="{{ .enabled }}" Perishable="{{ .perishable }}" GroupNotify="{{ .notifyGroup }}">
+          <Map X="{{ .map.x }}" Y="{{ .map.y }}">{{.map.name }}</Map>
+{{- if hasKey . "coma" }}
+          <Coma Timeout="{{ .coma.timeout }}" Effect="{{ .coma.effect }}">{{ .coma.statusName }}"/>
+{{- end }}
+{{- if hasKey . "penalty" }}
+          <Penalty Xp="{{ .penalty.xp }}" Hp="{{ .penalty.hp }}"/>
+{{- end }}
+{{- if hasKey . "legendmark" }}
+          <LegendMark Increment="{{ .legendmark.increment }}">{{ .legendmark.text }}</LegendMark>
+{{- end }}
+{{- end }}
+        </Death>
+{{- end }}
+{{- if hasKey .Values.server.handlers "newPlayer" }}
+{{- with .Values.server.handlers.newPlayer }}
+        <NewPlayer>
+          <StartMaps>
+{{- range .maps }}
+            <StartMap X="{{ .x }}" Y="{{ .y }}">{{ .name }}</StartMap>
+{{- end }}
+          </StartMaps>
+{{- end }}
+        </NewPlayer>
+{{- end }}
+      </Handlers>
     </ServerConfig>
- 

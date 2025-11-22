@@ -1,0 +1,144 @@
+{{- if not (or (hasKey .Values.server.worldData "git") (hasKey .Values.server.worldData "volume")) }}
+{{- fail "server.worldData must define only one of 'git' or 'volume'" }}
+{{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "hybrasyl.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "hybrasyl.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccount: hybrasyl-pod-server-access
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- .toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{- if hasKey .Values.server.worldData "git" }}
+        - name: {{ include "hybrasyl.fullname" . }}-world
+          emptyDir: {}
+      {{- else }}
+        - name: {{ include "hybrasyl.fullname" . }}-world
+          persistentVolumeClaim:
+            claimName: {{ .Values.server.worldData.volume.claimName }}
+      {{- end }}
+      {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData) }}
+        - name: {{ .Values.environment }}-gameserver-plugindata
+          persistentVolumeClaim:
+            claimName: {{ .Values.environment }}-gameserver-plugindata
+      {{- end }}
+      {{- if .Values.server.logging.singleStream.enabled }}
+        - name: {{ .Values.environment }}-gameserver-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.environment }}-gameserver-logs 
+      {{- end }}
+        - name: xml-config
+          configMap:
+            name: {{ include "hybrasyl.fullname" . }}-config
+      {{- if hasKey .Values.server.worldData "git" }}
+      initcontainers:
+        - name: pull-world-data
+          image: alpine/git:latest
+          command: ["sh", "-c", "git clone {{ .Values.server.worldData.git.repo }} {{ .Values.server.worldDataDir }} && cd {{ .Values.server.worldDataDir }} && git checkout {{ .Values.server.worldData.git.branch }}"]
+          volumeMounts:
+            - name: world-data
+              mountPath: {{ .Values.server.worldDataDir }}
+      {{- end }}     
+      containers:
+        - name: {{ .Chart.Name }}-gameserver
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: HYB_ENV
+              value: "{{ .Values.environment }}"
+            - name: CONFIG
+              value: {{ .Values.environment }}"
+            - name: DATA_DIR
+              value: {{ .Values.server.worldDataDirectory }}
+            - name: HYB_VERSION
+              value: {{ .Values.image.tag }}
+            - name: HYB_COMMIT
+              value: {{ .Values.serverCommit }}
+            - name: HYB_CONFIGFILE
+              value: /config/config.xml
+          volumeMounts:
+            - name: {{ include "hybrasyl.fullname" . }}-world
+              mountPath: {{ .Values.server.worldDataDirectory }}
+              readOnly: true
+          {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData.enabled) }}
+            - name: {{ include "hybrasyl.fullname" . }}-pluginData
+              mountPath: {{ .Values.server.volumes.pluginData.mountDir }}
+          {{- end }}
+          {{- if (and (hasKey .Values.server.logging "singleStream") .Values.server.logging.singleStream.enabled | default true) }}
+            - name: {{ .Values.environment }}-gameserver-logs
+              mountPath: /var/log
+          {{- end }}
+            - name: xml-config
+              mountPath: /config
+          ports:
+            - name: login
+              containerPort: 2610
+              protocol: TCP
+            - name: lobby
+              containerPort: 2611
+              protocol: TCP
+            - name: world
+              containerPort: 2612
+              protocol: TCP
+            {{- if .Values.server.network.grpc.enabled }}
+            - name: grpc
+              containerPort: {{ .Values.server.network.grpc.port }}
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: 2610
+            initialDelaySeconds: 30
+            periodSeconds: 5
+          readinessProbe:
+          {{- if .Values.server.network.grpc.enabled }}
+            grpc:
+              port: 2613
+              service: {{ .Values.server.network.grpc.healthCheckService }}
+          {{- else }}
+            tcpSocket:       
+              port: 2612
+          {{- end }}
+            initialDelaySeconds: 30
+            periodSeconds: 5
+        {{- if .Values.server.logging.singleStream }}
+        - name: {{ .Values.environment }}-gameserver-logs
+          image: busybox:latest
+          args: ["/bin/sh", "-c", "tail -n+1 -F /var/log/hybrasyl/{{ .destination }}*.log
+          volumeMounts:
+            - name: {{ .Values.environment }}-gameserver-logs 
+              mountPath: /var/log
+              readOnly: true
+        {{- end }}
+
+              
