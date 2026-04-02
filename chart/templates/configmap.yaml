@@ -16,16 +16,7 @@ data:
 {{- end }}
       </Logging>
 {{- end }}
-{{- if hasKey .Values.server "datastore" }}
-      <DataStore Host="{{ .Values.server.datastore.host }}" Port={{ .Values.server.datastore.port }}">
-{{- if .Values.server.datastore.username }}
-        <Username>{{ .Values.server.datastore.username }}</Username>
-{{- end }}
-{{- if .Values.server.datastore.password }}
-        <Password>{{ .Values.server.datastore.password }}</Password>
-{{- end }}
-      </DataStore>
-{{- end }}
+      {{- /* DataStore is configured via HYB_REDIS_* env vars in the deployment */ -}}
 {{- if hasKey .Values.server "apiEndpoints" }}
       <ApiEndpoints>
 {{- with .Values.server.apiEndpoints }}
@@ -46,19 +37,19 @@ data:
 {{- range .configuration }}
               <Config Key="{{ .key }}" Value="{{ .value }}"/>
 {{- end }}
-{{- end }} 
+{{- end }}
+            </Configuration>
             <Targets>
 {{- range .targets }}
               <Target>{{ . }}</Target>
 {{- end }}
             </Targets>
-{{- end }}
           </Plugin>
-
 {{- end }}
         </Message>
 {{- end }}
       </Plugins>
+{{- end }}
       <Network>
         <Lobby BindAddress="{{ .Values.server.network.lobby.bindAddress }}" 
                Port="{{ .Values.server.network.lobby.port }}"
@@ -93,7 +84,7 @@ data:
 {{- if gt (len .Values.server.access.privileged) 0 }}
         <Privileged>{{- join " " .Values.server.access.privileged }}</Privileged>
 {{- end }}
-{{- if gt (len .Values.server.access.privileged) 0 }}
+{{- if gt (len .Values.server.access.reserved) 0 }}
         <Reserved>{{- join " " .Values.server.access.reserved }}</Reserved>
 {{- end }}
       </Access>
@@ -111,19 +102,19 @@ data:
 {{- end -}}
 {{- if hasKey . "writers" }}
 {{- range .writers }}
-            <Write>{{ . }}</Read>
+            <Write>{{ . }}</Write>
 {{- end }}
 {{- else }}
-            <Write>*</Read>
+            <Write>*</Write>
 {{- end -}}
 {{- if hasKey . "moderators" }}
 {{- range .moderators }}
-            <Moderator>{{ . }}
+            <Moderator>{{ . }}</Moderator>
 {{- end }}
 {{- end }}
           </AccessList>
-{{- end }}
         </Board>
+{{- end }}
 {{- end }}
       </Boards>
       <Time>
@@ -135,7 +126,7 @@ data:
             EndDate="{{ .endDate }}"
 {{- end }}
 {{- if hasKey . "startYear" }}
-            StartYear="{{ .startYear }}"
+            StartYear="{{ .startYear | toString }}"
 {{- end }}
           />
 {{- end }}
@@ -146,16 +137,16 @@ data:
       <Handlers>
 {{- if hasKey .Values.server.handlers "death" }}
 {{- with .Values.server.handlers.death }}
-        <Death Active="{{ .enabled }}" Perishable="{{ .perishable }}" GroupNotify="{{ .notifyGroup }}">
-          <Map X="{{ .map.x }}" Y="{{ .map.y }}">{{.map.name }}</Map>
+        <Death Active="{{ .isActive }}" Perishable="{{ .perishable }}" GroupNotify="{{ .notifyGroup }}">
+          <Map X="{{ .map.x | toString }}" Y="{{ .map.y | toString }}">{{ .map.name }}</Map>
 {{- if hasKey . "coma" }}
-          <Coma Timeout="{{ .coma.timeout }}" Effect="{{ .coma.effect }}">{{ .coma.statusName }}"/>
+          <Coma Timeout="{{ .coma.timeout | toString }}" Effect="{{ .coma.effect | toString }}">{{ .coma.statusName }}</Coma>
 {{- end }}
 {{- if hasKey . "penalty" }}
           <Penalty Xp="{{ .penalty.xp }}" Hp="{{ .penalty.hp }}"/>
 {{- end }}
-{{- if hasKey . "legendmark" }}
-          <LegendMark Increment="{{ .legendmark.increment }}">{{ .legendmark.text }}</LegendMark>
+{{- if hasKey . "legendMark" }}
+          <LegendMark Increment="{{ .legendMark.increment }}">{{ .legendMark.text }}</LegendMark>
 {{- end }}
 {{- end }}
         </Death>
@@ -165,7 +156,7 @@ data:
         <NewPlayer>
           <StartMaps>
 {{- range .maps }}
-            <StartMap X="{{ .x }}" Y="{{ .y }}">{{ .name }}</StartMap>
+            <StartMap X="{{ .x | toString }}" Y="{{ .y | toString }}">{{ .name }}</StartMap>
 {{- end }}
           </StartMaps>
 {{- end }}

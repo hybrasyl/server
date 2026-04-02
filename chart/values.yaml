@@ -1,90 +1,75 @@
 serverCommit: d34db33f
 
 environment: dev
+valkey:
+  enabled: true
 
-image: 
+image:
   repository: ghcr.io/hybrasyl/server
   tag: 0.9.4
   pullPolicy: Always
 
+serviceType: NodePort
+
 server:
-  configName: butts
+  configName: hybrasyl
   motd: "Welcome to Hybrasyl! This is Hybrasyl $VERSION ($COMMIT)!"
   worldData:
-    git:
-      repo: git@github.com/hybrasyl/ceridwen.git
-      branch: main
-      pullSecret: hybrasyl-world-access # Must be an ssh key
-      sync:
-        enabled: true
-        grpcHook: "hybrasyl.v1.worldUpdate"
+    # For local dev, use hostPath to mount a local checkout of world data
+    hostPath: /path/to/ceridwen
+    # For git-based world data (e.g. staging/production):
+    #git:
+    #  repo: git@github.com/hybrasyl/ceridwen.git
+    #  branch: main
+    #  pullSecret: hybrasyl-world-access # Must be an ssh key
     #volume:
     #  claimName:
-    #  storageClass: 
+    #  storageClass:
   worldDataDir: /config/world
   logging:
     singleStream:
       enabled: true
-      storageClass:    
+      storageClass:
+      size: 1Gi
     streams: []
   volumes:
     pluginData:
       enabled: true
       mountDir: /plugins
   datastore:
-    service:
-      enabled: true
-      serviceName: hyb-valkey
-    #host: 127.0.0.1
-    #port: 6379
-    #username: hybrasyl
-    #password: hybrasyl
-  #apiEndpoints: 
-  #  sentry: "https://butts.com"
-  #  encryptionEndpoint: "https://butts.biz"
-  #  validationEndpoint: "https://butts.net"
+    # When valkey.enabled is true, these are auto-configured from the subchart.
+    # When valkey.enabled is false, set host/port to point at your Redis instance.
+    host: ""
+    port: 6379
+    # password: reference to secret — see secrets.redisPassword below
+    # database: 0
+  #apiEndpoints:
+  #  sentry: "https://example.com"
+  #  encryptionEndpoint: "https://example.com"
+  #  validationEndpoint: "https://example.com"
   plugins:
-    messaging:
-      - type: Mail
-        passthrough: false
-        name: Hybrasyl.Plugins.BugReporter
-        configuration:
-          - key: WebhookUrl
-            value: "https://butts.org"
-          - key: OutputDir
-            value: "/dev/null"
-        targets:
-          - BugReport
-      - type: Mail
-        passthrough: false
-        name: Hybrasyl.Plugins.FeedbackReporter
-        configuration:
-          - key: WebhookUrl
-            value: "https://butts.int"
-          - key: OutputDir
-            value: "/dev/null"
-        targets:
-          - Feedback
+    messaging: []
   network:
     lobby:
       bindAddress: 0.0.0.0
       port: 2610
-      externalAddress: "envvar:HYBRASYL_LOBBY_SERVICE_HOST"
+      externalAddress: "envvar:hybrasyl-lobby"
     login:
       bindAddress: 0.0.0.0
       port: 2611
-      externalAddress: "envvar:HYBRASYL_LOGIN_SERVICE_HOST"
+      externalAddress: "envvar:hybrasyl-login"
     world:
       bindAddress: 0.0.0.0
       port: 2612
-      externalAddress: "envvar:HYBRASYL_WORLD_SERVICE_HOST"
+      externalAddress: "envvar:hybrasyl-world"
     grpc:
-      enabled: true
+      enabled: false
       bindAddress: 0.0.0.0
       port: 2613
-      chainCert: buttsChain.pem
-      cert: buttsCert.pem
-      key: buttsKey.pem
+      healthCheckService: patron.Patron
+      #chainCert: chain.pem
+      #cert: server.pem
+      #key: server.key
   access:
     privileged:
       - Kedian
@@ -122,8 +107,8 @@ server:
       notifyGroup: true
       map:
         name: Chaotic Threshold
-        x: 5
-        y: 5
+        "x": 5
+        "y": 5
       coma:
         timeout: 30
         effect: 24
@@ -137,12 +122,26 @@ server:
     newPlayer:
       maps:
         - name: Piet Inn Room 1
-          x: 2
-          y: 3
+          "x": 2
+          "y": 3
         - name: Piet Inn Room 2
-          x: 2
-          y: 4
+          "x": 2
+          "y": 4
         - name: Piet Inn Room 3
-          x: 3
-          y: 4
+          "x": 3
+          "y": 4
 
+# Resource requests/limits (empty defaults for local dev, set for production)
+resources: {}
+  # requests:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # limits:
+  #   cpu: "2"
+  #   memory: 2Gi
+
+# Secrets (leave empty for local dev, provide for production)
+secrets:
+  githubSshKey: ""
+  grpcChainCert: ""
+  redisPassword: ""

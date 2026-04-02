@@ -1,5 +1,5 @@
-{{- if not (or (hasKey .Values.server.worldData "git") (hasKey .Values.server.worldData "volume")) }}
-{{- fail "server.worldData must define only one of 'git' or 'volume'" }}
+{{- if not (or (hasKey .Values.server.worldData "git") (hasKey .Values.server.worldData "volume") (hasKey .Values.server.worldData "hostPath")) }}
+{{- fail "server.worldData must define one of 'git', 'volume', or 'hostPath'" }}
 {{ end }}
 ---
 apiVersion: apps/v1
@@ -32,12 +32,17 @@ spec:
       serviceAccount: hybrasyl-pod-server-access
       {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- .toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
       {{- if hasKey .Values.server.worldData "git" }}
         - name: {{ include "hybrasyl.fullname" . }}-world
           emptyDir: {}
+      {{- else if hasKey .Values.server.worldData "hostPath" }}
+        - name: {{ include "hybrasyl.fullname" . }}-world
+          hostPath:
+            path: {{ .Values.server.worldData.hostPath }}
+            type: Directory
       {{- else }}
         - name: {{ include "hybrasyl.fullname" . }}-world
           persistentVolumeClaim:
@@ -57,12 +62,12 @@ spec:
           configMap:
             name: {{ include "hybrasyl.fullname" . }}-config
       {{- if hasKey .Values.server.worldData "git" }}
-      initcontainers:
+      initContainers:
         - name: pull-world-data
           image: alpine/git:latest
           command: ["sh", "-c", "git clone {{ .Values.server.worldData.git.repo }} {{ .Values.server.worldDataDir }} && cd {{ .Values.server.worldDataDir }} && git checkout {{ .Values.server.worldData.git.branch }}"]
           volumeMounts:
-            - name: world-data
+            - name: {{ include "hybrasyl.fullname" . }}-world
               mountPath: {{ .Values.server.worldDataDir }}
       {{- end }}     
       containers:
@@ -73,22 +78,48 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             - name: HYB_ENV
               value: "{{ .Values.environment }}"
             - name: CONFIG
-              value: {{ .Values.environment }}"
+              value: "{{ .Values.environment }}"
             - name: DATA_DIR
-              value: {{ .Values.server.worldDataDirectory }}
+              value: {{ .Values.server.worldDataDir }}
             - name: HYB_VERSION
               value: {{ .Values.image.tag }}
             - name: HYB_COMMIT
               value: {{ .Values.serverCommit }}
             - name: HYB_CONFIGFILE
               value: /config/config.xml
+          {{- if .Values.valkey.enabled }}
+            - name: HYB_REDIS_HOST
+              value: {{ include "hybrasyl.fullname" . }}-valkey
+            - name: HYB_REDIS_PORT
+              value: "6379"
+          {{- else }}
+            - name: HYB_REDIS_HOST
+              value: {{ .Values.server.datastore.host | quote }}
+            - name: HYB_REDIS_PORT
+              value: {{ .Values.server.datastore.port | toString | quote }}
+          {{- end }}
+          {{- if .Values.secrets.redisPassword }}
+            - name: HYB_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hybrasyl.fullname" . }}-settings
+                  key: redis-password
+          {{- end }}
+          {{- if .Values.server.datastore.database }}
+            - name: HYB_REDIS_DB
+              value: {{ .Values.server.datastore.database | toString | quote }}
+          {{- end }}
           volumeMounts:
             - name: {{ include "hybrasyl.fullname" . }}-world
-              mountPath: {{ .Values.server.worldDataDirectory }}
+              mountPath: {{ .Values.server.worldDataDir }}
               readOnly: true
           {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData.enabled) }}
             - name: {{ include "hybrasyl.fullname" . }}-pluginData
@@ -101,10 +132,10 @@ spec:
             - name: xml-config
               mountPath: /config
           ports:
-            - name: login
+            - name: lobby
               containerPort: 2610
               protocol: TCP
-            - name: lobby
+            - name: login
               containerPort: 2611
               protocol: TCP
             - name: world
@@ -131,12 +162,12 @@ spec:
           {{- end }}
             initialDelaySeconds: 30
             periodSeconds: 5
-        {{- if .Values.server.logging.singleStream }}
+        {{- if .Values.server.logging.singleStream.enabled }}
         - name: {{ .Values.environment }}-gameserver-logs
           image: busybox:latest
-          args: ["/bin/sh", "-c", "tail -n+1 -F /var/log/hybrasyl/{{ .destination }}*.log
+          args: ["/bin/sh", "-c", "tail -n+1 -F /var/log/hybrasyl/*.log"]
           volumeMounts:
-            - name: {{ .Values.environment }}-gameserver-logs 
+            - name: {{ .Values.environment }}-gameserver-logs
               mountPath: /var/log
               readOnly: true
         {{- end }}
