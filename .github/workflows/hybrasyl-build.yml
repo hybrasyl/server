@@ -40,10 +40,7 @@ jobs:
     
     steps:
       - name: Install prerequisites
-        run: >
-          sudo apt-get update && 
-          sudo apt-get -yy dist-upgrade && 
-          sudo apt-get -yy install ca-certificates gnupg zip jq curl file openssh-client rsync mono-runtime
+        run: sudo apt-get update && sudo apt-get -yy install mono-runtime zip
       - name: Install naturaldocs
         run: >
           curl "https://www.naturaldocs.org/download/natural_docs/2.2/Natural_Docs_2.2.zip" > /tmp/NaturalDocs.zip && 
