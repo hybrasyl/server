@@ -1,24 +1,32 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+---
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: read-services
+  name: hybrasyl-pod-server-access
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}-read-services
+  namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups: [""]
   resources: ["services"]
   verbs: ["get", "watch", "list"]
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: read-services
-  namespace: {{ .Values.namespace }}
+  name: {{ include "hybrasyl.fullname" . }}-read-services
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: read-services
+  kind: Role
+  name: {{ include "hybrasyl.fullname" . }}-read-services
 subjects:
 - kind: ServiceAccount
-  name: hybrasyl-pod-service-access
-  namespace: default
-
+  name: hybrasyl-pod-server-access
+  namespace: {{ .Release.Namespace }}

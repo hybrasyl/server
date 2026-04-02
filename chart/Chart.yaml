@@ -11,4 +11,4 @@ dependencies:
   - name: valkey
     version: 0.7.5
     repository: https://valkey.io/valkey-helm
-    condition: localEnv
+    condition: valkey.enabled
