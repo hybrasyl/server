@@ -60,22 +60,16 @@ jobs:
           path: server
       - name: generate short sha for release filename
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-      - name: generate test config
-        run: >
-          echo -e "{\n  \"Directories\": {\n    \"Linux\": {\n      \"WorldDataDirectory\": \"$GITHUB_WORKSPACE\\/ceridwen\\/xml\",\n      \"LogDirectory\": \"$GITHUB_WORKSPACE\\/ceridwen\\/logs\",\n      \"DataDirectory\": \"$GITHUB_WORKSPACE\\/ceridwen\"\n    }\n  }\n}\n"
-          > $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
-        shell: bash
-      - name: show config
-        run: cat $GITHUB_WORKSPACE/server/Hybrasyl.Tests/hybrasyltest-settings.json
       - name: Install nuget dependencies
         run: cd $GITHUB_WORKSPACE/server && dotnet restore
       - name: build & run tests
         run: >
-          cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test 
+          cd $GITHUB_WORKSPACE/server/Hybrasyl.Tests && dotnet test
           --verbosity normal --collect:"XPlat Code Coverage"
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          HYB_WORLD_DIR: ${{ github.workspace }}/ceridwen/xml
       - name: Codecov
         uses: codecov/codecov-action@v4.2.0
         env:
