@@ -18,8 +18,10 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Statuses;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
+using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Interfaces;
 
@@ -46,6 +48,7 @@ public interface ICreatureStatus
     double ElapsedSinceTick { get; }
     List<string> UseCastRestrictions { get; }
     List<string> ReceiveCastRestrictions { get; }
+    Conditions ConditionChanges { get; }
     SimpleStatusEffect OnStartEffect { get; }
     SimpleStatusEffect OnTickEffect { get; }
     SimpleStatusEffect OnRemoveEffect { get; }
