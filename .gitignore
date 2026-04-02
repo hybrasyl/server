@@ -296,3 +296,6 @@ data/*
 
 # Documentation build stuff
 .ndoutput/*
+
+# Claude Code
+.claude/
