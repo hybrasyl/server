@@ -36,19 +36,19 @@ spec:
       {{- end }}
       volumes:
       {{- if hasKey .Values.server.worldData "git" }}
-        - name: {{ include "hybrasyl.fullname" . }}-world
+        - name: {{ .Values.environment }}-gameserver-world
           emptyDir: {}
       {{- else if hasKey .Values.server.worldData "hostPath" }}
-        - name: {{ include "hybrasyl.fullname" . }}-world
+        - name: {{ .Values.environment }}-gameserver-world
           hostPath:
             path: {{ .Values.server.worldData.hostPath }}
             type: Directory
       {{- else }}
-        - name: {{ include "hybrasyl.fullname" . }}-world
+        - name: {{ .Values.environment }}-gameserver-world
           persistentVolumeClaim:
             claimName: {{ .Values.server.worldData.volume.claimName }}
       {{- end }}
-      {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData) }}
+      {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData.enabled) }}
         - name: {{ .Values.environment }}-gameserver-plugindata
           persistentVolumeClaim:
             claimName: {{ .Values.environment }}-gameserver-plugindata
@@ -56,9 +56,9 @@ spec:
       {{- if .Values.server.logging.singleStream.enabled }}
         - name: {{ .Values.environment }}-gameserver-logs
           persistentVolumeClaim:
-            claimName: {{ .Values.environment }}-gameserver-logs 
+            claimName: {{ .Values.environment }}-gameserver-logs
       {{- end }}
-        - name: xml-config
+        - name: {{ .Values.environment }}-gameserver-config
           configMap:
             name: {{ include "hybrasyl.fullname" . }}-config
       {{- if hasKey .Values.server.worldData "git" }}
@@ -67,9 +67,9 @@ spec:
           image: alpine/git:latest
           command: ["sh", "-c", "git clone {{ .Values.server.worldData.git.repo }} {{ .Values.server.worldDataDir }} && cd {{ .Values.server.worldDataDir }} && git checkout {{ .Values.server.worldData.git.branch }}"]
           volumeMounts:
-            - name: {{ include "hybrasyl.fullname" . }}-world
+            - name: {{ .Values.environment }}-gameserver-world
               mountPath: {{ .Values.server.worldDataDir }}
-      {{- end }}     
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}-gameserver
           {{- with .Values.securityContext }}
@@ -118,18 +118,18 @@ spec:
               value: {{ .Values.server.datastore.database | toString | quote }}
           {{- end }}
           volumeMounts:
-            - name: {{ include "hybrasyl.fullname" . }}-world
+            - name: {{ .Values.environment }}-gameserver-world
               mountPath: {{ .Values.server.worldDataDir }}
               readOnly: true
           {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData.enabled) }}
-            - name: {{ include "hybrasyl.fullname" . }}-pluginData
+            - name: {{ .Values.environment }}-gameserver-plugindata
               mountPath: {{ .Values.server.volumes.pluginData.mountDir }}
           {{- end }}
-          {{- if (and (hasKey .Values.server.logging "singleStream") .Values.server.logging.singleStream.enabled | default true) }}
+          {{- if .Values.server.logging.singleStream.enabled }}
             - name: {{ .Values.environment }}-gameserver-logs
               mountPath: /var/log
           {{- end }}
-            - name: xml-config
+            - name: {{ .Values.environment }}-gameserver-config
               mountPath: /config
           ports:
             - name: lobby
@@ -157,7 +157,7 @@ spec:
               port: 2613
               service: {{ .Values.server.network.grpc.healthCheckService }}
           {{- else }}
-            tcpSocket:       
+            tcpSocket:
               port: 2612
           {{- end }}
             initialDelaySeconds: 30
@@ -171,5 +171,3 @@ spec:
               mountPath: /var/log
               readOnly: true
         {{- end }}
-
-              
