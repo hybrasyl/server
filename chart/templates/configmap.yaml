@@ -1,3 +1,4 @@
+{{- if not .Values.server.configMapName }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -164,3 +165,4 @@ data:
 {{- end }}
       </Handlers>
     </ServerConfig>
+{{- end }}

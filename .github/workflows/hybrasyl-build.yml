@@ -10,8 +10,10 @@ on:
     branches:
       - main
       - develop
+    tags:
+      - 'v*'
   pull_request:
-    branches: [ main ]  
+    branches: [ main ]
   workflow_dispatch:
     branches:
       - main
@@ -136,15 +138,27 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine docker tags
+        id: docker-tags
+        run: |
+          TAGS="ghcr.io/${{ github.repository }}:${{ env.SHORT_SHA }}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            TAGS="$TAGS
+          ghcr.io/${{ github.repository }}:${VERSION}"
+          else
+            TAGS="$TAGS
+          ghcr.io/${{ github.repository }}:latest"
+          fi
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo "$TAGS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Build and push docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ github.workspace }}/server
           push: true
-          # wtf
-          tags: | 
-            ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:latest, 
-            ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ env.SHORT_SHA }}    
+          tags: ${{ steps.docker-tags.outputs.tags }}
       - name: Notify discord
         uses: Ilshidur/action-discord@master
         with:
