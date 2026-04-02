@@ -19,17 +19,17 @@ server:
   # Set configMapName to use an existing ConfigMap instead.
   #configMapName: my-existing-configmap
 
-  # World data: pick ONE of hostPath, git, or volume.
+  # World data: pick ONE of git, hostPath, or volume.
   worldData:
-    # For local dev, use hostPath to mount a local checkout of world data
-    hostPath: /path/to/ceridwen
-    # For git-based world data (default for non-dev environments):
-    #git:
-    #  repo: https://github.com/hybrasyl/ceridwen.git
-    #  branch: main
-    #  # For private repos, provide an SSH URL and pullSecret:
-    #  # repo: git@github.com:hybrasyl/ceridwen.git
-    #  # pullSecret: hybrasyl-world-access
+    # Default: clone the public world data repo (works out of the box)
+    git:
+      repo: https://github.com/hybrasyl/ceridwen.git
+      branch: main
+      # For private repos, provide an SSH URL and pullSecret:
+      # repo: git@github.com:hybrasyl/ceridwen.git
+      # pullSecret: hybrasyl-world-access
+    # For local dev, mount a local checkout of world data:
+    #hostPath: /path/to/ceridwen
     # For an existing PVC:
     #volume:
     #  claimName: my-world-pvc
