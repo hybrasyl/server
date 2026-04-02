@@ -150,6 +150,8 @@ jobs:
           context: ${{ github.workspace }}/server
           push: true
           tags: ${{ steps.docker-tags.outputs.tags }}
+          build-args: |
+            GIT_HASH=${{ env.SHORT_SHA }}
       - name: Notify discord
         uses: Ilshidur/action-discord@master
         with:

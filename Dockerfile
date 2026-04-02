@@ -1,9 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG GIT_HASH=unknown
 WORKDIR /src
 COPY hybrasyl/Hybrasyl.csproj hybrasyl/
 RUN dotnet restore hybrasyl/Hybrasyl.csproj
 COPY hybrasyl/ hybrasyl/
-RUN dotnet publish hybrasyl/Hybrasyl.csproj -c Release -r linux-x64 --self-contained -o /app
+RUN dotnet publish hybrasyl/Hybrasyl.csproj -c Release -r linux-x64 --self-contained -o /app \
+    /p:MSBuildGitHashValue=$GIT_HASH
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0
 WORKDIR /app
