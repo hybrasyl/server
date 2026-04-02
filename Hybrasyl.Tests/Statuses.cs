@@ -21,7 +21,6 @@ using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Linq;
-using System.Threading;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
@@ -86,9 +85,11 @@ public class Status
     [Fact]
     public void InvisibilityStatusBreakOnAssail()
     {
+        Fixture.ResetTestUserStats();
         Fixture.TestUser.Stats.BaseMp = 1000;
         Fixture.TestUser.Stats.Mp = 1000;
-        Fixture.TestUser.RemoveAllStatuses();
+        // Wait for any in-flight control messages from prior tests to settle
+        TestHelpers.WaitFor(() => Fixture.TestUser.CurrentStatuses.Count == 0, 2000);
 
         var invisible = Game.World.WorldData.Find<Castable>(condition: x => x.Name == "TestAddInvisible")
             .FirstOrDefault();
@@ -96,18 +97,21 @@ public class Status
 
         Assert.NotNull(invisible);
         Assert.NotNull(assail);
+        Assert.Empty(Fixture.TestUser.CurrentStatuses);
         // Apply invisibility
         Assert.True(Fixture.TestUser.UseCastable(invisible, Fixture.TestUser));
         // Should be invisible
         Assert.True(Fixture.TestUser.Condition.IsInvisible);
         // Using assail breaks invisibility
         Assert.True(Fixture.TestUser.UseCastable(assail));
-        Thread.Sleep(250);
-        Assert.False(Fixture.TestUser.Condition.IsInvisible);
-        // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(1000);
-
-        Assert.Empty(Fixture.TestUser.CurrentStatuses);
+        Assert.True(TestHelpers.WaitFor(() => !Fixture.TestUser.Condition.IsInvisible),
+            "Invisibility was not broken by assail within timeout");
+        if (!TestHelpers.WaitFor(() => Fixture.TestUser.CurrentStatuses.Count == 0))
+        {
+            var remaining = string.Join(", ",
+                Fixture.TestUser.CurrentStatuses.Values.Select(s => $"{s.Name} (icon={s.Icon})"));
+            Assert.Fail($"Statuses not cleared within timeout. Remaining: [{remaining}]");
+        }
     }
 
     [Fact]
@@ -132,11 +136,10 @@ public class Status
         Assert.True(Fixture.TestUser.Condition.IsInvisible);
         // Using a spell with BreakStealth set, breaks stealth
         Assert.True(Fixture.TestUser.UseCastable(castable, Fixture.TestUser), $"Casting {castable.Name} has utterly failed: {Fixture.TestUser.LastSystemMessage}");
-        Thread.Sleep(250);
-        Assert.False(Fixture.TestUser.Condition.IsInvisible);
-        // Allow sufficient time for control message handler to process messages
-        Thread.Sleep(200);
-        Assert.Empty(Fixture.TestUser.CurrentStatuses);
+        Assert.True(TestHelpers.WaitFor(() => !Fixture.TestUser.Condition.IsInvisible),
+            "Invisibility was not broken by BreakStealth castable within timeout");
+        Assert.True(TestHelpers.WaitFor(() => Fixture.TestUser.CurrentStatuses.Count == 0),
+            "Statuses were not cleared after stealth break within timeout");
     }
 
     [Fact]
