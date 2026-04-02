@@ -14,28 +14,46 @@ serviceType: NodePort
 server:
   configName: hybrasyl
   motd: "Welcome to Hybrasyl! This is Hybrasyl $VERSION ($COMMIT)!"
+
+  # Config: by default the chart creates a ConfigMap from values below.
+  # Set configMapName to use an existing ConfigMap instead.
+  #configMapName: my-existing-configmap
+
+  # World data: pick ONE of hostPath, git, or volume.
   worldData:
     # For local dev, use hostPath to mount a local checkout of world data
     hostPath: /path/to/ceridwen
-    # For git-based world data (e.g. staging/production):
+    # For git-based world data (default for non-dev environments):
     #git:
-    #  repo: git@github.com/hybrasyl/ceridwen.git
+    #  repo: https://github.com/hybrasyl/ceridwen.git
     #  branch: main
-    #  pullSecret: hybrasyl-world-access # Must be an ssh key
+    #  # For private repos, provide an SSH URL and pullSecret:
+    #  # repo: git@github.com:hybrasyl/ceridwen.git
+    #  # pullSecret: hybrasyl-world-access
+    # For an existing PVC:
     #volume:
-    #  claimName:
-    #  storageClass:
+    #  claimName: my-world-pvc
   worldDataDir: /config/world
+
+  # Logs volume. Always created unless you provide an existing claimName.
   logging:
+    size: 1Gi
+    #storageClass:
+    #claimName: my-existing-logs-pvc
     singleStream:
+      # When enabled, a busybox sidecar tails logs to stdout for kubectl logs
       enabled: true
-      storageClass:
-      size: 1Gi
     streams: []
+
+  # Plugin data volume.
   volumes:
     pluginData:
       enabled: true
       mountDir: /plugins
+      size: 1Gi
+      #storageClass:
+      #claimName: my-existing-plugindata-pvc
+
   datastore:
     # When valkey.enabled is true, these are auto-configured from the subchart.
     # When valkey.enabled is false, set host/port to point at your Redis instance.

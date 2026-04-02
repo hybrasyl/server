@@ -1,0 +1,38 @@
+{{- if not .Values.server.logging.claimName }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.environment }}-gameserver-logs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.server.logging.size | default "1Gi" }}
+  {{- if .Values.server.logging.storageClass }}
+  storageClassName: {{ .Values.server.logging.storageClass }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.server.volumes.pluginData.enabled (not .Values.server.volumes.pluginData.claimName) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.environment }}-gameserver-plugindata
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.server.volumes.pluginData.size | default "1Gi" }}
+  {{- if .Values.server.volumes.pluginData.storageClass }}
+  storageClassName: {{ .Values.server.volumes.pluginData.storageClass }}
+  {{- end }}
+{{- end }}

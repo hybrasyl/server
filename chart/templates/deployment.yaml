@@ -35,6 +35,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+        # World data
       {{- if hasKey .Values.server.worldData "git" }}
         - name: {{ .Values.environment }}-gameserver-world
           emptyDir: {}
@@ -48,19 +49,20 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Values.server.worldData.volume.claimName }}
       {{- end }}
-      {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData.enabled) }}
+        # Plugin data
+      {{- if .Values.server.volumes.pluginData.enabled }}
         - name: {{ .Values.environment }}-gameserver-plugindata
           persistentVolumeClaim:
-            claimName: {{ .Values.environment }}-gameserver-plugindata
+            claimName: {{ .Values.server.volumes.pluginData.claimName | default (printf "%s-gameserver-plugindata" .Values.environment) }}
       {{- end }}
-      {{- if .Values.server.logging.singleStream.enabled }}
+        # Logs
         - name: {{ .Values.environment }}-gameserver-logs
           persistentVolumeClaim:
-            claimName: {{ .Values.environment }}-gameserver-logs
-      {{- end }}
+            claimName: {{ .Values.server.logging.claimName | default (printf "%s-gameserver-logs" .Values.environment) }}
+        # Config
         - name: {{ .Values.environment }}-gameserver-config
           configMap:
-            name: {{ include "hybrasyl.fullname" . }}-config
+            name: {{ .Values.server.configMapName | default (printf "%s-config" (include "hybrasyl.fullname" .)) }}
       {{- if hasKey .Values.server.worldData "git" }}
       initContainers:
         - name: pull-world-data
@@ -121,14 +123,12 @@ spec:
             - name: {{ .Values.environment }}-gameserver-world
               mountPath: {{ .Values.server.worldDataDir }}
               readOnly: true
-          {{- if (and (hasKey .Values.server.volumes "pluginData") .Values.server.volumes.pluginData.enabled) }}
+          {{- if .Values.server.volumes.pluginData.enabled }}
             - name: {{ .Values.environment }}-gameserver-plugindata
               mountPath: {{ .Values.server.volumes.pluginData.mountDir }}
           {{- end }}
-          {{- if .Values.server.logging.singleStream.enabled }}
             - name: {{ .Values.environment }}-gameserver-logs
               mountPath: /var/log
-          {{- end }}
             - name: {{ .Values.environment }}-gameserver-config
               mountPath: /config
           ports:
@@ -163,7 +163,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 5
         {{- if .Values.server.logging.singleStream.enabled }}
-        - name: {{ .Values.environment }}-gameserver-logs
+        - name: {{ .Values.environment }}-gameserver-logtail
           image: busybox:latest
           args: ["/bin/sh", "-c", "tail -n+1 -F /var/log/hybrasyl/*.log"]
           volumeMounts:
