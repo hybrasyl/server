@@ -2861,9 +2861,8 @@ public class User : Creature
                 { 
                     Condition.IsInvisible = false;
                     // Remove statuses that cause invisibility
-                    foreach (var activeStatus in Statuses) {
-                        var xmlStatus = World.WorldData.GetByIndex<Status>(activeStatus.Name);
-                        if (xmlStatus.Effects?.OnApply.Conditions.Set.HasFlag(CreatureCondition.Invisible) == true) {
+                    foreach (var activeStatus in CurrentStatuses.Values.ToList()) {
+                        if (activeStatus.ConditionChanges?.Set.HasFlag(CreatureCondition.Invisible) == true) {
                             RemoveStatus(activeStatus.Icon);
                         }
                     }
