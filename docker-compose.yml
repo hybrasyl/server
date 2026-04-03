@@ -1,33 +1,39 @@
-version: "3.9"
-
-networks:
-  internal:
-    driver: bridge
-
 services:
-  redis:
-    image: bitnami/redis:latest
+  world-data:
+    image: alpine/git:latest
+    command: >
+      sh -c "if [ -d /world/.git ]; then
+        cd /world && git pull;
+      else
+        git clone https://github.com/hybrasyl/ceridwen.git /world;
+      fi"
     volumes:
-      - ./data/redis:/bitnami/redis/data
-    networks:
-      - internal
-    environment:
-      # Remove this and set a password if using this in a non-development environment!
-      - ALLOW_EMPTY_PASSWORD=yes
+      - world:/world
+
+  valkey:
+    image: valkey/valkey:latest
+    volumes:
+      - valkey-data:/data
+
   hybrasyl-server:
-    image: baughj/hybrasyl:quickstart
-    # If you want to rebuild the image used for the quickstart, uncomment this
-    #build: .
-    volumes:
-      - ./Hybrasyl.Tests/world:/HybrasylData/world/
-      - ./contrib/config.xml:/root/Hybrasyl/config.xml
+    image: ghcr.io/hybrasyl/server:latest
+    # build: .  # uncomment to build from source
     ports:
       - "2610:2610"
       - "2611:2611"
       - "2612:2612"
+    environment:
+      - HYB_REDIS_HOST=valkey
+      - HYB_WORLD_DIR=/world/xml
+    volumes:
+      - world:/world:ro
+      - ./contrib/config.xml:/config/config.xml:ro
     depends_on:
-      - redis
-    networks:
-      - internal
-    links:
-      - "redis"
+      world-data:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_started
+
+volumes:
+  world:
+  valkey-data:
