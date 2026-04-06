@@ -92,16 +92,19 @@ public static class GameLog
 
     public static void LogInit(string dataDirectory, LogGlobalConfig globalConfig)
     {
-        if (globalConfig.SingleStreamEnabled)
+        if (string.IsNullOrEmpty(dataDirectory) && globalConfig is { SingleStreamEnabled: false })
+            Serilog.Log.Warning("No log directory set (HYB_LOG_DIR), defaulting to console-only logging");
+
+        if (globalConfig == null || globalConfig.SingleStreamEnabled || string.IsNullOrEmpty(dataDirectory))
         {
             var levelSwitch = new LoggingLevelSwitch
             {
-                MinimumLevel = ConvertLevel(globalConfig.MinimumLevel)
+                MinimumLevel = ConvertLevel(globalConfig?.MinimumLevel ?? LogLevel.Info)
             };
-        
+
             LoggerConfiguration config;
 
-            if (globalConfig.JsonOutputEnabled)
+            if (globalConfig?.JsonOutputEnabled == true)
                 config = new LoggerConfiguration().MinimumLevel.ControlledBy(levelSwitch).Enrich.WithThreadId().Enrich
                     .WithExceptionData().WriteTo.Console(new JsonFormatter());
             else
