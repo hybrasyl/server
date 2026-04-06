@@ -155,7 +155,7 @@ jobs:
       - name: Notify discord
         uses: Ilshidur/action-discord@master
         with:
-          args: "Hybrasyl Server: Job ${{ github.run_id }}: success, release artifacts updated (${SHORT_SHA} by ${GITHUB_ACTOR}"
+          args: "Hybrasyl Server: Job ${{ github.run_id }}: success, release artifacts updated (${{ env.SHORT_SHA }} by ${{ github.actor }})"
         continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
