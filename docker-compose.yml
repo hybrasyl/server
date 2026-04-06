@@ -1,8 +1,9 @@
 services:
   world-data:
-    image: alpine/git:latest
+    image: alpine:latest
     command: >
-      sh -c "if [ -d /world/.git ]; then
+      sh -c "apk add --no-cache git &&
+      if [ -d /world/.git ]; then
         cd /world && git pull;
       else
         git clone https://github.com/hybrasyl/ceridwen.git /world;
@@ -17,6 +18,7 @@ services:
 
   hybrasyl-server:
     image: ghcr.io/hybrasyl/server:latest
+    platform: linux/amd64
     # build: .  # uncomment to build from source
     ports:
       - "2610:2610"
