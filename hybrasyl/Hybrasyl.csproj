@@ -102,5 +102,6 @@
 
   <PropertyGroup>
     <MSBuildGitHashCommand>git rev-parse --short HEAD</MSBuildGitHashCommand>
+    <MSBuildGitHashValidateSuccess>false</MSBuildGitHashValidateSuccess>
   </PropertyGroup>
 </Project>

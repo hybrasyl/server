@@ -3909,8 +3909,8 @@ public class World : Server
     private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
     {
         var slot = packet.ReadByte();
-
         var item = user.Inventory[slot];
+        if (item == null) return;
 
         if (item.Stackable)
         {
@@ -4014,8 +4014,9 @@ public class World : Server
 
     private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var item = packet.ReadByte();
-        var itemObj = user.Inventory[item];
+        var slot = packet.ReadByte();
+        var itemObj = user.Inventory[slot];
+        if (itemObj == null) return;
 
         user.ShowMerchantSendParcelQuantity(merchant, itemObj);
     }
@@ -4073,8 +4074,8 @@ public class World : Server
     private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
     {
         var slot = packet.ReadByte();
-
         var item = user.Inventory[slot];
+        if (item == null) return;
 
         if (item.Stackable)
         {
