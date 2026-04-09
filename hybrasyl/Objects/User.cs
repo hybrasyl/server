@@ -4025,7 +4025,20 @@ public class User : Creature
 
     public void SellItemAccept(Merchant merchant)
     {
-        if (Inventory[PendingSellableSlot].Count > PendingSellableQuantity)
+        if (PendingSellableSlot == 0 || PendingSellableSlot > Inventory.Size)
+        {
+            SendSystemMessage("That didn't work.");
+            return;
+        }
+
+        var item = Inventory[PendingSellableSlot];
+        if (item == null)
+        {
+            SendSystemMessage("You don't have that item.");
+            return;
+        }
+
+        if (item.Count > PendingSellableQuantity)
         {
             DecreaseItem(PendingSellableSlot, (int)PendingSellableQuantity);
             AddGold(PendingMerchantOffer);

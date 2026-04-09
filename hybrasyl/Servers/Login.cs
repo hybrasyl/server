@@ -247,7 +247,12 @@ public class Login : Server
         var name = packet.ReadString8();
         var id = packet.ReadUInt32();
 
-        var redirect = ExpectedConnections[id];
+        if (!ExpectedConnections.TryGetValue(id, out var redirect))
+        {
+            GameLog.Warning($"Login: client join with unknown redirect ID {id} from {name}");
+            client.Disconnect();
+            return;
+        }
 
         if (Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {
