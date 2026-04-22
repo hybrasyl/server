@@ -14,7 +14,7 @@ The Chaos.Client ships a corrected `DoorTable.cs` regenerated from [Chaos.Client
 
 ## Data source of truth
 
-[Chaos.Client/docs/doors.md](../../Chaos.Client/docs/doors.md). Hand-audited against retail assets. 66 door definitions covering 1/2/3/4-tile doors plus permanently-open archways. Each row carries the full set of closed-state sprite IDs, open-state sprite IDs, orientation (N/S or E/W), and — for 3-tile doors — whether only the center sprite actually toggles.
+[Chaos.Client/docs/doors.md](../../Chaos.Client/docs/doors.md). Hand-audited against retail assets. 81 door definitions covering 1/2/3/4-tile doors plus permanently-open archways. Each row carries the full set of closed-state sprite IDs, open-state sprite IDs, orientation (N/S or E/W), and — for 3-tile doors — whether only the center sprite actually toggles.
 
 ## Target behavior
 
@@ -74,7 +74,7 @@ At map load, walk tiles. When a sprite matches `SpriteLookup`, check neighbors a
 
 ### Phase 1 — Data rewrite
 
-Port all 66 entries from `doors.md` into `Sprites.cs` as a `DoorDefinition[]` plus the derived `SpriteLookup`. Keep the existing `ClosedDoorSprites` / `OpenDoorSprites` / `DoorSprites` as thin shims over the new structure so call sites compile during the migration.
+Port all 81 entries from `doors.md` into `Sprites.cs` as a `DoorDefinition[]` plus the derived `SpriteLookup`. Keep the existing `ClosedDoorSprites` / `OpenDoorSprites` / `DoorSprites` as thin shims over the new structure so call sites compile during the migration (the shims were later dropped in Phase 4 once all callers had switched over).
 
 **Review gate:**
 - *Bug/regression:* diff every entry against `doors.md` line-by-line; confirm the shim dicts produce identical behavior to the old hand-maintained dicts for every door in the previous tables (i.e., the migration doesn't break any door that already worked).
