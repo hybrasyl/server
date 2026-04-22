@@ -110,20 +110,28 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
 
         if (merchant?.Jobs.HasFlag(MerchantJob.Skills) ?? false)
         {
-            optionsCount += 2;
+            optionsCount++;
             options.Options.Add(new MerchantDialogOption
             { Id = (ushort)MerchantMenuItem.LearnSkillMenu, Text = "Learn Skill" });
-            options.Options.Add(new MerchantDialogOption
-            { Id = (ushort)MerchantMenuItem.ForgetSkillMenu, Text = "Forget Skill" });
+            if (merchant.Template.Roles?.DisableForget != true)
+            {
+                optionsCount++;
+                options.Options.Add(new MerchantDialogOption
+                { Id = (ushort)MerchantMenuItem.ForgetSkillMenu, Text = "Forget Skill" });
+            }
         }
 
         if (merchant?.Jobs.HasFlag(MerchantJob.Spells) ?? false)
         {
-            optionsCount += 2;
+            optionsCount++;
             options.Options.Add(new MerchantDialogOption
             { Id = (ushort)MerchantMenuItem.LearnSpellMenu, Text = "Learn Secret" });
-            options.Options.Add(new MerchantDialogOption
-            { Id = (ushort)MerchantMenuItem.ForgetSpellMenu, Text = "Forget Secret" });
+            if (merchant.Template.Roles?.DisableForget != true)
+            {
+                optionsCount++;
+                options.Options.Add(new MerchantDialogOption
+                { Id = (ushort)MerchantMenuItem.ForgetSpellMenu, Text = "Forget Secret" });
+            }
         }
 
         if (merchant?.Jobs.HasFlag(MerchantJob.Post) ?? false)

@@ -400,7 +400,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
 
             foreach (var tile in intent.Cone)
             {
-                var radius = Math.Min(tile.Radius, Game.ActiveConfiguration.Constants.ViewportSize / 2);
+                var radius = tile.Radius;
                 if (radius == 0)
                     continue;
                 var coneDirection = tile.Direction.Resolve(Direction);

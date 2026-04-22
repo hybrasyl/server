@@ -217,6 +217,7 @@ public class MerchantController
         foreach (var item in user.Inventory)
         {
             if (item.MaximumDurability == 0 || item.Durability == item.MaximumDurability) continue;
+            if (!CanRepairItem(item)) continue;
             if (item.RepairCost > user.Stats.Gold)
             {
                 Merchant.Say($"You'll need {item.RepairCost} more gold to repair all of it, I'm afraid.");
@@ -231,6 +232,7 @@ public class MerchantController
         foreach (var item in user.Equipment)
         {
             if (item.MaximumDurability == 0 || item.Durability == item.MaximumDurability) continue;
+            if (!CanRepairItem(item)) continue;
             if (item.RepairCost > user.Stats.Gold)
             {
                 Merchant.Say($"You'll need {item.RepairCost} more gold to repair all of it, I'm afraid.");
@@ -270,6 +272,11 @@ public class MerchantController
         foreach (var (slot, obj) in slotList)
         {
             if (obj.MaximumDurability == 0 || obj.Durability == obj.MaximumDurability) continue;
+            if (!CanRepairItem(obj))
+            {
+                Merchant.Say($"I don't repair that sort of thing.");
+                return;
+            }
             if (obj.RepairCost > user.Stats.Gold)
             {
                 Merchant.Say($"You'll need {obj.RepairCost} more gold to repair that, I'm afraid.");
@@ -282,6 +289,23 @@ public class MerchantController
             user.Stats.Gold -= obj.RepairCost;
             user.SendInventorySlot(slot);
         }
+    }
+
+    private bool CanRepairItem(ItemObject item)
+    {
+        var repairTypes = Merchant.Template.Roles?.Repair?.Type;
+        if (repairTypes == null || repairTypes.Count == 0 || repairTypes.Contains(NpcRepairType.All))
+            return true;
+
+        var slot = (ItemSlots)item.EquipmentSlot;
+        if (repairTypes.Contains(NpcRepairType.Weapon))
+            if (slot is ItemSlots.Weapon or ItemSlots.Shield)
+                return true;
+        if (repairTypes.Contains(NpcRepairType.Armor))
+            if (slot is not (ItemSlots.Weapon or ItemSlots.Shield or ItemSlots.None))
+                return true;
+
+        return false;
     }
 
     [RegexTrigger(@"deposit (?<amount>\d+) (coins|gold|coin)")]

@@ -302,7 +302,7 @@ internal class Monolith
                         var tile = spawnmap.FindEmptyTile();
                         if (tile == (-1, -1))
                         {
-                            GameLog.SpawnFatal($"{spawnmap.Name}: {spawn.Name} - no empty tiles, aborting");
+                            GameLog.SpawnWarning($"{spawnmap.Name}: {spawn.Name} - no empty tiles, skipping");
                             return;
                         }
 
