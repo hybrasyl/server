@@ -337,12 +337,93 @@ public class MapObject : IStateStorable
         GameLog.DataLogDebug($"Inserted signpost {post.Map.Name}@{post.X},{post.Y}");
     }
 
-    private void InsertDoor(byte x, byte y, bool open, bool isLeftRight, bool triggerCollision = true)
+    private void InsertDoorGroup(DoorGroup group)
     {
-        var door = new Door(x, y, open, isLeftRight, triggerCollision);
-        World.Insert(door);
-        Insert(door, door.X, door.Y);
-        Doors[(door.X, door.Y)] = door;
+        foreach (var panel in group.Panels)
+        {
+            var door = new Door(panel.X, panel.Y, group, panel.PanelIndex);
+            World.Insert(door);
+            Insert(door, door.X, door.Y);
+            Doors[(door.X, door.Y)] = door;
+        }
+    }
+
+    private static DoorSpriteInfo LookupDoorSprite(ushort lfg, ushort rfg)
+    {
+        if (Sprites.SpriteInfo.TryGetValue(lfg, out var linfo))
+            return linfo;
+
+        if (Sprites.SpriteInfo.TryGetValue(rfg, out var rinfo))
+            return rinfo;
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Attempts to build a <see cref="DoorGroup" /> anchored at (originX, originY) for the given definition.
+    ///     Walks the expected panel positions along the definition's axis, validates every toggle-able panel's
+    ///     sprite matches the expected closed- or open-state variant, and reads the group's initial Closed state
+    ///     from the center toggle-able panel. Side panels of center-only doors are not sprite-validated (their
+    ///     in-map sprite can be whatever the map author placed — per doors.md the side tiles are "irrelevant").
+    ///     Logs a warning and returns without inserting if any toggle-able panel's sprite doesn't match.
+    /// </summary>
+    private void TryBuildDoorGroup(byte originX, byte originY, DoorDefinition def, ushort[,] lfgs, ushort[,] rfgs)
+    {
+        var dx = def.IsLeftRight ? 1 : 0;
+        var dy = def.IsLeftRight ? 0 : 1;
+        var panels = new DoorPanel[def.PanelCount];
+
+        for (var i = 0; i < def.PanelCount; i++)
+        {
+            var px = originX + i * dx;
+            var py = originY + i * dy;
+
+            if (px >= X || py >= Y)
+            {
+                GameLog.Warning(
+                    $"Door {def.ClosedSprites[0]} at {Name}@{originX},{originY}: panel {i} extends off-map, skipping group");
+
+                return;
+            }
+
+            panels[i] = new DoorPanel((byte)px, (byte)py, i);
+
+            if (!def.IsPanelToggling(i))
+                continue;
+
+            var lfg = lfgs[px, py];
+            var rfg = rfgs[px, py];
+            var expectedClosed = def.ClosedSprites[i];
+            var expectedOpen = def.OpenSprites[i];
+
+            if (lfg != expectedClosed && lfg != expectedOpen && rfg != expectedClosed && rfg != expectedOpen)
+            {
+                GameLog.Warning(
+                    $"Door {def.ClosedSprites[0]} at {Name}@{originX},{originY}: panel {i} expected sprite "
+                    + $"{expectedClosed}/{expectedOpen} not found at ({px},{py}), skipping group");
+
+                return;
+            }
+        }
+
+        //Closed state is derived from whichever panel actually toggles — center for center-only doors, first
+        //panel for all-change doors. Anything else would read from a side tile whose sprite is irrelevant.
+        var stateIndex = def.OnlyCenterChanges ? def.CenterPanelIndex : 0;
+        var statePanel = panels[stateIndex];
+        var stateClosedSprite = def.ClosedSprites[stateIndex];
+        var closed = lfgs[statePanel.X, statePanel.Y] == stateClosedSprite
+                     || rfgs[statePanel.X, statePanel.Y] == stateClosedSprite;
+
+        //Collision-change flag: read from the canonical (center) panel so a center-only door agrees with itself
+        //and all-change doors still get a meaningful answer (every panel has the same collision semantics).
+        var updateCollision = Game.IsDoorCollision(def.ClosedSprites[def.CenterPanelIndex]);
+
+        var group = new DoorGroup(def, panels, closed, updateCollision);
+        InsertDoorGroup(group);
+
+        GameLog.DebugFormat(
+            "Inserted {0}-tile {1} door group at {2}@{3},{4}: Closed={5}, UpdateCollision={6}, OnlyCenterChanges={7}",
+            def.PanelCount, def.Axis, Name, originX, originY, closed, updateCollision, def.OnlyCenterChanges);
     }
 
     public bool LoadMapFile()
@@ -356,38 +437,48 @@ public class MapObject : IStateStorable
         RawData = File.ReadAllBytes(filename);
         Checksum = Crc16.Calculate(RawData);
 
-        var index = 0;
+        //First pass: read fg sprites into per-tile grids and compute SOTP collisions. The grids let the
+        //door-group scanner probe tiles more than once without re-parsing RawData.
+        var lfgs = new ushort[X, Y];
+        var rfgs = new ushort[X, Y];
+        var rawIndex = 0;
         for (byte y = 0; y < Y; ++y)
             for (byte x = 0; x < X; ++x)
             {
-                var bg = RawData[index++] | (RawData[index++] << 8);
-                var lfg = RawData[index++] | (RawData[index++] << 8);
-                var rfg = RawData[index++] | (RawData[index++] << 8);
+                _ = RawData[rawIndex++] | (RawData[rawIndex++] << 8);    // bg (unused post-load)
+                var lfg = RawData[rawIndex++] | (RawData[rawIndex++] << 8);
+                var rfg = RawData[rawIndex++] | (RawData[rawIndex++] << 8);
 
                 if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
 
                 if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
 
-                var lfgu = (ushort)lfg;
-                var rfgu = (ushort)rfg;
+                lfgs[x, y] = (ushort)lfg;
+                rfgs[x, y] = (ushort)rfg;
+            }
 
-                if (Sprites.DoorSprites.ContainsKey(lfgu))
-                {
-                    // This is a left-right door
-                    GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, Collisions.Contains((x, y)));
+        //Second pass: detect door groups. Key off toggle-able panel sprites only — side panels of
+        //center-only doors are listed in SpriteInfo but IsToggling == false, so they don't anchor a scan.
+        //Archways (HasClosedVersion == false) are non-interactive and skipped. Dedupe by (origin, def) so
+        //multi-panel doors aren't processed more than once when the scan visits each toggle-able tile.
+        var processedOrigins = new HashSet<((byte X, byte Y) Origin, DoorDefinition Def)>();
+        for (byte y = 0; y < Y; ++y)
+            for (byte x = 0; x < X; ++x)
+            {
+                var info = LookupDoorSprite(lfgs[x, y], rfgs[x, y]);
+                if (info is null) continue;
+                if (!info.Definition.HasClosedVersion) continue;
+                if (!info.IsToggling) continue;
 
-                    InsertDoor(x, y, Collisions.Contains((x, y)), true,
-                        Game.IsDoorCollision(lfgu));
-                }
-                else if (Sprites.DoorSprites.ContainsKey(rfgu))
-                {
-                    GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, Collisions.Contains((x, y)));
-                    // THis is an up-down door 
-                    InsertDoor(x, y, Collisions.Contains((x, y)), false,
-                        Game.IsDoorCollision(rfgu));
-                }
+                var def = info.Definition;
+                var dx = def.IsLeftRight ? 1 : 0;
+                var dy = def.IsLeftRight ? 0 : 1;
+                var originX = (byte)(x - info.PanelIndex * dx);
+                var originY = (byte)(y - info.PanelIndex * dy);
+
+                if (!processedOrigins.Add(((originX, originY), def))) continue;
+
+                TryBuildDoorGroup(originX, originY, def, lfgs, rfgs);
             }
 
         return true;
