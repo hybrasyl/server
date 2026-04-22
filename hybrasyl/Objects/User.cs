@@ -1071,8 +1071,15 @@ public class User : Creature
         var doors = GetDoorsCoordsInView(GetViewport());
 
         if (doors.Count <= 0) return;
+
+        //skip static side panels of center-only 3-tile doors — they don't toggle and sending an update for them
+        //would make the client swap an irrelevant sprite that retail places freely alongside the actual door.
         foreach (var door in doors)
-            SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
+        {
+            var panel = Map.Doors[door];
+            if (!panel.Toggles) continue;
+            SendDoorUpdate(door.Item1, door.Item2, panel.Closed, panel.IsLeftRight);
+        }
     }
 
     public List<(byte X, byte Y)> GetDoorsCoordsInView(Rectangle viewPort)
