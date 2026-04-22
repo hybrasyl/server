@@ -37,18 +37,13 @@ public class Door : VisibleObject
         Y = y;
         Group = group;
         PanelIndex = panelIndex;
-        Closed = group.Closed;
     }
 
     public DoorGroup Group { get; }
     public int PanelIndex { get; }
 
-    /// <summary>
-    ///     Panel-local Closed state. Phase 2 keeps this settable for backward-compatibility with the
-    ///     <c>ToggleDoor</c> per-tile mutation; Phase 3 makes this a thin delegate over
-    ///     <see cref="DoorGroup.Closed" />.
-    /// </summary>
-    public bool Closed { get; set; }
+    /// <summary>Read-only delegate to the owning <see cref="DoorGroup.Closed" /> — a door panel never has its own state.</summary>
+    public bool Closed => Group.Closed;
 
     public bool IsLeftRight => Group.Definition.IsLeftRight;
     public bool UpdateCollision => Group.UpdateCollision;

@@ -414,9 +414,8 @@ public class MapObject : IStateStorable
         var closed = lfgs[statePanel.X, statePanel.Y] == stateClosedSprite
                      || rfgs[statePanel.X, statePanel.Y] == stateClosedSprite;
 
-        //Collision-change flag: read from the canonical (center) panel so a center-only door agrees with itself
-        //and all-change doors still get a meaningful answer (every panel has the same collision semantics).
-        var updateCollision = Game.IsDoorCollision(def.ClosedSprites[def.CenterPanelIndex]);
+        //Collision-change flag: true if any sprite state on any panel has the wall bit set in SOTP data.
+        var updateCollision = Game.IsDoorCollision(def);
 
         var group = new DoorGroup(def, panels, closed, updateCollision);
         InsertDoorGroup(group);
@@ -523,84 +522,55 @@ public class MapObject : IStateStorable
     }
 
     /// <summary>
-    ///     Toggle a given door's state (open/closed) and send updates to users nearby.
+    ///     Toggles every panel of the <see cref="DoorGroup" /> atomically: flips the shared Closed flag, updates
+    ///     collision for each toggle-able panel (if the group is collision-bearing), and emits a
+    ///     <c>SendDoorUpdate</c> per panel to every user within viewport. Side panels of center-only doors are
+    ///     skipped — they're static jamb art with no collision change and no visual flip, so emitting a packet
+    ///     for them would cause a spurious sprite swap on the client.
     /// </summary>
-    /// <param name="x">The X coordinate of the door.</param>
-    /// <param name="y">The Y coordinate of the door.</param>
-    /// <returns></returns>
-    public void ToggleDoor(byte x, byte y)
+    private void ToggleDoorGroup(DoorGroup group)
     {
-        var coords = (x, y);
-        GameLog.DebugFormat("Door {0}@{1},{2}: Open: {3}, changing to {4}",
-            Name, x, y, Doors[coords].Closed,
-            !Doors[coords].Closed);
+        group.Closed = !group.Closed;
 
-        Doors[coords].Closed = !Doors[coords].Closed;
+        GameLog.DebugFormat(
+            "Toggling {0}-tile {1} door at {2}@{3},{4}: Closed={5}",
+            group.Definition.PanelCount, group.Definition.Axis, Name,
+            group.Panels[0].X, group.Panels[0].Y, group.Closed);
 
-        // There are several examples of doors in Temuair that trigger graphic
-        // changes but do not trigger collision updates (e.g. 3-panel doors in
-        // Piet & Undine).
-        if (Doors[coords].UpdateCollision)
+        foreach (var panel in group.Panels)
         {
-            GameLog.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
-                Name, x, y, !Doors[coords].Closed);
+            if (!group.Definition.IsPanelToggling(panel.PanelIndex))
+                continue;
 
-            ToggleCollisions(x, y);
+            if (group.UpdateCollision)
+                ToggleCollisions(panel.X, panel.Y);
+
+            var viewport = GetViewport(panel.X, panel.Y);
+            foreach (var obj in EntityTree.GetObjects(viewport))
+                if (obj is User user)
+                    user.SendDoorUpdate(panel.X, panel.Y, group.Closed, group.Definition.IsLeftRight);
         }
-
-        GameLog.DebugFormat("Toggling door at {0},{1}", x, y);
-        GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall(x, y));
-
-        var updateViewport = GetViewport(x, y);
-
-        foreach (var obj in EntityTree.GetObjects(updateViewport))
-            if (obj is User)
-            {
-                var user = obj as User;
-                GameLog.DebugFormat("Sending door packet to {0}: X {1}, Y {2}, Open {3}, LR {4}",
-                    user.Name, x, y, Doors[coords].Closed,
-                    Doors[coords].IsLeftRight);
-
-                user.SendDoorUpdate(x, y, Doors[coords].Closed,
-                    Doors[coords].IsLeftRight);
-            }
     }
 
     /// <summary>
-    ///     Toggles a door panel at x,y and depending on whether there are doors
-    ///     next to it, will open those as well. This code is pretty ugly, to boot.
+    ///     Toggle the door group at (x, y). Pre-Phase 3 this was a per-tile operation with an adjacency
+    ///     scan in <c>ToggleDoors</c>; now both entry points resolve to a single group-level flip so a
+    ///     click anywhere on a 2/3/4-tile door opens the whole thing.
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
+    public void ToggleDoor(byte x, byte y) => ToggleDoors(x, y);
+
+    /// <summary>
+    ///     Toggle the door group at (x, y). Single authoritative entry point.
+    /// </summary>
     public void ToggleDoors(byte x, byte y)
     {
-        var coords = (x, y);
-        var door = Doors[coords];
-
-        // First, toggle the actual door itself
-
-        ToggleDoor(x, y);
-
-        // Now, toggle any potentially adjacent "doors"
-
-        if (door.IsLeftRight)
+        if (!Doors.TryGetValue((x, y), out var door))
         {
-            // Look for a door at x-1, x+1, and open if they're present
-            Door nextdoor;
-            var door1Coords = ((byte)(x - 1), y);
-            var door2Coords = ((byte)(x + 1), y);
-            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor((byte)(x - 1), y);
-            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor((byte)(x + 1), y);
+            GameLog.DebugFormat("ToggleDoors called on non-door tile at {0}@{1},{2}", Name, x, y);
+            return;
         }
-        else
-        {
-            // Look for a door at y-1, y+1 and open if they're present
-            Door nextdoor;
-            var door1Coords = (x, (byte)(y - 1));
-            var door2Coords = (x, (byte)(y + 1));
-            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor(x, (byte)(y - 1));
-            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor(x, (byte)(y + 1));
-        }
+
+        ToggleDoorGroup(door.Group);
     }
 
 
