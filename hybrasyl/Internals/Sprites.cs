@@ -223,72 +223,25 @@ public static class Sprites
     /// <summary>
     ///     Lookup from any recognized door sprite (closed or open, archway or toggling) to the
     ///     <see cref="DoorDefinition" /> it belongs to, its panel index within that door, and whether it is the
-    ///     closed-state or open-state sprite at that panel position. This is the forward-facing API for Phase 2+
-    ///     map-load scanning.
+    ///     closed-state or open-state sprite at that panel position. Populated at class init from
+    ///     <see cref="Definitions" />.
     /// </summary>
     public static readonly Dictionary<ushort, DoorSpriteInfo> SpriteInfo;
-
-    /// <summary>
-    ///     Legacy shim. Maps every toggle-able panel's closed-state sprite ID to its open-state counterpart.
-    ///     Archway sprites are not present (no closed state to map from). Side panels of center-only doors are
-    ///     not present (they don't toggle). Derived from <see cref="Definitions" /> at class init.
-    /// </summary>
-    public static readonly Dictionary<ushort, ushort> ClosedDoorSprites;
-
-    /// <summary>
-    ///     Legacy shim. Inverse of <see cref="ClosedDoorSprites" /> — every toggle-able panel's open-state sprite
-    ///     ID mapped back to its closed-state counterpart.
-    /// </summary>
-    public static readonly Dictionary<ushort, ushort> OpenDoorSprites;
-
-    /// <summary>
-    ///     Legacy shim. Union of all toggle-able panel sprites across both states. Used by
-    ///     <see cref="Hybrasyl.Objects.MapObject.LoadMapFile" /> to decide whether a tile should be registered as
-    ///     a <see cref="Hybrasyl.Objects.Door" />. Archway sprites and center-only side panels are excluded —
-    ///     those tiles are either permanently-open or static jamb art, and the old behavior of registering them
-    ///     as doors was the root cause of multiple bugs (see docs/better-doors-plan.md).
-    /// </summary>
-    public static readonly Dictionary<ushort, bool> DoorSprites;
 
     static Sprites()
     {
         var spriteInfo = new Dictionary<ushort, DoorSpriteInfo>();
-        var closedToOpen = new Dictionary<ushort, ushort>();
-        var openToClosed = new Dictionary<ushort, ushort>();
-        var allDoorSprites = new Dictionary<ushort, bool>();
 
         foreach (var def in Definitions)
         {
-            //every panel sprite gets a SpriteInfo entry — archways included so map-load can recognize them
-            //(even though they're non-interactive).
             if (def.HasClosedVersion)
                 for (var i = 0; i < def.ClosedSprites.Length; i++)
                     spriteInfo[def.ClosedSprites[i]] = new DoorSpriteInfo(def, i, IsOpenState: false);
 
             for (var i = 0; i < def.OpenSprites.Length; i++)
                 spriteInfo[def.OpenSprites[i]] = new DoorSpriteInfo(def, i, IsOpenState: true);
-
-            //legacy shims only cover toggle-able panels: archways skipped, center-only side panels skipped.
-            if (!def.HasClosedVersion)
-                continue;
-
-            for (var i = 0; i < def.PanelCount; i++)
-            {
-                if (!def.IsPanelToggling(i))
-                    continue;
-
-                var closed = def.ClosedSprites[i];
-                var open = def.OpenSprites[i];
-                closedToOpen[closed] = open;
-                openToClosed[open] = closed;
-                allDoorSprites[closed] = true;
-                allDoorSprites[open] = true;
-            }
         }
 
         SpriteInfo = spriteInfo;
-        ClosedDoorSprites = closedToOpen;
-        OpenDoorSprites = openToClosed;
-        DoorSprites = allDoorSprites;
     }
 }
