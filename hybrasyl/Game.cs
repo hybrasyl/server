@@ -615,8 +615,12 @@ public static class Game
         {
             activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
-                "Hybrasyl cannot continue loading. A fatal error occurred while initializing the world. Press any key to exit.");
-            Console.ReadKey();
+                "Hybrasyl cannot continue loading. A fatal error occurred while initializing the world.");
+            if (!Console.IsInputRedirected)
+            {
+                Log.Fatal("Press any key to exit.");
+                Console.ReadKey();
+            }
             Environment.Exit(1);
         }
 

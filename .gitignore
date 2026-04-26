@@ -299,3 +299,7 @@ data/*
 
 # Claude Code
 .claude/
+
+# Epona-managed worktrees and build overrides
+.worktrees/
+Directory.Build.props
