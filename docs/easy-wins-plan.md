@@ -74,20 +74,20 @@ The cone geometry (`2*i-1` width at distance `i`) already handles any radius cor
 
 Add `[FormulaVariable]` attribute to these existing public properties:
 
-| Line | Property | Token becomes |
-|------|----------|---------------|
-| 133 | `MinLevel` | `ITEMMINLEVEL` |
-| 135 | `MaxLevel` | `ITEMMAXLEVEL` |
-| 134 | `MinAbility` | `ITEMMINABILITY` |
-| 136 | `MaxAbility` | `ITEMMAXABILITY` |
-| 154 | `Value` | `ITEMVALUE` |
-| 105 | `Weight` | `ITEMWEIGHT` |
-| 148 | `MinLDamage` | `ITEMMINLDAMAGE` |
-| 149 | `MaxLDamage` | `ITEMMAXLDAMAGE` |
-| 150 | `MinSDamage` | `ITEMMINSDAMAGE` |
-| 151 | `MaxSDamage` | `ITEMMAXSDAMAGE` |
-| 204 | `Durability` | `ITEMDURABILITY` |
-| 114 | `MaximumDurability` | `ITEMMAXIMUMDURABILITY` |
+| Line | Property            | Token becomes           |
+| ---- | ------------------- | ----------------------- |
+| 133  | `MinLevel`          | `ITEMMINLEVEL`          |
+| 135  | `MaxLevel`          | `ITEMMAXLEVEL`          |
+| 134  | `MinAbility`        | `ITEMMINABILITY`        |
+| 136  | `MaxAbility`        | `ITEMMAXABILITY`        |
+| 154  | `Value`             | `ITEMVALUE`             |
+| 105  | `Weight`            | `ITEMWEIGHT`            |
+| 148  | `MinLDamage`        | `ITEMMINLDAMAGE`        |
+| 149  | `MaxLDamage`        | `ITEMMAXLDAMAGE`        |
+| 150  | `MinSDamage`        | `ITEMMINSDAMAGE`        |
+| 151  | `MaxSDamage`        | `ITEMMAXSDAMAGE`        |
+| 204  | `Durability`        | `ITEMDURABILITY`        |
+| 114  | `MaximumDurability` | `ITEMMAXIMUMDURABILITY` |
 
 The `[FormulaVariable]` attribute is defined at `hybrasyl/Objects/StatInfo.cs:31-32`. FormulaParser already scans `typeof(ItemObject)` in its static constructor (`hybrasyl/Subsystems/Formulas/FormulaParser.cs:49`), so adding the attribute is all that's needed — no other code changes.
 
@@ -100,6 +100,7 @@ Also update the formula transpiler in creidhne (`creidhne/src/main/formulaTransp
 `RepairAll` (line 211) and `RepairItem` (line 257) currently repair any item regardless of the NPC's `Repair.Type` setting (Armor/Weapon/All).
 
 **Fix:** At the start of each method, read the merchant's repair type from `request.Merchant.Template.Roles.Repair.Type`. When iterating items to repair, filter:
+
 - `NpcRepairType.Armor` → only repair items in armor/accessory slots
 - `NpcRepairType.Weapon` → only repair items in weapon/shield slots
 - `NpcRepairType.All` (or null/default) → repair everything (current behavior)
@@ -114,17 +115,17 @@ FormulaParser already scans `typeof(Castable)` at `hybrasyl/Subsystems/Formulas/
 
 **Candidate properties** (from `xml/src/Objects/Castable.cs` and `xml/src/Extensions/Castable.cs`):
 
-| Property | Type | Source | Token becomes |
-|----------|------|--------|---------------|
-| `Lines` | `byte` | Castable.cs:254 | `CASTABLELINES` |
-| `Cooldown` | `int` | Castable.cs:281 | `CASTABLECOOLDOWN` |
+| Property        | Type   | Source                    | Token becomes           |
+| --------------- | ------ | ------------------------- | ----------------------- |
+| `Lines`         | `byte` | Castable.cs:254           | `CASTABLELINES`         |
+| `Cooldown`      | `int`  | Castable.cs:281           | `CASTABLECOOLDOWN`      |
 | `CastableLevel` | `byte` | Extensions/Castable.cs:43 | `CASTABLECASTABLELEVEL` |
-| `IsAssail` | `bool` | Castable.cs:295 | `CASTABLEISASSAIL` |
-| `Reflectable` | `bool` | Castable.cs:309 | `CASTABLEREFLECTABLE` |
+| `IsAssail`      | `bool` | Castable.cs:295           | `CASTABLEISASSAIL`      |
+| `Reflectable`   | `bool` | Castable.cs:309           | `CASTABLEREFLECTABLE`   |
 
 **Note:** This requires a Hybrasyl.Xml NuGet package update (same as the element expansion). The `[FormulaVariable]` attribute is defined in the server repo (`StatInfo.cs:31-32`), but the Castable class lives in the XML repo. This means the attribute definition needs to be duplicated or referenced in the XML package, OR the properties need to be wrapped in a server-side class. Investigate which approach is cleaner.
 
-Also update creidhne formula transpiler (`src/main/formulaTranspiler.js`) to add CASTABLE* tokens to the token map.
+Also update creidhne formula transpiler (`src/main/formulaTranspiler.js`) to add CASTABLE\* tokens to the token map.
 
 ### 8. NPC Role XML — Schema Expansion (Scoping)
 
@@ -132,14 +133,15 @@ Creidhne generates NPC role XML with features the XSD doesn't support yet. This 
 
 **Gap analysis** (Creidhne output vs `xml/src/XSD/Common.xsd:999-1076`):
 
-| Feature | Bank | Post | Repair | Vend | Train |
-|---------|------|------|--------|------|-------|
-| ExceptCookie attr | MISSING | MISSING | MISSING | MISSING | MISSING |
-| OnlyCookie attr | MISSING | MISSING | MISSING | MISSING | MISSING |
+| Feature                | Bank    | Post    | Repair  | Vend    | Train   |
+| ---------------------- | ------- | ------- | ------- | ------- | ------- |
+| ExceptCookie attr      | MISSING | MISSING | MISSING | MISSING | MISSING |
+| OnlyCookie attr        | MISSING | MISSING | MISSING | MISSING | MISSING |
 | CostAdjustment element | MISSING | MISSING | MISSING | MISSING | MISSING |
-| Core structure | OK | OK | OK | OK | OK |
+| Core structure         | OK      | OK      | OK      | OK      | OK      |
 
 **What already exists in XSD:**
+
 - `DisableForget` on NpcRoleList — supported
 - `Repair.Type` — supported (NpcRepairType enum)
 - `Vend.Items` with `Item Name/Quantity/Restock` — fully supported
@@ -151,6 +153,7 @@ Creidhne generates NPC role XML with features the XSD doesn't support yet. This 
 **XSD changes needed** (in `xml/src/XSD/Common.xsd`):
 
 1. **New shared type `NpcRoleCostAdjustment`:**
+
    ```xml
    <xs:complexType name="NpcRoleCostAdjustment">
      <xs:simpleContent>
@@ -169,6 +172,7 @@ Creidhne generates NPC role XML with features the XSD doesn't support yet. This 
 3. **Post-specific:** Add `Nation` attribute (`type="hyb:String8"`)
 
 **Server changes needed** (after XSD update + NuGet publish):
+
 - `hybrasyl/Subsystems/Mundanes/MerchantController.cs` — Read CostAdjustment to apply per-nation pricing
 - Cookie check integration — Read ExceptCookie/OnlyCookie and check player cookies before showing role options (existing cookie infrastructure at `User.HasCookie()`)
 - This touches vending, training, banking, repair, and post flows
@@ -186,7 +190,7 @@ Creidhne generates NPC role XML with features the XSD doesn't support yet. This 
 
 ## Files modified (creidhne)
 
-- `src/main/formulaTranspiler.js` — add ITEM* tokens to token map
+- `src/main/formulaTranspiler.js` — add ITEM\* tokens to token map
 
 ## Verification
 

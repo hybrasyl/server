@@ -30,6 +30,7 @@ The MVP is intentionally narrow: **one effect type (StatModifier), three concret
 ## Scope
 
 **In:**
+
 - Add `Trait` schema to the `Hybrasyl.Xml` NuGet package (new XML root type, reuses existing `StatModifiers` element)
 - New subsystem under `hybrasyl/Subsystems/Traits/`: `TraitInstance`, `ITraitEffect`, `StatModifierEffect`, `TraitManager`
 - Edits to [hybrasyl/Objects/Creature.cs](../hybrasyl/Objects/Creature.cs) — persisted `Traits` dictionary alongside `Cookies`
@@ -41,6 +42,7 @@ The MVP is intentionally narrow: **one effect type (StatModifier), three concret
 - Three proof-of-concept trait XMLs under `world/xml/traits/`
 
 **Out:**
+
 - `EquipmentGrantEffect` (weapon-skill gating, prestige gear access) — designed-for, not built. Future iteration.
 - `CastableGrantEffect` (trait-unlocked spells/skills) — future iteration.
 - `AccessGrantEffect` (warp/zone gating, dialog gating) — future iteration.
@@ -110,6 +112,7 @@ New root type added to the `Hybrasyl.Xml` package (option (a) per discussion —
 Reusing the existing `StatModifiers` element is the key economy: `NumberCruncher.CalculateStatusModifiers` already evaluates formulas inside that element, so traits inherit formula support for free. Anything a status can express in `StatModifiers`, a trait can express identically.
 
 Three proof-of-concept traits ship with the MVP:
+
 - `spec.priest.tax` — class-balance tax (one per support spec; expand as specs are defined)
 - `aura.tuning.boost.10` and `aura.tuning.tax.10` — example tuning auras with `Exclusive="TuningAura"`
 - `background.dockworker` — proof of background usage (catalog entry only; ships disabled until creation UX exists)

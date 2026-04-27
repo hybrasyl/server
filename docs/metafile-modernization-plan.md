@@ -30,6 +30,7 @@ Now that we control both server and client (sichii is excluded), there's no reta
 ## Scope
 
 **In:**
+
 - New file `hybrasyl/protos/Content.proto` — gRPC service + message definitions for the six legacy domains, structured for forward additive growth.
 - New file `hybrasyl/grpc/ContentServer.cs` — service implementation reading from the same `WorldData.Values<T>()` pipeline that feeds metafile generation in [`hybrasyl/WorldStateStore.cs`](../hybrasyl/WorldStateStore.cs).
 - Edits to [hybrasyl/Game.cs](../hybrasyl/Game.cs) lines 751–783 — register `ContentService` alongside `PatronServer` on the existing gRPC server.
@@ -41,12 +42,14 @@ Now that we control both server and client (sichii is excluded), there's no reta
 - Tests under `Hybrasyl.Tests/Content/` covering: domain bundle correctness, version stamp incrementing, auth token enforcement, fallback path (gRPC down → legacy still works).
 
 **In (parallel-running, not removed):**
+
 - Legacy [`Metafile`/`CompiledMetafile`/`MetafileNode`](../hybrasyl/Internals/Metafiles/) classes stay.
 - `World.GenerateMetafiles()` and per-type generators (`World.cs` lines ~389–750) continue to run at startup when the config flag is enabled.
 - `PacketHandler_0x7B_RequestMetafile` ([`World.cs:3834`](../hybrasyl/Servers/World.cs#L3834)+) continues responding to client requests.
 - Chaos.Client's existing metafile receive path (`ConnectionManager.HandleMetaData` at line 1901–1904, on-disk cache, CRC validation in `ChaosGame` lines 653, 662–681) remains intact as the fallback.
 
 **Out:**
+
 - Removing legacy metafile generation entirely. Separate scope, after sustained `ContentService` stability across a real player population.
 - Migrating `Light` if exploration confirms it's DA-data-derived and never server-generated. May stay client-local indefinitely.
 - Multi-server / cross-shard content distribution. `ContentService` is single-server.
@@ -188,6 +191,7 @@ There's no per-character data migration — `ContentService` carries catalog dat
 Per the same wire-data discussion documented in [achievements-plan.md](achievements-plan.md) and [dreamweavers-path-plan.md](dreamweavers-path-plan.md). For metafile modernization specifically:
 
 **The replacement contract for current metafile types:**
+
 - `NationDesc` → `GetNations` returning `NationBundle { repeated Nation nations; uint64 version; }` where `Nation` carries id, display name, flag color/identifier.
 - `NPCIllust` → `GetNpcIllustrations` returning entries mapping NPC name + variant index → SPF filename.
 - `ItemInfo*` → `GetItems` returning a single bundle (no need for the 16-file split — that was a legacy size concern). Per-item: id, name, description, level/ability/class requirements, weight, vendor category.
@@ -196,12 +200,15 @@ Per the same wire-data discussion documented in [achievements-plan.md](achieveme
 - `Light` → `GetLighting` if server-sourced; otherwise stays client-local.
 
 **The new push contract:**
+
 - `WatchContent` server stream emits `ContentUpdate { domain, new_version, [invalidate | delta] }` whenever XML reloads. Client invalidates cache and re-fetches affected domains.
 
 **Auth contract:**
+
 - Extended `Auth` returns a session token in addition to existing fields. Client stores it and presents it on every `ContentService` call. Server invalidates on legacy socket disconnect.
 
 **Client-side surfaces (out of scope for the server but flagged for coordination):**
+
 - `Chaos.Client/Networking/ContentRepository.cs` — new wrapper around `Grpc.Net.Client` for `ContentService`.
 - `MetaFileRepository.cs` — refactored to prefer `ContentRepository` for migrated domains, fall back to legacy metafile cache or `0x7B` request when unavailable.
 - `ChaosGame.cs` (lines 110–120, 653, 662–681) — establish gRPC connection after world entry, gate metafile request on gRPC failure for migrated domains.

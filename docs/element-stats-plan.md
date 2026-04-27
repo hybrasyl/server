@@ -3,6 +3,7 @@
 ## Context
 
 Three related improvements:
+
 1. Overhaul the element system — 17 combat elements replacing the current 9, with new Random meta-types
 2. Send actual MR/Hit/Dmg values via a dedicated custom packet (replacing the byte-rating workaround in 0x08)
 3. Extend that packet to also send Crit, MagicCrit, Dodge, MagicDodge (currently server-only stats) — groundwork for a redesigned client stat panel
@@ -13,39 +14,39 @@ Three related improvements:
 
 ### New element list (17 combat elements)
 
-| Ordinal | Element | Notes |
-|---------|---------|-------|
-| 0 | **Force** | Default / unaspected — replaces `None` |
-| 1 | Fire | Existing |
-| 2 | Water | Existing |
-| 3 | Wind | Existing |
-| 4 | Earth | Existing |
-| 5 | Flesh | **New** |
-| 6 | Spirit | **New** |
-| 7 | Nature | **New** (replaces Wood at ordinal 7) |
-| 8 | Metal | Existing (was ordinal 8) |
-| 9 | Undead | Existing (keeps ordinal 9) |
-| 10 | Time | **New** |
-| 11 | Stasis | **New** |
-| 12 | Light | Existing (was ordinal 5) |
-| 13 | Dark | Existing (was ordinal 6) |
-| 14 | Life | **New** |
-| 15 | Arcane | **New** |
-| 16 | Void | **New** |
+| Ordinal | Element   | Notes                                  |
+| ------- | --------- | -------------------------------------- |
+| 0       | **Force** | Default / unaspected — replaces `None` |
+| 1       | Fire      | Existing                               |
+| 2       | Water     | Existing                               |
+| 3       | Wind      | Existing                               |
+| 4       | Earth     | Existing                               |
+| 5       | Flesh     | **New**                                |
+| 6       | Spirit    | **New**                                |
+| 7       | Nature    | **New** (replaces Wood at ordinal 7)   |
+| 8       | Metal     | Existing (was ordinal 8)               |
+| 9       | Undead    | Existing (keeps ordinal 9)             |
+| 10      | Time      | **New**                                |
+| 11      | Stasis    | **New**                                |
+| 12      | Light     | Existing (was ordinal 5)               |
+| 13      | Dark      | Existing (was ordinal 6)               |
+| 14      | Life      | **New**                                |
+| 15      | Arcane    | **New**                                |
+| 16      | Void      | **New**                                |
 
 **Removed:** `None` (replaced by Force), `Wood` (replaced by Nature)
 
 **Meta-resolution types** (appended after combat elements):
 
-| Ordinal | Type | Resolves To |
-|---------|------|-------------|
-| 17 | RandomTemuair | Fire, Water, Wind, Earth |
-| 18 | RandomExpanded | Metal, Life, Arcane, Void |
-| 19 | RandomClassic | Fire, Water, Wind, Earth, Light, Dark |
-| 20 | RandomAll | All 17 elements except Undead |
-| 21 | Necklace | Equipped necklace element |
-| 22 | Belt | Equipped belt element |
-| 23 | Current | Current offensive element override or base |
+| Ordinal | Type           | Resolves To                                |
+| ------- | -------------- | ------------------------------------------ |
+| 17      | RandomTemuair  | Fire, Water, Wind, Earth                   |
+| 18      | RandomExpanded | Metal, Life, Arcane, Void                  |
+| 19      | RandomClassic  | Fire, Water, Wind, Earth, Light, Dark      |
+| 20      | RandomAll      | All 17 elements except Undead              |
+| 21      | Necklace       | Equipped necklace element                  |
+| 22      | Belt           | Equipped belt element                      |
+| 23      | Current        | Current offensive element override or base |
 
 ### Files to modify
 
@@ -108,6 +109,7 @@ Three related improvements:
 ### Current workaround
 
 **`hybrasyl/Objects/User.cs:1807-1822`** — 0x08 Secondary block sends MR/Hit/Dmg as single bytes via rating conversions defined at **`hybrasyl/Objects/StatInfo.cs:1540-1582`**:
+
 - `MrRating`, `DmgRating`, `HitRating` — compress doubles into 0-255 scale, 128 = baseline (1.0x)
 - Lossy: can't express negatives, MR only in 10% steps
 - These workarounds existed to appease the stock Kru client — we fully control the client now
@@ -122,7 +124,7 @@ Sent whenever `StatUpdateFlags.Secondary` triggers (same cadence as the existing
 
 ### Packet layout
 
-```
+```text
 Opcode: 0x41 (ExtendedStats)
   float  MR          — raw multiplier (1.16 = +16% resist)
   float  Hit         — raw multiplier (1.05 = +5% hit)
@@ -148,25 +150,27 @@ The rating properties (`MrRating`, `DmgRating`, `HitRating`) and the 0x08 Second
 
 ### Stat source properties (already exist, no changes needed)
 
-| Stat | Property | File:Line |
-|------|----------|-----------|
-| MR | `Stats.Mr` (double) | `StatInfo.cs:1594-1597` |
-| Hit | `Stats.Hit` (double) | `StatInfo.cs:1584-1587` |
-| Dmg | `Stats.Dmg` (double) | `StatInfo.cs:1535-1538` |
-| Crit | `Stats.Crit` (double) | `StatInfo.cs:558` |
-| MagicCrit | `Stats.MagicCrit` (double) | `StatInfo.cs:599` |
-| Dodge | `Stats.Dodge` (double) | `StatInfo.cs:1121` |
-| MagicDodge | `Stats.MagicDodge` (double) | `StatInfo.cs:1162` |
+| Stat       | Property                    | File:Line               |
+| ---------- | --------------------------- | ----------------------- |
+| MR         | `Stats.Mr` (double)         | `StatInfo.cs:1594-1597` |
+| Hit        | `Stats.Hit` (double)        | `StatInfo.cs:1584-1587` |
+| Dmg        | `Stats.Dmg` (double)        | `StatInfo.cs:1535-1538` |
+| Crit       | `Stats.Crit` (double)       | `StatInfo.cs:558`       |
+| MagicCrit  | `Stats.MagicCrit` (double)  | `StatInfo.cs:599`       |
+| Dodge      | `Stats.Dodge` (double)      | `StatInfo.cs:1121`      |
+| MagicDodge | `Stats.MagicDodge` (double) | `StatInfo.cs:1162`      |
 
 ---
 
 ## Files modified (summary)
 
 **Hybrasyl.Xml repo:**
+
 - `src/XSD/Common.xsd` — New ElementType enum
 - `src/Objects/ElementType.cs` — Regenerated
 
 **Server repo:**
+
 - `hybrasyl/Internals/Enums/OpCodes.cs` — Add ExtendedStats opcode
 - `hybrasyl/Networking/ServerPacket.cs` — Add WriteSingle(float) method
 - `hybrasyl/Networking/ServerPackets/ExtendedStats.cs` — New file
@@ -183,10 +187,12 @@ The rating properties (`MrRating`, `DmgRating`, `HitRating`) and the 0x08 Second
 - `hybrasyl/Subsystems/Messaging/ChatCommands/DamageCommand.cs` — `None` → `Force`
 
 **World XML data:**
+
 - `xml/elementtables/element_table.xml` — Full rewrite (17x17 matrix, user provides values)
 - Any XML referencing Wood/Undead/None — rename to Nature/Time/Force
 
 **Creidhne:**
+
 - Element picker/dropdown updates
 
 ## Verification

@@ -25,7 +25,7 @@ Source: {path}/Ideas - Species.md
 - Server stores Species (enum) + variant index separately on User; looks up sprite index from ServerConfig at packet time
 - Client loads mm{spriteIndex:0000}.epf (or .png) based on the ushort value
 - Example ServerConfig structure:
-  
+
   ```xml
   <Species Name="Human">
     <Variant Name="Light" SpriteIndex="0" />

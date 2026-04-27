@@ -31,6 +31,7 @@ The choice of how to surface achievements to **Chaos.Client** is its own design 
 ## Scope
 
 **In:**
+
 - New `Achievement` content type added to the `Hybrasyl.Xml` NuGet package; loaded via the existing `WorldState.Values<T>()` pattern in [hybrasyl/WorldStateStore.cs](../hybrasyl/WorldStateStore.cs).
 - New subsystem under `hybrasyl/Subsystems/Achievements/`: `AchievementProgress` (per-character POCO), `IAchievementCriterion`, `CounterCriterion`, `AchievementManager`.
 - Edits to [hybrasyl/Objects/Creature.cs](../hybrasyl/Objects/Creature.cs) — persisted `AchievementProgress` field alongside `Cookies` and the new `Traits` dict.
@@ -43,6 +44,7 @@ The choice of how to surface achievements to **Chaos.Client** is its own design 
 - Tests in `Hybrasyl.Tests/Achievements.cs`.
 
 **Out:**
+
 - General-purpose event bus refactor. We add explicit hook calls at the named integration points; we do NOT redesign the server's eventing model.
 - Achievement panel UI in Chaos.Client — flagged as a follow-up; the client-side work is its own scoping effort.
 - Retroactive backfill from cookies / `RecentKills` into achievement counters. Existing characters start at zero; counters accumulate going forward.
@@ -110,6 +112,7 @@ New `Achievement` root type added to the `Hybrasyl.Xml` NuGet:
 ```
 
 Three proof-of-concept achievements ship with the MVP:
+
 1. `first.blood` — combat starter, demonstrates `monsters.killed.any` counter and Legend mark synthesis.
 2. `mileth.regular` — visits Mileth 100 times, demonstrates a `maps.visited.<id>` counter without a Legend mark (silent unlock).
 3. `dual.discipline` — demonstrates `Combinator="All"` across two counters (e.g., reach level 50 AND deal 1M damage).
@@ -133,6 +136,7 @@ public static class AchievementManager
 Each method increments the relevant counters and re-evaluates achievements that reference those counter ids. Implementation is a single `IncrementCounter(user, id, delta)` per relevant counter, then the manager looks up which achievements depend on that counter id (precomputed reverse index from the catalog) and checks each one's criteria.
 
 Integration sites:
+
 - [Monster.cs:416](../hybrasyl/Objects/Monster.cs#L416) — alongside `hitter.TrackKill(...)` already there, add `AchievementManager.OnMonsterKilled(hitter, this);`.
 - [User.cs:818](../hybrasyl/Objects/User.cs#L818) — in `GiveExperience`, call `AchievementManager.OnExperienceGained(this, exp);`.
 - [User.cs:1515](../hybrasyl/Objects/User.cs#L1515) — in `SendEquipItem`, call `AchievementManager.OnItemEquipped(this, item);`.
@@ -198,17 +202,20 @@ Ship Option B as the MVP — it works against the current client, requires no pr
 **On login** (slotted into [hybrasyl/Servers/World.cs](../hybrasyl/Servers/World.cs) login sequence after Traits apply, before `UpdateAttributes(Full)`): nothing visible happens. `AchievementProgress` deserializes from Redis; counters are already current; unlocked set is current. No re-evaluation pass needed because counter changes always re-evaluate at the time of change.
 
 **On counter increment** (`IncrementCounter(user, id, delta)`):
+
 1. `progress.Counters[id] = progress.Counters.GetValueOrDefault(id) + delta;`
 2. Look up affected achievements via the precomputed `Dictionary<string, List<Achievement>>` reverse index (counter id → achievements that reference it).
 3. For each affected achievement not already in `Unlocked`, evaluate criteria. If met, call `Unlock(user, achievement)`.
 
 **On `Unlock(user, achievement)`:**
+
 1. Add id to `progress.Unlocked`.
 2. If `<LegendMark>` present, call `user.Legend.AddMark(...)`.
 3. Emit client notification per chosen Option (A: new opcode; B: SystemMessage + PlaySound; C: gRPC stream message; D: B today, A later).
 4. Persist (Redis save is automatic via Newtonsoft on next save tick; consider an explicit save here for unlock durability if the save tick is slow — TBD during implementation).
 
 **On `/reloadachievements`:**
+
 1. Rebuild catalog from XML.
 2. Rebuild reverse index.
 3. For each online user, run a single re-evaluation pass over all not-yet-unlocked achievements (criteria are pure functions of progress, so this is cheap). New criteria that the user already meets fire `Unlock` immediately.
@@ -263,19 +270,23 @@ Counter backfill from cookies/`RecentKills` is **not** in MVP — counters start
 Per the user's specific ask, this section enumerates the data the achievement subsystem would push or expose to Chaos.Client (the Hybrasyl-targeted client at `e:\Dark Ages Dev\Repos\Chaos.Client`). Concrete payloads depend on the chosen communication option above; the data shape is option-agnostic.
 
 **Push (server → client, real-time):**
+
 - Achievement-unlocked event: `{ id, name, description, icon_ref, category, timestamp, legend_mark_synthesized: bool }`. Triggered immediately on unlock. Client uses to display a toast/notification and update its in-memory state.
 - Counter-progress notification (optional — only for achievements with progress display enabled): `{ counter_id, new_value, achievement_ids_affected }`. Throttled or debounced server-side; not every monster kill should generate a wire message.
 
 **Pull / sync (client → server → client, request-response):**
+
 - Catalog listing: `{ achievements: [{ id, name, description, icon_ref, category, hidden, total_criteria, criteria_visibility }] }`. Filtered to exclude `Hidden=true` achievements the player hasn't unlocked. Cacheable client-side until catalog reload.
 - Progress snapshot: `{ unlocked: [id, ...], counters: { id: value, ... } }`. Sent on demand when the client opens the achievement panel.
 
 **Existing infrastructure these can ride on:**
+
 - Option B (recommended for MVP): `SystemMessage` (0x0A) for the unlock toast text; `PlaySound` (0x19) for the sound cue; Legend mark in the next profile refresh for marks-enabled achievements.
 - Option A (v2): new opcodes in the Hybrasyl-extension space, with matching deserializers in a Chaos.Client fork or post-Chaos.Networking-decoupling registration.
 - Option C (alternative v2): new `Achievements.proto` gRPC service alongside the existing `Patron.proto`.
 
 **Client-side surfaces that would need to exist:**
+
 - Notification/toast renderer for the unlock event. Today, `OkPopupMessageControl` is the closest primitive but is modal — a non-modal achievement toast widget is new client work.
 - Achievement panel (`PrefabPanel` subclass) for the catalog + progress views. New asset prefab + new screen wiring.
 - ViewModel additions in `WorldState` for `Achievements`, `AchievementProgress`. Mirror of the existing `SkillBook` / `SpellBook` pattern.

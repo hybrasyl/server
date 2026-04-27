@@ -13,11 +13,13 @@ A structured per-character quest tracker with a UI panel showing in-progress, co
 **Current state:** [QuestMetadata.cs](../hybrasyl/Internals/Metafiles/QuestMetadata.cs) defines a catalog (`Id`, `Title`, `Summary`, `Result`, `Reward`, `Prerequisite`) but the `Prerequisite` field is unused at runtime. Per-user quest state today is entirely cookie-driven — Lua scripts write things like `questid:mileth_orphans:completed` and check those cookies elsewhere. No structured "you are on step 3 of N" tracking, no quest list panel, no "available quests in your area" surface.
 
 **Considerations:**
-- Significant overlap with the Achievements subsystem: counter-driven progress, prerequisite gating, hot-reloadable catalog. Worth deciding whether quests *are* a kind of achievement or share infrastructure rather than duplicate it.
+
+- Significant overlap with the Achievements subsystem: counter-driven progress, prerequisite gating, hot-reloadable catalog. Worth deciding whether quests _are_ a kind of achievement or share infrastructure rather than duplicate it.
 - Cookie-based quest state is brittle but pervasive — migration path matters.
 - Quest UI is new client work (panel + active-quest tracker on HUD).
 
 **Open questions:**
+
 - Per-character or account-wide quest state? (Some achievements-style content benefits from cross-character.)
 - Branching / multi-outcome quests — schema needs to support divergent paths.
 - Time-limited / repeatable quests — daily/weekly quest scaffolding.
@@ -32,12 +34,14 @@ Multiple chat channels (global / party / guild / trade / whisper / system / comb
 **Current state:** [SystemMessage](../hybrasyl/Networking/ServerPackets/SystemMessage.cs) (opcode `0x0A`) is the single text-pushing mechanism — type byte + `String16` payload. `OnHear` in [User.cs:457-465](../hybrasyl/Objects/User.cs#L457-L465) handles speaker-to-listener formatting. There's a `combatlog:on/off` cookie precedent in [CombatLogCommand.cs](../hybrasyl/Subsystems/Messaging/ChatCommands/CombatLogCommand.cs) for opt-in combat verbosity, but it's not routed to a structured channel — combat events ride the same SystemMessage stream as everything else.
 
 **Considerations:**
+
 - The `String16` payload technically supports 65,535 bytes; the legacy client likely truncates well below that. Real ceiling needs measurement.
 - Multi-channel implies channel-tagged routing on the server (whose subscribers receive what) and a client-side channel-aware chat panel that doesn't exist today.
 - Combat log as a structured channel: events are already fired at the natural sites (Monster.OnDeath, damage application, etc.) — wiring them into a typed event channel is straightforward server-side; client UI is the hard part.
 - Whisper / direct messages exist in some form already (verify); cross-channel formatting (e.g., guild chat color) is a new concern.
 
 **Open questions:**
+
 - New opcode(s) for channel-aware messages, or extend SystemMessage's type byte to encode channel?
 - Server-side combat log persistence (replay later) vs client-only ephemeral?
 - Per-channel mute / filter / opt-in policy.
@@ -52,12 +56,14 @@ Hover-or-click tooltips that surface server-side metadata to the player: item de
 **Current state:** Item, Status, and Monster XML schemas in `Hybrasyl.Xml` carry rich descriptive data — server-side it's all there. Today the wire protocol pushes minimal data: item icon + sprite + name; status icon + duration; monster sprite + name. Tooltips don't exist as a structured feature; players rely on external wikis.
 
 **Considerations:**
+
 - Lots of data per query, but most of it is static (item descriptions don't change at runtime). Strong case for a "describe this id, I'll cache it" pattern rather than push-everything-at-equip.
 - Status duration is dynamic — needs frequent updates if shown.
 - Creature info raises a privacy/reveal question — should an unidentified creature show full stats? Probably staged reveal (level visible, HP not, until identify).
 - Client-side tooltip rendering is significant new UI work but well-understood pattern (every modern MMO has it).
 
 **Open questions:**
+
 - One unified `Tooltip` opcode keyed by (entity_type, id), or separate opcodes per kind?
 - Cache invalidation: do tooltip strings change at runtime? (If only via hot-reload, simple invalidate-all-on-reload works.)
 - Reveal rules for creatures — flat by class/level, or gated by an identify spell?
@@ -72,11 +78,13 @@ Replace the current right-click action on a spell/skill icon with a tabbed infor
 **Current state:** Castable XML in `Hybrasyl.Xml` carries the full data: lines, cooldown, MP/HP cost, description, mastery requirements, learn prerequisites. Server has all of it. The legacy client right-click likely surfaces a subset via the existing castable info packet (verify). "Lines" data is in the Castable's `Lines` / animation block.
 
 **Considerations:**
+
 - Most data is already server-side; the missing piece is structured push to the client and the panel UI itself.
 - Right-click input behavior is client-side input handling — server doesn't dictate it. The server-side scope is "expose the data the panel needs"; the panel itself is Chaos.Client work.
 - Connects with the broader Tooltips item (item #3) — probably one underlying server-side data-exposure mechanism handles both.
 
 **Open questions:**
+
 - Push proactively (when SpellBook updates) vs on-demand request (when player opens the panel).
 - Mastery percentage display — is per-castable mastery exposed today? (`Hybrasyl.Tests/CastableRestrictions.cs` shows mastery prereqs in tests, suggesting it exists.)
 - Per-class differentiation — same spell, different display per class (different lines)?

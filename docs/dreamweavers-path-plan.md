@@ -9,6 +9,7 @@ Dark Ages tops out at level 99 with no further character growth — XP earned at
 Dreamweaver's Path is the planned post-cap (and parallel-to-cap) horizontal progression. Players earn one of four currencies through different gameplay loops, spend them in named "Paths" (talent trees with purchasable nodes), and accumulate permanent enhancements. Some Paths are character-specific (one wallet per character); others are account-wide (one wallet per account). Most node effects compose with the Traits subsystem — a node grants a trait, the trait does the actual stat/effect work — so this design doesn't reinvent the modifier-application wheel.
 
 The full design is broad: 4 currencies, 13 Paths, account-level vs character-level split, species/religion/college/reputation Path content. Per discussion, the **MVP scope**:
+
 - Build the **framework** (currencies, wallet, node graph, prerequisite engine, XP-conversion engine, purchase API, Lua, admin commands).
 - Ship **4 character-level Paths** as proof-of-concept content: Essence, Combat, Exploration, Class.
 - **Account-level concepts (Crystallized Memories currency, Core / Politics / Religion / College / Guild / Reputation / Expansion Paths) are designed forward** — schemas and integration points documented — but stubbed at runtime until the Account-manager work lands.
@@ -18,8 +19,8 @@ The full design is broad: 4 currencies, 13 Paths, account-level vs character-lev
 - Players earn currencies through specific gameplay loops:
   - **Crystallized Reflections** — auto-earned from XP at level 99: every 500,000 XP gained at max level yields 1 Reflection. Per-character; spendable in any Path as a secondary cost (paired with the path's primary currency). The throttle on horizontal progression speed.
   - **Dream Essence** — earned through character-specific activities (kills, quests, milestones at any level). Per-character primary cost in character-level Paths (Essence, Combat, Exploration, Class, Species, Crafting, Conquest).
-  - **Vital Essence** — earned through combat/leveling/challenge content. Per-character primary cost in the Essence Path *only*. Replaces Dark Ages's unlimited stat-purchase model with a capped, currency-gated investment system.
-  - **Crystallized Memories** *(designed, not implemented in MVP)* — earned through exploration/quests/lore. Account-wide primary cost in account-level Paths. Pending Account manager.
+  - **Vital Essence** — earned through combat/leveling/challenge content. Per-character primary cost in the Essence Path _only_. Replaces Dark Ages's unlimited stat-purchase model with a capped, currency-gated investment system.
+  - **Crystallized Memories** _(designed, not implemented in MVP)_ — earned through exploration/quests/lore. Account-wide primary cost in account-level Paths. Pending Account manager.
 - Players spend currencies on **nodes** in **Paths**. Nodes have prerequisites (other nodes), costs (multi-currency), and effects (stat grants via Traits, currency multipliers, future kinds). Each node is one-shot per character (or per account, for account-level Paths).
 - Each Path is a DAG of nodes with optional tier gates ("must own N total nodes in this Path before tier 2 unlocks"). Pure-linear tracks and pure-DAG trees are both expressible.
 - Wallet state, owned-node set, and post-cap XP counter persist to Redis on the character. Account-level wallet (Memories) persists per-`AccountGuid` once accounts exist.
@@ -28,6 +29,7 @@ The full design is broad: 4 currencies, 13 Paths, account-level vs character-lev
 ## Scope
 
 **In:**
+
 - New content type **`DreamPath`** added to the `Hybrasyl.Xml` NuGet package — root for one Path, containing its nodes, their prereqs, costs, and effect bindings.
 - New subsystem under `hybrasyl/Subsystems/Dreamweaver/`: `Wallet`, `DreamProgress` (per-character POCO with owned-node set + post-cap XP counter), `IDreamEffect`, `StatTraitEffect` (binds a node to a Traits-subsystem trait), `CurrencyMultiplierEffect`, `DreamPathManager`.
 - Edits to [hybrasyl/Objects/Creature.cs](../hybrasyl/Objects/Creature.cs) — persisted `DreamProgress` field alongside `Cookies`, `Traits`, `AchievementProgress`.
@@ -39,11 +41,13 @@ The full design is broad: 4 currencies, 13 Paths, account-level vs character-lev
 - Tests in `Hybrasyl.Tests/Dreamweaver.cs`.
 
 **In (designed-forward, schema-only, runtime-stubbed):**
+
 - Crystallized Memories currency (carried in `Wallet`, addable via admin command for testing, but no auto-earn loop and no Path that consumes it ships).
 - Account-level Path schemas (Core, Politics, Religion, College, Guild, Reputation, Expansion). Catalog can load them; runtime returns "account-level Paths not yet available" on purchase attempts. Forward-compatible — when accounts ship, the runtime stub flips to a real path resolver.
 - Species Path is documented but stubbed; depends on the species_design memo's system, also unimplemented.
 
 **Out:**
+
 - The Account-manager work itself. Scoped separately. This doc designs against the assumption that `User.AccountGuid` will eventually point to a real Account entity.
 - Religion, College, Reputation, Conquest, Politics underlying systems. Each is its own subsystem; this doc does not scope them.
 - Client UI panel for browsing Paths and purchasing nodes. Wire-data contract is documented; client-side panel is a separate Chaos.Client effort (same shape as achievement panel work).
@@ -296,11 +300,13 @@ When the Account-manager work lands, a one-shot migration script aggregates per-
 Per the same wire-data discussion documented in [achievements-plan.md](achievements-plan.md), three flows to Chaos.Client (the Hybrasyl-targeted client at `e:\Dark Ages Dev\Repos\Chaos.Client`):
 
 **Push (server → client, real-time):**
+
 - Wallet update: `{ reflections, dream_essence, vital_essence, memories }` after every change.
 - Node-purchased event: `{ path_id, node_id, name, description }` for the toast.
 - Reflection-minted event: `{ amount, total_balance }` when the conversion engine fires at a 500k crossing.
 
 **Pull (request-response):**
+
 - Path catalog: `{ paths: [{ id, name, scope, primary_currency, secondary_currency, tiers, nodes: [{...}] }] }`. Cacheable until catalog reload.
 - Owned-node snapshot: `{ owned: ["path.essence|essence.vitality.1", ...], wallet: {...}, post_cap_experience }`.
 - Purchasable check: `{ purchasable: bool, reason: string }` for client-side UI gating before the request hits the server.
@@ -308,6 +314,7 @@ Per the same wire-data discussion documented in [achievements-plan.md](achieveme
 **MVP wire format:** `SystemMessage` text for purchases and reflection mints; per-wallet stat push or a new `WalletUpdate` opcode (decision deferred; a `SystemMessage` per change works in the meantime). Catalog/snapshot deferred until the client builds a panel.
 
 **Client-side surfaces (out of scope for the server):**
+
 - Dreamweaver panel (`PrefabPanel` subclass) — Path browser, node tree visualization, purchase flow.
 - Currency display in the HUD or stat sheet — must coexist with the existing gold display.
 - Toast widget for purchase confirmations and reflection mints.
