@@ -3,6 +3,7 @@
 Current state of accounts in Hybrasyl:
 
 **What exists:**
+
 - `User.AccountGuid` (Guid, always Guid.Empty) — `User.cs:94`
 - `User.Account` property — commented out at `User.cs:100`
 - `AuthInfo` — per-character password/login state — `Objects/AuthInfo.cs`
@@ -11,6 +12,7 @@ Current state of accounts in Hybrasyl:
 - gRPC Patron service with basic auth — `grpc/PatronServer.cs`, `protos/Patron.proto`
 
 **What's missing:**
+
 - Account entity class (owns multiple characters, stores clan name, email, etc.)
 - Account-level authentication (login with account, then pick character)
 - Character selection/listing after account login
@@ -19,6 +21,7 @@ Current state of accounts in Hybrasyl:
 - Vault/mailbox sharing activation (infrastructure exists, needs AccountGuid)
 
 **Blocked decisions:**
+
 - Where should the account service live? (Extend Patron gRPC vs separate service — needs more scoping)
 - What account-level data beyond clan name? (email, 2FA, billing, ban status?)
 - Character limits per account?

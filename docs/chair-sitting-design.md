@@ -5,6 +5,7 @@ Players can sit in chairs by walking into wall tiles that are flagged as chairs.
 **Why:** Existing RestPosition poses are cross-legged floor sits, not chair sits. Creating new sitting frames for every armor across 50 species is impractical. Chairs are currently impassable wall tiles.
 
 **Interaction model:**
+
 - Player walks toward a chair wall tile
 - Server detects the tile sprite ID is in the "chairs" config list
 - Instead of blocking movement, server sets `RestPosition.Seated` and faces player toward the chair
@@ -14,6 +15,7 @@ Players can sit in chairs by walking into wall tiles that are flagged as chairs.
 - Any other movement key just turns
 
 **Server changes:**
+
 - `RestPosition` enum: add `Seated = 0x04`
 - Walk handler (`User.cs:1916-2115`): when walk hits a wall tile in the chairs list, set Seated + direction instead of blocking
 - Direction handler: if Seated, allow direction change (turn in place) without clearing seated state
@@ -21,6 +23,7 @@ Players can sit in chairs by walking into wall tiles that are flagged as chairs.
 - Config: list of chair tile sprite IDs with optional seat height metadata (for client)
 
 **Client changes (Chaos.Client):**
+
 - Post-composite sprite transform when `RestPosition == Seated`:
   - Crop lower portion of assembled sprite (legs below waist line)
   - Shift upper body down by seat height pixels
