@@ -12,6 +12,7 @@
 // You should have received a copy of the Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
+using Hybrasyl.Internals.Enums;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Xml.Objects;
 using System.Reflection;
@@ -95,5 +96,60 @@ public class ChatCommands
 
         Assert.False(result.Success);
         Assert.Equal(Gender.Male, Fixture.TestUser.Gender);
+    }
+
+    [Fact]
+    public void SkinColorCommand_NamedRangeSetsEnum()
+    {
+        Fixture.TestUser.SkinColor = SkinColor.Basic;
+
+        var result = Invoke("SkinColorCommand", "3");
+
+        Assert.True(result.Success);
+        Assert.Equal(SkinColor.Orc, Fixture.TestUser.SkinColor);
+    }
+
+    [Fact]
+    public void SkinColorCommand_AcceptsByteMax()
+    {
+        Fixture.TestUser.SkinColor = SkinColor.Basic;
+
+        var result = Invoke("SkinColorCommand", "255");
+
+        Assert.True(result.Success);
+        Assert.Equal((byte)255, (byte)Fixture.TestUser.SkinColor);
+    }
+
+    [Fact]
+    public void SkinColorCommand_RejectsAboveByteMax()
+    {
+        Fixture.TestUser.SkinColor = SkinColor.Tan;
+
+        var result = Invoke("SkinColorCommand", "256");
+
+        Assert.False(result.Success);
+        Assert.Equal(SkinColor.Tan, Fixture.TestUser.SkinColor);
+    }
+
+    [Fact]
+    public void SkinColorCommand_RejectsNegative()
+    {
+        Fixture.TestUser.SkinColor = SkinColor.Tan;
+
+        var result = Invoke("SkinColorCommand", "-1");
+
+        Assert.False(result.Success);
+        Assert.Equal(SkinColor.Tan, Fixture.TestUser.SkinColor);
+    }
+
+    [Fact]
+    public void SkinColorCommand_RejectsNonNumeric()
+    {
+        Fixture.TestUser.SkinColor = SkinColor.Tan;
+
+        var result = Invoke("SkinColorCommand", "abc");
+
+        Assert.False(result.Success);
+        Assert.Equal(SkinColor.Tan, Fixture.TestUser.SkinColor);
     }
 }
