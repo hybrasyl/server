@@ -68,3 +68,9 @@ public readonly record struct DoorPanel(byte X, byte Y, int PanelIndex)
 {
     public (byte X, byte Y) Coords => (X, Y);
 }
+
+/// <summary>
+///     Outcome of a foreground-grid sweep for door groups: the validated <see cref="DoorGroup" />
+///     instances ready to insert into a map plus any per-anchor warnings for malformed/partial doors.
+/// </summary>
+public sealed record DoorScanResult(IReadOnlyList<DoorGroup> Groups, IReadOnlyList<string> Warnings);

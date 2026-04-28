@@ -90,6 +90,21 @@ Initial `Closed` state: if any panel's current sprite matches its definition's c
 - *Bug/regression:* a 1-tile door (e.g. `12484/12485`), a 2-tile (`1993,1994 / 1996,1997`), a 3-tile all-change (`2163-65 / 2167-69`), a 3-tile center-only (`3058-60 / 3066-68`), and a 4-tile (`14874-77 / 14904-07`) all register as a single group with correct `Closed` state and axis. Verified via `GameLog` at map load + manual walk in a test map.
 - *Architecture/design:* no scanning fallbacks; if map data doesn't match `doors.md` we log and skip, never guess.
 
+#### Sprite ordering — orientation-agnostic scan (post-Phase 2 patch)
+
+The initial Phase 2 scan assumed `def.ClosedSprites[i]` lived at `(origin + i * dx, origin + i * dy)` along the axis — i.e. that doors.md's array order ran low-coord to high-coord. Abel's 18610 N/S doors revealed this is **not a guaranteed invariant**: that family is catalogued in doors.md with the south tile's sprite at index 0 and the north tile's sprite at index 1, the opposite of what the directional walk expected. Each correctly-placed door produced two `panel N expected sprite X/Y not found` warnings — once when the south tile's sprite triggered (origin back-calculated to the wrong y, panel 1 sought off the door) and once when the north tile triggered (panel 0 sought off the door).
+
+The scan in [hybrasyl/Objects/MapObject.cs](../hybrasyl/Objects/MapObject.cs) was rewritten to be identity-based instead of direction-based:
+
+- For each toggling-panel anchor, walk **both** directions along the definition's axis. Each tile encountered gets placed by the panel index encoded in its sprite (via `Sprites.SpriteInfo`), not by its distance from the anchor.
+- Validation: every panel index `[0, PanelCount)` must be filled, and all collected panels must agree on open vs closed state (no half-open groups).
+- Center-only doors anchor only on the center (the lone toggling panel). Side panels are placed at the immediately-adjacent tiles without sprite validation; their sprite content is "irrelevant" per doors.md and does not affect group runtime.
+- Dedup is now keyed on consumed tile coordinates rather than `(origin, def)`, so a door visited from two different panel triggers produces exactly one group.
+
+**Practical consequence for new entries in `Sprites.Definitions`**: the array order in doors.md is preserved verbatim — there is no need to verify which sprite lives at which physical tile when adding a definition. The scanner figures it out at load time.
+
+Tests in [Hybrasyl.Tests/Doors.cs](../Hybrasyl.Tests/Doors.cs) cover both forward- and reverse-ordered N/S and E/W 2-tile doors, 3-tile center-only and all-change layouts, partial-door warnings, mixed open/closed warnings, and dedup of doors visited from either panel.
+
 ### Phase 3 — Toggle + collision rewrite
 
 Replace `ToggleDoor`/`ToggleDoors` with `DoorGroup.Toggle()`. `Door.OnClick` → `Group.Toggle(invoker)`. The `±1` scan goes away. `IsDoorCollision` walks the group's panels.

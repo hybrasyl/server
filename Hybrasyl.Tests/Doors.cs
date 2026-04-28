@@ -264,4 +264,212 @@ public class Doors
         // ToggleDoors on a tile without a door should not throw
         Fixture.Map.ToggleDoors(0, 0);
     }
+
+    // --- ScanForDoorGroups: map-load scanner tests ---
+    //
+    // Synthetic grids exercise the scanner in isolation. The retail door 18610 (N/S 2-tile,
+    // closed [18610,18611] / open [18612,18613]) is the canonical "reversed-order" case that
+    // produced the Abel sprite-not-found warnings before the orientation-agnostic rewrite.
+
+    private const int W = 20;
+    private const int H = 20;
+
+    private static (ushort[,] lfgs, ushort[,] rfgs) Grids() =>
+        (new ushort[W, H], new ushort[W, H]);
+
+    [Fact]
+    public void Scan_ForwardOrderedNSTwoTile_BuildsGroup()
+    {
+        var (lfgs, rfgs) = Grids();
+        // Panel 0 sprite at NORTH (smaller y), panel 1 at SOUTH (larger y).
+        rfgs[5, 10] = 18610;
+        rfgs[5, 11] = 18611;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.Equal(2, g.Panels.Count);
+        Assert.Equal(((byte)5, (byte)10), (g.Panels[0].X, g.Panels[0].Y));
+        Assert.Equal(0, g.Panels[0].PanelIndex);
+        Assert.Equal(((byte)5, (byte)11), (g.Panels[1].X, g.Panels[1].Y));
+        Assert.Equal(1, g.Panels[1].PanelIndex);
+        Assert.True(g.Closed);
+    }
+
+    [Fact]
+    public void Scan_ReversedOrderedNSTwoTile_BuildsGroup()
+    {
+        var (lfgs, rfgs) = Grids();
+        // The Abel @57,18-19 case: panel 1 sprite at NORTH, panel 0 at SOUTH.
+        rfgs[5, 10] = 18611;
+        rfgs[5, 11] = 18610;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.Equal(2, g.Panels.Count);
+        Assert.Equal(((byte)5, (byte)11), (g.Panels[0].X, g.Panels[0].Y));
+        Assert.Equal(0, g.Panels[0].PanelIndex);
+        Assert.Equal(((byte)5, (byte)10), (g.Panels[1].X, g.Panels[1].Y));
+        Assert.Equal(1, g.Panels[1].PanelIndex);
+        Assert.True(g.Closed);
+    }
+
+    [Fact]
+    public void Scan_ForwardOrderedEWTwoTile_BuildsGroup()
+    {
+        var (lfgs, rfgs) = Grids();
+        // 1993,1994 / 1996,1997 — E/W 2-tile.
+        lfgs[10, 5] = 1993;
+        lfgs[11, 5] = 1994;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.Equal(((byte)10, (byte)5), (g.Panels[0].X, g.Panels[0].Y));
+        Assert.Equal(((byte)11, (byte)5), (g.Panels[1].X, g.Panels[1].Y));
+    }
+
+    [Fact]
+    public void Scan_ReversedOrderedEWTwoTile_BuildsGroup()
+    {
+        var (lfgs, rfgs) = Grids();
+        lfgs[10, 5] = 1994;
+        lfgs[11, 5] = 1993;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.Equal(((byte)11, (byte)5), (g.Panels[0].X, g.Panels[0].Y));
+        Assert.Equal(((byte)10, (byte)5), (g.Panels[1].X, g.Panels[1].Y));
+    }
+
+    [Fact]
+    public void Scan_OpenStateGroup_HasClosedFalse()
+    {
+        var (lfgs, rfgs) = Grids();
+        rfgs[5, 10] = 18612; // open panel 0
+        rfgs[5, 11] = 18613; // open panel 1
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.False(g.Closed);
+    }
+
+    [Fact]
+    public void Scan_ThreeTileCenterOnlyForward_BuildsGroupWithArbitrarySidePanels()
+    {
+        // 3018,3019,3020 / 3024,3025,3026 — N/S center-only. Anchor must be the center
+        // panel; side sprites are jamb art and aren't validated.
+        var (lfgs, rfgs) = Grids();
+        rfgs[5, 10] = 9999;  // arbitrary jamb sprite
+        rfgs[5, 11] = 3019;  // center, closed
+        rfgs[5, 12] = 9999;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.Equal(3, g.Panels.Count);
+        Assert.Equal(((byte)5, (byte)11), (g.CenterPanel.X, g.CenterPanel.Y));
+        // Side panels are placed at the immediately-adjacent tiles regardless of sprite.
+        Assert.Contains(g.Panels, p => p.X == 5 && p.Y == 10);
+        Assert.Contains(g.Panels, p => p.X == 5 && p.Y == 12);
+        Assert.True(g.Closed);
+    }
+
+    [Fact]
+    public void Scan_ThreeTileAllChangeReversed_CollectsByPanelIndex()
+    {
+        // 2163,2164,2165 / 2167,2168,2169 — E/W 3-tile all-change. Place sprites in
+        // reverse order along the axis to confirm the scanner keys off sprite identity.
+        var (lfgs, rfgs) = Grids();
+        lfgs[12, 5] = 2163; // panel 0 at EAST
+        lfgs[11, 5] = 2164; // panel 1
+        lfgs[10, 5] = 2165; // panel 2 at WEST
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        var g = Assert.Single(result.Groups);
+        Assert.Equal(((byte)12, (byte)5), (g.Panels[0].X, g.Panels[0].Y));
+        Assert.Equal(((byte)11, (byte)5), (g.Panels[1].X, g.Panels[1].Y));
+        Assert.Equal(((byte)10, (byte)5), (g.Panels[2].X, g.Panels[2].Y));
+    }
+
+    [Fact]
+    public void Scan_MixedOpenAndClosedSprites_WarnsNoGroup()
+    {
+        var (lfgs, rfgs) = Grids();
+        rfgs[5, 10] = 18610; // closed panel 0
+        rfgs[5, 11] = 18613; // OPEN panel 1 — inconsistent
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Groups);
+        Assert.NotEmpty(result.Warnings);
+        Assert.Contains(result.Warnings, w => w.Contains("mixed open/closed"));
+    }
+
+    [Fact]
+    public void Scan_PartialDoor_WarnsNoGroup()
+    {
+        var (lfgs, rfgs) = Grids();
+        rfgs[5, 10] = 18610; // panel 0 — second panel missing entirely
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Groups);
+        Assert.NotEmpty(result.Warnings);
+        Assert.Contains(result.Warnings, w => w.Contains("missing panel"));
+    }
+
+    [Fact]
+    public void Scan_LoneTogglingSpriteAtMapEdge_DoesNotCrash()
+    {
+        var (lfgs, rfgs) = Grids();
+        rfgs[0, 0] = 18610; // anchor on a corner with no neighbors
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Groups);
+        Assert.Single(result.Warnings);
+    }
+
+    [Fact]
+    public void Scan_TwoSeparateDoorsOfSameDef_ProducesTwoGroups()
+    {
+        var (lfgs, rfgs) = Grids();
+        // Two distinct 18610 doors on the same column, with a gap.
+        rfgs[5, 10] = 18610;
+        rfgs[5, 11] = 18611;
+        rfgs[5, 14] = 18610;
+        rfgs[5, 15] = 18611;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        Assert.Equal(2, result.Groups.Count);
+    }
+
+    [Fact]
+    public void Scan_DoorVisitedFromBothPanels_DedupesViaConsumedTiles()
+    {
+        // Anchor is whichever toggling tile the row-major scan hits first; consumed-tile
+        // dedup must prevent the sibling tile from re-triggering a second group attempt.
+        var (lfgs, rfgs) = Grids();
+        rfgs[5, 10] = 18611;
+        rfgs[5, 11] = 18610;
+
+        var result = MapObject.ScanForDoorGroups(lfgs, rfgs, W, H);
+
+        Assert.Empty(result.Warnings);
+        Assert.Single(result.Groups);
+    }
 }
