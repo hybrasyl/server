@@ -16,11 +16,15 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Interfaces;
 using Hybrasyl.Objects;
+using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Xml.Objects;
 using System.Linq;
 using Xunit;
 using Creature = Hybrasyl.Xml.Objects.Creature;
+using HybrasylReactor = Hybrasyl.Objects.Reactor;
+using XmlReactor = Hybrasyl.Xml.Objects.Reactor;
 
 namespace Hybrasyl.Tests;
 
@@ -144,5 +148,77 @@ public class Reactor
         Fixture.TestUser.Stats.Level = 39;
 
         var trapTest = Game.World.WorldData.GetByIndex<Castable>("TestTrapSingle");
+    }
+
+    // --- Reactor.OnSpawn idempotency tests ---
+    //
+    // Regression for the QRM20_* "Dialog sequence X is being overwritten" startup warnings:
+    // Reactor.OnSpawn used to call DialogSequences.Clear() before re-running the script's OnSpawn
+    // function, but left SequenceIndex populated. RegisterDialogSequence checks SequenceIndex
+    // for duplicates, so every re-registration after a second OnSpawn (caused by InsertReactor
+    // explicitly calling OnSpawn even though World.Insert had already fired it via the ISpawnable
+    // path, and by ScriptProcessor.ReloadScript on script reload) tripped a warning per sequence.
+    // Fix uses IPursuitable.ResetPursuits, which empties all three collections together.
+
+    private static HybrasylReactor CreateBareReactor(byte x = 5, byte y = 5) =>
+        new(new XmlReactor { X = x, Y = y, DisplayName = "TestReactor" }, Fixture.Map);
+
+    [Fact]
+    public void ResetPursuits_ClearsAllSequenceCollections()
+    {
+        var reactor = CreateBareReactor();
+        var pursuitable = (IPursuitable)reactor;
+
+        ((IInteractable)reactor).RegisterDialogSequence(new DialogSequence("seq_a"));
+        pursuitable.AddPursuit(new DialogSequence("pursuit_a"));
+
+        Assert.NotEmpty(reactor.SequenceIndex);
+        Assert.NotEmpty(reactor.DialogSequences);
+        Assert.NotEmpty(reactor.Pursuits);
+
+        pursuitable.ResetPursuits();
+
+        Assert.Empty(reactor.SequenceIndex);
+        Assert.Empty(reactor.DialogSequences);
+        Assert.Empty(reactor.Pursuits);
+    }
+
+    [Fact]
+    public void DialogSequencesClear_AloneLeavesSequenceIndexStale()
+    {
+        // Demonstrates the pre-fix bug: clearing only DialogSequences leaves SequenceIndex
+        // populated. Future maintainers reading this test should see why ResetPursuits is the
+        // correct call, not DialogSequences.Clear().
+        var reactor = CreateBareReactor();
+        ((IInteractable)reactor).RegisterDialogSequence(new DialogSequence("seq_a"));
+
+        reactor.DialogSequences.Clear();
+
+        Assert.Empty(reactor.DialogSequences);
+        Assert.NotEmpty(reactor.SequenceIndex);
+    }
+
+    [Fact]
+    public void ReRegisterAfterResetPursuits_LeavesNoDuplicates()
+    {
+        var reactor = CreateBareReactor();
+        var interactable = (IInteractable)reactor;
+
+        interactable.RegisterDialogSequence(new DialogSequence("seq_a"));
+        interactable.RegisterDialogSequence(new DialogSequence("seq_b"));
+        Assert.Equal(2, reactor.SequenceIndex.Count);
+        Assert.Equal(2, reactor.DialogSequences.Count);
+
+        ((IPursuitable)reactor).ResetPursuits();
+
+        var freshA = new DialogSequence("seq_a");
+        var freshB = new DialogSequence("seq_b");
+        interactable.RegisterDialogSequence(freshA);
+        interactable.RegisterDialogSequence(freshB);
+
+        Assert.Equal(2, reactor.SequenceIndex.Count);
+        Assert.Equal(2, reactor.DialogSequences.Count);
+        Assert.Same(freshA, reactor.SequenceIndex["seq_a"]);
+        Assert.Same(freshB, reactor.SequenceIndex["seq_b"]);
     }
 }

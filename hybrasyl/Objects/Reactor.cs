@@ -198,8 +198,13 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
 
         if (Script.HasFunction("OnSpawn"))
         {
-            DialogSequences.Clear();
-            // Now run our actual OnSpawn function
+            //Reset all dialog state before re-running OnSpawn so the script re-registering its
+            //sequences doesn't trip "Dialog sequence X is being overwritten" warnings. Just clearing
+            //DialogSequences left SequenceIndex populated, which is the dictionary RegisterDialogSequence
+            //actually checks. Reactor is the second spawn (World.Insert already fires OnSpawn for any
+            //ISpawnable, then MapObject.InsertReactor calls it a second time), and ScriptProcessor.ReloadScript
+            //also re-fires OnSpawn — both paths land here.
+            (this as IPursuitable).ResetPursuits();
             var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
             if (ret.Result == ScriptResult.Success)
                 Ready = true;
