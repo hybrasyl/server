@@ -102,18 +102,21 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         }
     }
 
-    public LocationInfo RandomDestination => new()
+    public LocationInfo RandomDestination
     {
-        X = (byte) Math.Clamp(X + Random.Shared.Next(
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
-            byte.MaxValue),
-        Y = (byte) Math.Clamp(X + Random.Shared.Next(
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * -0.5),
-                (int) (Game.ActiveConfiguration.Constants.ViewportSize * 0.5)), byte.MinValue,
-            byte.MaxValue),
-        MapId = Map.Id
-    };
+        get
+        {
+            var halfVp = (int)(Game.ActiveConfiguration.Constants.ViewportSize * 0.5);
+            var dx = Random.Shared.Next(-halfVp, halfVp);
+            var dy = Random.Shared.Next(-halfVp, halfVp);
+            return new LocationInfo
+            {
+                X = (byte)Math.Clamp(X + dx, 0, Map.X - 1),
+                Y = (byte)Math.Clamp(Y + dy, 0, Map.Y - 1),
+                MapId = Map.Id
+            };
+        }
+    }
 
     public double ActiveSeconds
     {
@@ -1151,7 +1154,12 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                 }
             }
 
-            if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count == 0) Active = false;
+            // Map can be null if this monster was removed from its map on another thread
+            // between the caller's viewport snapshot and our invocation here.
+            var map = Map;
+            if (map != null &&
+                map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count == 0)
+                Active = false;
 
             base.AoiDeparture(obj);
         }
@@ -1163,7 +1171,10 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         {
             if (obj is User user && (!user.Condition.IsInvisible || Condition.SeeInvisible))
             {
-                if (Map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0) Active = true;
+                var map = Map;
+                if (map != null &&
+                    map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0)
+                    Active = true;
 
                 if (IsHostile(user))
                 {

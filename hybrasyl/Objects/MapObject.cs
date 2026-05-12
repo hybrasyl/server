@@ -60,8 +60,8 @@ public class MapObject : IStateStorable
 
         LoadMapFile();
         LoadXml(newMap);
-        for (byte x = 0; x <= X; x++)
-            for (byte y = 0; y <= Y; y++)
+        for (byte x = 0; x < X; x++)
+            for (byte y = 0; y < Y; y++)
             {
                 if (IsWall(x, y)) continue;
                 UsableTiles.Add((x, y));
@@ -683,14 +683,19 @@ public class MapObject : IStateStorable
         {
             for (var x = -1 * radius; x <= radius; x++)
                 for (var y = -1 * radius; y <= radius; y++)
-                    if (IsWall(xStart + x, yStart + y) ||
-                        GetTileContents(xStart + x, yStart + y).Where(predicate: x => x is Creature).Count() > 0) { }
+                {
+                    var nx = xStart + x;
+                    var ny = yStart + y;
+                    if (!IsValidPoint((short)nx, (short)ny)) continue;
+                    if (IsWall(nx, ny) ||
+                        GetTileContents(nx, ny).Where(predicate: x => x is Creature).Count() > 0) { }
                     else
                     {
-                        retx = (byte)(xStart + x);
-                        rety = (byte)(yStart + y);
+                        retx = (byte)nx;
+                        rety = (byte)ny;
                         break;
                     }
+                }
 
             radius++;
             // Don't go on forever here
