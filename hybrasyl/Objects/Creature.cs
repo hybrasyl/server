@@ -1444,7 +1444,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             Applied = false // this is a removal
         };
 
-        if (string.IsNullOrEmpty(status.RemoveChance))
+        if (!string.IsNullOrEmpty(status.RemoveChance))
         {
             var snapshot = World.WorldState.Get<CreatureSnapshot>(status.OriginSnapshotId);
 
@@ -1481,8 +1481,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider
         foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
             if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
                 reactor.AoiDeparture(this);
-        u.SendSystemMessage("You succeed in removing the affliction.");
-        u.SendCombatLogMessage(statusEvent);
+        // Only announce removal when a remover actively triggered it; natural
+        // expiry (ProcessStatusTicks passes remover=null) should be silent.
+        if (remover != null)
+        {
+            u.SendSystemMessage("You succeed in removing the affliction.");
+            u.SendCombatLogMessage(statusEvent);
+        }
         return true;
     }
 
