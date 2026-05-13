@@ -713,7 +713,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                         var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(predicate: s =>
                             s.Category.Contains(status.Value));
                         if (toRemove == null) break;
-                        tar.RemoveStatus(toRemove.Icon);
+                        tar.RemoveStatus(toRemove.Icon, remover: this);
                         GameLog.UserActivityInfo(
                             $"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
                     }
@@ -722,7 +722,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
-                    tar.RemoveStatus(applyStatus.Icon);
+                    tar.RemoveStatus(applyStatus.Icon, remover: this);
 
                 }
                 else

@@ -22,7 +22,7 @@ namespace Hybrasyl.Interfaces
                 CreatureGuid = Guid,
                 Stats = statInfo ?? new StatInfo()
             };
-            World.WorldState.Set(Guid, snapshot);
+            World.WorldState.Set(snapshot.Guid, snapshot);
             return snapshot.Guid;
         }
     }

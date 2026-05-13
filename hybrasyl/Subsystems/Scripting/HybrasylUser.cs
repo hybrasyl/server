@@ -1418,7 +1418,7 @@ public class HybrasylUser : HybrasylWorldObject
             return false;
         }
 
-        return User.ApplyStatus(new CreatureStatus(status, User, null, null,
+        return User.ApplyStatus(new CreatureStatus(status, User, null, User,
             duration == 0 ? status.Duration : duration,
             tick == 0 ? status.Tick : tick,
             intensity));

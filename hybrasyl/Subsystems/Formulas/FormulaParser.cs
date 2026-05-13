@@ -68,8 +68,7 @@ internal static class FormulaParser
                 e.Parameters[$"SOURCE{prop.Name.ToUpper()}"] = prop.GetValue(eval.Source);
             if (eval.Target != null)
                 e.Parameters[$"TARGET{prop.Name.ToUpper()}"] = prop.GetValue(eval.Target);
-            if (eval.OriginalCaster != null)
-                e.Parameters[$"ORIGINALCASTER{prop.Name.ToUpper()}"] = prop.GetValue(eval.OriginalCaster);
+            // OriginalCaster is a StatInfo, not a Creature — only the StatInfo loop applies to it.
         }
 
         foreach (var prop in FormulaTokens[typeof(Castable)].Where(prop => eval.Castable != null))
