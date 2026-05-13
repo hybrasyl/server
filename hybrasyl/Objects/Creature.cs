@@ -1446,28 +1446,36 @@ public class Creature : VisibleObject, IStatSnapshotProvider
 
         if (!string.IsNullOrEmpty(status.RemoveChance))
         {
-            var snapshot = World.WorldState.Get<CreatureSnapshot>(status.OriginSnapshotId);
-
-            var result = FormulaParser.Eval(status.RemoveChance, new FormulaEvaluation
+            if (World.WorldState.TryGetValue<CreatureSnapshot>(status.OriginSnapshotId, out var snapshot))
             {
-                OriginalCaster = snapshot.Stats,
-                Target = this,
-                Source = remover,
-            });
-
-            var chance = Random.Shared.NextDouble();
-
-            statusEvent.RemovalRoll = chance;
-            statusEvent.RequiredRoll = result;
-
-            if (chance >= result)
-            {
-                if (remover is User user)
+                var result = FormulaParser.Eval(status.RemoveChance, new FormulaEvaluation
                 {
-                    user.SendSystemMessage("You try your best, but nothing happens.");
-                    user.SendCombatLogMessage(statusEvent);
+                    OriginalCaster = snapshot.Stats,
+                    Target = this,
+                    Source = remover,
+                });
+
+                var chance = Random.Shared.NextDouble();
+
+                statusEvent.RemovalRoll = chance;
+                statusEvent.RequiredRoll = result;
+
+                if (chance >= result)
+                {
+                    if (remover is User user)
+                    {
+                        user.SendSystemMessage("You try your best, but nothing happens.");
+                        user.SendCombatLogMessage(statusEvent);
+                    }
+                    return false;
                 }
-                return false;
+            }
+            else
+            {
+                // Snapshot missing (status applied without a source, or snapshot
+                // evicted). Skip the chance roll and proceed with removal.
+                GameLog.Warning(
+                    $"RemoveStatus: no origin snapshot for {status.Name} on {Name} (id={status.OriginSnapshotId}); skipping chance roll");
             }
         }
 
