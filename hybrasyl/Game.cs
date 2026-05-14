@@ -901,20 +901,24 @@ public static class Game
     }
 
     /// <summary>
-    ///     Check to see if a sprite change should also trigger a collision change. Used to
-    ///     determine if a door opening triggers a collision update server side or not. This specifically
-    ///     handles the case of doors in Piet and Undine which are 3 tiles wide (and all 3 change graphically)
-    ///     but collision updates only occur for two tiles.
+    ///     Whether toggling this door definition should add/remove entries from the map's collision set. True
+    ///     when any of the door's panel sprites (either state) has the wall bit set in <c>sotp.dat</c>. The
+    ///     common case: both states are walls = true; open state is walkable = true; both states walkable =
+    ///     false. Specifically handles the Piet/Undine 3-tile doors where only the center tile is collision-
+    ///     bearing but all three change graphically — the center sprite has the wall bit, so the group is
+    ///     flagged collision-toggling.
     /// </summary>
-    /// <param name="sprite">Sprite number.</param>
-    /// <returns>true/false indicating whether the sprite should trigger a collision.</returns>
-    public static bool IsDoorCollision(ushort sprite)
+    public static bool IsDoorCollision(DoorDefinition def)
     {
-        if (Sprites.OpenDoorSprites.TryGetValue(sprite, out var doorSprite))
-            return (Collisions[sprite - 1] & 0x0F) == 0x0F ||
-                   (Collisions[doorSprite - 1] & 0x0F) == 0x0F;
-        return (Collisions[sprite - 1] & 0x0F) == 0x0F ||
-               (Collisions[Sprites.ClosedDoorSprites[sprite] - 1] & 0x0F) == 0x0F;
+        foreach (var sprite in def.ClosedSprites)
+            if ((Collisions[sprite - 1] & 0x0F) == 0x0F)
+                return true;
+
+        foreach (var sprite in def.OpenSprites)
+            if ((Collisions[sprite - 1] & 0x0F) == 0x0F)
+                return true;
+
+        return false;
     }
 }
 

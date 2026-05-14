@@ -337,12 +337,187 @@ public class MapObject : IStateStorable
         GameLog.DataLogDebug($"Inserted signpost {post.Map.Name}@{post.X},{post.Y}");
     }
 
-    private void InsertDoor(byte x, byte y, bool open, bool isLeftRight, bool triggerCollision = true)
+    private void InsertDoorGroup(DoorGroup group)
     {
-        var door = new Door(x, y, open, isLeftRight, triggerCollision);
-        World.Insert(door);
-        Insert(door, door.X, door.Y);
-        Doors[(door.X, door.Y)] = door;
+        foreach (var panel in group.Panels)
+        {
+            var door = new Door(panel.X, panel.Y, group, panel.PanelIndex);
+            World.Insert(door);
+            Insert(door, door.X, door.Y);
+            Doors[(door.X, door.Y)] = door;
+        }
+    }
+
+    private static DoorSpriteInfo LookupDoorSprite(ushort lfg, ushort rfg)
+    {
+        if (Sprites.SpriteInfo.TryGetValue(lfg, out var linfo))
+            return linfo;
+
+        if (Sprites.SpriteInfo.TryGetValue(rfg, out var rinfo))
+            return rinfo;
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Scans the foreground sprite grids for door groups using sprite identity (not directional
+    ///     offset) to place panels. Tolerates retail door definitions where doors.md's array order
+    ///     runs opposite to map-coordinate increase along the axis: each panel's tile is determined
+    ///     by the panel index encoded in its sprite, so a 2-tile N/S door with sprite[0] in the south
+    ///     tile and sprite[1] in the north tile is collected just as cleanly as the reverse.
+    ///     <br /><br />
+    ///     For center-only doors, only the center panel toggles and triggers a scan. The side panels
+    ///     are placed at the tiles immediately adjacent to the center along the definition's axis
+    ///     and are NOT sprite-validated — per doors.md, side-panel sprites are static jamb art whose
+    ///     contents are irrelevant.
+    /// </summary>
+    public static DoorScanResult ScanForDoorGroups(ushort[,] lfgs, ushort[,] rfgs, int width, int height)
+    {
+        var groups = new List<DoorGroup>();
+        var warnings = new List<string>();
+        var consumed = new HashSet<(byte, byte)>();
+
+        for (byte y = 0; y < height; ++y)
+            for (byte x = 0; x < width; ++x)
+            {
+                if (consumed.Contains((x, y))) continue;
+
+                var info = LookupDoorSprite(lfgs[x, y], rfgs[x, y]);
+                if (info is null) continue;
+                if (!info.Definition.HasClosedVersion) continue;
+                if (!info.IsToggling) continue;
+
+                TryBuildDoorGroup(x, y, info, lfgs, rfgs, width, height, groups, warnings, consumed);
+            }
+
+        return new DoorScanResult(groups, warnings);
+    }
+
+    private static void TryBuildDoorGroup(
+        byte anchorX,
+        byte anchorY,
+        DoorSpriteInfo anchorInfo,
+        ushort[,] lfgs,
+        ushort[,] rfgs,
+        int width,
+        int height,
+        List<DoorGroup> groups,
+        List<string> warnings,
+        HashSet<(byte, byte)> consumed)
+    {
+        var def = anchorInfo.Definition;
+        var dx = def.IsLeftRight ? 1 : 0;
+        var dy = def.IsLeftRight ? 0 : 1;
+
+        DoorPanel[] panels;
+        bool closed;
+
+        if (def.OnlyCenterChanges)
+        {
+            //Only the center panel anchors a scan (it's the sole toggling panel). Side panels go
+            //at the immediately-adjacent tiles along the axis; their sprites are jamb art and aren't
+            //validated. Which side ends up index 0 vs N-1 doesn't affect runtime behavior.
+            if (anchorInfo.PanelIndex != def.CenterPanelIndex)
+                return;
+
+            panels = new DoorPanel[def.PanelCount];
+            for (var i = 0; i < def.PanelCount; i++)
+            {
+                var offset = i - def.CenterPanelIndex;
+                var px = anchorX + offset * dx;
+                var py = anchorY + offset * dy;
+
+                if (px < 0 || py < 0 || px >= width || py >= height)
+                {
+                    warnings.Add(
+                        $"Door {def.ClosedSprites[def.CenterPanelIndex]} anchored at {anchorX},{anchorY}: " +
+                        $"panel {i} at ({px},{py}) extends off-map, skipping group");
+                    return;
+                }
+
+                panels[i] = new DoorPanel((byte)px, (byte)py, i);
+            }
+
+            closed = !anchorInfo.IsOpenState;
+        }
+        else
+        {
+            //Walk both directions from the anchor along the definition's axis, placing each
+            //matching tile by the panel index encoded in its sprite. The arrays are sized
+            //PanelCount; we drop tiles into the slot the sprite identifies, regardless of
+            //walk direction.
+            var coords = new (byte X, byte Y)?[def.PanelCount];
+            var states = new bool?[def.PanelCount];
+            coords[anchorInfo.PanelIndex] = (anchorX, anchorY);
+            states[anchorInfo.PanelIndex] = anchorInfo.IsOpenState;
+
+            WalkAxis(lfgs, rfgs, anchorX, anchorY, -dx, -dy, def, width, height, coords, states);
+            WalkAxis(lfgs, rfgs, anchorX, anchorY, dx, dy, def, width, height, coords, states);
+
+            for (var i = 0; i < def.PanelCount; i++)
+            {
+                if (!coords[i].HasValue)
+                {
+                    var found = coords.Count(c => c.HasValue);
+                    warnings.Add(
+                        $"Door {def.ClosedSprites[0]} anchored at {anchorX},{anchorY}: " +
+                        $"missing panel {i} ({found}/{def.PanelCount} panels found), skipping group");
+                    return;
+                }
+            }
+
+            var firstState = states[0]!.Value;
+            for (var i = 1; i < def.PanelCount; i++)
+                if (states[i] != firstState)
+                {
+                    warnings.Add(
+                        $"Door {def.ClosedSprites[0]} anchored at {anchorX},{anchorY}: " +
+                        $"panels are in mixed open/closed states, skipping group");
+                    return;
+                }
+
+            panels = new DoorPanel[def.PanelCount];
+            for (var i = 0; i < def.PanelCount; i++)
+            {
+                var (cx, cy) = coords[i]!.Value;
+                panels[i] = new DoorPanel(cx, cy, i);
+            }
+
+            closed = !firstState;
+        }
+
+        var updateCollision = Game.IsDoorCollision(def);
+        var group = new DoorGroup(def, panels, closed, updateCollision);
+        groups.Add(group);
+        foreach (var p in panels) consumed.Add((p.X, p.Y));
+    }
+
+    private static void WalkAxis(
+        ushort[,] lfgs,
+        ushort[,] rfgs,
+        int startX,
+        int startY,
+        int stepX,
+        int stepY,
+        DoorDefinition def,
+        int width,
+        int height,
+        (byte X, byte Y)?[] coords,
+        bool?[] states)
+    {
+        var x = startX + stepX;
+        var y = startY + stepY;
+        while (x >= 0 && y >= 0 && x < width && y < height)
+        {
+            var info = LookupDoorSprite(lfgs[x, y], rfgs[x, y]);
+            if (info is null || info.Definition != def) return;
+            if (coords[info.PanelIndex].HasValue) return; //duplicate panel — adjacent door, halt
+
+            coords[info.PanelIndex] = ((byte)x, (byte)y);
+            states[info.PanelIndex] = info.IsOpenState;
+            x += stepX;
+            y += stepY;
+        }
     }
 
     public bool LoadMapFile()
@@ -356,39 +531,39 @@ public class MapObject : IStateStorable
         RawData = File.ReadAllBytes(filename);
         Checksum = Crc16.Calculate(RawData);
 
-        var index = 0;
+        //First pass: read fg sprites into per-tile grids and compute SOTP collisions. The grids let the
+        //door-group scanner probe tiles more than once without re-parsing RawData.
+        var lfgs = new ushort[X, Y];
+        var rfgs = new ushort[X, Y];
+        var rawIndex = 0;
         for (byte y = 0; y < Y; ++y)
             for (byte x = 0; x < X; ++x)
             {
-                var bg = RawData[index++] | (RawData[index++] << 8);
-                var lfg = RawData[index++] | (RawData[index++] << 8);
-                var rfg = RawData[index++] | (RawData[index++] << 8);
+                _ = RawData[rawIndex++] | (RawData[rawIndex++] << 8);    // bg (unused post-load)
+                var lfg = RawData[rawIndex++] | (RawData[rawIndex++] << 8);
+                var rfg = RawData[rawIndex++] | (RawData[rawIndex++] << 8);
 
                 if (lfg != 0 && (Game.Collisions[lfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
 
                 if (rfg != 0 && (Game.Collisions[rfg - 1] & 0x0F) == 0x0F) Collisions.Add((x, y));
 
-                var lfgu = (ushort)lfg;
-                var rfgu = (ushort)rfg;
-
-                if (Sprites.DoorSprites.ContainsKey(lfgu))
-                {
-                    // This is a left-right door
-                    GameLog.DebugFormat("Inserting LR door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, Collisions.Contains((x, y)));
-
-                    InsertDoor(x, y, Collisions.Contains((x, y)), true,
-                        Game.IsDoorCollision(lfgu));
-                }
-                else if (Sprites.DoorSprites.ContainsKey(rfgu))
-                {
-                    GameLog.DebugFormat("Inserting UD door at {0}@{1},{2}: Collision: {3}",
-                        Name, x, y, Collisions.Contains((x, y)));
-                    // THis is an up-down door 
-                    InsertDoor(x, y, Collisions.Contains((x, y)), false,
-                        Game.IsDoorCollision(rfgu));
-                }
+                lfgs[x, y] = (ushort)lfg;
+                rfgs[x, y] = (ushort)rfg;
             }
+
+        var scan = ScanForDoorGroups(lfgs, rfgs, X, Y);
+        foreach (var w in scan.Warnings)
+            GameLog.Warning($"{Name}: {w}");
+
+        foreach (var group in scan.Groups)
+        {
+            InsertDoorGroup(group);
+            var anchor = group.Panels[0];
+            GameLog.DebugFormat(
+                "Inserted {0}-tile {1} door group at {2}@{3},{4}: Closed={5}, UpdateCollision={6}, OnlyCenterChanges={7}",
+                group.Definition.PanelCount, group.Definition.Axis, Name, anchor.X, anchor.Y,
+                group.Closed, group.UpdateCollision, group.Definition.OnlyCenterChanges);
+        }
 
         return true;
     }
@@ -432,84 +607,55 @@ public class MapObject : IStateStorable
     }
 
     /// <summary>
-    ///     Toggle a given door's state (open/closed) and send updates to users nearby.
+    ///     Toggles every panel of the <see cref="DoorGroup" /> atomically: flips the shared Closed flag, updates
+    ///     collision for each toggle-able panel (if the group is collision-bearing), and emits a
+    ///     <c>SendDoorUpdate</c> per panel to every user within viewport. Side panels of center-only doors are
+    ///     skipped — they're static jamb art with no collision change and no visual flip, so emitting a packet
+    ///     for them would cause a spurious sprite swap on the client.
     /// </summary>
-    /// <param name="x">The X coordinate of the door.</param>
-    /// <param name="y">The Y coordinate of the door.</param>
-    /// <returns></returns>
-    public void ToggleDoor(byte x, byte y)
+    private void ToggleDoorGroup(DoorGroup group)
     {
-        var coords = (x, y);
-        GameLog.DebugFormat("Door {0}@{1},{2}: Open: {3}, changing to {4}",
-            Name, x, y, Doors[coords].Closed,
-            !Doors[coords].Closed);
+        group.Closed = !group.Closed;
 
-        Doors[coords].Closed = !Doors[coords].Closed;
+        GameLog.DebugFormat(
+            "Toggling {0}-tile {1} door at {2}@{3},{4}: Closed={5}",
+            group.Definition.PanelCount, group.Definition.Axis, Name,
+            group.Panels[0].X, group.Panels[0].Y, group.Closed);
 
-        // There are several examples of doors in Temuair that trigger graphic
-        // changes but do not trigger collision updates (e.g. 3-panel doors in
-        // Piet & Undine).
-        if (Doors[coords].UpdateCollision)
+        foreach (var panel in group.Panels)
         {
-            GameLog.DebugFormat("Door {0}@{1},{2}: updateCollision is set, collisions are now {3}",
-                Name, x, y, !Doors[coords].Closed);
+            if (!group.Definition.IsPanelToggling(panel.PanelIndex))
+                continue;
 
-            ToggleCollisions(x, y);
+            if (group.UpdateCollision)
+                ToggleCollisions(panel.X, panel.Y);
+
+            var viewport = GetViewport(panel.X, panel.Y);
+            foreach (var obj in EntityTree.GetObjects(viewport))
+                if (obj is User user)
+                    user.SendDoorUpdate(panel.X, panel.Y, group.Closed, group.Definition.IsLeftRight);
         }
-
-        GameLog.DebugFormat("Toggling door at {0},{1}", x, y);
-        GameLog.DebugFormat("Door is now in state: Open: {0} Collision: {1}", Doors[coords].Closed, IsWall(x, y));
-
-        var updateViewport = GetViewport(x, y);
-
-        foreach (var obj in EntityTree.GetObjects(updateViewport))
-            if (obj is User)
-            {
-                var user = obj as User;
-                GameLog.DebugFormat("Sending door packet to {0}: X {1}, Y {2}, Open {3}, LR {4}",
-                    user.Name, x, y, Doors[coords].Closed,
-                    Doors[coords].IsLeftRight);
-
-                user.SendDoorUpdate(x, y, Doors[coords].Closed,
-                    Doors[coords].IsLeftRight);
-            }
     }
 
     /// <summary>
-    ///     Toggles a door panel at x,y and depending on whether there are doors
-    ///     next to it, will open those as well. This code is pretty ugly, to boot.
+    ///     Toggle the door group at (x, y). Pre-Phase 3 this was a per-tile operation with an adjacency
+    ///     scan in <c>ToggleDoors</c>; now both entry points resolve to a single group-level flip so a
+    ///     click anywhere on a 2/3/4-tile door opens the whole thing.
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
+    public void ToggleDoor(byte x, byte y) => ToggleDoors(x, y);
+
+    /// <summary>
+    ///     Toggle the door group at (x, y). Single authoritative entry point.
+    /// </summary>
     public void ToggleDoors(byte x, byte y)
     {
-        var coords = (x, y);
-        var door = Doors[coords];
-
-        // First, toggle the actual door itself
-
-        ToggleDoor(x, y);
-
-        // Now, toggle any potentially adjacent "doors"
-
-        if (door.IsLeftRight)
+        if (!Doors.TryGetValue((x, y), out var door))
         {
-            // Look for a door at x-1, x+1, and open if they're present
-            Door nextdoor;
-            var door1Coords = ((byte)(x - 1), y);
-            var door2Coords = ((byte)(x + 1), y);
-            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor((byte)(x - 1), y);
-            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor((byte)(x + 1), y);
+            GameLog.DebugFormat("ToggleDoors called on non-door tile at {0}@{1},{2}", Name, x, y);
+            return;
         }
-        else
-        {
-            // Look for a door at y-1, y+1 and open if they're present
-            Door nextdoor;
-            var door1Coords = (x, (byte)(y - 1));
-            var door2Coords = (x, (byte)(y + 1));
-            if (Doors.TryGetValue(door1Coords, out nextdoor)) ToggleDoor(x, (byte)(y - 1));
-            if (Doors.TryGetValue(door2Coords, out nextdoor)) ToggleDoor(x, (byte)(y + 1));
-        }
+
+        ToggleDoorGroup(door.Group);
     }
 
 
