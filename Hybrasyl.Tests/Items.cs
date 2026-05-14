@@ -17,7 +17,10 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Enums;
+using Hybrasyl.Objects;
+using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -192,4 +195,34 @@ public class Items
         Assert.True(Fixture.TestUser.Stats.BaseManaSteal == 10,
             $"ManaSteal: after item usage, should be 10, is {Fixture.TestUser.Stats.BaseManaSteal}");
     }
+
+    [Fact]
+    public void ItemObjectHas12FormulaVariables()
+    {
+        var props = typeof(ItemObject).GetProperties()
+            .Where(p => p.IsDefined(typeof(FormulaVariable), false))
+            .ToList();
+
+        Assert.Equal(12, props.Count);
+    }
+
+    [Fact]
+    public void ItemObjectFormulaVariablesIncludeExpectedProperties()
+    {
+        var props = typeof(ItemObject).GetProperties()
+            .Where(p => p.IsDefined(typeof(FormulaVariable), false))
+            .Select(p => p.Name)
+            .ToHashSet();
+
+        var expected = new[]
+        {
+            "Weight", "MaximumDurability", "MinLevel", "MinAbility",
+            "MaxLevel", "MaxAbility", "MinLDamage", "MaxLDamage",
+            "MinSDamage", "MaxSDamage", "Value", "Durability"
+        };
+
+        foreach (var name in expected)
+            Assert.Contains(name, props);
+    }
+
 }

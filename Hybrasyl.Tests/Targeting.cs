@@ -117,4 +117,14 @@ public class Targeting(HybrasylFixture fixture)
         var targets2 = Fixture.TestUser.GetTargets(castable, bait2);
         Assert.Single(targets2);
     }
+
+    [Fact]
+    public void ConeRadiusNotCappedByViewport()
+    {
+        var source = System.IO.File.ReadAllText(
+            System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory,
+                "..", "..", "..", "..", "hybrasyl", "Objects", "Creature.cs"));
+
+        Assert.DoesNotContain("Math.Min(tile.Radius, Game.ActiveConfiguration.Constants.ViewportSize / 2)", source);
+    }
 }
