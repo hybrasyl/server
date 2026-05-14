@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -195,7 +195,8 @@ public static class Game
         var worldDataOption = new Option<string>("--worldDataDir", "-w")
         {
             DefaultValueFactory =
-                _ => Environment.GetEnvironmentVariable("HYB_WORLD_DIR") ?? DefaultWorldDir,
+                _ => Environment.GetEnvironmentVariable("HYB_WORLD_DIR") ??
+                (Environment.GetEnvironmentVariable("HYB_DATA_DIR") == null ? DefaultWorldDir : Path.Join(Environment.GetEnvironmentVariable("HYB_DATA_DIR"), "xml")),
             HelpName = "DIRPATH",
             Description = @"[$HYB_WORLD_DIR] The XML data directory to be used for the server. Defaults to DATADIR\xml"
         };
@@ -555,7 +556,7 @@ public static class Game
                 try
                 {
                     RedirectTarget = IPAddress.Parse(addr);
-                    Log.Information("dLogin ");
+                    Log.Information($"Set external address for redirects to {RedirectTarget}");
                 }
                 catch (Exception ex)
                 {
@@ -679,7 +680,7 @@ public static class Game
                 Notification = compressedStipulationStream.ToArray();
             }
         }
-
+        Log.Information("hi");
         World.StartTimers();
         World.StartQueueConsumer();
         World.StartControlConsumers();
@@ -703,7 +704,7 @@ public static class Game
             Thread.Sleep(1000);
 
         _spawnThread.Start();
-
+        Log.Information("All servers started");
         Task.Run(CheckVersion).GetAwaiter();
         Task.Run(GetCommitLog).GetAwaiter();
 
@@ -715,6 +716,8 @@ public static class Game
         // Start GRPC server
         if (activeConfiguration.Network.Grpc != null)
         {
+            Log.Information("doing grpc things");
+
             var ssl_enabled = activeConfiguration.Network.Grpc.ServerCertificateFile != null &&
                               activeConfiguration.Network.Grpc.ServerKeyFile != null;
 
@@ -767,6 +770,7 @@ public static class Game
             else
             {
                 // Insecure mode, should be used for development only
+                // docker-compose path generates self-signed certs 
                 GrpcServer = new Grpc.Core.Server
                 {
                     Services = { Patron.BindService(new PatronServer()) },
@@ -780,6 +784,10 @@ public static class Game
                 Log.Information("GRPC: server initialized (insecure, use for development only)");
             }
         }
+        else // grpc disabled
+        {
+            Log.Information("GRPC: server configuration not found in config.xml - GRPC disabled");
+        }
 
         if (GrpcServer != null)
             try
@@ -790,6 +798,8 @@ public static class Game
             {
                 GameLog.Info("GRPC: server start failed: {e}", e);
             }
+
+        Log.Information("Hybrasyl server ready");
 
         while (true)
         {
