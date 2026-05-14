@@ -314,6 +314,10 @@ internal class Monolith
                     baseMob.X = (byte)xcoord;
                     baseMob.Y = (byte)ycoord;
 
+                    if (!spawnmap.IsValidPoint(baseMob.X, baseMob.Y))
+                        GameLog.SpawnError(
+                            $"OOB spawn: {spawn.Name} placed at {baseMob.X},{baseMob.Y} on {spawnmap.Name} ({spawnmap.X}x{spawnmap.Y}) - source={(spawn.Coordinates.Count != 0 ? "xml" : "FindEmptyTile")}");
+
                     if (spawn.Hostility != null)
                         baseMob.Hostility = spawn.Hostility;
 

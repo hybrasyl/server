@@ -473,7 +473,7 @@ public class ItemObject : VisibleObject, IInteractable
                     {
                         GameLog.UserActivityInfo(
                             $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
-                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, null, duration, tick,
+                        trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, trigger, duration, tick,
                             add.Intensity));
                     }
                 }

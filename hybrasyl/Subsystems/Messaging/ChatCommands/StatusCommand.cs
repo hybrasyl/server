@@ -36,7 +36,7 @@ internal class StatusCommand : ChatCommand
             var duration = xmlStatus.Duration;
             if (args.Length > 1 && int.TryParse(args[1], out var duroverride))
                 duration = duroverride;
-            var status = new CreatureStatus(xmlStatus, user, null, null, duration);
+            var status = new CreatureStatus(xmlStatus, user, null, user, duration);
             user.ApplyStatus(status);
             return Success($"Status {xmlStatus.Name} applied for {duration} seconds");
         }

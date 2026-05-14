@@ -178,6 +178,8 @@ public class VisibleObject : WorldObject, IVisible
 
         foreach (var obj in withinViewport)
         {
+            // Skip objects that were removed from their map between the snapshot and now
+            if (obj.Map == null) continue;
             GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
             obj.AoiEntry(this);
         }
@@ -190,6 +192,7 @@ public class VisibleObject : WorldObject, IVisible
 
         foreach (var obj in withinViewport)
         {
+            if (obj.Map == null) continue;
             GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
             obj.AoiDeparture(this);
         }

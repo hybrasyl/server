@@ -174,7 +174,7 @@ public class HybrasylMonster : HybrasylWorldObject
             return false;
         }
 
-        return Monster.ApplyStatus(new CreatureStatus(status, Monster, null, null,
+        return Monster.ApplyStatus(new CreatureStatus(status, Monster, null, Monster,
             duration == 0 ? status.Duration : duration,
             tick == 0 ? status.Tick : tick,
             intensity));

@@ -713,7 +713,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                         var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(predicate: s =>
                             s.Category.Contains(status.Value));
                         if (toRemove == null) break;
-                        tar.RemoveStatus(toRemove.Icon);
+                        tar.RemoveStatus(toRemove.Icon, remover: this);
                         GameLog.UserActivityInfo(
                             $"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
                     }
@@ -722,7 +722,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
-                    tar.RemoveStatus(applyStatus.Icon);
+                    tar.RemoveStatus(applyStatus.Icon, remover: this);
 
                 }
                 else
@@ -1444,30 +1444,38 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             Applied = false // this is a removal
         };
 
-        if (string.IsNullOrEmpty(status.RemoveChance))
+        if (!string.IsNullOrEmpty(status.RemoveChance))
         {
-            var snapshot = World.WorldState.Get<CreatureSnapshot>(status.OriginSnapshotId);
-
-            var result = FormulaParser.Eval(status.RemoveChance, new FormulaEvaluation
+            if (World.WorldState.TryGetValue<CreatureSnapshot>(status.OriginSnapshotId, out var snapshot))
             {
-                OriginalCaster = snapshot.Stats,
-                Target = this,
-                Source = remover,
-            });
-
-            var chance = Random.Shared.NextDouble();
-
-            statusEvent.RemovalRoll = chance;
-            statusEvent.RequiredRoll = result;
-
-            if (chance >= result)
-            {
-                if (remover is User user)
+                var result = FormulaParser.Eval(status.RemoveChance, new FormulaEvaluation
                 {
-                    user.SendSystemMessage("You try your best, but nothing happens.");
-                    user.SendCombatLogMessage(statusEvent);
+                    OriginalCaster = snapshot.Stats,
+                    Target = this,
+                    Source = remover,
+                });
+
+                var chance = Random.Shared.NextDouble();
+
+                statusEvent.RemovalRoll = chance;
+                statusEvent.RequiredRoll = result;
+
+                if (chance >= result)
+                {
+                    if (remover is User user)
+                    {
+                        user.SendSystemMessage("You try your best, but nothing happens.");
+                        user.SendCombatLogMessage(statusEvent);
+                    }
+                    return false;
                 }
-                return false;
+            }
+            else
+            {
+                // Snapshot missing (status applied without a source, or snapshot
+                // evicted). Skip the chance roll and proceed with removal.
+                GameLog.Warning(
+                    $"RemoveStatus: no origin snapshot for {status.Name} on {Name} (id={status.OriginSnapshotId}); skipping chance roll");
             }
         }
 
@@ -1481,8 +1489,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider
         foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
             if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
                 reactor.AoiDeparture(this);
-        u.SendSystemMessage("You succeed in removing the affliction.");
-        u.SendCombatLogMessage(statusEvent);
+        // Only announce removal when a remover actively triggered it; natural
+        // expiry (ProcessStatusTicks passes remover=null) should be silent.
+        if (remover != null)
+        {
+            u.SendSystemMessage("You succeed in removing the affliction.");
+            u.SendCombatLogMessage(statusEvent);
+        }
         return true;
     }
 
