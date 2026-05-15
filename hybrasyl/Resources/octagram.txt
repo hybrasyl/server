@@ -32,4 +32,4 @@
  @@%@@@                     @@@@                      @@%@@ 
  @@                          @@                          @@
 
- hybrasyl server 0.9.4 | www.hybrasyl.com | discord.gg/DnpfGV3hwN                          
+ hybrasyl server 0.9.5 | www.hybrasyl.com | discord.gg/DnpfGV3hwN                          
