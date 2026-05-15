@@ -84,7 +84,7 @@ Docker Desktop or Kubernetes, or use `docker-compose`.
 
 1. Using [Docker Compose](https://docs.docker.com/compose/install/)
 
-   If you have `docker-compose`, starting a working server involves three steps:
+   If you have `docker-compose`, starting a working server involves the following steps:
    
    a. Clone the Hybrasyl server repository: `git clone https://github.com/hybrasyl/server.git`
    	     	   
@@ -98,7 +98,11 @@ Docker Desktop or Kubernetes, or use `docker-compose`.
    You may also need to edit your `config.xml` so that `DataStore` points to the right IP / hostname, if you
    don't want to use the built-in Valkey.
 
-   c. Start the servers
+   c. Create the `hybrasyl` docker network
+
+   `docker network create hybrasyl`
+
+   d. Start the servers
    
    `docker-compose up`
 
