@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -75,8 +76,8 @@ public class HybrasylFixture : IDisposable
 
         GameLog.Info();
         //Game.Lobby = new Lobby(1338, true);
-        Game.Login = new Login(1339, true);
-        Game.World = new World(1337, redisConn, manager, "en_us", true);
+        Game.Login = new Login(IPAddress.Any, 1339, true);
+        Game.World = new World(IPAddress.Any, 1337, redisConn, manager, "en_us", true);
         Game.ActiveConfiguration = new ServerConfig();
         Game.ActiveConfiguration.Init();
         Game.ActiveConfiguration.Constants ??= new ServerConstants();

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -48,6 +48,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -83,14 +84,14 @@ public class World : Server
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-    public World(int port, bool isDefault = false) : base(port, isDefault)
+    public World(IPAddress bindAddress, int port, bool isDefault = false) : base(bindAddress, port, isDefault)
     {
         ScriptProcessor = new ScriptProcessor(this);
     }
 
-    public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale,
+    public World(IPAddress bindAddress, int port, RedisConnection redis, IWorldDataManager dataManager, string locale,
         bool adminEnabled = false, bool isDefault = false)
-        : base(port, isDefault)
+        : base(bindAddress, port, isDefault)
     {
         ScriptProcessor = new ScriptProcessor(this);
         WorldData = dataManager;

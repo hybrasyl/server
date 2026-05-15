@@ -20,9 +20,11 @@ using Grpc.Core;
 using Hybrasyl.Extensions.Utility;
 using Hybrasyl.grpc;
 using Hybrasyl.Internals;
+using Hybrasyl.Internals.CommandLine;
 using Hybrasyl.Internals.Compression;
 using Hybrasyl.Internals.Crc;
 using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Spawning;
 using Hybrasyl.Xml.Manager;
@@ -48,7 +50,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Hybrasyl.Internals.CommandLine;
 using Server = Hybrasyl.Servers.Server;
 
 namespace Hybrasyl;
@@ -56,7 +57,6 @@ namespace Hybrasyl;
 public static class Game
 {
     public static readonly object SyncObj = new();
-    public static IPAddress IpAddress;
     public static IPAddress RedirectTarget;
 
     public static ManualResetEvent allDone = new(false);
@@ -86,7 +86,7 @@ public static class Game
     public static TracerProvider TracerProvider;
 
     public static Lobby Lobby { get; set; }
-    public static Login Login { get; set; }
+    public static Servers.Login Login { get; set; }
     public static World World { get; set; }
     public static byte[] ServerTable { get; private set; }
     public static uint ServerTableCrc { get; private set; }
@@ -570,10 +570,12 @@ public static class Game
                     .FirstOrDefault();
         }
 
-        IpAddress = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);
+        var lobbyIp = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);
+        var loginIp = IPAddress.Parse(activeConfiguration.Network.Login.BindAddress);
+        var worldIp = IPAddress.Parse(activeConfiguration.Network.World.BindAddress);
 
-        Lobby = new Lobby(activeConfiguration.Network.Lobby.Port, true);
-        Login = new Login(activeConfiguration.Network.Login.Port, true);
+        Lobby = new Lobby(lobbyIp, activeConfiguration.Network.Lobby.Port, true);
+        Login = new Servers.Login(loginIp, activeConfiguration.Network.Login.Port, true);
 
         var redisConnection = new RedisConnection();
 
@@ -602,7 +604,7 @@ public static class Game
 
         Log.Information($"Datastore: {redisConnection.Host}:{redisConnection.Port}/{redisConnection.Database}");
 
-        World = new World(activeConfiguration.Network.World.Port, redisConnection,
+        World = new World(worldIp, activeConfiguration.Network.World.Port, redisConnection,
             manager, activeConfiguration.Locale, true);
 
         Lobby.StopToken = CancellationTokenSource.Token;
@@ -626,7 +628,7 @@ public static class Game
         }
 
         byte[] addressBytes;
-        addressBytes = IpAddress.GetAddressBytes();
+        addressBytes = Lobby.BindAddress.GetAddressBytes();
         Array.Reverse(addressBytes);
 
         using (var multiServerTableStream = new MemoryStream())
@@ -764,7 +766,7 @@ public static class Game
                                 activeConfiguration.Network.Grpc.Port, credentials)
                         }
                     };
-                    Log.Information("GRPC: SSL server initialized");
+                    Log.Information($"GRPC: SSL server initialized ({activeConfiguration.Network.Grpc.BindAddress}:{activeConfiguration.Network.Grpc.Port})");
                 }
             }
             else
@@ -781,7 +783,7 @@ public static class Game
                             ServerCredentials.Insecure)
                     }
                 };
-                Log.Information("GRPC: server initialized (insecure, use for development only)");
+                Log.Information($"GRPC: server initialized - INSECURE - DEV ONLY ({activeConfiguration.Network.Grpc.BindAddress}:{activeConfiguration.Network.Grpc.Port})");
             }
         }
         else // grpc disabled
