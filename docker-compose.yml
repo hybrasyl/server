@@ -9,7 +9,7 @@ services:
         git clone https://github.com/hybrasyl/ceridwen.git /world;
       fi &&
       if [ ! -e /world/grpc-cert.pem ]; then
-        openssl req -x509 -newkey rsa:2048 -nodes -subj "/CN=hybrasyl-docker" -keyout /world/grpc-key.pem -out /world/grpc-cert.pem -days 365 -sha256 &&
+        openssl req -x509 -newkey rsa:2048 -nodes -subj "/CN=hybrasyl-docker" -addext "subjectAltName=DNS:hybrasyl-server,DNS:localhost,IP:127.0.0.1" -keyout /world/grpc-key.pem -out /world/grpc-cert.pem -days 365 -sha256 &&
         chmod 755 /world/grpc-cert.pem /world/grpc-key.pem
       fi"
     volumes:
@@ -19,9 +19,12 @@ services:
     image: valkey/valkey:latest
     volumes:
       - valkey-data:/data
+    networks:
+      - hybrasyl
 
   hybrasyl-server:
     image: ghcr.io/hybrasyl/server:latest
+    container_name: hybrasyl-server
     platform: linux/amd64
     build: .  # uncomment to build from source
     ports:
@@ -29,6 +32,8 @@ services:
       - "2611:2611" # login
       - "2612:2612" # world
       - "2613:2613" # grpc
+    networks:
+      - hybrasyl
     environment:
       - HYB_REDIS_HOST=valkey
       - HYB_DATA_DIR=/world
@@ -46,3 +51,7 @@ services:
 volumes:
   world:
   valkey-data:
+
+networks:
+  hybrasyl:
+    external: true
