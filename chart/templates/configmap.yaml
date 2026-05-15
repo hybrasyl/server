@@ -1,0 +1,168 @@
+{{- if not .Values.server.configMapName }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+data:
+  config.xml: |
+    <?xml version="1.0"?>
+    <ServerConfig xmlns="http://www.hybrasyl.com/XML/Hybrasyl/2020-02" Name="{{ .Values.server.configName | default "hybrasyl"}}">
+      <Motd>{{ .Values.server.motd }}</Motd>
+{{- if gt (len .Values.server.logging.streams) 0 }}
+      <Logging>
+{{- range .Values.server.logging.streams }}
+        <Log Type="{{ .type }}" Destination="{{ .destination }}" Level="{{ .level }}"/>
+{{- end }}
+      </Logging>
+{{- end }}
+      {{- /* DataStore is configured via HYB_REDIS_* env vars in the deployment */ -}}
+{{- if hasKey .Values.server "apiEndpoints" }}
+      <ApiEndpoints>
+{{- with .Values.server.apiEndpoints }}
+        {{- if .sentry }}<Sentry Url="{{ .sentry }}"/>{{ end }}
+        {{- if .encryptionEndpoint }}<EncryptionEndpoint Url="{{ .encryptionEndpoint }}"/>{{- end }}
+        {{- if .validationEndpoint }}<ValidationEndpoint Url="{{ .validationEndpoint }}"/>{{- end }}
+{{- end }}
+      </ApiEndpoints>
+{{- end }}
+{{- if hasKey .Values.server "plugins" }}
+      <Plugins>
+{{- if gt (len .Values.server.plugins.messaging) 0 }}
+        <Message>
+{{- range .Values.server.plugins.messaging }}
+          <Plugin Type="{{ .type }}" Passthrough="{{ .passthrough }}" Name="{{ .name }}">
+            <Configuration>
+{{- if hasKey . "configuration" }}
+{{- range .configuration }}
+              <Config Key="{{ .key }}" Value="{{ .value }}"/>
+{{- end }}
+{{- end }}
+            </Configuration>
+            <Targets>
+{{- range .targets }}
+              <Target>{{ . }}</Target>
+{{- end }}
+            </Targets>
+          </Plugin>
+{{- end }}
+        </Message>
+{{- end }}
+      </Plugins>
+{{- end }}
+      <Network>
+        <Lobby BindAddress="{{ .Values.server.network.lobby.bindAddress }}" 
+               Port="{{ .Values.server.network.lobby.port }}"
+{{- if hasKey .Values.server.network.lobby "externalAddress" }}
+               ExternalAddress="{{ .Values.server.network.lobby.externalAddress }}"
+{{- end }}     
+        />
+        <Login BindAddress="{{ .Values.server.network.login.bindAddress }}" 
+               Port="{{ .Values.server.network.login.port }}"
+{{- if hasKey .Values.server.network.login "externalAddress" }}
+               ExternalAddress="{{ .Values.server.network.login.externalAddress }}"
+{{- end }}     
+        />
+        <World BindAddress="{{ .Values.server.network.world.bindAddress }}" 
+               Port="{{ .Values.server.network.world.port }}"
+{{- if hasKey .Values.server.network.world "externalAddress" }}
+               ExternalAddress="{{ .Values.server.network.world.externalAddress }}"
+{{- end }}     
+        />
+{{- if .Values.server.network.grpc.enabled }}           
+        <Grpc BindAddress="{{ .Values.server.network.grpc.bindAddress }}" 
+               Port="{{ .Values.server.network.grpc.port }}">
+{{- if hasKey .Values.server.network.grpc "chainCert" }}
+               <ChainCertificateFile>{{ .Values.server.network.grpc.chainCert }}</ChainCertificateFile>
+{{- end }}     
+               <ServerCertificateFile>{{ .Values.server.network.grpc.cert }}</ServerCertificateFile>
+               <ServerKeyFile>{{ .Values.server.network.grpc.key }}</ServerKeyFile>
+        </Grpc>
+{{- end }}
+      </Network>
+      <Access>
+{{- if gt (len .Values.server.access.privileged) 0 }}
+        <Privileged>{{- join " " .Values.server.access.privileged }}</Privileged>
+{{- end }}
+{{- if gt (len .Values.server.access.reserved) 0 }}
+        <Reserved>{{- join " " .Values.server.access.reserved }}</Reserved>
+{{- end }}
+      </Access>
+      <Boards>
+{{- if gt (len .Values.server.boards) 0 }}
+{{- range .Values.server.boards }}
+        <Board Name="{{ .name }}" DisplayName="{{ .displayName }}">
+          <AccessList>
+{{- if hasKey . "readers" }}
+{{- range .readers }}
+            <Read>{{ . }}</Read>
+{{- end }}
+{{- else }}
+            <Read>*</Read>
+{{- end -}}
+{{- if hasKey . "writers" }}
+{{- range .writers }}
+            <Write>{{ . }}</Write>
+{{- end }}
+{{- else }}
+            <Write>*</Write>
+{{- end -}}
+{{- if hasKey . "moderators" }}
+{{- range .moderators }}
+            <Moderator>{{ . }}</Moderator>
+{{- end }}
+{{- end }}
+          </AccessList>
+        </Board>
+{{- end }}
+{{- end }}
+      </Boards>
+      <Time>
+{{- if gt (len .Values.server.time.ages) 0 }}
+        <Ages>
+{{- range .Values.server.time.ages }}
+          <Age Name="{{ .name }}" StartDate="{{ .startDate }}"
+{{- if hasKey . "endDate" }}
+            EndDate="{{ .endDate }}"
+{{- end }}
+{{- if hasKey . "startYear" }}
+            StartYear="{{ .startYear | toString }}"
+{{- end }}
+          />
+{{- end }}
+        </Ages>
+{{- end }}
+      <ServerStart>{{ .Values.server.time.serverStart }}</ServerStart>
+      </Time>
+      <Handlers>
+{{- if hasKey .Values.server.handlers "death" }}
+{{- with .Values.server.handlers.death }}
+        <Death Active="{{ .isActive }}" Perishable="{{ .perishable }}" GroupNotify="{{ .notifyGroup }}">
+          <Map X="{{ .map.x | toString }}" Y="{{ .map.y | toString }}">{{ .map.name }}</Map>
+{{- if hasKey . "coma" }}
+          <Coma Timeout="{{ .coma.timeout | toString }}" Effect="{{ .coma.effect | toString }}">{{ .coma.statusName }}</Coma>
+{{- end }}
+{{- if hasKey . "penalty" }}
+          <Penalty Xp="{{ .penalty.xp }}" Hp="{{ .penalty.hp }}"/>
+{{- end }}
+{{- if hasKey . "legendMark" }}
+          <LegendMark Increment="{{ .legendMark.increment }}">{{ .legendMark.text }}</LegendMark>
+{{- end }}
+{{- end }}
+        </Death>
+{{- end }}
+{{- if hasKey .Values.server.handlers "newPlayer" }}
+{{- with .Values.server.handlers.newPlayer }}
+        <NewPlayer>
+          <StartMaps>
+{{- range .maps }}
+            <StartMap X="{{ .x | toString }}" Y="{{ .y | toString }}">{{ .name }}</StartMap>
+{{- end }}
+          </StartMaps>
+{{- end }}
+        </NewPlayer>
+{{- end }}
+      </Handlers>
+    </ServerConfig>
+{{- end }}

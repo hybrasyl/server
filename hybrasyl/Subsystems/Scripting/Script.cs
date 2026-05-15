@@ -22,7 +22,6 @@ using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Serilog;
 using System;
 using System.IO;
 using System.Linq;
@@ -31,91 +30,43 @@ using Reactor = Hybrasyl.Objects.Reactor;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
-/// <summary>
-///     A logging class that can be used by scripts natively in Lua.
-/// </summary>
-[MoonSharpUserData]
-public class ScriptLogger
-{
-    public ScriptLogger(string name)
-    {
-        ScriptName = name;
-    }
-
-    public string ScriptName { get; set; }
-
-    public void Info(string message)
-    {
-        Log.Information("{ScriptName} : {Message}", ScriptName, message);
-    }
-
-    public void Error(string message)
-    {
-        Log.Error("{ScriptName} : {Message}", ScriptName, message);
-    }
-}
-
-public class Script
+public class Script(string path, ScriptProcessor processor)
 {
     private static readonly Regex LuaRegex = new(@"(.*):\(([0-9]*),([0-9]*)-([0-9]*)\): (.*)$");
-
-    public Script(string path, ScriptProcessor processor)
-    {
-        FullPath = path;
-        Name = Path.GetFileName(path).ToLower();
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        RawSource = string.Empty;
-        Processor = processor;
-    }
-
-    public Script(string script, string name)
-    {
-        FullPath = string.Empty;
-        Name = name;
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        RawSource = script;
-    }
-
-    public string RawSource { get; set; }
-
-    public string Name { get; set; }
-    public string FullPath { get; }
+    public string RawSource { get; set; } = string.Empty;
+    public string Name { get; set; } = Path.GetFileName((string) path).ToLower();
+    public string FullPath { get; } = path;
     public string FileName => Path.GetFileName(FullPath);
-
-    public ScriptProcessor Processor { get; set; }
+    public string Locator { get; set; } = string.Empty;
+    public ScriptProcessor Processor { get; set; } = processor;
     public MoonSharp.Interpreter.Script Compiled { get; private set; }
-    public HybrasylWorldObject Associate { get; private set; }
-
     public bool Disabled { get; set; }
-
     public ScriptExecutionResult LoadExecutionResult { get; set; }
+    public Guid Guid { get; set; } =  Guid.Empty;
 
-    public Script Clone()
+    private readonly object _lock = new();
+
+    private void NewMoonsharpScript()
     {
-        var clone = new Script(FullPath, Processor);
-        // A clone doesn't need to run OnLoad again, which is guaranteed to be evaluated 
-        // only once per script (aka this.Compiled) lifetime
-        clone.Run(false);
-        return clone;
-    }
-
-    public void AssociateScriptWithObject(WorldObject obj)
-    {
-        if (Associate?.Obj?.Id == obj.Id)
-            return;
-
-        Associate = new HybrasylWorldObject(obj);
-        if (obj is VisibleObject vo)
-            Compiled.Globals.Set("map", UserData.Create(new HybrasylMap(vo.Map)));
-        Compiled.Globals.Set("associate", UserData.Create(Associate));
-        Compiled.Globals.Set("origin", UserData.Create(Associate));
-        obj.Script = this;
+        Compiled = new MoonSharp.Interpreter.Script(CoreModules.GlobalConsts | CoreModules.TableIterators | 
+                                                     CoreModules.String | CoreModules.Table | CoreModules.Basic | 
+                                                     CoreModules.Math | CoreModules.Bit32 | CoreModules.LoadMethods)
+        {
+            Options =
+            {
+                ScriptLoader = new WorldModuleLoader(Processor.World.ScriptDirectory, "modules")
+            }
+        };
     }
 
     public ScriptExecutionResult Reload()
     {
-        Compiled = new MoonSharp.Interpreter.Script(CoreModules.Preset_SoftSandbox);
-        return Run();
+        lock (_lock)
+        {
+            Disabled = true;
+            NewMoonsharpScript();
+            return Run();
+        }
     }
 
     /// <summary>
@@ -128,14 +79,13 @@ public class Script
         if (obj == null)
             return DynValue.NewNil();
 
-
         return obj switch
         {
             bool => DynValue.NewBoolean(obj),
             sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => DynValue
                 .NewNumber(obj),
             string => DynValue.NewString(obj),
-            Guid => DynValue.NewString(obj.ToString()),
+            System.Guid => DynValue.NewString(obj.ToString()),
             User user => UserData.Create(new HybrasylUser(user)),
             Monster monster => UserData.Create(new HybrasylMonster(monster)),
             World world => UserData.Create(new HybrasylWorld(world)),
@@ -226,7 +176,7 @@ public class Script
         Compiled.Globals["Direction"] = UserData.CreateStatic<Direction>();
         Compiled.Globals["Class"] = UserData.CreateStatic<Class>();
         Compiled.Globals["utility"] = typeof(HybrasylUtility);
-        Compiled.Globals.Set("world", UserData.Create(Processor.World));
+        Compiled.Globals.Set("world", UserData.Create(new HybrasylWorld(Processor.World)));
         Compiled.Globals.Set("logger", UserData.Create(new ScriptLogger(Name)));
         Compiled.Globals.Set("this_script", DynValue.NewString(Name));
     }
@@ -238,32 +188,34 @@ public class Script
     /// <returns>boolean indicating whether the script was reloaded or not</returns>
     public ScriptExecutionResult Run(bool onLoad = true)
     {
-        var result = new ScriptExecutionResult();
-        try
+        lock (_lock)
         {
-            SetGlobals();
-            // Load file into RawSource so we have access to it later
-            RawSource = File.ReadAllText(FullPath);
-            result.Return = Compiled.DoFile(FullPath);
-            result.Result = ScriptResult.Success;
-            LoadExecutionResult = result;
-            if (!onLoad)
+            var result = new ScriptExecutionResult();
+            try
+            {
+                NewMoonsharpScript();
+                SetGlobals();
+                // Load file into RawSource so we have access to it later
+                RawSource = File.ReadAllText(FullPath);
+                result.Return = Compiled.DoString(RawSource);
+                result.Result = ScriptResult.Success;
+                LoadExecutionResult = result;
+                if (!onLoad)
+                    return result;
+                ExecuteFunction("OnLoad");
+                Disabled = false;
                 return result;
-            GameLog.ScriptingInfo($"Loading: {Path.GetFileName(FullPath)}");
-            ExecuteFunction("OnLoad");
-            Disabled = false;
-            return result;
-        }
-        catch (Exception ex)
-        {
-            Game.ReportException(ex);
-            result.Error = HumanizeException(ex);
-            result.Result = ScriptResult.Failure;
-            LoadExecutionResult = result;
-            GameLog.ScriptingError("Run: Error executing script {FileName} (associate {assoc}): {Message}",
-                FileName, Associate?.Name ?? "none", result.Error.HumanizedError);
-            Disabled = true;
-            return result;
+            }
+            catch (Exception ex)
+            {
+                Game.ReportException(ex);
+                result.Error = HumanizeException(ex);
+                result.Result = ScriptResult.Failure;
+                LoadExecutionResult = result;
+                GameLog.ScriptingError($"Run: Error executing script {FileName}: {result.Error.HumanizedError}");
+                Disabled = true;
+                return result;
+            }
         }
     }
 
@@ -283,92 +235,86 @@ public class Script
     ///     Execute a Lua expression in the context of an associated world object.
     ///     Primarily used for dialog callbacks.
     /// </summary>
-    /// <param name="expr">The javascript expression, in string form.</param>
+    /// <param name="expr">The lua expression, in string form.</param>
     /// <param name="invoker">The invoker (caller).</param>
     /// <param name="source">Optionally, the source of the script call, invocation or dialog</param>
     /// <returns></returns>
     public ScriptExecutionResult ExecuteExpression(string expr, ScriptEnvironment environment = null)
     {
-        var result = new ScriptExecutionResult
+        lock (_lock)
         {
-            Result = ScriptResult.Disabled,
-            Return = DynValue.Nil,
-            ExecutedExpression = expr,
-            Location = environment?.DialogPath,
-            ExecutionTime = DateTime.Now
-        };
+            var result = new ScriptExecutionResult
+            {
+                Result = ScriptResult.Disabled,
+                Return = DynValue.Nil,
+                ExecutedExpression = expr,
+                Location = environment?.DialogPath,
+                ExecutionTime = DateTime.Now
+            };
 
+            if (Disabled)
+                return result;
 
-        if (Disabled)
-        {
-            if (Associate != null)
-                Associate.Obj.LastExecutionResult = result;
+            try
+            {
+                ProcessEnvironment(environment);
+                // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
+                result.Return = Compiled.DoString(expr, Compiled.Globals);
+                result.Result = ScriptResult.Success;
+            }
+            catch (Exception ex)
+            {
+                Game.ReportException(ex);
+                result.Error = HumanizeException(ex);
+                GameLog.ScriptingError(
+                    $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {environment}\n{result.Error}");
+            }
+
             return result;
         }
-
-        try
-        {
-            ProcessEnvironment(environment);
-            // We pass Compiled.Globals here to make sure that the updated table (with new variables) makes it over
-            result.Return = Compiled.DoString(expr, Compiled.Globals);
-            result.Result = ScriptResult.Success;
-        }
-        catch (Exception ex)
-        {
-            Game.ReportException(ex);
-            result.Error = HumanizeException(ex);
-            GameLog.ScriptingError(
-                $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {environment}\n{result.Error}");
-        }
-
-        if (Associate != null)
-            Associate.Obj.LastExecutionResult = result;
-
-        return result;
     }
 
     public ScriptExecutionResult ExecuteFunction(string functionName, ScriptEnvironment environment = null)
     {
-        var result = new ScriptExecutionResult
+        lock (_lock)
         {
-            Result = ScriptResult.Disabled,
-            Return = DynValue.Nil,
-            ExecutedExpression = functionName,
-            Location = environment?.DialogPath,
-            ExecutionTime = DateTime.Now
-        };
+            var result = new ScriptExecutionResult
+            {
+                Result = ScriptResult.Disabled,
+                Return = DynValue.Nil,
+                ExecutedExpression = functionName,
+                Location = environment?.DialogPath,
+                ExecutionTime = DateTime.Now
+            };
 
-        if (Disabled)
-        {
-            if (Associate != null)
-                Associate.Obj.LastExecutionResult = result;
+            if (Disabled)
+            {
+                return result;
+            }
+
+            try
+            {
+                if (!HasFunction(functionName))
+                {
+                    result.Result = ScriptResult.FunctionMissing;
+                }
+                else
+                {
+                    ProcessEnvironment(environment);
+                    result.Return = Compiled.Call(Compiled.Globals[functionName]);
+                    result.Result = ScriptResult.Success;
+                }
+            }
+            catch (Exception ex)
+            {
+                Game.ReportException(ex);
+                result.Error = HumanizeException(ex);
+                result.Result = ScriptResult.Failure;
+                GameLog.ScriptingError(
+                    $"ExecuteFunction: Error executing expression {functionName} in {FileName}: Variables: {environment}\n{result.Error}");
+            }
+
             return result;
         }
-
-        try
-        {
-            if (!HasFunction(functionName))
-            {
-                result.Result = ScriptResult.FunctionMissing;
-            }
-            else
-            {
-                ProcessEnvironment(environment);
-                result.Return = Compiled.Call(Compiled.Globals[functionName]);
-                result.Result = ScriptResult.Success;
-            }
-        }
-        catch (Exception ex)
-        {
-            Game.ReportException(ex);
-            result.Error = HumanizeException(ex);
-            result.Result = ScriptResult.Failure;
-            GameLog.ScriptingError(
-                $"ExecuteFunction: Error executing expression {functionName} in {FileName}: Variables: {environment}\n{result.Error}");
-        }
-
-        if (Associate != null)
-            Associate.Obj.LastExecutionResult = result;
-        return result;
     }
 }

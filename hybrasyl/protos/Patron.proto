@@ -31,6 +31,7 @@ service Patron {
   rpc BeginShutdown (BeginShutdownRequest) returns (BooleanMessageReply) {}
   rpc TotalUserCount (google.protobuf.Empty) returns (UserCountReply) {}
   rpc IsShutdownComplete (google.protobuf.Empty) returns (BooleanMessageReply) {}
+  rpc Health (google.protobuf.Empty) returns (HealthReply) {}
 }
 
 message BeginShutdownRequest {
@@ -54,4 +55,9 @@ message AuthRequest {
 message ResetPasswordRequest {
   string Username = 1;
   string NewPassword = 2;
+}
+
+message HealthReply {
+  bool Healthy = 1;
+  string Response = 2;
 }

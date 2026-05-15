@@ -1,0 +1,170 @@
+{{- if not (or (hasKey .Values.server.worldData "git") (hasKey .Values.server.worldData "volume") (hasKey .Values.server.worldData "hostPath")) }}
+{{- fail "server.worldData must define one of 'git', 'volume', or 'hostPath'" }}
+{{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hybrasyl.fullname" . }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "hybrasyl.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "hybrasyl.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccount: hybrasyl-pod-server-access
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        # World data
+      {{- if hasKey .Values.server.worldData "git" }}
+        - name: {{ .Values.environment }}-gameserver-world
+          emptyDir: {}
+      {{- else if hasKey .Values.server.worldData "hostPath" }}
+        - name: {{ .Values.environment }}-gameserver-world
+          hostPath:
+            path: {{ .Values.server.worldData.hostPath }}
+            type: Directory
+      {{- else }}
+        - name: {{ .Values.environment }}-gameserver-world
+          persistentVolumeClaim:
+            claimName: {{ .Values.server.worldData.volume.claimName }}
+      {{- end }}
+        # Plugin data
+      {{- if .Values.server.volumes.pluginData.enabled }}
+        - name: {{ .Values.environment }}-gameserver-plugindata
+          persistentVolumeClaim:
+            claimName: {{ .Values.server.volumes.pluginData.claimName | default (printf "%s-gameserver-plugindata" .Values.environment) }}
+      {{- end }}
+        # Logs
+        - name: {{ .Values.environment }}-gameserver-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.server.logging.claimName | default (printf "%s-gameserver-logs" .Values.environment) }}
+        # Config
+        - name: {{ .Values.environment }}-gameserver-config
+          configMap:
+            name: {{ .Values.server.configMapName | default (printf "%s-config" (include "hybrasyl.fullname" .)) }}
+      {{- if hasKey .Values.server.worldData "git" }}
+      initContainers:
+        - name: pull-world-data
+          image: alpine/git:latest
+          command: ["sh", "-c", "git clone {{ .Values.server.worldData.git.repo }} {{ .Values.server.worldDataDir }} && cd {{ .Values.server.worldDataDir }} && git checkout {{ .Values.server.worldData.git.branch }}"]
+          volumeMounts:
+              mountPath: {{ .Values.server.worldDataDir }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-gameserver
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: HYB_ENV
+              value: "{{ .Values.environment }}"
+            - name: CONFIG
+              value: "{{ .Values.environment }}"
+            - name: DATA_DIR
+              value: {{ .Values.server.worldDataDir }}
+            - name: HYB_VERSION
+              value: {{ .Values.image.tag }}
+            - name: HYB_COMMIT
+              value: {{ .Values.serverCommit }}
+            - name: HYB_CONFIGFILE
+              value: /config/config.xml
+          {{- if .Values.valkey.enabled }}
+            - name: HYB_REDIS_HOST
+              value: {{ include "hybrasyl.fullname" . }}-valkey
+            - name: HYB_REDIS_PORT
+              value: "6379"
+          {{- else }}
+            - name: HYB_REDIS_HOST
+              value: {{ .Values.server.datastore.host | quote }}
+            - name: HYB_REDIS_PORT
+              value: {{ .Values.server.datastore.port | toString | quote }}
+          {{- end }}
+          {{- if .Values.secrets.redisPassword }}
+            - name: HYB_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hybrasyl.fullname" . }}-settings
+                  key: redis-password
+          {{- end }}
+          {{- if .Values.server.datastore.database }}
+            - name: HYB_REDIS_DB
+              value: {{ .Values.server.datastore.database | toString | quote }}
+          {{- end }}
+          volumeMounts:
+              mountPath: {{ .Values.server.worldDataDir }}
+              readOnly: true
+          {{- if .Values.server.volumes.pluginData.enabled }}
+            - name: {{ .Values.environment }}-gameserver-plugindata
+              mountPath: {{ .Values.server.volumes.pluginData.mountDir }}
+          {{- end }}
+            - name: {{ .Values.environment }}-gameserver-logs
+              mountPath: /var/log
+            - name: {{ .Values.environment }}-gameserver-config
+              mountPath: /config
+          ports:
+            - name: lobby
+              containerPort: 2610
+              protocol: TCP
+            - name: login
+              containerPort: 2611
+              protocol: TCP
+            - name: world
+              containerPort: 2612
+              protocol: TCP
+            {{- if .Values.server.network.grpc.enabled }}
+            - name: grpc
+              containerPort: {{ .Values.server.network.grpc.port }}
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: 2610
+            initialDelaySeconds: 30
+            periodSeconds: 5
+          readinessProbe:
+          {{- if .Values.server.network.grpc.enabled }}
+            grpc:
+              port: 2613
+              service: {{ .Values.server.network.grpc.healthCheckService }}
+          {{- else }}
+            tcpSocket:
+              port: 2612
+          {{- end }}
+            initialDelaySeconds: 30
+            periodSeconds: 5
+        {{- if .Values.server.logging.singleStream.enabled }}
+          image: busybox:latest
+          args: ["/bin/sh", "-c", "tail -n+1 -F /var/log/hybrasyl/*.log"]
+          volumeMounts:
+            - name: {{ .Values.environment }}-gameserver-logs
+              mountPath: /var/log
+              readOnly: true
+        {{- end }}

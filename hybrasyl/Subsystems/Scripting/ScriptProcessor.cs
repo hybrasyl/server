@@ -16,23 +16,30 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
+using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using System.IO;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
-public class ScriptProcessor
+public class ScriptProcessor(World world)
 {
-    public ScriptProcessor(World world)
+    public World World { get; } = world;
+    private Dictionary<Guid, Script> _scripts = new();
+    private Dictionary<string, Guid> _locatorIndex = new();
+    private Dictionary<string, Guid> _nameIndex = new();
+    private Dictionary<Guid, List<Guid>> _scriptAttachments = new();
+
+    static ScriptProcessor()
     {
-        World = new HybrasylWorld(world);
-        // Register UserData types for MoonScript
+        // Register UserData types for MoonScript. This only needs to be done once.
         // NB registering assemblies is required for RegisterType of
         // any type in that assembly to work correctly
         UserData.RegisterAssembly(typeof(Game).Assembly);
@@ -44,79 +51,117 @@ public class ScriptProcessor
         UserData.RegisterType<TimeSpan>();
         UserData.RegisterType<ElementType>();
         UserData.RegisterType<Direction>();
-        _scripts = new Dictionary<string, List<Script>>();
         // Ensure usage of Guid in various scripts is handled correctly
         MoonSharp.Interpreter.Script.GlobalOptions.CustomConverters.SetClrToScriptCustomConversion<Guid>(v =>
             DynValue.NewString(v.ToString()));
     }
 
-    public HybrasylWorld World { get; }
-    public Dictionary<string, List<Script>> _scripts { get; }
-
-    // "Ri OnA.lua" => riona
-    private string SanitizeName(string scriptName) =>
-        Regex.Replace(Regex.Replace(scriptName.ToLower().Normalize(), @"\s+", ""), ".lua$", "");
-
-    private bool TryGetScriptInstances(string scriptName, out List<Script> scriptList)
+    public void CompileScripts()
     {
-        scriptList = null;
-        var wef = SanitizeName(scriptName);
-        if (_scripts.TryGetValue(wef, out scriptList)) return true;
-        return false;
+        // Scan each directory for *.lua files
+        var numFiles = 0;
+        var numErrors = 0;
+        foreach (var file in Directory.GetFiles(World.ScriptDirectory, "*.lua", SearchOption.AllDirectories))
+        {
+            var path = file.Replace(World.ScriptDirectory, "");
+            var scriptName = Path.GetFileName(file);
+            if (path.StartsWith("_") || path.StartsWith("modules"))
+                continue;
+
+            try
+            {
+                var script = new Script(file, this);
+                RegisterScript(script);
+                if (path.StartsWith("common") || path.StartsWith("startup"))
+                {
+                    GameLog.ScriptingInfo($"{nameof(CompileScripts)}: Loading & executing script {path}");
+                    script.Run();
+                }
+                else
+                    GameLog.ScriptingInfo($"{nameof(CompileScripts)}: Loading {path}");
+                numFiles++;
+            }
+            catch (Exception e)
+            {
+                GameLog.ScriptingError($"{nameof(CompileScripts)}: {scriptName}: Registration failed: {e}");
+                numErrors++;
+            }
+        }
+
+        GameLog.Info($"{nameof(CompileScripts)}: loaded {numFiles} scripts");
+        if (numErrors > 0)
+            GameLog.Error($"{nameof(CompileScripts)}: {numErrors} scripts had errors - check scripting log");
+    }
+
+    private string GenerateLocator(string path)
+    {
+        var locator = path.Replace(World.ScriptDirectory, "").Replace(@"\", ":").Replace("/", ":");
+        return locator.StartsWith(":") ? locator[1..] : locator;
+    }
+
+    public void RegisterScriptAttachment(Script script, WorldObject obj)
+    {
+        if (script == null || obj == null)
+            throw new ArgumentException("both arguments required");
+
+        if (!_scriptAttachments.TryGetValue(script.Guid, out var _))
+            _scriptAttachments.Add(script.Guid, new());
+
+        _scriptAttachments[script.Guid].Add(obj.Guid);
     }
 
     public bool TryGetScript(string scriptName, out Script script)
     {
         script = null;
-        if (TryGetScriptInstances(scriptName, out var s))
-        // Note that a request for RiOnA.lua == Riona == riona as long as
-        // riona exists
-        {
-            script = s[0].Clone();
-            return true;
-        }
+        if (_nameIndex.TryGetValue(scriptName, out var guid) || _nameIndex.TryGetValue($"{scriptName.ToLower()}.lua", out guid))
+            script = _scripts[guid];
 
-        return false;
+        return script != null;
+    }
+
+    public bool TryGetScriptByLocator(string relativePath, out Script script)
+    {
+        script = null;
+        var locator = GenerateLocator(relativePath);
+        if (!_locatorIndex.TryGetValue(locator, out var guid))
+            return false;
+        script = _scripts[guid];
+        return true;
     }
 
     public void RegisterScript(Script script, bool run = true)
     {
-        if (script.Processor == null)
-            script.Processor = this;
-
+        script.Processor ??= this;
+        script.Guid = Guid.NewGuid();
+        script.Locator = GenerateLocator(script.FullPath);
         if (run)
             script.Run();
 
-        var name = SanitizeName(script.Name);
-        if (!_scripts.ContainsKey(name)) _scripts[name] = new List<Script>();
-        _scripts[name].Add(script);
+        _scripts[script.Guid] = script;
+        _nameIndex[script.Name] = script.Guid;
+        _locatorIndex[script.Locator] = script.Guid;
     }
 
-    public bool DeregisterScript(string scriptName)
+    public void ReloadScript(Guid guid)
     {
-        if (TryGetScriptInstances(scriptName, out var scriptList))
+        if (!_scripts.TryGetValue(guid, out var script))
         {
-            _scripts[scriptName] = new List<Script>();
-            return true;
+            GameLog.ScriptingError($"{nameof(ReloadScript)}: reload failed, guid {guid} not found");
+            return;
         }
 
-        return false;
-    }
+        script.Reload();
 
-    public bool Reload(string scriptName)
-    {
-        if (TryGetScriptInstances(SanitizeName(scriptName), out var s))
+        var attachments = new List<Guid>(_scriptAttachments[guid]);
+        _scriptAttachments[guid].Clear();
+
+        foreach (var attachment in attachments)
         {
-            foreach (var instance in s)
-            {
-                instance.Reload();
-                GameLog.ScriptingInfo(
-                    $"Reloading instance of {scriptName}: associate was {instance.Associate?.Name ?? "None"}");
-            }
-
-            return true;
+            if (!World.WorldState.TryGetWorldObject(attachment, out WorldObject obj) ||
+                obj is not ISpawnable spawnable) continue;
+            spawnable.OnSpawn();
+            GameLog.ScriptingInfo($"{nameof(ReloadScript)}: type {spawnable.GetType()} ({spawnable.Name}): triggering OnSpawn due to script reload");
         }
-
-        return false;
     }
+
 }

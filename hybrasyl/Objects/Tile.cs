@@ -39,6 +39,20 @@ public class Tile
         return false;
     }
 
+    public Tile Terminus {
+        get
+        {
+            var start = this;
+            while (start.Parent != null)
+            {
+                start = start.Parent;
+                
+            }
+
+            return start;
+        }
+    }
+
     public override string ToString()
     {
         var ret = string.Empty;

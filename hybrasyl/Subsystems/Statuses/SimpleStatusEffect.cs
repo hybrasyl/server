@@ -18,7 +18,7 @@
 
 using Hybrasyl.Subsystems.Formulas;
 
-namespace Hybrasyl.Statuses;
+namespace Hybrasyl.Subsystems.Statuses;
 
 public class SimpleStatusEffect
 {

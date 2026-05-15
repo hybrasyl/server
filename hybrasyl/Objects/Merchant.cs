@@ -16,9 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
@@ -27,34 +24,42 @@ using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Mundanes;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Objects;
 
-public class MerchantInventoryItem
+public class MerchantInventoryItem(Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
 {
-    public MerchantInventoryItem(Item item, uint onHand, uint restockAmount, int restockInterval, DateTime lastRestock)
-    {
-        Item = item;
-        OnHand = onHand;
-        RestockAmount = restockAmount;
-        RestockInterval = restockInterval;
-        LastRestock = lastRestock;
-    }
-
-    public Item Item { get; }
-    public uint OnHand { get; set; }
-    public uint RestockAmount { get; }
-    public int RestockInterval { get; }
-    public DateTime LastRestock { get; set; }
+    public Item Item { get; } = item;
+    public uint OnHand { get; set; } = onHand;
+    public uint RestockAmount { get; } = restockAmount;
+    public int RestockInterval { get; } = restockInterval;
+    public DateTime LastRestock { get; set; } = lastRestock;
 }
 
-public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
+public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral, ISpawnable
 {
     // TODO: move these to new base class (eg Creature->NewClass->Merchant|Reactor etc)
     private readonly object inventoryLock = new();
 
     public bool Ready;
     public Npc Template;
+    public string Filename { get; set; }
+    public MerchantJob Jobs { get; set; }
+    private MerchantController Controller { get; set; }
+    public List<MerchantInventoryItem> MerchantInventory { get; set; }
+
+    // TODO: create "computer controllable object" base class and put this there instead
+    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
+    public object StoreLock { get; } = new();
+    public List<DialogSequence> Pursuits { get; set; } = new();
+    public Dictionary<string, string> Strings { get; set; } = new();
+    public Dictionary<string, string> Responses { get; set; } = new();
+    public List<DialogSequence> DialogSequences { get; set; } = new();
+    public Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
+    public string DisplayName { get; set; }
 
     public Merchant(Npc npc)
     {
@@ -92,19 +97,6 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         Ready = false;
     }
 
-    public MerchantJob Jobs { get; set; }
-    private MerchantController Controller { get; set; }
-    public List<MerchantInventoryItem> MerchantInventory { get; set; }
-
-    // TODO: create "computer controllable object" base class and put this there instead
-    public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
-    public object StoreLock { get; } = new();
-    public List<DialogSequence> Pursuits { get; set; } = new();
-    public Dictionary<string, string> Strings { get; set; } = new();
-    public Dictionary<string, string> Responses { get; set; } = new();
-    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
-    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
-
     public override void ShowTo(IVisible obj)
     {
         if (obj is not User user) return;
@@ -121,11 +113,10 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
         npcPacket.WriteByte((byte) Direction);
         npcPacket.WriteByte(0);
         npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-        npcPacket.WriteString8(Name);
+        npcPacket.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
         user.Enqueue(npcPacket);
     }
 
-    public string Filename { get; set; }
 
     // TODO: remove this when base(<interface name>) is actually added to the language. .NET 7 maybe
     public string GetLocalString(string key) => ((IResponseCapable) this).DefaultGetLocalString(key);
@@ -199,16 +190,17 @@ public class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral
             }
         }
 
-        Script script;
         // Do we have a script? If so, get it and run OnSpawn.
-        if (World.ScriptProcessor.TryGetScript(Name, out script))
+        if (World.ScriptProcessor.TryGetScript(Name, out Script script) || World.ScriptProcessor.TryGetScript(DisplayName, out script))
         {
+            DialogSequences.Clear();
             Script = script;
-            Script.AssociateScriptWithObject(this);
             // Clear existing pursuits, in case the OnSpawn crashes / has a bug
             (this as IPursuitable).ResetPursuits();
             var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this)));
             Ready = ret.Result == ScriptResult.Success;
+            LastExecutionResult = ret;
+            World.ScriptProcessor.RegisterScriptAttachment(script, this);
         }
         else
         {

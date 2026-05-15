@@ -24,10 +24,10 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Servers;
-using Hybrasyl.Statuses;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -39,7 +39,7 @@ using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 namespace Hybrasyl.Objects;
 
-public class Creature : VisibleObject
+public class Creature : VisibleObject, IStatSnapshotProvider
 {
     private readonly object _lock = new();
 
@@ -114,13 +114,6 @@ public class Creature : VisibleObject
             if (maxdmg == 0) maxdmg = 1;
             return (ushort)Random.Shared.Next(mindmg, maxdmg + 1);
         }
-    }
-
-    public CreatureSnapshot GetSnapshot()
-    {
-        var stats = JsonConvert.SerializeObject(Stats);
-        var statInfo = JsonConvert.DeserializeObject<StatInfo>(stats);
-        return new CreatureSnapshot { Name = Name, Parent = Guid, Stats = statInfo };
     }
 
     public virtual string Status() => string.Empty;
@@ -720,7 +713,7 @@ public class Creature : VisibleObject
                         var toRemove = tar.CurrentStatuses.Values.FirstOrDefault(predicate: s =>
                             s.Category.Contains(status.Value));
                         if (toRemove == null) break;
-                        tar.RemoveStatus(toRemove.Icon);
+                        tar.RemoveStatus(toRemove.Icon, remover: this);
                         GameLog.UserActivityInfo(
                             $"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
                     }
@@ -729,7 +722,8 @@ public class Creature : VisibleObject
                 {
                     GameLog.UserActivityError(
                         $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
-                    tar.RemoveStatus(applyStatus.Icon);
+                    tar.RemoveStatus(applyStatus.Icon, remover: this);
+
                 }
                 else
                 {
@@ -962,6 +956,8 @@ public class Creature : VisibleObject
 
     public virtual void Heal(double heal, Creature source = null, Castable castable = null)
     {
+        if (Condition.IsHpIncreaseProhibited)
+            return;
         var bonusHeal = heal * Stats.BaseInboundHealModifier + (heal * source?.Stats.BaseOutboundHealModifier ?? 0.0);
         heal += bonusHeal;
 
@@ -982,7 +978,7 @@ public class Creature : VisibleObject
 
     public virtual void RegenerateMp(double mp, Creature regenerator = null)
     {
-        if (AbsoluteImmortal)
+        if (AbsoluteImmortal || Condition.IsMpIncreaseProhibited)
             return;
 
         if (Stats.Mp == Stats.MaximumMp || mp > Stats.MaximumMp)
@@ -1176,7 +1172,7 @@ public class Creature : VisibleObject
         {
             case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
             case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
-            case DamageType.Direct when AbsoluteImmortal || Condition.IsInvulnerable:
+            case DamageType.Direct when AbsoluteImmortal:
                 damageEvent.Applied = false;
                 return;
         }
@@ -1261,10 +1257,7 @@ public class Creature : VisibleObject
                     });
         }
 
-        if ((MagicalImmortal && damageType != DamageType.Magical) ||
-            (PhysicalImmortal && damageType != DamageType.Physical) ||
-            !AbsoluteImmortal)
-            Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
+        Stats.Hp = (int)Stats.Hp - normalized < 0 ? 0 : Stats.Hp - normalized;
 
         SendDamageUpdate(this);
 
@@ -1295,34 +1288,73 @@ public class Creature : VisibleObject
 
     public virtual void Refresh() { }
 
-    public void SetCookie(string cookieName, string value)
+    public void SetCookie(string cookieName, string value, bool defaultNamespace = true)
     {
-        Cookies[cookieName] = value;
+        if (defaultNamespace)
+            Cookies[$"default:{cookieName}"] = value;
+        else
+            Cookies[cookieName] = value;
     }
 
-    public void SetSessionCookie(string cookieName, string value)
+    public void SetCookie(string ns, string cookieName, string value) => SetCookie($"{ns.ToLower()}:{cookieName}", value, false);
+
+    public void SetSessionCookie(string cookieName, string value, bool defaultNamespace = true)
     {
-        SessionCookies[cookieName] = value;
+        if (defaultNamespace)
+            SessionCookies[$"default:{cookieName}"] = value;
+        else
+            SessionCookies[cookieName] = value;
     }
+
+    public void SetSessionCookie(string ns, string cookieName, string value) =>
+        SetSessionCookie($"{ns.ToLower()}:{cookieName}", value, false);
 
     public IReadOnlyDictionary<string, string> GetCookies() => Cookies;
 
     public IReadOnlyDictionary<string, string> GetSessionCookies() => SessionCookies;
 
-    public string GetCookie(string cookieName) => Cookies.TryGetValue(cookieName, out var value) ? value : null;
+    public string GetCookie(string cookieName, bool defaultNamespace = true)
+    {
+        if (defaultNamespace)
+            return Cookies.TryGetValue($"default:{cookieName}", out var value) ? value : null;
+        else
+            return Cookies.TryGetValue(cookieName, out var value) ? value : null;
+    }
 
-    public string GetSessionCookie(string cookieName) =>
-        SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
+    public string GetCookie(string ns, string cookieName) => GetCookie($"{ns.ToLower()}:{cookieName}", false);
 
-    public bool HasCookie(string cookieName) => Cookies.ContainsKey(cookieName);
+    public string GetSessionCookie(string cookieName, bool defaultNamespace = true)
+    {
+        if (defaultNamespace)
+            return SessionCookies.TryGetValue($"default:{cookieName}", out var value) ? value : null;
+        else
+            return SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
+    }
 
-    public bool HasSessionCookie(string cookieName) => SessionCookies.ContainsKey(cookieName);
+    public string GetSessionCookie(string ns, string cookieName) =>
+        GetSessionCookie($"{ns.ToLower()}:{cookieName}", false);
 
-    public bool DeleteCookie(string cookieName) => Cookies.Remove(cookieName);
+    public bool HasCookie(string cookieName, bool defaultNamespace = true) => 
+        Cookies.ContainsKey(defaultNamespace ? $"default:{cookieName}" : cookieName);
 
-    public bool DeleteSessionCookie(string cookieName) => SessionCookies.Remove(cookieName);
+    public bool HasCookie(string ns, string cookieName) => HasCookie($"{ns.ToLower()}:{cookieName}", false);
 
+    public bool HasSessionCookie(string cookieName, bool defaultNamespace = true) => 
+        SessionCookies.ContainsKey(defaultNamespace ? $"default:{cookieName}" : cookieName);
 
+    public bool HasSessionCookie(string ns, string cookieName) =>
+        HasSessionCookie($"{ns.ToLower()}:{cookieName}", false);
+
+    public bool DeleteCookie(string cookieName, bool defaultNamespace = true) => 
+        Cookies.Remove(defaultNamespace ? $"default:{cookieName}" : cookieName);
+
+    public bool DeleteCookie(string ns, string cookieName) => DeleteCookie($"{ns.ToLower()}:{cookieName}", false);
+
+    public bool DeleteSessionCookie(string cookieName, bool defaultNamespace = true) => SessionCookies.Remove(defaultNamespace ? $"default:{cookieName}" : cookieName);
+
+    public bool DeleteSessionCookie(string ns, string cookieName) =>
+        DeleteSessionCookie($"{ns.ToLower()}:{cookieName}", false);
+    
     #region Status handling
 
     /// <summary>
@@ -1331,6 +1363,14 @@ public class Creature : VisibleObject
     /// <param name="status">The status to apply to the player.</param>
     public bool ApplyStatus(ICreatureStatus status, bool sendUpdates = true)
     {
+        var statusEvent = new StatusEvent
+        {
+            StatusName = status.Name,
+            Applied = true, // this is an application
+            Source = status.Source,
+            Target = this
+        };
+
         // Check for immunities to status effects
         if (this is Monster { BehaviorSet: not null } m)
             if (m.BehaviorSet.ImmuneToStatus(status.Name, out var immunity) ||
@@ -1342,6 +1382,7 @@ public class Creature : VisibleObject
 
         if (!CurrentStatuses.TryAdd(status.Icon, status))
             return false;
+
         if (this is User u)
         {
             if (sendUpdates)
@@ -1350,6 +1391,9 @@ public class Creature : VisibleObject
             foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
                 if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
                     reactor.ShowTo(this);
+            u.SendCombatLogMessage(statusEvent);
+            if (status.Source is User u2)
+                u2.SendCombatLogMessage(statusEvent);
         }
 
         if (this is Monster m2)
@@ -1387,17 +1431,71 @@ public class Creature : VisibleObject
     /// </summary>
     /// <param name="icon">The icon of the status we are removing.</param>
     /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
-    /// <returns></returns>
-    public bool RemoveStatus(ushort icon, bool onEnd = true)
+    /// <param name="remover">The creature removing the status (can be used in formulas for removal chance)</param>
+    /// <returns>true or false depending on whether removal was  successful or not</returns>
+    public bool RemoveStatus(ushort icon, bool onEnd = true, Creature remover = null)
     {
         ICreatureStatus status;
-        if (!CurrentStatuses.TryRemove(icon, out status)) return false;
+        if (!CurrentStatuses.TryGetValue(icon, out status)) return false;
+        var statusEvent = new StatusEvent
+        {
+            StatusName = status.Name,
+            RemoverName = remover?.Name ?? "unknown",
+            Applied = false // this is a removal
+        };
+
+        if (!string.IsNullOrEmpty(status.RemoveChance))
+        {
+            if (World.WorldState.TryGetValue<CreatureSnapshot>(status.OriginSnapshotId, out var snapshot))
+            {
+                var result = FormulaParser.Eval(status.RemoveChance, new FormulaEvaluation
+                {
+                    OriginalCaster = snapshot.Stats,
+                    Target = this,
+                    Source = remover,
+                });
+
+                var chance = Random.Shared.NextDouble();
+
+                statusEvent.RemovalRoll = chance;
+                statusEvent.RequiredRoll = result;
+
+                if (chance >= result)
+                {
+                    if (remover is User user)
+                    {
+                        user.SendSystemMessage("You try your best, but nothing happens.");
+                        user.SendCombatLogMessage(statusEvent);
+                    }
+                    return false;
+                }
+            }
+            else
+            {
+                // Snapshot missing (status applied without a source, or snapshot
+                // evicted). Skip the chance roll and proceed with removal.
+                GameLog.Warning(
+                    $"RemoveStatus: no origin snapshot for {status.Name} on {Name} (id={status.OriginSnapshotId}); skipping chance roll");
+            }
+        }
+
+        // Actually remove status
+        if (!CurrentStatuses.TryRemove(icon, out status))
+            return false;
+
         _removeStatus(status, onEnd);
         UpdateAttributes(StatUpdateFlags.Full);
-        if (this is User u)
-            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
-                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
-                    reactor.AoiDeparture(this);
+        if (this is not User u) return true;
+        foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+            if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                reactor.AoiDeparture(this);
+        // Only announce removal when a remover actively triggered it; natural
+        // expiry (ProcessStatusTicks passes remover=null) should be silent.
+        if (remover != null)
+        {
+            u.SendSystemMessage("You succeed in removing the affliction.");
+            u.SendCombatLogMessage(statusEvent);
+        }
         return true;
     }
 

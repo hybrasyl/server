@@ -24,65 +24,9 @@ using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections;
-using System.Collections.Specialized;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 
 namespace Hybrasyl.Subsystems.Scripting;
-
-/// <summary>
-///     A collection of dialog options that can be used by an options dialog (a dialog that displays a list of options for
-///     a player to select).
-/// </summary>
-[MoonSharpUserData]
-public class HybrasylDialogOptions
-{
-    public OrderedDictionary Options;
-
-    public HybrasylDialogOptions()
-    {
-        Options = new OrderedDictionary();
-    }
-
-    /// <summary>
-    ///     Add a dialog option which will fire a function when selected by a player.
-    /// </summary>
-    /// <param name="option">The option text</param>
-    /// <param name="luaExpr">The lua expression to be evaluated when the option is selected by a player</param>
-    public void AddOption(string option, string luaExpr = null)
-    {
-        if (string.IsNullOrEmpty(option) || string.IsNullOrEmpty(luaExpr))
-            GameLog.ScriptingError(
-                "AddOption: either option (first argument) or lua expression (second argument) was null or empty");
-        Options.Add(option, luaExpr);
-    }
-
-    /// <summary>
-    ///     Add a dialog option which will fire a JumpDialog when selected by a player.
-    /// </summary>
-    /// <param name="option">The option text</param>
-    /// <param name="nextDialog">The JumpDialog that will be used by this option</param>
-    public void AddOption(string option, HybrasylDialog nextDialog)
-    {
-        if (string.IsNullOrEmpty(option) || nextDialog is null)
-            GameLog.ScriptingError(
-                "AddOption: for options set, option (first argument) or dialog (second argument) was null or empty");
-        if (nextDialog.DialogType == typeof(JumpDialog))
-            Options.Add(option, nextDialog);
-        else
-            GameLog.ScriptingError(
-                $"AddOption: Dialog option {option}: dialog must be JumpDialog, but was a {nextDialog.DialogType.Name}, ignored");
-    }
-
-    /// <summary>
-    ///     Add a dialog option that will start a new sequence when selected by a player.
-    /// </summary>
-    /// <param name="option">The option text</param>
-    /// <param name="sequence">The DialogSequence that wil be started when the option is selected by a player</param>
-    public void AddOption(string option, HybrasylDialogSequence sequence)
-    {
-        Options.Add(option, sequence);
-    }
-}
 
 /// <summary>
 ///     The world, as represented in Lua.
@@ -127,17 +71,14 @@ public class HybrasylWorld
         var ht = HybrasylTime.Now;
         return ht;
     }
-
+    
     /// <summary>
     ///     Get a user object for the specified user (player) name.
     /// </summary>
     /// <param name="username">The user to be returned</param>
     /// <returns>HybrasylUser object for the given user, or nil, if the player is not logged in.</returns>
-    public HybrasylUser GetUser(string username)
-    {
-        if (Game.World.TryGetActiveUser(username, out var user)) return new HybrasylUser(user);
-        return null;
-    }
+    public HybrasylUser GetUser(string username) =>
+         Game.World.TryGetActiveUser(username, out var user) ? new HybrasylUser(user) : null;
 
     /// <summary>
     ///     Create a new dialog options container.
@@ -154,10 +95,7 @@ public class HybrasylWorld
     public HybrasylDialogSequence NewDialogSequence(string sequenceName, params object[] list)
     {
         if (string.IsNullOrEmpty(sequenceName))
-        {
-            GameLog.ScriptingError("NewDialogSequence: Sequence name (first argument) was null / empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewDialogSequence)}: sequenceName was null / empty");
 
         var dialogSequence = new HybrasylDialogSequence(sequenceName);
         foreach (var entry in list)
@@ -169,12 +107,12 @@ public class HybrasylWorld
             }
             else if (entry is not null)
             {
-                GameLog.ScriptingError(
-                    $"NewDialogSequence: Unknown argument of type {entry.GetType()} was passed for a dialog - ignored");
+                throw new ArgumentException(
+                    $"{nameof(NewDialogSequence)}: {sequenceName} - Unknown argument of type {entry.GetType()} was passed in dialog list");
             }
             else
             {
-                GameLog.ScriptingError("NewDialogSequence: null argument passed as dialog - ignored");
+                throw new ArgumentException($"{nameof(NewDialogSequence)}: {sequenceName} - null argument passed in dialog list");
             }
 
         return dialogSequence;
@@ -192,10 +130,7 @@ public class HybrasylWorld
     public HybrasylDialog NewDialog(string displayText, string callback = null)
     {
         if (string.IsNullOrEmpty(displayText))
-        {
-            GameLog.ScriptingError("NewDialog: Sequence name (first argument) was null / empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewDialog)}: displayText was null or empty");
 
         var dialog = new SimpleDialog(displayText);
         dialog.SetCallbackHandler(callback);
@@ -211,19 +146,13 @@ public class HybrasylWorld
     public HybrasylDialogSequence NewSimpleDialogSequence(string sequenceName, params string[] textList)
     {
         if (string.IsNullOrEmpty(sequenceName))
-        {
-            GameLog.ScriptingError("NewSimpleDialogSequence: Sequence name (first argument) was null / empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewSimpleDialogSequence)}: sequenceName was null or empty");
 
         var sequence = new DialogSequence(sequenceName);
         foreach (var entry in textList)
         {
             if (string.IsNullOrEmpty(entry))
-            {
-                GameLog.ScriptingWarning("NewSimpleDialogSequence: encountered empty / null dialog text, ignoring");
-                continue;
-            }
+                throw new ArgumentException($"{nameof(NewSimpleDialogSequence)}: entry in textList was empty or null");
 
             sequence.AddDialog(new SimpleDialog(entry));
         }
@@ -245,16 +174,10 @@ public class HybrasylWorld
     {
         DialogSequence sequence;
         if (string.IsNullOrEmpty(simpleDialog) || string.IsNullOrEmpty(jumpTarget))
-        {
-            GameLog.ScriptingError(
-                "NewTextAndJumpDialog: text (first argument) or jump target (second argument) cannot be null or empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewTextAndJumpDialog)}: simpleDialog or jumpTarget was null / empty");
 
-        if (name == null)
-            sequence = new DialogSequence(Guid.NewGuid().ToString());
-        else
-            sequence = new DialogSequence(name);
+        sequence = name == null ? new DialogSequence(Guid.NewGuid().ToString()) : new DialogSequence(name);
+
         var dialog = new SimpleDialog(simpleDialog);
 
         if (!string.IsNullOrEmpty(callback))
@@ -278,15 +201,9 @@ public class HybrasylWorld
         DialogSequence sequence;
 
         if (string.IsNullOrEmpty(simpleDialog))
-        {
-            GameLog.ScriptingError("NewEndSequence: Dialog text (first argument) cannot be null or empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewEndSequence)}: simpleDialog argument cannot be null or empty");
 
-        if (name == null)
-            sequence = new DialogSequence(Guid.NewGuid().ToString());
-        else
-            sequence = new DialogSequence(name);
+        sequence = name == null ? new DialogSequence(Guid.NewGuid().ToString()) : new DialogSequence(name);
 
         var dialog = new SimpleDialog(simpleDialog);
 
@@ -343,57 +260,27 @@ public class HybrasylWorld
         string callback = "", string handler = "")
     {
         if (string.IsNullOrEmpty(displayText))
-        {
-            GameLog.ScriptingError("NewOptionsDialog: display text (first argument) cannot be null or empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewOptionsDialog)}: displayText argument cannot be null or empty");        
 
         if (dialogOptions is null || dialogOptions.Options.Count == 0)
-        {
-            GameLog.ScriptingError(
-                "NewOptionsDialog: dialogOptions (second or greater argument(s)) null, or had no options");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewOptionsDialog)}: dialogOptions argument cannot be null or empty");       
 
         var dialog = new OptionsDialog(displayText);
         foreach (DictionaryEntry entry in dialogOptions.Options)
-            if (entry.Value is string)
-            // Callback
-            {
-                dialog.AddDialogOption(entry.Key as string, entry.Value as string);
-            }
-            else if (entry.Value is HybrasylDialog)
-            {
-                var hd = entry.Value as HybrasylDialog;
-                if (hd.DialogType == typeof(JumpDialog))
-                    // Dialog jump
-                    dialog.AddDialogOption(entry.Key as string, hd.Dialog as JumpDialog);
-                else
-                    GameLog.ScriptingError(
-                        "NewOptionsDialog: one or more passed option(s) uses type {type} - only jump dialogs are allowed currently",
-                        entry.Value.GetType().Name);
-            }
-            else if (entry.Value is null)
-            // This is JUST an option, with no callback or jump dialog. The dialog handler will process the option itself.
-            {
-                dialog.AddDialogOption(entry.Key as string);
-            }
-            else if (entry.Value is HybrasylDialogSequence)
-            {
-                var hds = entry.Value as HybrasylDialogSequence;
-                dialog.AddDialogOption(entry.Key as string, hds.Sequence);
-            }
-            else
-            {
-                GameLog.ScriptingError(
-                    "NewOptionsDialog: one or more passed option(s) was an unknown type {type} - this will not work",
-                    entry.Value.GetType().Name);
-            }
+        {
+            if (entry.Value is null)
+                throw new ArgumentException($"{nameof(NewOptionsDialog)}: a value in dialogOptions argument was null");        
+
+            if (entry.Value is not DialogOption o)
+                throw new ArgumentException($"{nameof(NewOptionsDialog)}: a value in dialogOptions argument: expected DialogOption, but {entry.Value.GetType()} was encountered");
+
+            dialog.AddDialogOption(o);
+
+        }
 
         if (dialog.OptionCount == 0)
-            GameLog.ScriptingError(
-                "NewOptionsDialog: no options were passed or created. This dialog WILL NOT render. DisplayText follows: {displayText}",
-                displayText);
+            throw new ArgumentException($"{nameof(NewOptionsDialog)}: No valid options were found in dialogOptions argument");
+
         dialog.SetInputHandler(handler);
         dialog.SetCallbackHandler(callback);
         return new HybrasylDialog(dialog);
@@ -409,7 +296,7 @@ public class HybrasylWorld
     public HybrasylDialog NewFunctionDialog(string luaExpr)
     {
         if (string.IsNullOrEmpty(luaExpr))
-            GameLog.ScriptingError("NewFunctionDialog: lua expression (first argument) cannot be null or empty");
+            throw new ArgumentException($"{nameof(NewFunctionDialog)}: luaExpr argument cannot be null or empty");
         return new HybrasylDialog(new FunctionDialog(luaExpr));
     }
 
@@ -423,10 +310,7 @@ public class HybrasylWorld
     public HybrasylDialog NewJumpDialog(string targetSequence, string callbackExpression = null)
     {
         if (string.IsNullOrEmpty(targetSequence))
-        {
-            GameLog.ScriptingError("NewJumpDialog: target sequence (first argument) cannot be null or empty");
-            return null;
-        }
+            throw new ArgumentException($"{nameof(NewJumpDialog)}: targetSequence argument cannot be null or empty");
 
         var dialog = new JumpDialog(targetSequence);
         if (!string.IsNullOrEmpty(callbackExpression))
@@ -441,8 +325,8 @@ public class HybrasylWorld
     public void RegisterGlobalSequence(HybrasylDialogSequence globalSequence)
     {
         if (globalSequence is null || globalSequence.Sequence.Dialogs.Count == 0)
-            GameLog.ScriptingError(
-                "RegisterGlobalSequence: sequence (first argument) was null, or the sequence contained no dialogs");
+            throw new ArgumentException(
+                $"{nameof(RegisterGlobalSequence)}: globalSequence argument was null, or the sequence itself contained no dialogs");
         Game.World.RegisterGlobalSequence(globalSequence.Sequence);
     }
 
@@ -459,6 +343,6 @@ public class HybrasylWorld
         spawn.Y = y;
         spawn.Name = displayName ?? name;
 
-        map.InsertCreature(spawn);
+        map.InsertMonster(spawn);
     }
 }

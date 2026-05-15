@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Logging;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
@@ -170,11 +171,58 @@ public class ThreatInfo(Guid id)
                 ret.Add(Game.World.WorldState.GetWorldObject<Creature>(Extensions.EnumerableExtension
                     .PickRandom(ThreatTableByCreature).Key));
                 break;
+            case CreatureTargetPriority.AllyWithLowestHp:
+
+                ret.Add(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Hp)
+                    .Select(x => x as Creature).FirstOrDefault());
+                break;
+            case CreatureTargetPriority.AllyWithLowestMp:
+
+                ret.Add(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Mp)
+                    .Select(x => x as Creature).FirstOrDefault());
+                break;
+            case CreatureTargetPriority.AllyWithHighestHp:
+
+                ret.Add(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Hp)
+                    .Select(x => x as Creature).FirstOrDefault());
+                break;
+            case CreatureTargetPriority.AllyWithHighestMp:
+
+                ret.Add(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Mp)
+                    .Select(x => x as Creature).FirstOrDefault());
+                break;
+            case CreatureTargetPriority.AllyWithLessThanMaxHp:
+
+                ret.AddRange(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.Stats.Hp < x.Stats.MaximumHp)
+                    .OrderBy(x => x.Stats.Hp).Select(x => x as Creature).ToList());
+                break;
+            case CreatureTargetPriority.AllyWithLessThanMaxMp:
+
+                ret.AddRange(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.Stats.Mp < x.Stats.MaximumMp)
+                    .OrderBy(x => x.Stats.Mp).Select(x => x as Creature).ToList());
+                break;
+            case CreatureTargetPriority.AllyWithStatusConditions:
+                ret.AddRange(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.CurrentStatuses.Count > 0)
+                    .OrderBy(x => x.Stats.Mp).Select(x => x as Creature).ToList());
+                break;
+            case CreatureTargetPriority.AllyWithNoStatusConditions:
+                ret.AddRange(OwnerObject.Map.EntityTree
+                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.CurrentStatuses.Count == 0)
+                    .OrderBy(x => x.Stats.Mp).Select(x => x as Creature).ToList());
+                break;
             case CreatureTargetPriority.Self:
                 ret.Add(OwnerObject);
                 break;
         }
 
+        GameLog.Error($"{OwnerObject.Name}: priority {priority}, picked {ret.FirstOrDefault()?.Name ?? "null"} as target");
         return ret;
     }
 

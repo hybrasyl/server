@@ -21,13 +21,6 @@ using Hybrasyl.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
-public struct ChatCommandResult
-{
-    public bool Success;
-    public string Message;
-    public byte MessageType;
-}
-
 public abstract class ChatCommand
 {
     public string Command { get; }

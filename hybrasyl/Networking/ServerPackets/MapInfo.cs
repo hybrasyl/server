@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Enums;
+using MapFlags = Hybrasyl.Xml.Objects.MapFlags;
 using Hybrasyl.Objects;
 
 namespace Hybrasyl.Networking.ServerPackets;
@@ -38,15 +39,20 @@ internal class MapInfo
         packet.WriteUInt16(User.Map.Id);
         packet.WriteByte((byte) (User.Map.X % 256));
         packet.WriteByte((byte) (User.Map.Y % 256));
+        // I hate this
         byte flags = 0;
-        //if ((User.Map.Flags & MapFlags.Snow) == MapFlags.Snow)
-        //    flags |= 1;
-        //if ((User.Map.Flags & MapFlags.Rain) == MapFlags.Rain)
-        //    flags |= 2;
-        //if ((User.Map.Flags & MapFlags.NoMap) == MapFlags.NoMap)
-        //    flags |= 64;
-        //if ((User.Map.Flags & MapFlags.Winter) == MapFlags.Winter)
-        //    flags |= 128;
+        if (User.Map.Flags.HasFlag(MapFlags.Snow))
+            flags |= 1;
+        if (User.Map.Flags.HasFlag(MapFlags.Rain))
+            flags |= 2;
+        if (User.Map.Flags.HasFlag(MapFlags.Dark)) {
+            flags |= 1;
+            flags |= 2;
+        }
+        if (User.Map.Flags.HasFlag(MapFlags.NoMap))
+            flags |= 64;
+        if (User.Map.Flags.HasFlag(MapFlags.Snow))
+            flags |= 128;
         packet.WriteByte(flags);
         packet.WriteByte((byte) (User.Map.X / 256));
         packet.WriteByte((byte) (User.Map.Y / 256));

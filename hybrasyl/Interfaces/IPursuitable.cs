@@ -172,7 +172,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             Tile2 = (ushort)(0x4000 + Sprite),
             Color2 = 0,
             PortraitType = 1,
-            Name = Name,
+            Name = string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName,
             Text = merchant.GetLocalString("greeting"),
             Options = options
         };

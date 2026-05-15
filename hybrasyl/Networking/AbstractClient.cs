@@ -52,9 +52,9 @@ public abstract class AbstractClient
 
     public void GenerateKeyTable(string seed)
     {
-        var table = Crypto.HashString(seed, "MD5");
-        table = Crypto.HashString(table, "MD5");
-        for (var i = 0; i < 31; i++) table += Crypto.HashString(table, "MD5");
+        var table = Crypto.Md5HashString(seed);
+        table = Crypto.Md5HashString(table);
+        for (var i = 0; i < 31; i++) table += Crypto.Md5HashString(table);
         EncryptionKeyTable = Encoding.ASCII.GetBytes(table);
     }
 }

@@ -16,20 +16,22 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
+using Hybrasyl.Interfaces;
 using MoonSharp.Interpreter;
+using System;
 
 namespace Hybrasyl.Objects;
 
 [MoonSharpUserData]
-public record CreatureSnapshot
+public record CreatureSnapshot : IStateStorable
 {
+    public Guid Guid { get; set; } = Guid.NewGuid();
     public required StatInfo Stats { get; init; }
     public required string Name { get; init; }
-    public Guid Parent { get; init; }
+    public required Guid CreatureGuid { get; init; }
     public DateTime CreationDate { get; } = DateTime.Now;
 
     public bool IsPlayer => GetUserObject() != null;
 
-    public User GetUserObject() => Game.World.WorldState.TryGetWorldObject(Parent, out User user) ? user : null;
+    public User GetUserObject() => Game.World.WorldState.TryGetWorldObject(CreatureGuid, out User user) ? user : null;
 }

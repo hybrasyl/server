@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Casting;
 
@@ -50,8 +50,7 @@ public class Rotation : IList<RotationEntry>
 
     public RotationEntry LastCastable { get; set; }
 
-    public RotationEntry CurrentCastable => Castables[CurrentIndex];
-
+    public RotationEntry CurrentCastable => CurrentIndex < Castables.Count ? Castables[CurrentIndex] : null;
     public RotationEntry NextCastable
     {
         get

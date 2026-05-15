@@ -16,10 +16,10 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
+using System;
 
 namespace Hybrasyl.Objects;
 
@@ -66,8 +66,6 @@ public class StatInfo
             }
         }
     }
-
-    [FormulaVariable] public int FormulaLevel => Level;
 
     [FormulaVariable]
     [JsonProperty]
@@ -1491,12 +1489,12 @@ public class StatInfo
     }
 
     public ElementType OffensiveElement => OffensiveElementOverride == ElementType.None
-        ? OffensiveElementOverride
-        : BaseOffensiveElement;
+        ? BaseOffensiveElement
+        : OffensiveElementOverride;
 
     public ElementType DefensiveElement => DefensiveElementOverride == ElementType.None
-        ? DefensiveElementOverride
-        : BaseDefensiveElement;
+        ? BaseDefensiveElement
+        : DefensiveElementOverride;
 
     public string OffensiveElementStr => Enum.GetName(typeof(ElementType), OffensiveElement);
     public string DefensiveElementStr => Enum.GetName(typeof(ElementType), DefensiveElement);

@@ -16,8 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System;
 using Hybrasyl.Xml.Objects;
+using System;
 
 namespace Hybrasyl.Casting;
 
@@ -27,6 +27,7 @@ public class BookSlot
     public uint UseCount { get; set; }
     public uint MasteryLevel { get; set; }
     public DateTime LastCast { get; set; }
+    public int ClientSlot { get; set; }
 
     public bool OnCooldown => Castable.Cooldown > 0 &&
                               (DateTime.Now - LastCast).TotalSeconds < Castable.Cooldown;

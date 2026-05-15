@@ -32,7 +32,7 @@ namespace Hybrasyl.Subsystems.Jobs;
 /// </summary>
 public static class HeartbeatReaperJob
 {
-    public static readonly int Interval = Game.ActiveConfiguration.Constants.ReapHeartbeatInterval;
+    public static readonly int Interval = Game.ActiveConfiguration.Constants.HeartbeatReaperInterval;
 
     public static void Execute(object obj, ElapsedEventArgs args)
     {

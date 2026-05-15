@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -140,6 +140,8 @@ internal class PatronServer : Patron.PatronBase
                 login.LastPasswordChange = DateTime.Now;
                 login.LastPasswordChangeFrom = context.Peer;
                 login.Save();
+                return Task.FromResult(new BooleanMessageReply { Message = "Password for {request.Username} was reset successfully!", Success = true });
+
             }
             else
             {
@@ -153,4 +155,13 @@ internal class PatronServer : Patron.PatronBase
 
         return Task.FromResult(new BooleanMessageReply { Message = "Unknown error", Success = false });
     }
+
+    public override Task<HealthReply> Health(Empty request, ServerCallContext context)
+    {
+        if (Game.GetDefaultServer<Login>().Active && Game.GetDefaultServer<World>().Active &&
+            Game.GetDefaultServer<Lobby>().Active)
+            return Task.FromResult(new HealthReply { Healthy = true, Response = "OK" });
+        return Task.FromResult(new HealthReply { Healthy = false, Response = "One or more servers reported not active"});
+    }
+
 }

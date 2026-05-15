@@ -31,5 +31,6 @@ public enum CombatLogEventType
     LifeSteal,
     ManaSteal,
     ConvertDamageToMp,
-    Loot
+    Loot,
+    StatusEffect,
 }

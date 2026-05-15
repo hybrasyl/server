@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Humanizer;
 using Hybrasyl.Casting;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals;
@@ -30,6 +31,7 @@ using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
 using Hybrasyl.Subsystems;
 using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Subsystems.Players;
@@ -46,7 +48,9 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,12 +69,12 @@ public class World : Server
     private static uint worldObjectId;
     private static uint asyncSessionId;
 
-    public static BlockingCollection<HybrasylMessage> MessageQueue;
-    public static BlockingCollection<HybrasylMessage> ControlMessageQueue;
+    public static BlockingCollection<HybrasylMessage> MessageQueue = new();
+    public static BlockingCollection<HybrasylMessage> ControlMessageQueue = new();
 
     private static Lazy<ConnectionMultiplexer> _lazyConnector;
 
-    public static ChatCommandHandler CommandHandler;
+    public static ChatCommandHandler CommandHandler = new();
 
     private readonly object _lock = new();
     private readonly object asyncLock = new();
@@ -80,17 +84,16 @@ public class World : Server
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
 
-
-    public World(int port, bool isDefault = false) : base(port, isDefault)
+    public World(IPAddress bindAddress, int port, bool isDefault = false) : base(bindAddress, port, isDefault)
     {
-        InitializeWorld();
+        ScriptProcessor = new ScriptProcessor(this);
     }
 
-    public World(int port, RedisConnection redis, IWorldDataManager dataManager, string locale,
+    public World(IPAddress bindAddress, int port, RedisConnection redis, IWorldDataManager dataManager, string locale,
         bool adminEnabled = false, bool isDefault = false)
-        : base(port, isDefault)
+        : base(bindAddress, port, isDefault)
     {
-        InitializeWorld();
+        ScriptProcessor = new ScriptProcessor(this);
         WorldData = dataManager;
 
         var datastoreConfig = new ConfigurationOptions
@@ -112,18 +115,19 @@ public class World : Server
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));
         Locale = locale;
+
     }
 
     public static DateTime StartDate => Game.ActiveConfiguration.Time != null
         ? Game.ActiveConfiguration.Time.ServerStart.Value
         : Game.StartDate;
 
-    public Dictionary<uint, WorldObject> Objects { get; set; }
+    public Dictionary<uint, WorldObject> Objects { get; set; } = new();
 
-    public Dictionary<string, string> Portraits { get; set; }
+    public Dictionary<string, string> Portraits { get; set; } = new();
     public string Locale { get; set; }
     public Localization Localizations => WorldData.Get<Localization>(Locale);
-    public WorldStateStore WorldState { set; get; }
+    public WorldStateStore WorldState { set; get; } = new();
     public IWorldDataManager WorldData { get; set; }
 
     public Nation DefaultNation
@@ -135,7 +139,7 @@ public class World : Server
         }
     }
 
-    public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; }
+    public MultiIndexDictionary<uint, string, DialogSequence> GlobalSequences { get; set; } = new();
 
     public ScriptProcessor ScriptProcessor { get; set; }
 
@@ -168,22 +172,6 @@ public class World : Server
         RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 50, 0, 0));         //Item
     }
 
-
-    private void InitializeWorld()
-    {
-        Objects = new Dictionary<uint, WorldObject>();
-        Portraits = new Dictionary<string, string>();
-
-        GlobalSequences = new MultiIndexDictionary<uint, string, DialogSequence>();
-
-        ScriptProcessor = new ScriptProcessor(this);
-        MessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-        ControlMessageQueue = new BlockingCollection<HybrasylMessage>(new ConcurrentQueue<HybrasylMessage>());
-
-        WorldState = new WorldStateStore();
-        CommandHandler = new ChatCommandHandler();
-    }
-
     /// <summary>
     ///     Check to see if Redis migrations are run for the current data set.
     /// </summary>
@@ -191,7 +179,7 @@ public class World : Server
         // Removed until migrations are redone in C# / needed again
         true;
 
-    public bool InitWorld()
+    public bool Init()
     {
         try
         {
@@ -203,7 +191,7 @@ public class World : Server
             return false;
         }
 
-        CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
+        ScriptProcessor.CompileScripts(); // We compile scripts first so that all future operations requiring scripts work
         if (!LoadData())
         {
             GameLog.Fatal("There were errors loading basic world data. Hybrasyl has halted.");
@@ -219,7 +207,6 @@ public class World : Server
         SetMerchantMenuHandlers();
         RegisterWorldThrottles();
         LoadPlugins();
-        GameLog.InfoFormat("Hybrasyl server ready");
         return true;
     }
 
@@ -710,38 +697,6 @@ public class World : Server
         #endregion
     }
 
-    public void CompileScripts()
-    {
-        // Scan each directory for *.lua files
-        var numFiles = 0;
-        var numErrors = 0;
-        foreach (var file in Directory.GetFiles(ScriptDirectory, "*.lua", SearchOption.AllDirectories))
-        {
-            var path = file.Replace(ScriptDirectory, "");
-            var scriptname = Path.GetFileName(file);
-            if (path.StartsWith("_"))
-                continue;
-            GameLog.ScriptingInfo($"Loading script: {path}");
-            try
-            {
-                var script = new Script(file, ScriptProcessor);
-                ScriptProcessor.RegisterScript(script);
-                if (path.StartsWith("common"))
-                    script.Run();
-                numFiles++;
-            }
-            catch (Exception e)
-            {
-                GameLog.ScriptingError($"Script {scriptname}: Registration failed: {e}");
-                numErrors++;
-            }
-        }
-
-        GameLog.Info($"Scripts: loaded {numFiles} scripts");
-        if (numErrors > 0)
-            GameLog.Error($"Scripts: {numErrors} scripts had errors - check scripting log");
-    }
-
     public IMessageHandler ResolveMessagingPlugin(MessageType type, Message message)
     {
         // Do we have a plugin that would handle this message?
@@ -863,8 +818,7 @@ public class World : Server
             Script itemscript;
             if (Game.World.ScriptProcessor.TryGetScript(i.Name, out itemscript))
             {
-                var clone = itemscript.Clone();
-                itemscript.AssociateScriptWithObject(obj);
+                var clone = itemscript;
             }
         }
 
@@ -876,6 +830,9 @@ public class World : Server
 
         WorldState.SetWorldObject(obj.Guid, obj);
         obj.OnInsert();
+        if (obj is ISpawnable spawn)
+            spawn.OnSpawn();
+
     }
 
     public void Remove(WorldObject obj)
@@ -1111,35 +1068,49 @@ public class World : Server
     public void StartTimers()
     {
         var jobList =
-            Assembly.GetExecutingAssembly().GetTypes().ToList().Where(predicate: t => t.Namespace == "Hybrasyl.Subsystems.Jobs")
+            Assembly.GetExecutingAssembly().GetTypes().Where(predicate: t => t.Namespace == "Hybrasyl.Subsystems.Jobs")
                 .ToList();
 
         foreach (var jobClass in jobList)
-        {
+        { 
             var executeMethod = jobClass.GetMethod("Execute");
+            
+            var attr = Attribute.GetCustomAttribute(jobClass, typeof(CompilerGeneratedAttribute));
+
+            if (attr != null)
+                continue;
+
             if (executeMethod != null)
             {
                 var aTimer = new Timer();
                 aTimer.Elapsed +=
                     (ElapsedEventHandler)Delegate.CreateDelegate(typeof(ElapsedEventHandler), executeMethod);
                 // Interval is set to whatever is in the class
-                var interval = jobClass.GetField("Interval").GetValue(null);
+                var intervalField = jobClass.GetField("Interval");
+
+                if (intervalField == null)
+                {
+                    GameLog.ErrorFormat($"Job class {jobClass} has no Interval defined! Job will not be scheduled.");
+                    continue;
+                }
+
+                var interval = intervalField.GetValue(null);
 
                 if (interval == null)
                 {
-                    GameLog.ErrorFormat("Job class {0} has no Interval defined! Job will not be scheduled.");
+                    GameLog.ErrorFormat($"Job class {jobClass} Interval is null! Job will not be scheduled.");
                     continue;
                 }
 
                 aTimer.Interval = (int)interval * 1000; // Interval is in ms; interval in Job classes is s
 
-                GameLog.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, aTimer.Interval);
+                GameLog.InfoFormat("Hybrasyl: timer loaded for job {0}: interval {1}", jobClass.Name, TimeSpan.FromMilliseconds(aTimer.Interval).Humanize());
                 aTimer.Enabled = true;
                 aTimer.Start();
             }
             else
             {
-                GameLog.ErrorFormat("Job class {0} has no Execute method! Job will not be scheduled.", jobClass.Name);
+                GameLog.ErrorFormat($"Job class {jobClass} has no Execute method! Job will not be scheduled.");
             }
         }
     }
@@ -1380,9 +1351,9 @@ public class World : Server
         // Don't handle control messages for dead/removed mobs, or mobs that cannot move or attack
         if (!monster.Condition.Alive || monster.DeathProcessed ||
             monster.Id == 0 || monster.Map == null ||
-            monster.Condition.Asleep || monster.Condition.Frozen) return;
+            monster.Condition.Asleep || monster.Condition.Stunned) return;
 
-        monster.NextAction();
+        monster.DetermineNextAction();
         monster.ProcessActions();
     }
 
@@ -1460,14 +1431,18 @@ public class World : Server
         uint hpRegen = 0;
         uint mpRegen = 0;
         if (user.Stats.Hp != user.Stats.MaximumHp)
-            hpRegen = (uint)Math.Min(
-                user.Stats.MaximumHp * (0.1 + Math.Max(user.Stats.Con, user.Stats.Con - user.Stats.Level) * 0.01),
-                user.Stats.MaximumHp * 0.20);
+            hpRegen = (uint) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.HpRegenPerTick, new FormulaEvaluation
+            {
+                Source = user,
+                User = user
+            });
 
         if (user.Stats.Mp != user.Stats.MaximumMp)
-            mpRegen = (uint)Math.Ceiling(Math.Min(
-                user.Stats.MaximumMp * (0.1 + Math.Max(user.Stats.Wis, user.Stats.Wis - user.Stats.Level) * 0.01),
-                user.Stats.MaximumMp * 0.20));
+            mpRegen = (uint) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.MpRegenPerTick, new FormulaEvaluation
+            {
+                Source = user,
+                User = user
+            });
 
         switch (user.Stats.Regen)
         {
@@ -1481,10 +1456,26 @@ public class World : Server
                 break;
         }
 
-        GameLog.UserActivityInfo(
-            $"User {user.Name}: regen HP {hpRegen}, MP {mpRegen}, regen bonus {user.Stats.Regen}%");
-        user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
-        user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
+        if (!user.Condition.IsHpRegenProhibited)
+        {
+            user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
+            GameLog.UserActivityInfo(
+                $"User {user.Name}: regen HP {hpRegen}, regen bonus {user.Stats.Regen}%");
+        }
+        else
+            user.SendSystemMessage("You cannot regenerate health at this time.");
+
+        if (!user.Condition.IsMpRegenProhibited)
+        {
+            user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
+            GameLog.UserActivityInfo(
+                $"User {user.Name}: regen MP {mpRegen},regen bonus {user.Stats.Regen}%");
+
+        }
+        else 
+            user.SendSystemMessage("You cannot regenerate mana at this time.");
+
+
         user.UpdateAttributes(StatUpdateFlags.Current);
     }
 
@@ -1752,7 +1743,7 @@ public class World : Server
     }
 
     [PacketHandler(0x06)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
     {
@@ -1764,7 +1755,7 @@ public class World : Server
     }
 
     [PacketHandler(0x07)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
     {
@@ -1899,7 +1890,7 @@ public class World : Server
     }
 
     [PacketHandler(0x08)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
     {
@@ -2030,7 +2021,7 @@ public class World : Server
     }
 
     [PacketHandler(0x0F)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
@@ -2224,7 +2215,7 @@ public class World : Server
     }
 
     [PacketHandler(0x11)]
-    [Prohibited(CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Stun, PlayerFlags.InDialog)]
     private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -2235,7 +2226,7 @@ public class World : Server
     }
 
     [PacketHandler(0x13)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
     {
@@ -2447,7 +2438,7 @@ public class World : Server
     }
 
     [PacketHandler(0x1C)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1C_UseItem(object obj, ClientPacket packet)
@@ -2625,7 +2616,7 @@ public class World : Server
     }
 
     [PacketHandler(0x1D)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
     {
@@ -2639,7 +2630,7 @@ public class World : Server
     }
 
     [PacketHandler(0x24)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
     {
@@ -2870,7 +2861,7 @@ public class World : Server
     }
 
     [PacketHandler(0x2A)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
     {
@@ -2925,7 +2916,7 @@ public class World : Server
     }
 
     [PacketHandler(0x29)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
     {
@@ -3115,7 +3106,7 @@ public class World : Server
     }
 
     [PacketHandler(0x3E)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, CreatureCondition.Paralyze,
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
@@ -3127,7 +3118,7 @@ public class World : Server
     }
 
     [PacketHandler(0x3F)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3160,7 +3151,7 @@ public class World : Server
     }
 
     [PacketHandler(0x39)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3250,7 +3241,7 @@ public class World : Server
     }
 
     [PacketHandler(0x3A)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3500,7 +3491,7 @@ public class World : Server
     }
 
     [PacketHandler(0x43)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
@@ -3584,7 +3575,7 @@ public class World : Server
     }
 
     [PacketHandler(0x44)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
     {
@@ -3643,7 +3634,7 @@ public class World : Server
     }
 
     [PacketHandler(0x47)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze, PlayerFlags.InDialog)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
     {
@@ -3682,7 +3673,7 @@ public class World : Server
     }
 
     [PacketHandler(0x4A)]
-    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Freeze)]
+    [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
     {
@@ -3919,8 +3910,8 @@ public class World : Server
     private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
     {
         var slot = packet.ReadByte();
-
         var item = user.Inventory[slot];
+        if (item == null) return;
 
         if (item.Stackable)
         {
@@ -4024,8 +4015,9 @@ public class World : Server
 
     private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var item = packet.ReadByte();
-        var itemObj = user.Inventory[item];
+        var slot = packet.ReadByte();
+        var itemObj = user.Inventory[slot];
+        if (itemObj == null) return;
 
         user.ShowMerchantSendParcelQuantity(merchant, itemObj);
     }
@@ -4083,8 +4075,8 @@ public class World : Server
     private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
     {
         var slot = packet.ReadByte();
-
         var item = user.Inventory[slot];
+        if (item == null) return;
 
         if (item.Stackable)
         {

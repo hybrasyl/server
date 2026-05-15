@@ -1,0 +1,165 @@
+serverCommit: d34db33f
+
+environment: dev
+valkey:
+  enabled: true
+
+image:
+  repository: ghcr.io/hybrasyl/server
+  tag: 0.9.4
+  pullPolicy: Always
+
+serviceType: NodePort
+
+server:
+  configName: hybrasyl
+  motd: "Welcome to Hybrasyl! This is Hybrasyl $VERSION ($COMMIT)!"
+
+  # Config: by default the chart creates a ConfigMap from values below.
+  # Set configMapName to use an existing ConfigMap instead.
+  #configMapName: my-existing-configmap
+
+  # World data: pick ONE of git, hostPath, or volume.
+  worldData:
+    # Default: clone the public world data repo (works out of the box)
+    git:
+      repo: https://github.com/hybrasyl/ceridwen.git
+      branch: main
+      # For private repos, provide an SSH URL and pullSecret:
+      # repo: git@github.com:hybrasyl/ceridwen.git
+      # pullSecret: hybrasyl-world-access
+    # For local dev, mount a local checkout of world data:
+    #hostPath: /path/to/ceridwen
+    # For an existing PVC:
+    #volume:
+    #  claimName: my-world-pvc
+  worldDataDir: /config/world
+
+  # Logs volume. Always created unless you provide an existing claimName.
+  logging:
+    size: 1Gi
+    #storageClass:
+    #claimName: my-existing-logs-pvc
+    singleStream:
+      # When enabled, a busybox sidecar tails logs to stdout for kubectl logs
+      enabled: true
+    streams: []
+
+  # Plugin data volume.
+  volumes:
+    pluginData:
+      enabled: true
+      mountDir: /plugins
+      size: 1Gi
+      #storageClass:
+      #claimName: my-existing-plugindata-pvc
+
+  datastore:
+    # When valkey.enabled is true, these are auto-configured from the subchart.
+    # When valkey.enabled is false, set host/port to point at your Redis instance.
+    host: ""
+    port: 6379
+    # password: reference to secret — see secrets.redisPassword below
+    # database: 0
+  #apiEndpoints:
+  #  sentry: "https://example.com"
+  #  encryptionEndpoint: "https://example.com"
+  #  validationEndpoint: "https://example.com"
+  plugins:
+    messaging: []
+  network:
+    lobby:
+      bindAddress: 0.0.0.0
+      port: 2610
+      externalAddress: "envvar:hybrasyl-lobby"
+    login:
+      bindAddress: 0.0.0.0
+      port: 2611
+      externalAddress: "envvar:hybrasyl-login"
+    world:
+      bindAddress: 0.0.0.0
+      port: 2612
+      externalAddress: "envvar:hybrasyl-world"
+    grpc:
+      enabled: false
+      bindAddress: 0.0.0.0
+      port: 2613
+      healthCheckService: patron.Patron
+      #chainCert: chain.pem
+      #cert: server.pem
+      #key: server.key
+  access:
+    privileged:
+      - Kedian
+    reserved:
+      - Danaan
+      - Deoch
+      - Glioca
+      - Cail
+      - Luathas
+      - Gramail
+      - Fiosachd
+      - Ceannlaidir
+      - Sgrios
+      - Chadul
+  boards:
+    - name: discuss
+      displayName: Discussions
+      moderators:
+        - Kedian
+        - Sabrael
+        - Dalta
+  time:
+    ages:
+      - name: Danaan
+        startDate: 1639-01-03T01:00:00Z
+        endDate: 2025-01-01T00:00:00Z
+      - name: Deoch
+        startDate: 2025-01-01T00:00:01Z
+        startYear: 1
+    serverStart: 2025-01-01T00:00:01Z
+  handlers:
+    death:
+      isActive: true
+      perishable: true
+      notifyGroup: true
+      map:
+        name: Chaotic Threshold
+        "x": 5
+        "y": 5
+      coma:
+        timeout: 30
+        effect: 24
+        statusName: Coma
+      penalty:
+        xp: 0.02
+        hp: 0.02
+      legendMark:
+        increment: true
+        text: "Scar of Sgrios"
+    newPlayer:
+      maps:
+        - name: Piet Inn Room 1
+          "x": 2
+          "y": 3
+        - name: Piet Inn Room 2
+          "x": 2
+          "y": 4
+        - name: Piet Inn Room 3
+          "x": 3
+          "y": 4
+
+# Resource requests/limits (empty defaults for local dev, set for production)
+resources: {}
+  # requests:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # limits:
+  #   cpu: "2"
+  #   memory: 2Gi
+
+# Secrets (leave empty for local dev, provide for production)
+secrets:
+  githubSshKey: ""
+  grpcChainCert: ""
+  redisPassword: ""

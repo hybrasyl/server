@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -20,13 +20,14 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using System;
+using System.Net;
 
 namespace Hybrasyl.Servers;
 
 public class Lobby : Server
 {
-    public Lobby(int port, bool isDefault = false)
-        : base(port, isDefault)
+    public Lobby(IPAddress bindAddress, int port, bool isDefault = false)
+        : base(bindAddress, port, isDefault)
     {
         GameLog.InfoFormat("LobbyConstructor: port is {0}", port);
 

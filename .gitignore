@@ -196,6 +196,7 @@ _pkginfo.txt
 ClientBin/
 ~$*
 *~
+.stignore
 *.dbmdl
 *.dbproj.schemaview
 *.jfm
@@ -296,3 +297,11 @@ data/*
 
 # Documentation build stuff
 .ndoutput/*
+
+# Claude Code
+.claude/
+
+# Epona-managed worktrees and build overrides
+.worktrees/
+Directory.Build.props
+

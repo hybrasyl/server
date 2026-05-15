@@ -31,22 +31,40 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Objects;
 
-public class Reactor : VisibleObject, IPursuitable
+public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
 {
-    private bool _ready;
     public bool Blocking;
-    public CreatureSnapshot Caster;
+
+    public Guid OriginSnapshotId { get; set; }
+
+    public CreatureSnapshot OriginSnapshot
+    {
+        get
+        {
+            if (OriginSnapshotId == Guid.Empty) return null;
+            return World.WorldState.TryGetValue<CreatureSnapshot>(OriginSnapshotId, out var creatureSnapshot) ? creatureSnapshot : null;
+        }
+    }
+
     public string Description;
     public string ScriptName;
+    public string DisplayName { get; } = string.Empty;
 
     public bool VisibleToGroup;
     public bool VisibleToOwner;
 
-    public Reactor(Xml.Objects.Reactor reactor)
+    public Reactor(Xml.Objects.Reactor reactor, MapObject map)
     {
         X = reactor.X;
         Y = reactor.Y;
-        DialogSequences = new List<DialogSequence>();
+        DisplayName = reactor.DisplayName;
+        ScriptName = reactor.Script;
+        Blocking = reactor.Blocking;
+        CreatedAt = DateTime.Now;
+        Description = reactor.Description;
+        AllowDead = reactor.AllowDead;
+        Map = map; 
+        Init();
     }
 
     public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null,
@@ -60,39 +78,12 @@ public class Reactor : VisibleObject, IPursuitable
         CreatedAt = DateTime.Now;
         Expiration = CreatedAt.AddSeconds(reactor.Expiration);
         ExpirationSeconds = reactor.Expiration;
-        Caster = caster?.GetSnapshot();
         Description = description;
         VisibleToGroup = reactor.DisplayGroup;
         VisibleToOwner = reactor.DisplayOwner;
         VisibleToCookies = reactor.DisplayCookie?.Split(" ").ToList() ?? new List<string>();
         VisibleToStatuses = reactor.DisplayStatus?.Split(" ").ToList() ?? new List<string>();
-        Init();
-    }
-
-    public Reactor(Reactor reactor, MapObject map, int expiration = 0)
-    {
-        X = reactor.X;
-        Y = reactor.Y;
-        Map = map;
-        Script = reactor.Script;
-        ExpirationSeconds = expiration;
-        Description = reactor.Description;
-        Blocking = reactor.Blocking;
-        AllowDead = reactor.AllowDead;
-        Init();
-    }
-
-    public Reactor(byte x, byte y, MapObject map, string scriptName, int expiration = 0, string description = null,
-        bool blocking = true, Creature caster = null)
-    {
-        X = x;
-        Y = y;
-        Map = map;
-        Description = description;
-        ScriptName = scriptName;
-        Blocking = blocking;
-        Caster = caster?.GetSnapshot();
-        ExpirationSeconds = expiration;
+        DisplayName = reactor.DisplayName;
         Init();
     }
 
@@ -108,16 +99,7 @@ public class Reactor : VisibleObject, IPursuitable
     public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
     public bool OnTakeCapable => Ready && !Expired && Script.HasFunction("OnTake");
 
-    public bool Ready
-    {
-        get
-        {
-            if (!_ready)
-                OnSpawn();
-            return _ready;
-        }
-        set => _ready = value;
-    }
+    public bool Ready { get; set; } = false;
 
     public bool Expired => Uses != -1 && (Expiration < DateTime.Now || Uses == 0);
 
@@ -125,8 +107,8 @@ public class Reactor : VisibleObject, IPursuitable
     public List<DialogSequence> Pursuits { get; set; } = new();
     public Dictionary<string, string> Strings { get; set; } = new();
     public Dictionary<string, string> Responses { get; set; } = new();
-    public virtual List<DialogSequence> DialogSequences { get; set; } = new();
-    public virtual Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
+    public List<DialogSequence> DialogSequences { get; set; } = new();
+    public Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
 
     public override void ShowTo(IVisible obj)
     {
@@ -153,14 +135,16 @@ public class Reactor : VisibleObject, IPursuitable
         p.WriteByte(0);
         p.WriteByte(0); // unknown d                                                                                                                                                                                               
         p.WriteByte((byte)MonsterType.Reactor);
-        p.WriteString8(Name);
+        p.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
         user.Enqueue(p);
     }
 
     private void Init()
     {
+        DialogSequences = new List<DialogSequence>();
         CreatedAt = DateTime.Now;
         Expiration = DateTime.MaxValue;
+        Name = $"{Map.Name}@{X},{Y}";
         if (ExpirationSeconds <= 0) return;
         Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
         Task.Run(OnExpiration);
@@ -170,13 +154,14 @@ public class Reactor : VisibleObject, IPursuitable
     {
         if (Expired) return false;
         if (obj is not User user) return false;
-        var casterObj = Caster?.GetUserObject();
-        if (VisibleToCookies.Any(user.HasCookie)) return true;
-        if (InvisibleToCookies.Any(user.HasCookie)) return false;
+        var casterObj = OriginSnapshot?.GetUserObject();
+        if (VisibleToCookies.Any(x => user.HasCookie(x))) return true;
+        if (InvisibleToCookies.Any(x => user.HasCookie(x))) return false;
         if (user.CurrentStatuses.Values.Any(predicate: x => VisibleToStatuses.Contains(x.Name))) return true;
         if (casterObj == null) return false;
-        if (VisibleToOwner && user.Name == Caster.Name) return true;
+        if (VisibleToOwner && OriginSnapshot != null && user.Name == OriginSnapshot.Name) return true;
         if (VisibleToGroup && (casterObj.Group?.Contains(user) ?? false)) return true;
+
         return false;
     }
 
@@ -193,26 +178,45 @@ public class Reactor : VisibleObject, IPursuitable
     public void OnSpawn()
     {
         if (Expired) return;
+
+        if (string.IsNullOrWhiteSpace(ScriptName))
+        {
+            Ready = true;
+            return;
+        }
+
         if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out var myScript))
         {
             Script = myScript;
-            Script.AssociateScriptWithObject(this);
-            _ready = Script.Run(false).Result == ScriptResult.Success;
+            World.ScriptProcessor.RegisterScriptAttachment(myScript, this);
         }
         else
         {
             GameLog.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
+            return;
         }
 
-        // Now run our actual OnSpawn function
-        if (_ready)
-            Script.ExecuteFunction("OnSpawn");
+        if (Script.HasFunction("OnSpawn"))
+        {
+            //Reset all dialog state before re-running OnSpawn so the script re-registering its
+            //sequences doesn't trip "Dialog sequence X is being overwritten" warnings. Just clearing
+            //DialogSequences left SequenceIndex populated, which is the dictionary RegisterDialogSequence
+            //actually checks. Reactor is the second spawn (World.Insert already fires OnSpawn for any
+            //ISpawnable, then MapObject.InsertReactor calls it a second time), and ScriptProcessor.ReloadScript
+            //also re-fires OnSpawn — both paths land here.
+            (this as IPursuitable).ResetPursuits();
+            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
+            if (ret.Result == ScriptResult.Success)
+                Ready = true;
+        }
+        else
+            Ready = true;
     }
 
     public ScriptEnvironment GetBaseEnvironment(VisibleObject obj) =>
-        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", Caster), ("target", obj));
+        ScriptEnvironment.Create(("origin", this), ("source", this), ("caster", OriginSnapshot), ("target", obj));
 
-    public virtual void OnEntry(VisibleObject obj)
+    public void OnEntry(VisibleObject obj)
     {
         if (Expired) return;
         if (obj is User user)
@@ -236,7 +240,7 @@ public class Reactor : VisibleObject, IPursuitable
         Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 
-    public virtual void OnLeave(VisibleObject obj)
+    public void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
         if (Ready && Script.HasFunction("OnLeave"))
@@ -259,7 +263,7 @@ public class Reactor : VisibleObject, IPursuitable
         }
     }
 
-    public virtual void OnDrop(VisibleObject obj, VisibleObject dropped)
+    public void OnDrop(VisibleObject obj, VisibleObject dropped)
     {
         if (Expired) return;
         if (!Ready) return;

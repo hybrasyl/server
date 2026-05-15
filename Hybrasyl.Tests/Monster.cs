@@ -231,6 +231,7 @@ public class Monsters
 
         Assert.NotNull(immunityTriggered);
         Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
         if (immunityTriggered.MessageType == MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
@@ -279,6 +280,7 @@ public class Monsters
 
         Assert.NotNull(immunityTriggered);
         Assert.Equal((uint)500, bait.Stats.Hp);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
         if (immunityTriggered.MessageType == MessageType.Shout)
             Assert.True(Fixture.TestUser.LastHeard.Shout);
@@ -375,7 +377,7 @@ public class Monsters
 
         Fixture.TestUser.SpellBook.Add(castable);
         Assert.True(Fixture.TestUser.UseCastable(castable, bait));
-        Thread.Sleep(1000);
+        Thread.Sleep(200);
 
         var immunityTriggered =
             behaviorSet.Immunities.FirstOrDefault(predicate: x => x.Type == CreatureImmunityType.StatusCategory);
@@ -383,6 +385,7 @@ public class Monsters
         var beforeStr = bait.Stats.Str;
         Assert.NotNull(immunityTriggered);
         Assert.Equal(beforeStr, bait.Stats.Str);
+        Assert.NotNull(Fixture.TestUser.LastHeard);
         Assert.Equal(immunityTriggered.Message, Fixture.TestUser.LastHeard.Message);
 
         if (immunityTriggered.MessageType == MessageType.Shout)
@@ -426,7 +429,7 @@ public class Monsters
         var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabbaDynamic");
         Assert.NotNull(behaviorSet);
 
-        var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Brosciutto");
         Assert.NotNull(baitTemplate);
 
         var bait = new Monster(baitTemplate, SpawnFlags.AiDisabled, 99, null, behaviorSet)
@@ -437,5 +440,96 @@ public class Monsters
         // Gabba now has its base hp from leveling, and its buff defined in the behaviorset
         Assert.True(bait.Stats.BaseHp >= bait.Stats.Str * 200);
         Assert.True(bait.Stats.BaseMp >= bait.Stats.Int * 200);
+    }
+
+    [Fact]
+    public void MonsterWithAggressionEnabledShouldPathTowardsTarget()
+    {
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Brosciutto");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.Active, 99, null)
+        {
+            Name = "Gabbaghoul Test",
+            X = (byte)(Fixture.TestUser.X - 5),
+            Y = (byte)(Fixture.TestUser.Y - 5)
+        };
+
+        Assert.True(bait.IsHostile(Fixture.TestUser));
+        Fixture.TestUser.Map.InsertMonster(bait);
+        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Assert.NotEmpty(bait.ThreatInfo.ThreatTableByCreature);
+        bait.DetermineNextAction();
+        Assert.NotNull(bait.NextAction);
+        Assert.Equal(MobAction.Move, bait.NextAction);
+        bait.ProcessActions();
+        Assert.Equal(Fixture.TestUser.Guid, bait.ActiveTarget.Guid);
+        Assert.NotNull(bait.CurrentPath);
+        // Last tile in current path should terminate at player, since we're supposed to be pathing towards it
+        Assert.Equal(bait.CurrentPath.Terminus.X, Fixture.TestUser.X);
+        Assert.Equal(bait.CurrentPath.Terminus.Y, Fixture.TestUser.Y);
+    }
+
+    [Fact]
+    public void MonsterShouldAttackPlayer()
+    {
+        var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        Assert.NotNull(baitTemplate);
+
+        var bait = new Monster(baitTemplate, SpawnFlags.Active, 99, null)
+        {
+            Name = "Gabbaghoul Test",
+            X = (byte)(Fixture.TestUser.X + 1),
+            Y = (byte)(Fixture.TestUser.Y)
+        };
+
+        Assert.True(bait.IsHostile(Fixture.TestUser));
+        Fixture.TestUser.Map.InsertMonster(bait);
+        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Assert.NotEmpty(bait.ThreatInfo.ThreatTableByCreature);
+        Assert.Equal(1, bait.Distance(Fixture.TestUser));
+        bait.DetermineNextAction();
+        Assert.NotNull(bait.NextAction);
+        Assert.Equal(MobAction.Attack, bait.NextAction);
+        bait.ProcessActions();
+    }
+
+    [Fact]
+    public void MonsterShouldAttackWithCorrectRotation()
+    {
+        // WIP
+        //var baitTemplate = Game.World.WorldData.Get<Creature>("Gabbaghoul");
+        //var behaviorSet = Game.World.WorldData.Get<CreatureBehaviorSet>("RareGabbaDynamic");
+        //Assert.NotNull(baitTemplate);
+        //Assert.NotNull(behaviorSet);
+
+        //var bait = new Monster(baitTemplate, SpawnFlags.Active, 99, null)
+        //{
+        //    Name = "Gabbaghoul Test",
+        //    X = (byte)(Fixture.TestUser.X + 1),
+        //    Y = (byte)(Fixture.TestUser.Y)
+        //};
+
+        //Assert.True(bait.IsHostile(Fixture.TestUser));
+        //Fixture.TestUser.Map.InsertMonster(bait);
+        //Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        //Assert.NotEmpty(bait.ThreatInfo.ThreatTableByCreature);
+        //Assert.Equal(1, bait.Distance(Fixture.TestUser));
+        //bait.DetermineNextAction();
+        //Assert.NotNull(bait.NextAction);
+        //Assert.Equal(MobAction.Attack, bait.NextAction);
+        //var nextCastable = bait.CastableController.GetNextCastable();
+        //Assert.NotNull(nextCastable);
+        //nextCastable.Use();
+        //nextCastable = bait.CastableController.GetNextCastable();
+        //Assert.Contains(nextCastable.Name, behaviorSet.Behavior.CastingSets.First().Castable.Select(x => x.Value));
+        //bait.ProcessActions();
+        
+        //var nextCastable2 = bait.CastableController.GetNextCastable();
+        //Assert.DoesNotContain(nextCastable.Name,
+        //    behaviorSet.Behavior.CastingSets.First().Castable.Select(x => x.Value));
+
+
+
     }
 }

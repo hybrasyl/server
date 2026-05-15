@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -34,8 +34,8 @@ namespace Hybrasyl.Servers;
 
 public class Login : Server
 {
-    public Login(int port, bool isDefault = false)
-        : base(port, isDefault)
+    public Login(IPAddress bindAddress, int port, bool isDefault = false)
+        : base(bindAddress, port, isDefault)
     {
         GameLog.InfoFormat("LoginConstructor: port is {0}", port);
 
@@ -247,7 +247,12 @@ public class Login : Server
         var name = packet.ReadString8();
         var id = packet.ReadUInt32();
 
-        var redirect = ExpectedConnections[id];
+        if (!ExpectedConnections.TryGetValue(id, out var redirect))
+        {
+            GameLog.Warning($"Login: client join with unknown redirect ID {id} from {name}");
+            client.Disconnect();
+            return;
+        }
 
         if (Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {

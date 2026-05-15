@@ -16,10 +16,10 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Collections.Generic;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Scripting;
+using System.Collections.Generic;
 
 namespace Hybrasyl.Interfaces;
 
@@ -29,6 +29,7 @@ public interface IInteractable : ISprite
     public string Name { get; }
     public uint Id { get; }
     public bool AllowDead { get; }
+    public string DisplayName { get; }
 
     public List<DialogSequence> DialogSequences { get; set; }
     public Dictionary<string, DialogSequence> SequenceIndex { get; set; }

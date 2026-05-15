@@ -42,6 +42,7 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
     public int MaxLevel => Item.Template.Properties?.Restrictions?.Level?.Max ?? 1;
     public string Description => Item.Template.Properties?.Vendor?.Description ?? string.Empty;
     public List<ItemTag> Tags => Item.Template.Properties?.Tags ?? new List<ItemTag>();
+    public string DisplayName => Name;
 
     // ItemFlags exposed here, to make it easier to use in scripting
     public bool Bound => Item.Template.Properties.Flags.HasFlag(ItemFlags.Bound);

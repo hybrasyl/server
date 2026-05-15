@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Net;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -49,20 +49,14 @@ public class HybrasylFixture : IDisposable
             .WriteTo.Console().WriteTo.File("hybrasyl-tests-.log", rollingInterval: RollingInterval.Day).WriteTo
             .TestCorrelator()
             .CreateLogger();
-        var submoduleDir = AppDomain.CurrentDomain.BaseDirectory.Split("Hybrasyl.Tests");
+
+        var worldDataDir = ResolveWorldDataDirectory();
+        sink.OnMessage(new DiagnosticMessage($"World data: {worldDataDir}"));
+
         Game.LoadCollisions();
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            Game.DataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Windows"].DataDirectory;
-            Game.WorldDataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Windows"].WorldDataDirectory;
-            Game.LogDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Windows"].LogDirectory;
-        }
-        else
-        {
-            Game.DataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Linux"].DataDirectory;
-            Game.WorldDataDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Linux"].WorldDataDirectory;
-            Game.LogDirectory = Settings.HybrasylTests.PlatformSettings.Directories["Linux"].LogDirectory;
-        }
+        Game.DataDirectory = Path.GetDirectoryName(worldDataDir);
+        Game.WorldDataDirectory = worldDataDir;
+        Game.LogDirectory = Path.Combine(Path.GetTempPath(), "hybrasyl-tests", "logs");
 
         var manager = new XmlDataManager(Game.WorldDataDirectory);
         manager.LoadData();
@@ -81,15 +75,15 @@ public class HybrasylFixture : IDisposable
         sink.OnMessage(new DiagnosticMessage($"Redis: {redisConn.Host}:{redisConn.Port}/{redisConn.Database}"));
 
         GameLog.Info();
-        Game.Lobby = new Lobby(1338, true);
-        Game.Login = new Login(1339, true);
-        Game.World = new World(1337, redisConn, manager, "en_us", true);
+        //Game.Lobby = new Lobby(1338, true);
+        Game.Login = new Login(IPAddress.Any, 1339, true);
+        Game.World = new World(IPAddress.Any, 1337, redisConn, manager, "en_us", true);
         Game.ActiveConfiguration = new ServerConfig();
         Game.ActiveConfiguration.Init();
         Game.ActiveConfiguration.Constants ??= new ServerConstants();
         Game.ActiveConfiguration.Time = new Time { Ages = new List<HybrasylAge>() };
 
-        Game.World.CompileScripts();
+        Game.World.ScriptProcessor.CompileScripts();
         Game.World.SetPacketHandlers();
         Game.World.SetControlMessageHandlers();
         Game.World.StartControlConsumers();
@@ -156,6 +150,7 @@ public class HybrasylFixture : IDisposable
 
         TestUser = CreateUser("TestUser");
         SerializableUser = CreateUser("TestSaveUser");
+        SecondTestUser = CreateUser("TestSecond");
 
         Game.World.Insert(TestUser);
         TestUser.Teleport(TestUser.Map.Id, TestUser.X, TestUser.Y);
@@ -169,6 +164,7 @@ public class HybrasylFixture : IDisposable
     public static byte InventorySize => 59;
 
     public User TestUser { get; init; }
+    public User SecondTestUser { get; init; }
     public User SerializableUser { get; init; }
 
     public CreatureBehaviorSet TestSet { get; set; }
@@ -238,6 +234,62 @@ public class HybrasylFixture : IDisposable
 
     public void ResetTestUserStats() => ResetUserStats(TestUser);
     public void ResetSerializableUserStats() => ResetUserStats(SerializableUser);
+    public void ResetSecondTestUserStats() => ResetUserStats(SecondTestUser);
+
+    /// <summary>
+    /// Resolve the world data directory. Checks, in order:
+    /// 1. HYB_WORLD_DIR environment variable
+    /// 2. Sibling "ceridwen/xml" relative to the solution root
+    /// 3. "ceridwen/xml" inside the solution root (submodule)
+    /// 4. Hybrasyl.Tests/world inside the solution root (test-only data)
+    /// </summary>
+    private static string ResolveWorldDataDirectory()
+    {
+        // 1. Environment variable takes precedence
+        var envDir = Environment.GetEnvironmentVariable("HYB_WORLD_DIR");
+        if (!string.IsNullOrWhiteSpace(envDir) && Directory.Exists(envDir))
+            return Path.GetFullPath(envDir);
+
+        // Find the solution root by walking up from the build output directory
+        var dir = AppDomain.CurrentDomain.BaseDirectory;
+        string solutionRoot = null;
+        while (dir != null)
+        {
+            if (File.Exists(Path.Combine(dir, "Hybrasyl.sln")))
+            {
+                solutionRoot = dir;
+                break;
+            }
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        if (solutionRoot == null)
+            throw new DirectoryNotFoundException(
+                "Could not find Hybrasyl.sln. Set HYB_WORLD_DIR to your ceridwen/xml path.");
+
+        // 2. Sibling checkout: ../ceridwen/xml relative to solution root
+        var siblingPath = Path.GetFullPath(Path.Combine(solutionRoot, "..", "ceridwen", "xml"));
+        if (Directory.Exists(siblingPath))
+            return siblingPath;
+
+        // 3. Submodule or nested checkout: ceridwen/xml inside solution root
+        var nestedPath = Path.GetFullPath(Path.Combine(solutionRoot, "ceridwen", "xml"));
+        if (Directory.Exists(nestedPath))
+            return nestedPath;
+
+        // 4. Test-only world data in the test project
+        var testDataPath = Path.GetFullPath(Path.Combine(solutionRoot, "Hybrasyl.Tests", "world"));
+        if (Directory.Exists(testDataPath))
+            return testDataPath;
+
+        throw new DirectoryNotFoundException(
+            $"Could not find world data. Tried:\n" +
+            $"  - $HYB_WORLD_DIR (not set or doesn't exist)\n" +
+            $"  - {siblingPath}\n" +
+            $"  - {nestedPath}\n" +
+            $"  - {testDataPath}\n" +
+            $"Clone ceridwen as a sibling: git clone https://github.com/hybrasyl/ceridwen.git");
+    }
 
     private void ResetUserStats(User user)
     {

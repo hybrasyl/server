@@ -25,7 +25,6 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Servers;
-using Hybrasyl.Statuses;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Manufacturing;
@@ -33,6 +32,7 @@ using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Players.Guilds;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using Newtonsoft.Json;
 using System;
@@ -40,7 +40,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Book = Hybrasyl.Casting.Book;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
@@ -109,7 +108,7 @@ public class User : Creature
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 
-    [JsonProperty] private List<StatusInfo> Statuses { get; set; } = new();
+    [JsonProperty] private List<StatusSnapshot> Statuses { get; set; } = new();
 
     public int LevelCircle
     {
@@ -147,15 +146,24 @@ public class User : Creature
     public bool UnreadMail => Mailbox.HasUnreadMessages;
     public bool HasParcels => ParcelStore.Items.Count > 0;
 
+
     public uint ExpToLevel
     {
         get
         {
-            var levelExp = (uint)Math.Pow(Stats.Level, 3) * 250;
-            if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel || Stats.Experience >= levelExp)
+            if (Stats.Level == Game.ActiveConfiguration.Constants.PlayerMaxLevel)
                 return 0;
 
-            return (uint)(Math.Pow(Stats.Level, 3) * 250 - Stats.Experience);
+            var levelExp = (uint) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.XpToNextLevel, new FormulaEvaluation
+            {
+                Source = this,
+                User = this,
+            });
+
+            if (Stats.Experience >= levelExp)
+                return 0;
+
+            return levelExp - Stats.Experience;
         }
     }
 
@@ -228,7 +236,12 @@ public class User : Creature
          */
     public int CurrentWeight => Inventory.Weight + Equipment.Weight;
 
-    public ushort MaximumWeight => (ushort)(Stats.BaseStr + Stats.Level / 4 + 48);
+    public ushort MaximumWeight => (ushort) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.AllowedCarryWeight,
+        new FormulaEvaluation
+        {
+            Source = this,
+            User = this
+        });
 
     public string LastSystemMessage { get; private set; } = string.Empty;
 
@@ -848,21 +861,24 @@ public class User : Creature
                     Stats.Level++;
                     LevelPoints += 2;
 
-                    // For level up we use Biomagus' formulas with a random 85% - 115% tweak
-                    // HP: (CON/(Lv+1)*50*randomfactor)+25
-                    // MP: (WIS/(Lv+1)*50*randomfactor)+25
-                    var randomBonus = Random.Shared.NextDouble() * 0.30 + 0.85;
-                    var bonusHpGain =
-                        (int)Math.Ceiling((double)(Stats.BaseCon / (float)Stats.Level) * 50 * randomBonus);
-                    var bonusMpGain =
-                        (int)Math.Ceiling((double)(Stats.BaseWis / (float)Stats.Level) * 50 * randomBonus);
+                    var bonusHpGain = (int) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.HpGainPerLevel,
+                        new FormulaEvaluation
+                        {
+                            Source = this,
+                            User = this
+                        });
+                    var bonusMpGain = (int) FormulaParser.Eval(Game.ActiveConfiguration.Formulas.MpGainPerLevel,
+                        new FormulaEvaluation
+                        {
+                            Source = this,
+                            User = this
+                        });
 
-                    Stats.BaseHp += bonusHpGain + 25;
-                    Stats.BaseMp += bonusMpGain + 25;
+                    Stats.BaseHp += bonusHpGain;
+                    Stats.BaseMp += bonusMpGain;
+
                     GameLog.UserActivityInfo(
-                        "User {name}: level increased to {Level}, random factor {factor}, CON {Con}, WIS {Wis}: HP +{Hp}/+25, MP +{Mp}/+25",
-                        Name, Stats.Level, randomBonus, Stats.BaseCon, Stats.BaseWis,
-                        bonusHpGain, bonusMpGain);
+                        $"User {Name}: level increased to {Stats.Level}, CON {Stats.Con}, WIS {Stats.Wis}: HP {bonusHpGain} MP {bonusMpGain}");
                 }
             }
 
@@ -878,6 +894,7 @@ public class User : Creature
                 UpdateAttributes(StatUpdateFlags.Full);
             }
         }
+        // Update ur mom accor
 
         UpdateAttributes(StatUpdateFlags.Experience);
     }
@@ -988,22 +1005,6 @@ public class User : Creature
         return guild?.GetUserDetails(GuildGuid) ?? ("", "");
     }
 
-    private void SetValue(PropertyInfo info, object instance, object value)
-    {
-        try
-        {
-            GameLog.DebugFormat("Setting property value {0} to {1}", info.Name, value.ToString());
-            info.SetValue(instance, Convert.ChangeType(value, info.PropertyType));
-        }
-        catch (Exception e)
-        {
-            Game.ReportException(e);
-            GameLog.ErrorFormat("Exception trying to set {0} to {1}", info.Name, value.ToString());
-            GameLog.ErrorFormat(e.ToString());
-            throw;
-        }
-    }
-
     public void Save(bool serializeStatus = false)
     {
         lock (_serializeLock)
@@ -1013,8 +1014,8 @@ public class User : Creature
             {
                 if (ActiveStatusCount > 0)
                     Statuses = CurrentStatuses.Count > 0
-                        ? CurrentStatuses.Values.Select(selector: e => e.Info).ToList()
-                        : new List<StatusInfo>();
+                        ? CurrentStatuses.Values.Select(selector: e => e.Snapshot).ToList()
+                        : new List<StatusSnapshot>();
                 else
                     Statuses.Clear();
             }
@@ -1032,14 +1033,27 @@ public class User : Creature
         x15.WriteUInt16(Map.Id);
         x15.WriteByte(Map.X);
         x15.WriteByte(Map.Y);
-        x15.WriteByte(Map.Flags);
+        // I also hate this
+        byte flags = 0;
+        if (Map.Flags.HasFlag(MapFlags.Snow))
+            flags |= 1;
+        if (Map.Flags.HasFlag(MapFlags.Rain))
+            flags |= 2;
+        if (Map.Flags.HasFlag(MapFlags.Dark)) {
+            flags |= 1;
+            flags |= 2;
+        }
+        if (Map.Flags.HasFlag(MapFlags.NoMap))
+            flags |= 64;
+        if (Map.Flags.HasFlag(MapFlags.Snow))
+            flags |= 128;
+        x15.WriteByte(flags);
         x15.WriteUInt16(0);
         x15.WriteByte((byte)(Map.Checksum % 256));
         x15.WriteByte((byte)(Map.Checksum / 256));
         x15.WriteString8(Map.Name);
         x15.TransmitDelay = transmitDelay;
         Enqueue(x15);
-
         if (Map.Music != 0xFF) SendMusic(Map.Music);
         if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
     }
@@ -1057,8 +1071,15 @@ public class User : Creature
         var doors = GetDoorsCoordsInView(GetViewport());
 
         if (doors.Count <= 0) return;
+
+        //skip static side panels of center-only 3-tile doors — they don't toggle and sending an update for them
+        //would make the client swap an irrelevant sprite that retail places freely alongside the actual door.
         foreach (var door in doors)
-            SendDoorUpdate(door.Item1, door.Item2, Map.Doors[door].Closed, Map.Doors[door].IsLeftRight);
+        {
+            var panel = Map.Doors[door];
+            if (!panel.Toggles) continue;
+            SendDoorUpdate(door.Item1, door.Item2, panel.Closed, panel.IsLeftRight);
+        }
     }
 
     public List<(byte X, byte Y)> GetDoorsCoordsInView(Rectangle viewPort)
@@ -1318,6 +1339,9 @@ public class User : Creature
 
         // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
         // in the caster's HP being reduced to zero.
+
+        if (Condition.IsMpDecreaseProhibited) 
+            cost.Mp = 0;
 
         if (cost.Hp >= Stats.Hp)
             message = "You lack the required vitality.";
@@ -2627,7 +2651,9 @@ public class User : Creature
     public override void Heal(double heal, Creature source = null, Castable castable = null)
     {
         base.Heal(heal, source, castable);
-        if (this is User) UpdateAttributes(StatUpdateFlags.Current);
+        if (Condition.IsHpIncreaseProhibited)
+            SendSystemMessage("You cannot currently receive healing.");
+        UpdateAttributes(StatUpdateFlags.Current);
     }
 
     private bool CheckCastableRestriction(EquipmentRestriction restriction, out string message)
@@ -2838,7 +2864,16 @@ public class User : Creature
         {
             if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
             {
-                if (castableXml.BreakStealth && Condition.IsInvisible) Condition.IsInvisible = false;
+                if (castableXml.BreakStealth && Condition.IsInvisible) 
+                { 
+                    Condition.IsInvisible = false;
+                    // Remove statuses that cause invisibility
+                    foreach (var activeStatus in CurrentStatuses.Values.ToList()) {
+                        if (activeStatus.ConditionChanges?.Set.HasFlag(CreatureCondition.Invisible) == true) {
+                            RemoveStatus(activeStatus.Icon);
+                        }
+                    }
+                }
                 return base.UseCastable(castableXml, target);
             }
 
@@ -3997,7 +4032,20 @@ public class User : Creature
 
     public void SellItemAccept(Merchant merchant)
     {
-        if (Inventory[PendingSellableSlot].Count > PendingSellableQuantity)
+        if (PendingSellableSlot == 0 || PendingSellableSlot > Inventory.Size)
+        {
+            SendSystemMessage("That didn't work.");
+            return;
+        }
+
+        var item = Inventory[PendingSellableSlot];
+        if (item == null)
+        {
+            SendSystemMessage("You don't have that item.");
+            return;
+        }
+
+        if (item.Count > PendingSellableQuantity)
         {
             DecreaseItem(PendingSellableSlot, (int)PendingSellableQuantity);
             AddGold(PendingMerchantOffer);
@@ -5206,7 +5254,7 @@ public class User : Creature
 
     public void ReapplyStatuses()
     {
-        Statuses ??= new List<StatusInfo>();
+        Statuses ??= new List<StatusSnapshot>();
         foreach (var status in Statuses)
             try
             {
@@ -5235,6 +5283,7 @@ public class User : Creature
 
     public void SendCombatLogMessage(ICombatEvent e)
     {
+        CombatEvents.Push(e);
         if (GetCookie("combatlog") != "on") return;
 
         foreach (var line in e.ToString().Split("\n"))
@@ -5306,6 +5355,8 @@ public class User : Creature
     public uint PendingRepairCost { get; private set; }
 
     [JsonProperty] public List<KillRecord> RecentKills { get; private set; }
+
+    public Stack<ICombatEvent> CombatEvents { get; } = new(50);
 
     public List<SpokenEvent> MessagesReceived { get; private set; }
 

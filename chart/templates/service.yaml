@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hybrasyl-lobby
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.serviceType | default "NodePort" }}
+  selector:
+    {{- include "hybrasyl.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: lobby
+      port: {{ .Values.server.network.lobby.port }}
+      targetPort: lobby
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hybrasyl-login
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.serviceType | default "NodePort" }}
+  selector:
+    {{- include "hybrasyl.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: login
+      port: {{ .Values.server.network.login.port }}
+      targetPort: login
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hybrasyl-world
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.serviceType | default "NodePort" }}
+  selector:
+    {{- include "hybrasyl.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: world
+      port: {{ .Values.server.network.world.port }}
+      targetPort: world
+      protocol: TCP
+{{- if .Values.server.network.grpc.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hybrasyl-grpc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hybrasyl.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "hybrasyl.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: grpc
+      port: {{ .Values.server.network.grpc.port }}
+      targetPort: grpc
+      protocol: TCP
+{{- end }}

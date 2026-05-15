@@ -92,6 +92,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
     }
 
     public string Name => Origin.Name;
+    public string DisplayName => Origin.DisplayName;
     public uint Id { get; set; }
     public Script Script => Origin.Script;
     public bool AllowDead => Origin.AllowDead;
@@ -141,6 +142,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         sourceClosed = true;
         user.ActiveDialogSession = null;
         user.ClearDialogState();
+        user.SendCloseDialog();
     }
 
     public void CloseTarget()
@@ -148,6 +150,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         targetClosed = true;
         Target.ActiveDialogSession = null;
         Target.ClearDialogState();
+        Target.SendCloseDialog();
     }
 
     public void Close()

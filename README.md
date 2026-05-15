@@ -14,7 +14,9 @@ exceptionally accurate DOOMVAS v1 emulator (example:
 
 ### For Players
 >**If you are looking to play Hybrasyl, you're in the wrong spot!**  
-[Create an account](https://accounts.hybrasyl.com), and join us as we implement Kennerly's vision with new technology and better gameplay.
+
+[Create an account](https://accounts.hybrasyl.com), and join us as we
+implement Kennerly's vision with new technology and better gameplay.
 
 ### For Developers, Contributors, Server Hosts
 This document is intended for developers; if you're interested in
@@ -38,15 +40,18 @@ that this project does not provide game content (properly configured items,
 maps, warps between maps, etc); it comes with a set of examples that will allow
 you to log in but not enough to come close to playing a real game.
 
-It is our hope to release a content editor at some point in the future to make
-the process of adding content to a server much easier.
+To edit the data for your world, check out our XML editor [Creidhne](https://github.com/hybrasyl/creidhne)
+and our world map / client asset editor [Taliesin](https://github.com/hybrasyl/taliesin). We also maintain
+[Epona](https://github.com/eriscorp/epona), a client launcher and server orchestrator, which is guaranteed
+to be an easy path to getting started.
 
 ## Requirements
 
 You will need three things to use Hybrasyl, in addition to the server itself:
 
-* A launcher - we recommend you use [Spark](https://www.hybrasyl.com/media/launcher/Spark.zip)
-* [Redis](https://github.com/MSOpenTech/redis/releases)
+* A launcher - we recommend you use [Epona](https://github.com/eriscorp/epona) or 
+  [Spark](https://www.hybrasyl.com/media/launcher/Spark.zip) 
+* [Valkey](https://valkey.io)
 * [Dark Ages Client](https://www.darkages.com)
 
 ## Terminology and key concepts
@@ -54,14 +59,13 @@ You will need three things to use Hybrasyl, in addition to the server itself:
 There are three processes that need to be properly configured in order to
 connect a Dark Ages client to your own Hybrasyl instance:
 
-* The [launcher](https://github.com/ewrogers/Spark) (which modifies
-  the Dark Ages client to get it to connect to the server). 
+* The launcher - Spark or Epona, which modifies the Dark Ages client to get it to connect to the server. 
 * The [game server](https://github.com/hybrasyl/server) (what you're looking at
   now)
-* A running instance of Redis, which will be used for storing state data.
+* A running instance of Valkey, which will be used for storing state data.
 
 This tutorial assumes that the launcher (DA client) and Hybrasyl server will be
-running on the same machine. Redis can be located anywhere, as long as Hybrasyl
+running on the same machine. Valkey/Redis can be located anywhere, as long as Hybrasyl
 can reach it (it could even be an Amazon Elasticache instance).
 
 ## Game Server (Hybrasyl)
@@ -75,79 +79,54 @@ at runtime; XML is processed when the server starts up for actual world data
 
 The server runs on three TCP ports (2610, 2611, and 2612 by default).
 
-To get started with the server, you have two options:
+To get started with the server, either use the provided [Helm chart](./chart) if using 
+Docker Desktop or Kubernetes, or use `docker-compose`.
 
-1. **The easy way** - using [Docker](https://docker.com) and/or [Docker Compose](https://docs.docker.com/compose/install/)
+1. Using [Docker Compose](https://docs.docker.com/compose/install/)
 
-   If you have `docker-compose`, starting a working server involves three steps:
+   If you have `docker-compose`, starting a working server involves the following steps:
    
-   a. Clone the Hybrasyl server repository
-   
-   	   `git clone --recursive https://github.com/hybrasyl/server.git`
-   	   
-   	   Adding `--recursive` here ensures that you also check out [Ceridwen](https://github.com/hybrasyl/ceridwen), our sample data repository, which has starter items/castables/etc.
-   	   
+   a. Clone the Hybrasyl server repository: `git clone https://github.com/hybrasyl/server.git`
+   	     	   
    b. Edit the config.xml as needed (it's in `contrib/config.xml`)
    
-   In particular: You will need to configure `ExternalAddress` to be the IP address of your _workstation running Docker_. This is also the IP address you'll use to connect with Spark. Unfortunately, the protocol Darkages uses isn't NAT-aware (Hybrasyl provides `ExternalAddress` in order to make this possible) so we need to provide it with the right address. For a public-facing server, this will be the publicly routable IP address. 
-  
-   c. Start the servers
+   N.B. the protocol Darkages uses isn't NAT-aware (Hybrasyl provides `ExternalAddress` in order to 
+   make this possible) so you need to provide it with the right address. For a local dev environment, it comes
+   pre-set to localhost (127.0.0.1), which should Just Work.
+
+   For a public-facing server, `ExternalAddress` will be the publicly routable IP address. 
+   You may also need to edit your `config.xml` so that `DataStore` points to the right IP / hostname, if you
+   don't want to use the built-in Valkey.
+
+   c. Create the `hybrasyl` docker network
+
+   `docker network create hybrasyl`
+
+   d. Start the servers
    
-   `docker-compose-up`
+   `docker-compose up`
 
-  This will download and run a Redis server image and Hybrasyl’s Dockerhub image, and start both. You’ll be able to login to it immediately using Spark!
-
- Alternatively, if you are more comfortable running servers, you can download and run a [quick start image](https://hub.docker.com/r/baughj/hybrasyl/tags) if you want to provide your own Redis server. The quick start image includes a copy of our example data that you can use to instantly get into a test server.
- 
-  You'll need to edit your `config.xml` so that `DataStore` points to the right IP / hostname.
-
-  Lastly, a script is also provided (`build-image.sh` for rebuilding the Docker image, if you want to do so). 
-
-2. **The harder way**
-
-  a. **Install Redis**
-
-   Hybrasyl uses Redis to store player state and mailboxes. If you are using Ubuntu/Debian,
-   `apt install redis-server`. For Windows, you can either run Redis using [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
-   or you can downoad and install the Windows installer for Redis 2.8 from the
-   [MSOpenTech releases page](https://github.com/MSOpenTech/redis/releases).
-   There is no requirement for Redis to be local to the server; it can be
-   hosted anywhere, though we recommend it is located on the same network
-   segment for better security. Redis should work out of the box with Hybrasyl
-   with its default settings. You will need to ensure that the Redis port,
-   TCP/6379, can be accessed from the server running Hybrasyl; you may need to
-   grant access or open ports.
-
-  b. **Create and populate your base directory**
-
-   On Windows, this is `%userprofile%\documents\Hybrasyl`. On GNU/Linux
-   or OSX this is `~/Hybrasyl` for whatever user is running the server.
-   Take a look at the
-   [community-maintained database](https://github.com/hybrasyl/ceridwen)
-   for XML and scripting. This has more than enough XML and scripts to
-   get you started. You can put the contents of that repository
-   directly into your Hybrasyl data directory and start the server.    
-   
-  c. **Update your configuration**
-
-	For your server configuration, you can start with our [annotated](https://	github.com/hybrasyl/server/tree/main/contrib/config.xml) example for your 	config.xml which will help you get up and running quickly.
-	
-  d. **Install and run Hybrasyl** 
-
-   (see _Running Hybrasyl_ below).
+   This will download Valkey, Ceridwen (our public getting-started XML
+   repository) and Hybrasyl's GHCR image. You'll be able to login to it
+   immediately using Spark or another launcher.
 
 ## Running Hybrasyl
 
-Hybrasyl Server is a .NET 6 console application, which means it can be run on a variety of platforms (Windows, Linux, OSX).
+Hybrasyl Server is a .NET 10 console application, which means it can
+be run on a variety of platforms (Windows, Linux, OSX).
 
-If you aren't using Docker, we provide a `systemd` unit file [is provided](./contrib/hybrasyl.unit) to start the server on Ubuntu 18.04+. In any case,
-[download the latest release](https://github.com/hybrasyl/server/releases) for your platform. This can be unpacked
-into `/srv/hybrasyl` on Linux or a directory of your choosing on Windows.
+If you aren't using Docker, a `systemd` unit file [is
+provided](./contrib/hybrasyl.unit) to start the server on modern
+distributions. In any case, you can [download the latest
+release](https://github.com/hybrasyl/server/releases) for your
+platform. We also maintain a [release browser](https://releases.hybrasyl.com) that is 
+automatically built from checkins to `develop` (the active development branch). 
+Binaries are provided for MacOS, Linux and Windows.
 
 Once downloaded, either run the server directly (`Hybrasyl.exe` or
-`Hybrasyl` on Linux) or, if you’re running on Linux or a WSL
+`Hybrasyl` on Linux / MacOS) or, if running on Linux or a WSL
 distribution that uses systemd, install the unit file in
-`/etc/systemd/system/hybrasyl.service` and start Hybrasyl:
+`/etc/systemd/system/hybrasyl.service` and start Hybrasyl after reloading systemd units:
 
 `service hybrasyl start`
 
@@ -158,21 +137,23 @@ directory (e.g. where `Hybrasyl.csproj` lives.
 
 The process for compiling Hybrasyl is detailed below.
 
-1. Install either [Microsoft Visual Studio](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
-or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
+1. Install either [Microsoft Visual Studio](https://visualstudio.microsoft.com/vs) 
+   or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
 
-   For Visual Studio, the Community Edition is free and capable of compiling
-   all the needed projects (server, launcher), but you don't strictly speaking need this any longer - you can also just edit C# code in VS Code.
+   For Visual Studio, the Community Edition is free and capable of
+   compiling all the needed projects. VS Code also works.
 
-2. Download and install the [.NET 6 SDK](https://dotnet.microsoft.com/download).
+2. Download and install the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
-   Currently, Hybrasyl uses .NET 6. In order to do development, you need both the SDK and runtime; to simply run Hybrasyl, you just need the runtime.
+   Currently, Hybrasyl uses .NET 10. In order to do development, you
+   need both the SDK and runtime; to simply run Hybrasyl, you just need
+   the runtime.
 
-2. Download Spark (the launcher from above) and clone the 
-   [server](https://github.com/hybrasyl/server) repository to your
-   local machine using a
-   [git client](https://git-scm.com/downloads/guis), with Visual
-   Studio or VS Code's built-in integration, or with [GitHub Desktop](https://desktop.github.com) 
+2. Download Spark (the launcher from above) and clone the
+   [server](https://github.com/hybrasyl/server) repository to your local
+   machine using a [git client](https://git-scm.com/downloads/guis), with
+   Visual Studio or VS Code's built-in integration, or with [GitHub
+   Desktop](https://desktop.github.com)
       
 3. Update and rebuild packages.
 
@@ -189,15 +170,24 @@ or [Microsoft Visual Studio Code](https://code.visualstudio.com/).
    following from the command line: `dotnet publish -c Debug -r
    win10-x64` or `dotnet publish -c Debug -r linux-x64`
 
-Now that your setup is complete, you should be able to use Spark 
-to connect to it (after opening `Hy-brasyl Launcher.sln` and building the project). Launch Spark and type in `localhost` in the "Server Hostname" field.
+Now that your setup is complete, you should be able to use Spark to
+connect to it (after opening `Hy-brasyl Launcher.sln` and building the
+project). Launch Spark and type in `localhost` in the "Server
+Hostname" field.
 
 You should now be able to connect to your Hybrasyl server, create a
-new character, and log in! If not, well, take a look at the section on [getting help](#help).
+new character, and log in! If not, well, take a look at the section on
+[getting help](#help).
 
 ## Logging in
 
-Log in to your new server by launching Spark. Point it to a local Dark Ages client installation, enter `localhost` into the server hostname field (if running locally), or the IP address of your Docker host, and launch. Spark will ask you for a local Dark Ages client executable; you must have the latest client installed in order to continue. Once launched, you should see a Hybrasyl welcome screen in place of the standard Dark Ages welcome screen. 
+Log in to your new server by launching Spark. Point it to a local Dark
+Ages client installation, enter `localhost` into the server hostname
+field (if running locally), or the IP address of your Docker host, and
+launch. Spark will ask you for a local Dark Ages client executable;
+you must have the latest client installed in order to continue. Once
+launched, you should see a Hybrasyl welcome screen in place of the
+standard Dark Ages welcome screen. 
 
 Congratulations -- you're connected!
 

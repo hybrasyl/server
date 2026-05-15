@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -44,14 +44,16 @@ public class Server
     protected static ManualResetEvent AllDone = new(false);
 
     private readonly ClientType _clientType;
+    public readonly IPAddress BindAddress;
 
     public ConcurrentDictionary<IntPtr, IClient> Clients;
 
-    public Server(int port, bool isDefault = false, ClientType clientType = ClientType.Client)
+    public Server(IPAddress bindAddress, int port, bool isDefault = false, ClientType clientType = ClientType.Client)
     {
         Clients = new ConcurrentDictionary<IntPtr, IClient>();
         Port = port;
         _clientType = clientType;
+        BindAddress = bindAddress;
 
         Throttles = new Dictionary<byte, IPacketThrottle>();
         ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
@@ -90,7 +92,6 @@ public class Server
                 var client = kvp.Value;
                 switch (client.Connected)
                 {
-                    //GameLog.ErrorFormat($"Server {this.GetType().Name} Client {client.ConnectionId}: buffer sending");
                     case true when client.ClientState.SendBufferDepth > 0:
                         await Task.Run(client.FlushSendBuffer, StopToken);
                         break;
@@ -118,10 +119,10 @@ public class Server
     public void StartListening()
     {
         Listener = SocketProxy.Create(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        Listener.Bind(new IPEndPoint(IPAddress.Any, Port));
+        Listener.Bind(new IPEndPoint(BindAddress, Port));
         Active = true;
         Listener.Listen(100);
-        GameLog.InfoFormat("Starting TcpListener: {0}:{1}", IPAddress.Any.ToString(), Port);
+        GameLog.InfoFormat("Starting TcpListener: {0}:{1}", BindAddress.ToString(), Port);
         while (true)
         {
             if (StopToken.IsCancellationRequested)

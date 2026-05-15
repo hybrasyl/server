@@ -18,9 +18,10 @@
 
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
-using Hybrasyl.Statuses;
+using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
+using System.Globalization;
 
 namespace Hybrasyl.Subsystems.Scripting;
 
@@ -40,23 +41,44 @@ public class HybrasylMonster : HybrasylWorldObject
     internal HybrasylMap Map { get; set; }
 
     public ThreatInfo ThreatInfo => Monster.ThreatInfo;
-    public WorldObject Target => Monster.Target;
+    public WorldObject Target => Monster.ActiveTarget;
     public bool AbsoluteImmortal => Monster.AbsoluteImmortal;
     public bool PhysicalImmortal => Monster.PhysicalImmortal;
     public bool MagicalImmortal => Monster.MagicalImmortal;
 
     public WorldObject FirstHitter => Monster.FirstHitter;
     public WorldObject LastHitter => Monster.LastHitter;
-    public string LastHitTime => Monster.LastHitTime.ToString();
+    public string LastHitTime => Monster.LastHitTime.ToString(CultureInfo.CurrentCulture);
 
     /// <summary>
     ///     Access the StatInfo of the specified user directly (all stats).
     /// </summary>
     public StatInfo Stats => Monster.Stats;
 
-    public void ForceThreatChange(HybrasylUser invoker)
+    /// <summary>
+    /// Forcibly change the active target of the monster to the specified user.
+    /// </summary>
+    /// <param name="target"><see cref="HybrasylUser"/> representing the target user.</param>
+    public void ChangeActiveTarget(HybrasylUser target)
     {
-        Monster.ThreatInfo.ForceThreatChange(invoker.User);
+        Monster.ThreatInfo.ForceThreatChange(target.User);
+    }
+
+    /// <summary>
+    /// Forcibly set a monster to be hostile.
+    /// </summary>
+    public void SetHostile()
+    {
+        Monster.Hostility ??= new CreatureHostilitySettings();
+        Monster.Hostility.Players ??= new CreatureHostility();
+    }
+
+    /// <summary>
+    /// Forcibly set a monster to be neutral (won't attack until attacked).
+    /// </summary>
+    public void SetNeutral()
+    {
+        Monster.Hostility = null;
     }
 
     /// <summary>
@@ -76,6 +98,18 @@ public class HybrasylMonster : HybrasylWorldObject
         Monster.Sprite = (ushort)displaySprite;
     }
 
+    /// <summary>
+    /// Directly damage the monster for the specified amount.
+    /// </summary>
+    /// <param name="damage">Amount of damage</param>
+    public void DirectDamage(int damage) => Monster.Damage(damage);
+
+    /// <summary>
+    /// Directly heal the monster for the specified amount.
+    /// </summary>
+    /// <param name="heal">Amount of damage</param>
+    public void DirectHeal(int heal) => Monster.Heal(heal);
+
     public int GetCreatureDisplaySprite() => Monster.Sprite;
 
 
@@ -90,6 +124,7 @@ public class HybrasylMonster : HybrasylWorldObject
         s +=
             $"Stats: STR {Monster.Stats.Str} CON {Monster.Stats.Con} WIS {Monster.Stats.Wis} INT {Monster.Stats.Int} DEX {Monster.Stats.Dex}\n";
         s += $"Experience: {Monster.LootableXp}\n\n";
+        s += $"Elements: Defensive {Monster.Stats.DefensiveElement} Offensive {Monster.Stats.OffensiveElement}\n\n";
         s += "Castables:\n";
 
         foreach (var rotation in Monster.CastableController)
@@ -107,7 +142,7 @@ public class HybrasylMonster : HybrasylWorldObject
 
         s += $"ShouldWander: {Monster.ShouldWander}\n";
 
-        if (Monster.Target != null) s += $"Target: {Monster.Target.Name}\n";
+        if (Monster.ActiveTarget != null) s += $"Target: {Monster.ActiveTarget.Name}\n";
         if (Monster.FirstHitter != null) s += $"FirstHitter: {Monster.FirstHitter.Name}\n";
         if (Monster.LastHitter != null) s += $"LastHitter: {Monster.LastHitter.Name}\n";
         if (Monster.LastHitTime != default) s += $"LastHitTime: {Monster.LastHitTime}\n";
@@ -139,7 +174,7 @@ public class HybrasylMonster : HybrasylWorldObject
             return false;
         }
 
-        return Monster.ApplyStatus(new CreatureStatus(status, Monster, null, null,
+        return Monster.ApplyStatus(new CreatureStatus(status, Monster, null, Monster,
             duration == 0 ? status.Duration : duration,
             tick == 0 ? status.Tick : tick,
             intensity));

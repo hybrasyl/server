@@ -212,20 +212,16 @@ internal class Monolith
 
             if (currentCount >= maxcount)
             {
-                GameLog.SpawnFatal(
+                GameLog.SpawnDebug(
                     $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
-                if (spawnmap.SpawnDebug)
-                    GameLog.SpawnInfo(
-                        $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
                 continue;
             }
 
 
             if (spawn.Status.LastSpawnSeconds < interval)
             {
-                if (spawnmap.SpawnDebug)
-                    GameLog.SpawnInfo(
-                        $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - last spawn was {spawn.Status.LastSpawnSeconds} ago, interval {interval}");
+                GameLog.SpawnDebug(
+                    $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - last spawn was {spawn.Status.LastSpawnSeconds} ago, interval {interval}");
                 continue;
             }
 
@@ -263,14 +259,12 @@ internal class Monolith
                                 if (mobtype <= spawn.Base.WeakChance)
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
-                                    if (spawnmap.SpawnDebug)
-                                        GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
+                                    GameLog.SpawnDebug($"Mob is weak: modifier {modifier}");
                                 }
                                 else
                                 {
                                     baseMob.ApplyModifier(modifier);
-                                    if (spawnmap.SpawnDebug)
-                                        GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
+                                    GameLog.SpawnDebug($"Mob is strong: modifier {modifier}");
                                 }
                             }
                             else
@@ -278,14 +272,12 @@ internal class Monolith
                                 if (mobtype <= spawn.Base.StrongChance)
                                 {
                                     baseMob.ApplyModifier(modifier);
-                                    if (spawnmap.SpawnDebug)
-                                        GameLog.SpawnInfo($"Mob is strong: modifier {modifier}");
+                                    GameLog.SpawnDebug($"Mob is strong: modifier {modifier}");
                                 }
                                 else
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
-                                    if (spawnmap.SpawnDebug)
-                                        GameLog.SpawnInfo($"Mob is weak: modifier {modifier}");
+                                    GameLog.SpawnDebug($"Mob is weak: modifier {modifier}");
                                 }
                             }
                         }
@@ -321,6 +313,10 @@ internal class Monolith
 
                     baseMob.X = (byte)xcoord;
                     baseMob.Y = (byte)ycoord;
+
+                    if (!spawnmap.IsValidPoint(baseMob.X, baseMob.Y))
+                        GameLog.SpawnError(
+                            $"OOB spawn: {spawn.Name} placed at {baseMob.X},{baseMob.Y} on {spawnmap.Name} ({spawnmap.X}x{spawnmap.Y}) - source={(spawn.Coordinates.Count != 0 ? "xml" : "FindEmptyTile")}");
 
                     if (spawn.Hostility != null)
                         baseMob.Hostility = spawn.Hostility;
@@ -387,7 +383,7 @@ internal class Monolith
 
                     foreach (var cookie in spawn.SetCookies) baseMob.SetCookie(cookie.Name, cookie.Value);
 
-                    spawnmap.InsertCreature(baseMob);
+                    spawnmap.InsertMonster(baseMob);
                 }
                 else
                 {

@@ -59,7 +59,7 @@ public class ConditionInfo
     {
         get
         {
-            var conditionCheck = Asleep || Frozen || Comatose;
+            var conditionCheck = Asleep || Stunned || Comatose;
 
             if (User != null)
                 conditionCheck = conditionCheck || Flags.HasFlag(PlayerFlags.ProhibitCast);
@@ -71,7 +71,7 @@ public class ConditionInfo
     {
         get
         {
-            var conditionCheck = Asleep || Frozen || Paralyzed || Comatose;
+            var conditionCheck = Asleep || Stunned || Rooted || Comatose;
             return !conditionCheck;
         }
     }
@@ -99,15 +99,15 @@ public class ConditionInfo
         }
     }
 
-    public bool Frozen
+    public bool Stunned
     {
-        get => Conditions.HasFlag(CreatureCondition.Freeze);
+        get => Conditions.HasFlag(CreatureCondition.Stun);
         set
         {
             if (value == false)
-                Conditions &= ~CreatureCondition.Freeze;
+                Conditions &= ~CreatureCondition.Stun;
             else
-                Conditions |= CreatureCondition.Freeze;
+                Conditions |= CreatureCondition.Stun;
         }
     }
 
@@ -119,19 +119,19 @@ public class ConditionInfo
             if (value == false)
                 Conditions &= ~CreatureCondition.Sleep;
             else
-                Conditions |= CreatureCondition.Freeze;
+                Conditions |= CreatureCondition.Stun;
         }
     }
 
-    public bool Paralyzed
+    public bool Rooted
     {
-        get => Conditions.HasFlag(CreatureCondition.Paralyze);
+        get => Conditions.HasFlag(CreatureCondition.Root);
         set
         {
             if (value == false)
-                Conditions &= ~CreatureCondition.Paralyze;
+                Conditions &= ~CreatureCondition.Root;
             else
-                Conditions |= CreatureCondition.Paralyze;
+                Conditions |= CreatureCondition.Root;
         }
     }
 
@@ -225,9 +225,9 @@ public class ConditionInfo
         set
         {
             if (value == false)
-                Conditions &= ~CreatureCondition.Invulnerable;
+                Conditions &= ~CreatureCondition.Disoriented;
             else
-                Conditions |= CreatureCondition.Invulnerable;
+                Conditions |= CreatureCondition.Disoriented;
         }
     }
 
@@ -359,6 +359,72 @@ public class ConditionInfo
                 Conditions |= CreatureCondition.ProhibitEquipChange;
         }
     }
+
+    public bool IsHpIncreaseProhibited
+    {
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitHpIncrease);
+        set
+        {
+            if (User == null) return;
+            if (value == false)
+                Conditions &= CreatureCondition.ProhibitHpIncrease;
+            else
+                Conditions |= CreatureCondition.ProhibitHpIncrease;
+        }
+    }
+
+    public bool IsMpIncreaseProhibited
+    {
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitMpIncrease);
+        set
+        {
+            if (User == null) return;
+            if (value == false)
+                Conditions &= CreatureCondition.ProhibitMpIncrease;
+            else
+                Conditions |= CreatureCondition.ProhibitMpIncrease;
+        }
+    }
+
+    public bool IsMpDecreaseProhibited
+    {
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitMpDecrease);
+        set
+        {
+            if (User == null) return;
+            if (value == false)
+                Conditions &= CreatureCondition.ProhibitMpDecrease;
+            else
+                Conditions |= CreatureCondition.ProhibitMpDecrease;
+        }
+    }
+
+    public bool IsHpRegenProhibited
+    {
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitHpRegen);
+        set
+        {
+            if (User == null) return;
+            if (value == false)
+                Conditions &= CreatureCondition.ProhibitHpRegen;
+            else
+                Conditions |= CreatureCondition.ProhibitHpRegen;
+        }
+    }
+
+    public bool IsMpRegenProhibited
+    {
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitMpRegen);
+        set
+        {
+            if (User == null) return;
+            if (value == false)
+                Conditions &= CreatureCondition.ProhibitMpRegen;
+            else
+                Conditions |= CreatureCondition.ProhibitMpRegen;
+        }
+    }
+
 
     public bool NoFlags => Flags == PlayerFlags.Alive;
 

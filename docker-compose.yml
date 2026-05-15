@@ -1,33 +1,57 @@
-version: "3.9"
+services:
+  world-data:
+    image: alpine:latest
+    command: >
+      sh -c "apk add --no-cache git openssl &&
+      if [ -d /world/.git ]; then
+        cd /world && git pull;
+      else
+        git clone https://github.com/hybrasyl/ceridwen.git /world;
+      fi &&
+      if [ ! -e /world/grpc-cert.pem ]; then
+        openssl req -x509 -newkey rsa:2048 -nodes -subj "/CN=hybrasyl-docker" -addext "subjectAltName=DNS:hybrasyl-server,DNS:localhost,IP:127.0.0.1" -keyout /world/grpc-key.pem -out /world/grpc-cert.pem -days 365 -sha256 &&
+        chmod 755 /world/grpc-cert.pem /world/grpc-key.pem
+      fi"
+    volumes:
+      - world:/world
+
+  valkey:
+    image: valkey/valkey:latest
+    volumes:
+      - valkey-data:/data
+    networks:
+      - hybrasyl
+
+  hybrasyl-server:
+    image: ghcr.io/hybrasyl/server:latest
+    container_name: hybrasyl-server
+    platform: linux/amd64
+    build: .  # uncomment to build from source
+    ports:
+      - "2610:2610" # lobby
+      - "2611:2611" # login
+      - "2612:2612" # world
+      - "2613:2613" # grpc
+    networks:
+      - hybrasyl
+    environment:
+      - HYB_REDIS_HOST=valkey
+      - HYB_DATA_DIR=/world
+      - HYB_WORLD_DIR=/world/xml
+      - HYB_CONFIG_FILE=/config/config.xml
+    volumes:
+      - world:/world:ro
+      - ./contrib/config.xml:/config/config.xml:ro
+    depends_on:
+      world-data:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_started
+
+volumes:
+  world:
+  valkey-data:
 
 networks:
-  internal:
-    driver: bridge
-
-services:
-  redis:
-    image: bitnami/redis:latest
-    volumes:
-      - ./data/redis:/bitnami/redis/data
-    networks:
-      - internal
-    environment:
-      # Remove this and set a password if using this in a non-development environment!
-      - ALLOW_EMPTY_PASSWORD=yes
-  hybrasyl-server:
-    image: baughj/hybrasyl:quickstart
-    # If you want to rebuild the image used for the quickstart, uncomment this
-    #build: .
-    volumes:
-      - ./Hybrasyl.Tests/world:/HybrasylData/world/
-      - ./contrib/config.xml:/root/Hybrasyl/config.xml
-    ports:
-      - "2610:2610"
-      - "2611:2611"
-      - "2612:2612"
-    depends_on:
-      - redis
-    networks:
-      - internal
-    links:
-      - "redis"
+  hybrasyl:
+    external: true

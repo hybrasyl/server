@@ -16,8 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Linq;
 using Hybrasyl.Xml.Objects;
+using System.Linq;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -30,11 +30,14 @@ public class CastableRestrictions
     public CastableRestrictions(HybrasylFixture fixture)
     {
         Fixture = fixture;
+        Fixture.ResetTestUserStats();
     }
 
     private Castable GetCastable(string name)
     {
         var castable = Game.World.WorldData.GetByIndex<Castable>(name);
+        Fixture.TestUser.Stats.Mp = uint.MaxValue;
+        Fixture.TestUser.Stats.Hp = uint.MaxValue;
         Assert.NotNull(castable);
         return castable;
     }

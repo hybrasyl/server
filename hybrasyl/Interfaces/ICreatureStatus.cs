@@ -16,16 +16,19 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Objects;
+using Hybrasyl.Subsystems.Statuses;
+using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
-using Hybrasyl.Objects;
-using Hybrasyl.Statuses;
+using Creature = Hybrasyl.Objects.Creature;
 
 namespace Hybrasyl.Interfaces;
 
 public interface ICreatureStatus
 {
     string Name { get; }
+    Guid Guid { get; }
     List<string> Category { get; }
     string ActionProhibitedMessage { get; }
     double Duration { get; }
@@ -33,8 +36,9 @@ public interface ICreatureStatus
     DateTime Start { get; }
     DateTime LastTick { get; }
     ushort Icon { get; }
+    string RemoveChance { get; set; }
 
-    StatusInfo Info { get; }
+    StatusSnapshot Snapshot { get; }
     Creature Target { get; }
     Creature Source { get; }
     bool Expired { get; }
@@ -44,10 +48,13 @@ public interface ICreatureStatus
     double ElapsedSinceTick { get; }
     List<string> UseCastRestrictions { get; }
     List<string> ReceiveCastRestrictions { get; }
+    Conditions ConditionChanges { get; }
     SimpleStatusEffect OnStartEffect { get; }
     SimpleStatusEffect OnTickEffect { get; }
     SimpleStatusEffect OnRemoveEffect { get; }
     SimpleStatusEffect OnExpireEffect { get; }
+    Guid OriginSnapshotId { get; }
+
     void OnStart(bool displaySfx = true);
     void OnTick();
     void OnEnd();
