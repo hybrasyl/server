@@ -454,15 +454,17 @@ public class User : Creature
         LastHeard = e;
         if (e.Speaker != this)
             MessagesReceived.Add(e);
+        var speakerName = e.Speaker is Merchant m && !string.IsNullOrWhiteSpace(m.DisplayName)
+            ? m.DisplayName : e.Speaker.Name;
         var x0D = new ServerPacket(0x0D);
         x0D.WriteBoolean(e.Shout);
         x0D.WriteUInt32(e.Speaker.Id);
         if (e.Shout)
             x0D.WriteString8(
-                !string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
+                !string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{speakerName}! {e.Message}");
         else
             x0D.WriteString8(
-                !string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
+                !string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{speakerName}: {e.Message}");
         Enqueue(x0D);
     }
 

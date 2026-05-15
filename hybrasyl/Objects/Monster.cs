@@ -601,43 +601,57 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
     public void AllocateStats()
     {
-        var totalPoints = Stats.Level * 2;
-        if (BehaviorSet is null || string.IsNullOrEmpty(BehaviorSet.StatAlloc))
-        {
-            RandomlyAllocateStatPoints(totalPoints);
-        }
-        else
-        {
-            var allocPattern = BehaviorSet.StatAlloc.Trim().ToLower().Split(" ");
-            while (totalPoints > 0)
-                foreach (var alloc in allocPattern)
-                {
-                    switch (alloc)
-                    {
-                        case "str":
-                            Stats.BaseStr += 1;
-                            break;
-                        case "int":
-                            Stats.BaseInt += 1;
-                            break;
-                        case "wis":
-                            Stats.BaseWis += 1;
-                            break;
-                        case "con":
-                            Stats.BaseCon += 1;
-                            break;
-                        case "dex":
-                            Stats.BaseDex += 1;
-                            break;
-                        default:
-                            RandomlyAllocateStatPoints(1);
-                            break;
-                    }
+        var targetLevel = Stats.Level;
 
-                    totalPoints--;
-                    if (totalPoints % 2 == 0)
-                        MpHpIncrease();
-                }
+        for (byte level = 1; level <= targetLevel; level++)
+        {
+            Stats.Level = level;
+
+            if (BehaviorSet is null || string.IsNullOrEmpty(BehaviorSet.StatAlloc))
+            {
+                RandomlyAllocateStatPoints(2);
+            }
+            else
+            {
+                AllocatePatternPoints(2);
+            }
+        }
+    }
+
+    private void AllocatePatternPoints(int points)
+    {
+        var allocPattern = BehaviorSet.StatAlloc.Trim().ToLower().Split(" ");
+        var patternIndex = 0;
+
+        for (var i = 0; i < points; i++)
+        {
+            var alloc = allocPattern[patternIndex % allocPattern.Length];
+            patternIndex++;
+
+            switch (alloc)
+            {
+                case "str":
+                    Stats.BaseStr += 1;
+                    break;
+                case "int":
+                    Stats.BaseInt += 1;
+                    break;
+                case "wis":
+                    Stats.BaseWis += 1;
+                    break;
+                case "con":
+                    Stats.BaseCon += 1;
+                    break;
+                case "dex":
+                    Stats.BaseDex += 1;
+                    break;
+                default:
+                    RandomlyAllocateStatPoints(1);
+                    break;
+            }
+
+            if ((i + 1) % 2 == 0)
+                MpHpIncrease();
         }
     }
 

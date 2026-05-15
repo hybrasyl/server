@@ -532,4 +532,45 @@ public class Monsters
 
 
     }
+
+    [Fact]
+    public void MonsterAllocateStatsRestoresLevel()
+    {
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+        var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 50);
+
+        Assert.Equal(50, monster.Stats.Level);
+    }
+
+    [Fact]
+    public void HigherLevelMonsterHasMoreHp()
+    {
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+
+        var low = new Monster(monsterXml, SpawnFlags.AiDisabled, 10);
+        var high = new Monster(monsterXml, SpawnFlags.AiDisabled, 50);
+
+        Assert.True(high.Stats.MaximumHp > low.Stats.MaximumHp,
+            $"Level 50 HP ({high.Stats.MaximumHp}) should exceed level 10 HP ({low.Stats.MaximumHp})");
+    }
+
+    [Fact]
+    public void HigherLevelMonsterHasMoreStats()
+    {
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+
+        var low = new Monster(monsterXml, SpawnFlags.AiDisabled, 5);
+        var high = new Monster(monsterXml, SpawnFlags.AiDisabled, 50);
+
+        var lowTotal = low.Stats.BaseStr + low.Stats.BaseInt + low.Stats.BaseWis +
+                       low.Stats.BaseCon + low.Stats.BaseDex;
+        var highTotal = high.Stats.BaseStr + high.Stats.BaseInt + high.Stats.BaseWis +
+                        high.Stats.BaseCon + high.Stats.BaseDex;
+
+        Assert.True(highTotal > lowTotal,
+            $"Level 50 total stats ({highTotal}) should exceed level 5 ({lowTotal})");
+    }
 }

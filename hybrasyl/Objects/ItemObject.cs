@@ -102,6 +102,7 @@ public class ItemObject : VisibleObject, IInteractable
     public string SlotName => Enum.GetName(typeof(EquipmentSlot), EquipmentSlot) ?? "None";
     public string DisplayName => Name;
 
+    [FormulaVariable]
     public int Weight => Template.Properties.Physical.Weight > int.MaxValue
         ? int.MaxValue
         : Convert.ToInt32(Template.Properties.Physical.Weight);
@@ -111,6 +112,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     public List<CastModifier> CastModifiers => Template.Properties.CastModifiers;
 
+    [FormulaVariable]
     public uint MaximumDurability => Template.Properties?.Physical?.Durability > uint.MaxValue
         ? uint.MaxValue
         : Convert.ToUInt32(Template.Properties.Physical.Durability);
@@ -130,9 +132,13 @@ public class ItemObject : VisibleObject, IInteractable
     // Identifiable flag is set.
     public bool Identified => true;
 
+    [FormulaVariable]
     public byte MinLevel => Template.MinLevel;
+    [FormulaVariable]
     public byte MinAbility => Template.MinAbility;
+    [FormulaVariable]
     public byte MaxLevel => Template.MaxLevel;
+    [FormulaVariable]
     public byte MaxAbility => Template.MaxAbility;
 
     public Class Class => Template.Class;
@@ -145,12 +151,17 @@ public class ItemObject : VisibleObject, IInteractable
 
     public ElementType Element => Template.Element;
 
+    [FormulaVariable]
     public float MinLDamage => Template.MinLDamage;
+    [FormulaVariable]
     public float MaxLDamage => Template.MaxLDamage;
+    [FormulaVariable]
     public float MinSDamage => Template.MinSDamage;
+    [FormulaVariable]
     public float MaxSDamage => Template.MaxSDamage;
     public ushort DisplaySprite => Template.Properties.Appearance.DisplaySprite;
 
+    [FormulaVariable]
     public uint Value => Template.Properties.Physical.Value > uint.MaxValue
         ? uint.MaxValue
         : Convert.ToUInt32(Template.Properties.Physical.Value);
@@ -201,6 +212,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     private Lockable<double> _durability { get; set; }
 
+    [FormulaVariable]
     public double Durability
     {
         get => _durability.Value;
