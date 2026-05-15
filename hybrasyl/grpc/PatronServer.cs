@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -140,6 +140,8 @@ internal class PatronServer : Patron.PatronBase
                 login.LastPasswordChange = DateTime.Now;
                 login.LastPasswordChangeFrom = context.Peer;
                 login.Save();
+                return Task.FromResult(new BooleanMessageReply { Message = "Password for {request.Username} was reset successfully!", Success = true });
+
             }
             else
             {
