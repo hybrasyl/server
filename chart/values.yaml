@@ -25,8 +25,12 @@ server:
     git:
       repo: https://github.com/hybrasyl/ceridwen.git
       branch: main
-      # For private repos, provide an SSH URL and pullSecret:
-      # repo: git@github.com:hybrasyl/ceridwen.git
+      # For private repos, use an SSH URL and a pullSecret holding the deploy
+      # key. The secret must be a kubernetes.io/ssh-auth Secret (key
+      # "ssh-privatekey"); the chart mounts it and points GIT_SSH_COMMAND at it.
+      #   kubectl create secret generic hybrasyl-world-access \
+      #     --type=kubernetes.io/ssh-auth --from-file=ssh-privatekey=./deploy_key
+      # repo: git@github.com:eriscorp/world.git
       # pullSecret: hybrasyl-world-access
     # For local dev, mount a local checkout of world data:
     #hostPath: /path/to/ceridwen

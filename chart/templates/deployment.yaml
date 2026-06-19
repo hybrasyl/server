@@ -49,6 +49,13 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Values.server.worldData.volume.claimName }}
       {{- end }}
+      {{- if and (hasKey .Values.server.worldData "git") .Values.server.worldData.git.pullSecret }}
+        # SSH deploy key for cloning a private world-data repo
+        - name: {{ .Values.environment }}-gameserver-world-ssh
+          secret:
+            secretName: {{ .Values.server.worldData.git.pullSecret }}
+            defaultMode: 0400
+      {{- end }}
         # Plugin data
       {{- if .Values.server.volumes.pluginData.enabled }}
         - name: {{ .Values.environment }}-gameserver-plugindata
@@ -67,9 +74,21 @@ spec:
       initContainers:
         - name: pull-world-data
           image: alpine/git:latest
+          {{- if .Values.server.worldData.git.pullSecret }}
+          env:
+            # Use the mounted deploy key; accept GitHub's host key on first connect.
+            - name: GIT_SSH_COMMAND
+              value: "ssh -i /etc/world-ssh/ssh-privatekey -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          {{- end }}
           command: ["sh", "-c", "git clone {{ .Values.server.worldData.git.repo }} {{ .Values.server.worldDataDir }} && cd {{ .Values.server.worldDataDir }} && git checkout {{ .Values.server.worldData.git.branch }}"]
           volumeMounts:
+            - name: {{ .Values.environment }}-gameserver-world
               mountPath: {{ .Values.server.worldDataDir }}
+            {{- if .Values.server.worldData.git.pullSecret }}
+            - name: {{ .Values.environment }}-gameserver-world-ssh
+              mountPath: /etc/world-ssh
+              readOnly: true
+            {{- end }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}-gameserver
@@ -98,7 +117,7 @@ spec:
               value: /config/config.xml
           {{- if .Values.valkey.enabled }}
             - name: HYB_REDIS_HOST
-              value: {{ include "hybrasyl.fullname" . }}-valkey
+              value: {{ .Release.Name }}-valkey
             - name: HYB_REDIS_PORT
               value: "6379"
           {{- else }}
@@ -119,6 +138,7 @@ spec:
               value: {{ .Values.server.datastore.database | toString | quote }}
           {{- end }}
           volumeMounts:
+            - name: {{ .Values.environment }}-gameserver-world
               mountPath: {{ .Values.server.worldDataDir }}
               readOnly: true
           {{- if .Values.server.volumes.pluginData.enabled }}

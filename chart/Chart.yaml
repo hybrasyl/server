@@ -1,7 +1,7 @@
 apiVersion: v2
 description: Hybrasyl Server
-name: hybrasyl
-version: 0.9.5
+name: server
+version: 0.9.6
 appVersion: 0.9.5
 home: https://www.hybrasyl.com
 maintainers:
@@ -9,6 +9,6 @@ maintainers:
     url: https://github.com/hybrasyl/server
 dependencies:
   - name: valkey
-    version: 0.7.5
+    version: 0.10.0
     repository: https://valkey.io/valkey-helm
     condition: valkey.enabled

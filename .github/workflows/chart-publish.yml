@@ -1,0 +1,92 @@
+---
+name: Publish Helm chart
+
+# The chart is its own release artifact, independent of the server image.
+# App releases (v* tags) ship a new *image* via hybrasyl-build.yml; deployers
+# point image.tag at it. The chart only needs republishing when the chart
+# itself changes, so that is what triggers this workflow.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chart/**'
+  workflow_dispatch:
+
+permissions:
+  packages: write
+  contents: read
+
+# Avoid two pushes racing to publish the same auto-computed version.
+concurrency:
+  group: chart-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-chart:
+    if: github.repository == 'hybrasyl/server'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out server
+        uses: actions/checkout@v5
+        with:
+          # Full history: the chart version is derived from the commit count.
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Compute chart version
+        id: version
+        run: |
+          # MAJOR.MINOR is the human-controlled series from Chart.yaml; the
+          # patch is automatic: the number of commits that have touched chart/.
+          # This is monotonic, unique per chart change, and valid SemVer.
+          BASE=$(grep '^version:' chart/Chart.yaml | head -1 | awk '{print $2}')
+          MAJOR_MINOR=$(echo "$BASE" | cut -d. -f1,2)
+          PATCH=$(git rev-list --count HEAD -- chart/)
+          VERSION="${MAJOR_MINOR}.${PATCH}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Chart version: ${VERSION}"
+
+      - name: Package chart
+        # The valkey dependency is vendored in chart/charts/, so packaging
+        # works offline without a dependency build or repo add.
+        run: |
+          mkdir -p "${RUNNER_TEMP}/chart"
+          helm package chart \
+            --version "${{ steps.version.outputs.version }}" \
+            --destination "${RUNNER_TEMP}/chart"
+
+      - name: Log in to GHCR
+        run: >
+          echo "${{ secrets.GITHUB_TOKEN }}" |
+          helm registry login ghcr.io
+          --username "${{ github.actor }}"
+          --password-stdin
+
+      - name: Push chart to GHCR
+        # Chart name is "server" (Chart.yaml), so this publishes to
+        # ghcr.io/<owner>/charts/server. ghcr requires a lowercase path.
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          helm push \
+            "${RUNNER_TEMP}/chart/server-${{ steps.version.outputs.version }}.tgz" \
+            "oci://ghcr.io/${OWNER}/charts"
+
+      - name: Notify discord
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "Hybrasyl chart: published ghcr.io/${{ github.repository_owner }}/charts/server:${{ steps.version.outputs.version }} (by ${{ github.actor }})"
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notify discord of failure
+        if: ${{ failure() }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "Hybrasyl chart: publish **FAILED** (run ${{ github.run_id }})"
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
