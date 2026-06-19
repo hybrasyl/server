@@ -2048,11 +2048,20 @@ public class World : Server
         }
         else
         {
+            // Fire the Redirect first and with a short TransmitDelay. Client.Redirect.Enqueue uses
+            // flush:true which forces an immediate FlushSendBuffer — but only the *first* packet in
+            // an otherwise-empty buffer escapes the "break on delayed packet after a no-delay one"
+            // rule in FlushSendBuffer. If Map.Remove enqueues 0x0E first, 0x03 ends up deferred to
+            // the next 50ms ProcessOutbound tick — by which time the cleanup below has finished and
+            // the socket-flushing race is in play. The default transmitDelay=1200 made this almost
+            // guaranteed; even with cleanup completing quickly, the 1200ms Task.Delay outlived the
+            // live socket window for clients that close eagerly after the confirm packet.
+            user.SendRedirect(this, Game.Login, user.Name, false, transmitDelay: 50);
+
             user.UpdateLogoffTime();
             user.Map.Remove(user);
             if (user.Grouped) user.Group.Remove(user);
             Remove(user);
-            user.SendRedirect(this, Game.Login, user.Name, false);
             user.AuthInfo.CurrentState = UserState.Disconnected;
             user.Save(true);
             RemoveUser(user.Name);
