@@ -1,2 +1,47 @@
 * text eol=lf
 
+# Binary artifacts must NOT be line-ending normalized: the `* text eol=lf`
+# rule above would otherwise strip CR bytes and corrupt them. Mark known
+# binary types explicitly so git never applies text/eol filters to them.
+
+# Archives
+*.tgz   binary
+*.tar   binary
+*.gz    binary
+*.zip   binary
+*.7z    binary
+*.bz2   binary
+*.xz    binary
+*.nupkg binary
+
+# Images
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.bmp  binary
+*.webp binary
+*.pdf  binary
+
+# Fonts
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+
+# Compiled / native artifacts
+*.dll binary
+*.exe binary
+*.so  binary
+*.dylib binary
+*.pdb binary
+*.snk binary
+
+# Audio / video
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.mp4 binary
+
