@@ -3882,14 +3882,6 @@ public class World : Server
 
     private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, ClientPacket packet)
     {
-        // TEST / PROBE — a merchant named "Server Menu Test" opens the otherwise-unexercised retail
-        // NPCServerItemMenu dialog (pursuit-0x4B 0x2F). Remove once the path is characterized.
-        if (merchant.Name == "ServerM")
-        {
-            user.ShowServerItemMenu(merchant);
-            return;
-        }
-
         (merchant as IPursuitable).DisplayPursuits(user);
     }
 
