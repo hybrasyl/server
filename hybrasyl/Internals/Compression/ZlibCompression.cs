@@ -32,11 +32,13 @@ public static class ZlibCompression
             var position = originalStream.Position;
             originalStream.CopyTo(checksumStream);
             originalStream.Seek(position, SeekOrigin.Begin);
+	    checksumStream.Seek(0, SeekOrigin.Begin);
             var buffer = checksumStream.ToArray();
             checksum = Adler32.ComputeHash(buffer);
         }
 
         compressedStream.Write(new byte[] { 0x78, 0x9C }, 0, 2);
+
         using (var compressionStream = new DeflateStream(compressedStream, CompressionLevel.Optimal, true))
         {
             originalStream.Seek(0, SeekOrigin.Begin);

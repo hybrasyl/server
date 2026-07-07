@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -947,7 +947,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
 
     public virtual void Motion(byte motion, short speed)
     {
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+        foreach (var obj in Map?.EntityTree?.GetObjects(GetViewport()))
         {
             if (obj is not User user) continue;
             user.SendAnimation(Id, motion, speed);

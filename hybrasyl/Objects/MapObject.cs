@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -57,6 +57,7 @@ public class MapObject : IStateStorable
         EntityTree = new QuadTree<VisibleObject>(0, 0, X, Y);
         Music = newMap.Music;
         Flags = newMap.Flags;
+        DynamicLighting = newMap.DynamicLighting;
 
         LoadMapFile();
         LoadXml(newMap);
@@ -84,6 +85,7 @@ public class MapObject : IStateStorable
     public World World { get; set; }
     public byte[] RawData { get; set; }
     public ushort Checksum { get; set; }
+    public bool DynamicLighting { get; set;}
 
     private HashSet<(byte x, byte y)> Collisions { get; set; } = new();
     private HashSet<(byte x, byte y)> UsableTiles { get; } = new();
@@ -592,8 +594,9 @@ public class MapObject : IStateStorable
                 if (updateClient)
                 {
                     // HS-1317: slight delay here to handle client weirdness
-                    obj.SendMapInfo(250);
-                    obj.SendLocation(275);
+                    user.SendMapInfo(250);
+                    user.SendLocation(275);
+                    user.SendLightLevel();
                 }
 
             var affectedObjects = EntityTree.GetObjects(obj.GetViewport());

@@ -1,19 +1,19 @@
-﻿// This file is part of Project Hybrasyl.
-// 
+// This file is part of Project Hybrasyl.
+//
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
 // the Free Software Foundation, version 3.
-// 
+//
 // This program is distributed in the hope that it will be useful, but
 // without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 // or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
 // for more details.
-// 
+//
 // You should have received a copy of the Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
-// 
+//
 // (C) 2020-2023 ERISCO, LLC
-// 
+//
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
@@ -25,6 +25,7 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Servers;
+using Hybrasyl.Subsystems;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Manufacturing;
@@ -68,7 +69,6 @@ public class User : Creature
         _initializeUser();
         LastAssociate = null;
     }
-
 
     public User(Guid serverGuid, long connectionId, string playername = "")
     {
@@ -1027,6 +1027,14 @@ public class User : Creature
         }
     }
 
+    public void SendLightLevel()
+    {
+        var x20 = new ServerPacket(0x20);
+        var time = new HybrasylTime(DateTime.Now);
+        x20.WriteByte((byte) time.Hour);
+        Enqueue(x20);
+    }
+
     public override void SendMapInfo(int transmitDelay = 0)
     {
         var x15 = new ServerPacket(0x15);
@@ -1063,8 +1071,8 @@ public class User : Creature
         var x04 = new ServerPacket(0x04);
         x04.WriteUInt16(X);
         x04.WriteUInt16(Y);
-        x04.WriteUInt16(11);
-        x04.WriteUInt16(11);
+        x04.WriteUInt16(0x00);
+        x04.WriteUInt16(0x00);
         x04.TransmitDelay = transmitDelay;
         Enqueue(x04);
 
@@ -1340,7 +1348,7 @@ public class User : Creature
         // Check that all requirements are met first. Note that a spell cannot be cast if its HP cost would result
         // in the caster's HP being reduced to zero.
 
-        if (Condition.IsMpDecreaseProhibited) 
+        if (Condition.IsMpDecreaseProhibited)
             cost.Mp = 0;
 
         if (cost.Hp >= Stats.Hp)
@@ -1924,7 +1932,7 @@ public class User : Creature
             // Calculate the differences (which are, in all cases, rectangles of height 12 / width 1 or vice versa)
             // between the old and new viewpoints. The arrivingViewport represents the objects that need to be notified
             // of this object's arrival (because it is now within the viewport distance), and departingViewport represents
-            // the reverse. We later use these rectangles to query the quadtree to locate the objects that need to be 
+            // the reverse. We later use these rectangles to query the quadtree to locate the objects that need to be
             // notified of an update to their AOI (area of interest, which is the object's viewport calculated from its
             // current position).
 
@@ -2736,7 +2744,7 @@ public class User : Creature
                         // Failure of test above
                         case EquipmentSlot.None:
                             break;
-                        // Nominal cases: 
+                        // Nominal cases:
                         // <Item Slot="Foot" RestrictionType="Equipped">Ham Boots</Item> <!-- Player must have Ham Boots equipped in Foot slot -->
                         // <Item Slot="Foot" RestrictionType="Equipped"> <!-- Player must have something equipped in Foot slot -->
                         default:
@@ -2804,7 +2812,7 @@ public class User : Creature
                         // Failure of test above
                         case EquipmentSlot.None:
                             break;
-                        // Nominal cases: 
+                        // Nominal cases:
                         // <Item Slot="Foot" RestrictionType="NotEquipped">Ham Boots</Item> <!-- Player must not have Ham Boots equipped in Foot slot -->
                         // <Item Slot="Foot" RestrictionType="NotEquipped"> <!-- Player must not have something equipped in Foot slot -->
                         default:
@@ -2847,10 +2855,10 @@ public class User : Creature
         bool evalRestrictions = true)
     {
         if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
-            //do something. 
+            //do something.
             return false;
 
-        // Check for target immunity 
+        // Check for target immunity
 
         // Check casting costs
         if (castCost)
@@ -2864,8 +2872,8 @@ public class User : Creature
         {
             if (CheckCastableRestrictions(castableXml.Restrictions, out var restrictionMessage))
             {
-                if (castableXml.BreakStealth && Condition.IsInvisible) 
-                { 
+                if (castableXml.BreakStealth && Condition.IsInvisible)
+                {
                     Condition.IsInvisible = false;
                     // Remove statuses that cause invisibility
                     foreach (var activeStatus in CurrentStatuses.Values.ToList()) {
@@ -5045,7 +5053,7 @@ public class User : Creature
     {
         var x0A = new ServerPacket(0x0A);
         x0A.WriteByte(0x00);
-        // Hilariously we need to check the length of this string (total length needs 
+        // Hilariously we need to check the length of this string (total length needs
         // to be <67) otherwise we will cause a buffer overflow / crash on the client side
         // (For right now we assume the color code ({=c) isn't counted but that needs testing)
         // I MEAN IT TAKES 16 BIT RITE BUT HAY ARBITRARY LENGTH ON STRINGS WITH NO NULL TERMINATION IS LEET
@@ -5325,7 +5333,7 @@ public class User : Creature
 
     #region User
 
-    // Some structs helping us to define various metadata 
+    // Some structs helping us to define various metadata
     public AuthInfo AuthInfo => Game.World.WorldState.GetOrCreateByGuid<AuthInfo>(Guid, Name);
 
     [JsonProperty] public SkillBook SkillBook { get; private set; }

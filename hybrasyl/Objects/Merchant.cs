@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -268,7 +268,10 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         if (Script != null && Script.HasFunction("OnClick"))
             Script.ExecuteFunction("OnClick", ScriptEnvironment.CreateWithTargetAndSource(invoker, invoker));
         else
-            (this as IPursuitable).DisplayPursuits(invoker);
+        {
+                        (this as IPursuitable).DisplayPursuits(invoker);
+
+        }
     }
 
     public override void AoiEntry(VisibleObject obj)
