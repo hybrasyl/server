@@ -121,7 +121,7 @@ public class ConditionInfo
             if (value == false)
                 Conditions &= ~CreatureCondition.Sleep;
             else
-                Conditions |= CreatureCondition.Stun;
+                Conditions |= CreatureCondition.Sleep;
         }
     }
 
@@ -304,7 +304,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitItemUse;
+                Conditions &= ~CreatureCondition.ProhibitItemUse;
             else
                 Conditions |= CreatureCondition.ProhibitItemUse;
         }
@@ -317,7 +317,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitSpeech;
+                Conditions &= ~CreatureCondition.ProhibitSpeech;
             else
                 Conditions |= CreatureCondition.ProhibitSpeech;
         }
@@ -325,12 +325,12 @@ public class ConditionInfo
 
     public bool IsShoutProhibited
     {
-        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitEquipChange);
+        get => User != null && Conditions.HasFlag(CreatureCondition.ProhibitShout);
         set
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitShout;
+                Conditions &= ~CreatureCondition.ProhibitShout;
             else
                 Conditions |= CreatureCondition.ProhibitShout;
         }
@@ -343,7 +343,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitWhisper;
+                Conditions &= ~CreatureCondition.ProhibitWhisper;
             else
                 Conditions |= CreatureCondition.ProhibitWhisper;
         }
@@ -356,7 +356,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitEquipChange;
+                Conditions &= ~CreatureCondition.ProhibitEquipChange;
             else
                 Conditions |= CreatureCondition.ProhibitEquipChange;
         }
@@ -369,7 +369,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitHpIncrease;
+                Conditions &= ~CreatureCondition.ProhibitHpIncrease;
             else
                 Conditions |= CreatureCondition.ProhibitHpIncrease;
         }
@@ -382,7 +382,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitMpIncrease;
+                Conditions &= ~CreatureCondition.ProhibitMpIncrease;
             else
                 Conditions |= CreatureCondition.ProhibitMpIncrease;
         }
@@ -395,7 +395,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitMpDecrease;
+                Conditions &= ~CreatureCondition.ProhibitMpDecrease;
             else
                 Conditions |= CreatureCondition.ProhibitMpDecrease;
         }
@@ -408,7 +408,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitHpRegen;
+                Conditions &= ~CreatureCondition.ProhibitHpRegen;
             else
                 Conditions |= CreatureCondition.ProhibitHpRegen;
         }
@@ -421,7 +421,7 @@ public class ConditionInfo
         {
             if (User == null) return;
             if (value == false)
-                Conditions &= CreatureCondition.ProhibitMpRegen;
+                Conditions &= ~CreatureCondition.ProhibitMpRegen;
             else
                 Conditions |= CreatureCondition.ProhibitMpRegen;
         }
