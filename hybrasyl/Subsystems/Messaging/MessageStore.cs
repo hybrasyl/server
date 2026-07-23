@@ -60,8 +60,13 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
 
     public IEnumerator<Message> GetEnumerator()
     {
-        return Messages.Take(Game.ActiveConfiguration.Constants.BoardMessageResponseSize)
+        // Newest-first, capped at the client's response size. Order before Take so a
+        // store larger than the cap surfaces the NEWEST messages, not the oldest.
+        // Messages is insertion order (oldest first); Enumerable.Reverse (not the
+        // in-place List.Reverse) flips it without mutating the persisted list.
+        return ((IEnumerable<Message>) Messages).Reverse()
             .Where(predicate: message => !message.Deleted)
+            .Take(Game.ActiveConfiguration.Constants.BoardMessageResponseSize)
             .GetEnumerator();
     }
 
@@ -143,7 +148,8 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
     public List<MessageInfo> GetIndex()
     {
         var index = new List<MessageInfo>();
-        foreach (var message in this.Take(Game.ActiveConfiguration.Constants.BoardMessageResponseSize))
+        // Enumeration is already newest-first and capped (see GetEnumerator).
+        foreach (var message in this)
         {
             var info = message.Info;
             if (this is Board)
