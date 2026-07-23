@@ -29,6 +29,8 @@ namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
 public class ChatCommandHandler
 {
+    public const string UnknownCommandMessage = "No such command, try /help.";
+
     private static readonly Regex QuotesRegex = new(" (?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
     private static readonly Regex ArgsRegex = new("(\\[[a-zA-Z\\<\\> ]*\\])");
     private readonly Dictionary<string, (Type Type, List<int> argCount)> _associates = new();
@@ -150,7 +152,7 @@ public class ChatCommandHandler
         }
         else
         {
-            user.SendSystemMessage("No such command, try /help.");
+            user.SendSystemMessage(UnknownCommandMessage);
         }
     }
 }

@@ -44,12 +44,18 @@ public class ChatCommands
         return (ChatCommandResult)run!.Invoke(null, new object[] { Fixture.TestUser, args })!;
     }
 
+    private static string ArgumentTextOf(string commandClass) =>
+        (string)typeof(ChatCommand).Assembly
+            .GetType($"Hybrasyl.Subsystems.Messaging.ChatCommands.{commandClass}")!
+            .GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
+
     [Fact]
     public void Handle_UnknownCommand_SendsSystemMessage()
     {
         World.CommandHandler.Handle(Fixture.TestUser, "nosuchcommand", "");
 
-        Assert.Equal("No such command, try /help.", Fixture.TestUser.LastSystemMessage);
+        Assert.Equal(ChatCommandHandler.UnknownCommandMessage, Fixture.TestUser.LastSystemMessage);
     }
 
     [Fact]
@@ -57,7 +63,7 @@ public class ChatCommands
     {
         World.CommandHandler.Handle(Fixture.TestUser, "timeconvert", "onlyoneargument");
 
-        Assert.Equal("Usage: timeconvert <string timeformat> <string time>",
+        Assert.Equal($"Usage: timeconvert {ArgumentTextOf("TimeconvertCommand")}",
             Fixture.TestUser.LastSystemMessage);
     }
 
