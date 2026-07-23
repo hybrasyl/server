@@ -13,7 +13,6 @@
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using Hybrasyl.Internals.Enums;
-using Hybrasyl.Networking;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Xml.Objects;
@@ -46,16 +45,20 @@ public class ChatCommands
     }
 
     [Fact]
-    public void Handle_EchoesArgumentStringVerbatim()
+    public void Handle_UnknownCommand_SendsSystemMessage()
     {
-        var client = new TestClient(new TestSocket());
-        GlobalConnectionManifest.RegisterClient(client);
-        var user = Fixture.CreateUser("EchoTestUser");
-        Assert.True(user.AssociateConnection(Game.World.Guid, client.ConnectionId));
+        World.CommandHandler.Handle(Fixture.TestUser, "nosuchcommand", "");
 
-        World.CommandHandler.Handle(user, "timeconvert", "terran forever");
+        Assert.Equal("No such command, try /help.", Fixture.TestUser.LastSystemMessage);
+    }
 
-        Assert.Contains("[Cmd] /timeconvert terran forever", client.Messages);
+    [Fact]
+    public void Handle_WrongArgumentCount_SendsUsage()
+    {
+        World.CommandHandler.Handle(Fixture.TestUser, "timeconvert", "onlyoneargument");
+
+        Assert.Equal("Usage: timeconvert <string timeformat> <string time>",
+            Fixture.TestUser.LastSystemMessage);
     }
 
     [Fact]
