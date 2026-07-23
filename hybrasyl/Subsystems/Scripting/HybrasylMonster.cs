@@ -170,7 +170,7 @@ public class HybrasylMonster : HybrasylWorldObject
         var status = Game.World.WorldData.Get<Status>(statusName);
         if (status == null)
         {
-            GameLog.ScriptingError("ApplyStatus: status {statusName} not found");
+            GameLog.ScriptingError("ApplyStatus: status {StatusName} not found", statusName);
             return false;
         }
 

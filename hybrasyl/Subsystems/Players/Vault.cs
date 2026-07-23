@@ -126,8 +126,8 @@ public class Vault : IStateStorable
             return true;
         }
 
-        GameLog.Info("Attempt to add {Item} [{Quantity}] to vault {OwnerGuid}, but user doesn't have it?", itemName,
-            quantity, OwnerGuid);
+        GameLog.Info("Attempt to add {Item} [{Quantity}] to vault {OwnerGuid}, but vault is full ({Count}/{Limit})",
+            itemName, quantity, OwnerGuid, CurrentItemCount, ItemLimit);
         return false;
     }
 

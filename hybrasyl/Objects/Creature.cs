@@ -581,7 +581,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
         }
 
         if (targets.Count == 0)
-            GameLog.UserActivityError("{Name}: {castObject.Name}: hey fam no targets");
+            GameLog.UserActivityInfo("UseCastable: {Name} casting {Castable}: no targets", Name, castableXml.Name);
 
         foreach (var tar in targets)
         {
@@ -731,9 +731,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 }
                 else if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
-                    GameLog.UserActivityError(
+                    GameLog.UserActivityInfo(
                         "UseCastable: {Name} casting {Castable} - removing status {Status}",
-                        Name, castableXml.Name, status);
+                        Name, castableXml.Name, status.Value);
                     tar.RemoveStatus(applyStatus.Icon, remover: this);
 
                 }

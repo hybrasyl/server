@@ -2447,7 +2447,7 @@ public class User : Creature
 
             foreach (var slot in slotsToClear)
             {
-                GameLog.Info("clearing slot {slot}");
+                GameLog.Info("clearing slot {Slot}", slot);
                 SendClearItem(slot);
             }
 
@@ -2646,7 +2646,7 @@ public class User : Creature
             }
             else
             {
-                GameLog.Warning("No coma handler or status found - user {Name} died!");
+                GameLog.Warning("No coma handler or status found - user {Name} died!", Name);
                 OnDeath();
             }
         }

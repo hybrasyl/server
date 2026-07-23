@@ -58,7 +58,7 @@ public static class HeartbeatReaperJob
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.ErrorFormat("Exception occurred in job:", e);
+            GameLog.Error(e, "Exception occurred in job");
         }
     }
 }

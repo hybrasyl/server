@@ -433,7 +433,7 @@ public class Client : AbstractClient, IClient
 
             if (bytesSent == 0 || errorCode != SocketError.Success)
             {
-                GameLog.ErrorFormat("cid {0}: disconnected");
+                GameLog.ErrorFormat("cid {0}: disconnected", state.Id);
                 client.Disconnect();
                 throw new SocketException((int)errorCode);
             }

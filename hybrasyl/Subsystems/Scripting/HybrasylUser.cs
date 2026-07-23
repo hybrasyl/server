@@ -1132,7 +1132,7 @@ public class HybrasylUser : HybrasylWorldObject
     {
         if (string.IsNullOrEmpty(skillname))
         {
-            GameLog.ScriptingError("AddSkill: {user} - skill name (first argument) cannot be null or empty");
+            GameLog.ScriptingError("AddSkill: {User} - skill name (first argument) cannot be null or empty", User.Name);
         }
         else if (Game.World.WorldData.TryGetValueByIndex(skillname, out Castable result))
         {
@@ -1168,7 +1168,7 @@ public class HybrasylUser : HybrasylWorldObject
     public bool HasSkill(string skillname)
     {
         if (string.IsNullOrEmpty(skillname))
-            GameLog.ScriptingError("HasSkill: {user} - skill name (first argument) cannot be null or empty");
+            GameLog.ScriptingError("HasSkill: {User} - skill name (first argument) cannot be null or empty", User.Name);
         else if (Game.World.WorldData.TryGetValueByIndex(skillname, out Castable result))
             return User.SkillBook.Contains(result.Id);
         else
@@ -1185,7 +1185,7 @@ public class HybrasylUser : HybrasylWorldObject
     {
         if (string.IsNullOrEmpty(spellname))
         {
-            GameLog.ScriptingError("AddSpell: {user} - spell name (first argument) cannot be null or empty");
+            GameLog.ScriptingError("AddSpell: {User} - spell name (first argument) cannot be null or empty", User.Name);
         }
         else if (Game.World.WorldData.TryGetValueByIndex(spellname, out Castable result))
         {
@@ -1208,7 +1208,7 @@ public class HybrasylUser : HybrasylWorldObject
     public bool HasSpell(string spellname)
     {
         if (string.IsNullOrEmpty(spellname))
-            GameLog.ScriptingError("HasSpell: {user} - spell name (first argument) cannot be null or empty");
+            GameLog.ScriptingError("HasSpell: {User} - spell name (first argument) cannot be null or empty", User.Name);
         else if (Game.World.WorldData.TryGetValueByIndex(spellname, out Castable result))
             return User.SpellBook.Contains(result.Id);
         else
@@ -1387,7 +1387,7 @@ public class HybrasylUser : HybrasylWorldObject
             : User.SpellBook.GetSlotByName(name);
         if (castable == null)
         {
-            GameLog.ScriptingError("SetCooldown: {name} not found in user's castables");
+            GameLog.ScriptingError("SetCooldown: {Name} not found in user's castables", name);
             return;
         }
 
@@ -1417,7 +1417,7 @@ public class HybrasylUser : HybrasylWorldObject
         var status = Game.World.WorldData.Get<Status>(statusName);
         if (status == null)
         {
-            GameLog.ScriptingError("ApplyStatus: status {statusName} not found");
+            GameLog.ScriptingError("ApplyStatus: status {StatusName} not found", statusName);
             return false;
         }
 

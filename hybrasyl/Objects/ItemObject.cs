@@ -488,9 +488,9 @@ public class ItemObject : VisibleObject, IInteractable
             foreach (var remove in Use.Statuses.Remove)
                 if (World.WorldData.TryGetValue<Status>(remove.Value.ToLower(), out var applyStatus))
                 {
-                    GameLog.UserActivityError(
+                    GameLog.UserActivityInfo(
                         "Invoke: {User} using {Item} - removing status {Status}",
-                        trigger.Name, Name, remove);
+                        trigger.Name, Name, remove.Value);
                     trigger.RemoveStatus(applyStatus.Icon);
                 }
                 else

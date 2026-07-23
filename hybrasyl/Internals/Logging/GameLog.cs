@@ -250,7 +250,7 @@ public static class GameLog
 
     public static void Debug(Exception ex, string messageTemplate = "", params object[] propertyValues)
     {
-        LogWithException(ex, LogEventLevel.Error, LogType.General, messageTemplate, propertyValues);
+        LogWithException(ex, LogEventLevel.Debug, LogType.General, messageTemplate, propertyValues);
     }
 
     public static void Error(string messageTemplate = "", params object[] propertyValues)

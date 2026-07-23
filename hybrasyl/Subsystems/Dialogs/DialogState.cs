@@ -197,7 +197,7 @@ public class DialogState
 
         if (target == null && pursuitId > Game.ActiveConfiguration.Constants.DialogSequenceShared)
         {
-            Log.Error("{Username}: dialog associate is null but pursuitId is associate-specific");
+            Log.Error("{Username}: dialog associate is null but pursuitId is associate-specific", User.Name);
             return false;
         }
 

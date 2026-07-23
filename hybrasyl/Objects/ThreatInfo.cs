@@ -222,7 +222,7 @@ public class ThreatInfo(Guid id)
                 break;
         }
 
-        GameLog.Error("{Name}: priority {Priority}, picked {Target} as target", OwnerObject.Name, priority, ret.FirstOrDefault()?.Name ?? "null");
+        GameLog.Debug("{Name}: priority {Priority}, picked {Target} as target", OwnerObject.Name, priority, ret.FirstOrDefault()?.Name ?? "null");
         return ret;
     }
 

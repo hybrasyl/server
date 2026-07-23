@@ -208,7 +208,7 @@ public class CastableController : IEnumerable<Rotation>
 
         foreach (var x in rotations)
         {
-            GameLog.Error("{SecondsSinceLastUse} {Interval} {IntervalElapsed}", x.SecondsSinceLastUse, x.Interval, x.SecondsSinceLastUse > x.Interval);
+            GameLog.Debug("Rotation: {SecondsSinceLastUse} {Interval} {IntervalElapsed}", x.SecondsSinceLastUse, x.Interval, x.SecondsSinceLastUse > x.Interval);
         }
 
         if (type != null)

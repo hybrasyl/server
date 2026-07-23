@@ -46,7 +46,7 @@ public static class CheckpointerJob
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.Error("Exception occured in job:", e);
+            GameLog.Error(e, "Exception occurred in job");
         }
     }
 }

@@ -39,7 +39,7 @@ public static class MerchantInventoryRefreshJob
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.Error("Exception occured in MerchantInventoryRefresh job:", e);
+            GameLog.Error(e, "Exception occurred in MerchantInventoryRefresh job");
         }
     }
 }

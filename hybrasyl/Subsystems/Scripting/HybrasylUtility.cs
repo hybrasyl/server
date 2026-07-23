@@ -216,7 +216,7 @@ public static class HybrasylUtility
 
         if (!Game.World.WorldState.TryGetValue<MapObject>(mapId, out var map))
         {
-            GameLog.ScriptingError("CreateMonster: Behavior set {BehaviorSet} does not exist", behaviorSet);
+            GameLog.ScriptingError("CreateMonster: Map {MapId} does not exist", mapId);
             return;
         }
 

@@ -1407,7 +1407,7 @@ public class World : Server
             else
                 cleanup.Condition.Flags = 0;
             Remove(cleanup);
-            GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", cleanup.Name);
+            GameLog.DebugFormat("cid {0}: {1} cleaned up successfully", cleanup.ConnectionId, cleanup.Name);
             RemoveUser(cleanup.Name);
         }
         catch (Exception e)
@@ -1641,7 +1641,7 @@ public class World : Server
 
         if (source == null)
         {
-            GameLog.Error("Proc: guid {sourceGuid} could not be located");
+            GameLog.Error("Proc: guid {SourceGuid} could not be located", sourceGuid);
             return;
         }
 
@@ -1657,7 +1657,7 @@ public class World : Server
             }
             else
             {
-                GameLog.Error("Proc: references {Script} but does not exist", script);
+                GameLog.Error("Proc: references {Script} but does not exist", proc.Script);
             }
         }
 
@@ -2919,7 +2919,7 @@ public class World : Server
             }
             else
             {
-                GameLog.DebugFormat("user {0}: invalid drop target");
+                GameLog.DebugFormat("user {0}: invalid drop target", user.Name);
             }
         }
     }
