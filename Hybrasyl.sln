@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hybrasyl", "hybrasyl\Hybras
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hybrasyl.Tests", "Hybrasyl.Tests\Hybrasyl.Tests.csproj", "{45C74D2B-55A0-4D16-B147-E362BBAB78E1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hybrasyl.GrpcClient", "grpc_client\Hybrasyl.GrpcClient.csproj", "{212FE02A-C677-4F5B-8928-A7837F506964}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{45C74D2B-55A0-4D16-B147-E362BBAB78E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45C74D2B-55A0-4D16-B147-E362BBAB78E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45C74D2B-55A0-4D16-B147-E362BBAB78E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{212FE02A-C677-4F5B-8928-A7837F506964}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{212FE02A-C677-4F5B-8928-A7837F506964}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{212FE02A-C677-4F5B-8928-A7837F506964}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{212FE02A-C677-4F5B-8928-A7837F506964}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
