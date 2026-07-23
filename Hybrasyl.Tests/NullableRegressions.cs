@@ -467,4 +467,21 @@ public class NullableRegressions
             await ctx.Response.OutputStream.WriteAsync(body);
             ctx.Response.Close();
         });
+
+    // WorldStateStore honest-nullability contract: every lookup miss is null / false.
+    // Get on a present substore with an absent key previously threw KeyNotFoundException.
+    [Fact]
+    public void WorldStateGetReturnsNullOnMissingKey()
+    {
+        Assert.NotNull(Game.World.WorldState.Get<MapObject>("40000"));
+        Assert.Null(Game.World.WorldState.Get<MapObject>("no such map anywhere"));
+    }
+
+    [Fact]
+    public void GetWorldObjectReturnsNullForUnknownGuid() =>
+        Assert.Null(Game.World.WorldState.GetWorldObject<User>(Guid.NewGuid()));
+
+    [Fact]
+    public void GetGuidReferenceReturnsNullForUnknownUser() =>
+        Assert.Null(Game.World.WorldState.GetGuidReference("no such user anywhere"));
 }

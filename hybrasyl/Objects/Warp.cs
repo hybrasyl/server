@@ -68,8 +68,7 @@ public class Warp
         switch (WarpType)
         {
             case WarpType.Map:
-                MapObject map;
-                if (SourceMap.World.WorldState.TryGetValueByIndex(DestinationMapName, out map))
+                if (SourceMap.World.WorldState.TryGetValueByIndex<MapObject>(DestinationMapName, out var map))
                 {
                     target.Teleport(map.Id, DestinationX, DestinationY);
                     return true;
@@ -84,7 +83,8 @@ public class Warp
                 {
                     SourceMap.Remove(target);
                     target.SendWorldMap(wmap);
-                    SourceMap.World.WorldState.Get<MapObject>(Game.ActiveConfiguration.Constants.LagMap)
+                    // LagMap is a required configuration constant; its absence is a world-data error.
+                    SourceMap.World.WorldState.Get<MapObject>(Game.ActiveConfiguration.Constants.LagMap)!
                         .Insert(target, 5, 5, false);
                     return true;
                 }

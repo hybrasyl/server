@@ -44,14 +44,15 @@ public class SocialEvent : IStateStorable
         else
             Subtype = subtype.ToLower();
         Origin = origin;
-        MapId = origin.Map.Id;
+        // Begin*Command verifies the originating GM is on a map before constructing.
+        MapId = origin.Location.Map!.Id;
         StartTime = DateTime.Now;
         EndTime = default;
         StartX = origin.X;
         StartY = origin.Y;
         Type = type;
         GameLog.UserActivityInfo("Event beginning: {Origin}, type {Type} ({Subtype}) at {Map}", origin, type, subtype,
-            origin.Map.Name);
+            origin.Location.Map.Name);
         // Lastly, we need to be able to talk
         Speakers = new List<string> { origin.Name };
     }

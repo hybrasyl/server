@@ -158,7 +158,7 @@ public class ScriptProcessor(World world)
 
         foreach (var attachment in attachments)
         {
-            if (!World.WorldState.TryGetWorldObject(attachment, out WorldObject obj) ||
+            if (!World.WorldState.TryGetWorldObject<WorldObject>(attachment, out var obj) ||
                 obj is not ISpawnable spawnable) continue;
             spawnable.OnSpawn();
             GameLog.ScriptingInfo("{Method}: type {Type} ({Name}): triggering OnSpawn due to script reload", nameof(ReloadScript), spawnable.GetType(), spawnable.Name);

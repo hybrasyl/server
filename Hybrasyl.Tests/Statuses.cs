@@ -74,7 +74,7 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
         Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
-        Fixture.TestUser.Map.InsertMonster(monster);
+        Fixture.TestUser.Location.Map!.InsertMonster(monster);
         Assert.NotNull(castable);
         Fixture.TestUser.SpellBook.Add(castable);
         Fixture.TestUser.UseCastable(castable, monster);
@@ -196,7 +196,7 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
         Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
-        Fixture.TestUser.Map.InsertMonster(monster);
+        Fixture.TestUser.Location.Map!.InsertMonster(monster);
 
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd2));
@@ -243,7 +243,7 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
         Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
-        Fixture.TestUser.Map.InsertMonster(monster);
+        Fixture.TestUser.Location.Map!.InsertMonster(monster);
 
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd2));
@@ -297,7 +297,7 @@ public class Status
         Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         Fixture.SecondTestUser.Teleport("XUnit Test Realm - With Casting", 9, 9);
         
-        Fixture.TestUser.Map.InsertMonster(monster);
+        Fixture.TestUser.Location.Map!.InsertMonster(monster);
 
         monster.UseCastable(scaleCurse, Fixture.SecondTestUser);
         // Second user now has curse applied
@@ -331,7 +331,7 @@ public class Status
 
         Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99) { X = 11, Y = 11 };
-        Fixture.TestUser.Map.InsertMonster(monster);
+        Fixture.TestUser.Location.Map!.InsertMonster(monster);
 
         // Apply the curse with the monster as source so OriginSnapshotId is populated
         // and the RemoveChance roll actually evaluates.

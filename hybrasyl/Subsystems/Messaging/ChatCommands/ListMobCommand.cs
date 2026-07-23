@@ -32,7 +32,9 @@ internal class ListMobCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         string moblist = string.Empty;
-        foreach (var mob in user.Map.Objects.OfType<Monster>().OrderBy(z => z.Name))
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
+        foreach (var mob in map.Objects.OfType<Monster>().OrderBy(z => z.Name))
         {
             // SpawnPoint is null for mobs without a spawn origin (e.g. GM-summoned).
             var mobdetails = $"{mob.Name}@({mob.X},{mob.Y}) Spawned at ({mob.SpawnPoint?.X},{mob.SpawnPoint?.Y})";

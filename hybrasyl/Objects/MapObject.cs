@@ -269,7 +269,7 @@ public class MapObject : IStateStorable
         {
             var reactor = new Reactor(reactorElement, this);
             InsertReactor(reactor);
-            GameLog.Debug("{ReactorId} placed in {Map}, description was {Description}", reactor.Id, reactor.Map.Name, reactor.Description);
+            GameLog.Debug("{ReactorId} placed in {Map}, description was {Description}", reactor.Id, Name, reactor.Description);
         }
 
         foreach (var sign in newMap.Signs)
@@ -336,7 +336,7 @@ public class MapObject : IStateStorable
         World.Insert(post);
         Insert(post, post.X, post.Y);
         Signposts[(post.X, post.Y)] = post;
-        GameLog.DataLogDebug("Inserted signpost {Map}@{X},{Y}", post.Map.Name, post.X, post.Y);
+        GameLog.DataLogDebug("Inserted signpost {Map}@{X},{Y}", Name, post.X, post.Y);
     }
 
     private void InsertDoorGroup(DoorGroup group)
@@ -577,7 +577,7 @@ public class MapObject : IStateStorable
         {
             if (Objects.Add(obj))
             {
-                obj.Map = this;
+                obj.Location.Map = this;
                 obj.X = x;
                 obj.Y = y;
 
@@ -710,7 +710,7 @@ public class MapObject : IStateStorable
             obj.AoiDeparture(target);
         }
 
-        obj.Map = null!; // clearing the runtime back-reference on removal (Map is typed non-null)
+        obj.Location.Map = null!; // clearing the runtime back-reference on removal (Map is typed non-null)
     }
 
 
@@ -727,7 +727,7 @@ public class MapObject : IStateStorable
         // Add the gold to the world at the given location.
         gold.X = (byte)x;
         gold.Y = (byte)y;
-        gold.Map = this;
+        gold.Location.Map = this;
         lock (_lock)
         {
             EntityTree.Add(gold);
@@ -753,7 +753,7 @@ public class MapObject : IStateStorable
         // Add the ItemObject to the world at the given location.
         itemObject.X = (byte)x;
         itemObject.Y = (byte)y;
-        itemObject.Map = this;
+        itemObject.Location.Map = this;
         lock (_lock)
         {
             EntityTree.Add(itemObject);

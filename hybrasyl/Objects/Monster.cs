@@ -116,14 +116,17 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     {
         get
         {
+            // Despawned or removed mid-tick; nowhere to wander but where we stand.
+            if (Location.Map is not { } map)
+                return new LocationInfo { X = X, Y = Y, MapId = Location.MapId };
             var halfVp = (int)(Game.ActiveConfiguration.Constants.ViewportSize * 0.5);
             var dx = Random.Shared.Next(-halfVp, halfVp);
             var dy = Random.Shared.Next(-halfVp, halfVp);
             return new LocationInfo
             {
-                X = (byte)Math.Clamp(X + dx, 0, Map.X - 1),
-                Y = (byte)Math.Clamp(Y + dy, 0, Map.Y - 1),
-                MapId = Map.Id
+                X = (byte)Math.Clamp(X + dx, 0, map.X - 1),
+                Y = (byte)Math.Clamp(Y + dy, 0, map.Y - 1),
+                MapId = map.Id
             };
         }
     }
@@ -389,10 +392,14 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             // Don't die twice
             if (DeathProcessed) return;
 
-            // Even if we encounter an error, we still count the death as processed to avoid 
+            // Even if we encounter an error, we still count the death as processed to avoid
             // repeated processing
             DeathProcessed = true;
             _actionQueue.Clear();
+
+            // Snapshot where we died before XP/kill events run: script hooks can remove
+            // us from the map mid-processing, and loot must still land where we died.
+            if (Location.Map is { } diedOn) Location.DeathMap = diedOn;
 
             User? hitter = null;
             switch (LastHitter)
@@ -445,35 +452,45 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
                     var itemDropTime = DateTime.Now;
 
-                    if (LootableGold > 0)
+                    // Loot lands on the current map, or the death-time snapshot if we were
+                    // removed mid-processing. Both null means we were never on a map at all.
+                    if ((Location.Map ?? Location.DeathMap) is not { } map)
                     {
-                        var goldObj = new Gold(hitter.CalculateGold(LootableGold))
-                        {
-                            ItemDropType = ItemDropType.MonsterLootPile,
-                            ItemDropAllowedLooters = ItemDropAllowedLooters,
-                            ItemDropTime = itemDropTime
-                        };
-                        World.Insert(goldObj);
-                        Map.Insert(goldObj, X, Y);
-                        lootEvent.Gold = goldObj.Amount;
+                        GameLog.SpawnError("OnDeath for {Name}: no map or death map, loot/gold drop skipped", Name);
                     }
-
-                    foreach (var itemname in LootableItems)
+                    else
                     {
-                        var item = Game.World.CreateItem(itemname);
-                        if (item == null)
+                        if (LootableGold > 0)
                         {
-                            GameLog.UserActivityError("User {player}: looting {monster}, loot item {item} is missing",
-                                hitter.Name, Name, itemname);
-                            continue;
+                            var goldObj = new Gold(hitter.CalculateGold(LootableGold))
+                            {
+                                ItemDropType = ItemDropType.MonsterLootPile,
+                                ItemDropAllowedLooters = ItemDropAllowedLooters,
+                                ItemDropTime = itemDropTime
+                            };
+                            World.Insert(goldObj);
+                            map.Insert(goldObj, X, Y);
+                            lootEvent.Gold = goldObj.Amount;
                         }
 
-                        item.ItemDropType = ItemDropType.MonsterLootPile;
-                        item.ItemDropAllowedLooters = ItemDropAllowedLooters;
-                        item.ItemDropTime = itemDropTime;
-                        World.Insert(item);
-                        Map.Insert(item, X, Y);
-                        lootEvent.Items.Add(item.Name);
+                        foreach (var itemname in LootableItems)
+                        {
+                            var item = Game.World.CreateItem(itemname);
+                            if (item == null)
+                            {
+                                GameLog.UserActivityError(
+                                    "User {player}: looting {monster}, loot item {item} is missing",
+                                    hitter.Name, Name, itemname);
+                                continue;
+                            }
+
+                            item.ItemDropType = ItemDropType.MonsterLootPile;
+                            item.ItemDropAllowedLooters = ItemDropAllowedLooters;
+                            item.ItemDropTime = itemDropTime;
+                            World.Insert(item);
+                            map.Insert(item, X, Y);
+                            lootEvent.Items.Add(item.Name);
+                        }
                     }
 
                     hitter.SendCombatLogMessage(lootEvent);
@@ -492,7 +509,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             // FIXME: in the glorious future, run asynchronously with locking
             Script?.ExecuteFunction("OnDeath",
                 ScriptEnvironment.Create(("origin", this), ("target", this), ("source", LastHitter)));
-            Map?.Remove(this);
+            Location.Map?.Remove(this);
             World?.Remove(this);
         }
     }
@@ -743,6 +760,8 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
     public List<Tile> GetWalkableTiles(int x, int y)
     {
+        if (Location.Map is not { } map) return new List<Tile>();
+
         var proposedLocations = new List<Tile>
         {
             new() { X = x, Y = y - 1 },
@@ -758,9 +777,9 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
         foreach (var adj in proposedLocations)
         {
-            if (adj.X >= Map.X || adj.Y >= Map.Y || adj.X < 0 || adj.Y < 0) continue;
-            if (Map.IsWall(adj.X, adj.Y)) continue;
-            var creatureContents = Map.GetCreatures(adj.X, adj.Y);
+            if (adj.X >= map.X || adj.Y >= map.Y || adj.X < 0 || adj.Y < 0) continue;
+            if (map.IsWall(adj.X, adj.Y)) continue;
+            var creatureContents = map.GetCreatures(adj.X, adj.Y);
             if (creatureContents.Count == 0 || (ActiveTarget is not null && creatureContents.Contains(ActiveTarget)) ||
                 creatureContents.Contains(this))
                 ret.Add(adj);
@@ -801,9 +820,11 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     public bool AStarPathClear()
     {
         if (CurrentPath == null) return true;
+        // Despawned or removed mid-tick; nothing to obstruct, and Walk() guards the actual move.
+        if (Location.Map is not { } map) return true;
         // TODO: optimize
-        if (Map.IsCreatureAt(CurrentPath.X, CurrentPath.Y) && CurrentPath.Parent != null &&
-            Map.IsCreatureAt(CurrentPath.Parent.X, CurrentPath.Parent.Y))
+        if (map.IsCreatureAt(CurrentPath.X, CurrentPath.Y) && CurrentPath.Parent != null &&
+            map.IsCreatureAt(CurrentPath.Parent.X, CurrentPath.Parent.Y))
             if (!(X == CurrentPath.X && Y == CurrentPath.Y) || X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y)
             {
                 GameLog.Info(
@@ -939,7 +960,10 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             return;
         }
 
-        if (ActiveTarget?.Stats.Hp == 0 || ActiveTarget?.Map.Id != Map.Id)
+        // Despawned or removed mid-tick; no map, so no targeting or movement decisions.
+        if (Location.Map is not { } map) return;
+
+        if (ActiveTarget?.Stats.Hp == 0 || ActiveTarget?.Location.Map?.Id != map.Id)
             ActiveTarget = GetTarget();
 
         if (ActiveTarget != null)
@@ -949,7 +973,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                 _actionQueue.Enqueue(MobAction.Attack);
                 return;
             }
-            if (ActiveTarget.Map != null && ActiveTarget.Map.Id != Map.Id)
+            if (ActiveTarget.Location.Map != null && ActiveTarget.Location.Map.Id != map.Id)
             {
                 ShouldWander = true;
                 ActiveTarget = null;
@@ -1074,7 +1098,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                 case MobAction.Move when ShouldWander:
                     {
                         // Make sure mob is on a map, and the right map at that (we don't support mobs wandering between maps yet)
-                        if (SpawnPoint == null || SpawnPoint.MapId != Map.Id)
+                        if (SpawnPoint == null || Location.Map is not { } map || SpawnPoint.MapId != map.Id)
                             return;
 
                         // Wander up to 0.75 * ViewportSize away from spawnpoint. 
@@ -1185,7 +1209,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
             // Map can be null if this monster was removed from its map on another thread
             // between the caller's viewport snapshot and our invocation here.
-            var map = Map;
+            var map = Location.Map;
             if (map != null &&
                 map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count == 0)
                 Active = false;
@@ -1200,7 +1224,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         {
             if (obj is User user && (!user.Condition.IsInvisible || Condition.SeeInvisible))
             {
-                var map = Map;
+                var map = Location.Map;
                 if (map != null &&
                     map.EntityTree.GetObjects(GetViewport()).OfType<User>().ToList().Count > 0)
                     Active = true;

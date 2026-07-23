@@ -334,7 +334,7 @@ public class HybrasylWorld
     {
         if (!Game.World.WorldData.TryGetValue(name, out Creature creature)) return;
         if (!Game.World.WorldData.TryGetValue(behaviorSet, out CreatureBehaviorSet cbs)) return;
-        if (!Game.World.WorldState.TryGetValue(mapId, out MapObject map)) return;
+        if (!Game.World.WorldState.TryGetValue<MapObject>(mapId, out var map)) return;
 
         var spawn = new Monster(creature, SpawnFlags.Active, (byte)level, null, cbs);
 

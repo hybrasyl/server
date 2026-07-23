@@ -43,8 +43,7 @@ public static class HeartbeatReaperJob
             {
                 var client = connection.Value;
                 var connectionId = connection.Key;
-                User user;
-                if (Game.World.WorldState.TryGetValueByIndex(connectionId, out user))
+                if (Game.World.WorldState.TryGetValueByIndex<User>(connectionId, out var user))
                     if (client.IsHeartbeatExpired())
                     {
                         GameLog.InfoFormat("{0} (connection id {1}: heartbeat expired, disconnecting",

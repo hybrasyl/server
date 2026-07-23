@@ -36,9 +36,11 @@ internal class SpawnCommand : ChatCommand
         {
             if (byte.TryParse(args[2], out var x))
             {
+                if (user.Location.Map is not { } map)
+                    return Fail("You are not on a map.");
                 var newMob = new Monster(creature, SpawnFlags.Active, x, null, cbs);
                 user.World.Insert(newMob);
-                user.Map.Insert(newMob, user.X, user.Y);
+                map.Insert(newMob, user.X, user.Y);
                 return Success($"{creature.Name} spawned.");
             }
 

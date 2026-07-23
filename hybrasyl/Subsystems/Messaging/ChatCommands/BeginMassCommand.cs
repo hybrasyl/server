@@ -37,8 +37,10 @@ internal class BeginMassCommand : ChatCommand
             $"{user.Name}'s {char.ToUpper(args[0][0])}{args[0][1..]} mass is starting."));
         if (Game.World.WorldState.TryGetSocialEvent(user, out var _))
             return Fail("An event is already occurring here.");
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
         var e = new SocialEvent(user, SocialEventType.Mass, args[0]);
-        Game.World.WorldState.SetWithIndex(user.Name, e, user.Map.Id);
+        Game.World.WorldState.SetWithIndex(user.Name, e, map.Id);
         user.SendSystemMessage("Bring the light of creativity into this world.");
         return Success();
     }

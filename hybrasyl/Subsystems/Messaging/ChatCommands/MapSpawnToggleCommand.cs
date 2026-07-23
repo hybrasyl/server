@@ -29,8 +29,10 @@ internal class MapSpawnToggleCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        user.Map.SpawningDisabled = !user.Map.SpawningDisabled;
-        var str = user.Map.SpawningDisabled ? "on" : "off";
-        return Success($"Spawning on {user.Map.Name}: {str}");
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
+        map.SpawningDisabled = !map.SpawningDisabled;
+        var str = map.SpawningDisabled ? "on" : "off";
+        return Success($"Spawning on {map.Name}: {str}");
     }
 }

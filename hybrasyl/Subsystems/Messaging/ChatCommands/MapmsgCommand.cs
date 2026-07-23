@@ -29,8 +29,10 @@ internal class MapmsgCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        user.Map.Message = args[0];
-        foreach (var mapuser in user.Map.Users.Values) mapuser.SendMessage(args[0], 18);
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
+        map.Message = args[0];
+        foreach (var mapuser in map.Users.Values) mapuser.SendMessage(args[0], 18);
         return Success("Map message sent.");
     }
 }

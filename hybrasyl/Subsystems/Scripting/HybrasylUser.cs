@@ -37,7 +37,8 @@ public class HybrasylUser : HybrasylWorldObject
     public HybrasylUser(User user) : base(user)
     {
         World = new HybrasylWorld(user.World);
-        Map = new HybrasylMap(user.Map);
+        // Script wrappers are only constructed for in-world objects.
+        Map = new HybrasylMap(user.Location.Map!);
     }
 
     // This wrapper is only ever constructed around a User.
@@ -62,7 +63,7 @@ public class HybrasylUser : HybrasylWorldObject
 
     public Class Class => User.Class;
 
-    public string MapName => User.Map?.Name ?? "Unknown Kadath";
+    public string MapName => User.Location.MapName;
 
     /// <summary>
     ///     The user's previous class, if a subpath.
@@ -397,7 +398,8 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>List of <see cref="HybrasylReactor" /> objects in the player's viewport.</returns>
     public List<HybrasylReactor> GetReactorsInViewport()
     {
-        return User.Map.EntityTree.GetObjects(User.GetViewport()).Where(predicate: x => x is Reactor).Cast<Reactor>()
+        if (User.Location.Map is not { } map) return new List<HybrasylReactor>();
+        return map.EntityTree.GetObjects(User.GetViewport()).Where(predicate: x => x is Reactor).Cast<Reactor>()
             .Select(selector: r => new HybrasylReactor(r)).ToList();
     }
 

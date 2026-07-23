@@ -36,29 +36,31 @@ internal class MapInfo
     internal ServerPacket Packet()
     {
         var packet = new ServerPacket(OpCode);
-        packet.WriteUInt16(User.Map.Id);
-        packet.WriteByte((byte) (User.Map.X % 256));
-        packet.WriteByte((byte) (User.Map.Y % 256));
+        // MapInfo is only built after the user's map is assigned during map load.
+        var map = User.Location.Map!;
+        packet.WriteUInt16(map.Id);
+        packet.WriteByte((byte) (map.X % 256));
+        packet.WriteByte((byte) (map.Y % 256));
         // I hate this
         byte flags = 0;
-        if (User.Map.Flags.HasFlag(MapFlags.Snow))
+        if (map.Flags.HasFlag(MapFlags.Snow))
             flags |= 1;
-        if (User.Map.Flags.HasFlag(MapFlags.Rain))
+        if (map.Flags.HasFlag(MapFlags.Rain))
             flags |= 2;
-        if (User.Map.Flags.HasFlag(MapFlags.Dark)) {
+        if (map.Flags.HasFlag(MapFlags.Dark)) {
             flags |= 1;
             flags |= 2;
         }
-        if (User.Map.Flags.HasFlag(MapFlags.NoMap))
+        if (map.Flags.HasFlag(MapFlags.NoMap))
             flags |= 64;
-        if (User.Map.Flags.HasFlag(MapFlags.Snow))
+        if (map.Flags.HasFlag(MapFlags.Snow))
             flags |= 128;
         packet.WriteByte(flags);
-        packet.WriteByte((byte) (User.Map.X / 256));
-        packet.WriteByte((byte) (User.Map.Y / 256));
-        packet.WriteByte((byte) (User.Map.Checksum % 256));
-        packet.WriteByte((byte) (User.Map.Checksum / 256));
-        packet.WriteString8(User.Map.Name);
+        packet.WriteByte((byte) (map.X / 256));
+        packet.WriteByte((byte) (map.Y / 256));
+        packet.WriteByte((byte) (map.Checksum % 256));
+        packet.WriteByte((byte) (map.Checksum / 256));
+        packet.WriteString8(map.Name);
 
         return packet;
     }

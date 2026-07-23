@@ -30,7 +30,7 @@ internal class ClearEphemeralCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.TryGetValue(args[0], out Merchant merchant))
+        if (Game.World.WorldState.TryGetValue<Merchant>(args[0], out var merchant))
         {
             (merchant as IEphemeral).ClearEphemeral(args[1]);
             return Success($"{merchant.Name}: {args[1]} set to {args[2]}");

@@ -53,7 +53,7 @@ public class UserTests(HybrasylFixture fixture)
         Assert.True(Game.World.WorldState.TryGetUser(username, out var u1));
         Assert.True(Game.World.TryGetActiveUser(username, out var u2));
         Assert.NotNull(u2);
-        Assert.NotNull(u2.Map);
+        Assert.NotNull(u2.Location.Map);
         return client;
     }
 
@@ -65,10 +65,10 @@ public class UserTests(HybrasylFixture fixture)
         var handler = Game.World.WorldPacketHandlers[0x0b];
         var user = GetTestUser(username);
         Assert.NotNull(user);
-        Assert.NotNull(user.Map);
+        Assert.NotNull(user.Location.Map);
         var leavePacket = new LeaveWorld(1);
         handler(user, (ClientPacket)leavePacket);
-        Assert.NotNull(user.Map);
+        Assert.NotNull(user.Location.Map);
         leavePacket = new LeaveWorld(0);
         handler(user, (ClientPacket)leavePacket);
         Assert.False(Game.World.TryGetActiveUser(username, out _));

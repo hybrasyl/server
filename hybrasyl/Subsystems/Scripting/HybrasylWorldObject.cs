@@ -49,8 +49,8 @@ public class HybrasylWorldObject : IScriptable
     {
         get
         {
-            if (Obj is VisibleObject vo)
-                return $"{vo.Map.Name} @ ({vo.X},{vo.Y}";
+            if (Obj is VisibleObject vo && vo.Location.Map is { } map)
+                return $"{map.Name} @ ({vo.X},{vo.Y}";
             return "Not on a map";
         }
     }
@@ -284,7 +284,7 @@ public class HybrasylWorldObject : IScriptable
 
         if (target.Obj is VisibleObject v1 && Obj is VisibleObject v2)
         {
-            if (v1.Map.Id == v2.Map.Id)
+            if (v1.Location.Map is { } m1 && v2.Location.Map is { } m2 && m1.Id == m2.Id)
                 return Obj.Distance(target.Obj);
             GameLog.ScriptingError(
                 "Distance: target (first argument, {targetname}) not on same map as {thisname}, returning -1",
@@ -317,12 +317,8 @@ public class HybrasylWorldObject : IScriptable
     {
         IInteractable? originInteractable = null;
 
-        // Declared non-nullable so the generic TryGet* infers T within its non-null
-        // constraint (a nullable-typed out arg would violate where T : WorldObject).
-        // The null-checks below still handle the not-found case; null! bridges
-        // definite-assignment for the short-circuited second lookup.
-        WorldObject originObj = null!;
-        CastableObject originCastable = null!;
+        WorldObject? originObj = null;
+        CastableObject? originCastable = null;
         if (string.IsNullOrEmpty(sequenceName) || string.IsNullOrEmpty(targetUser))
         {
             GameLog.ScriptingError(
@@ -342,8 +338,8 @@ public class HybrasylWorldObject : IScriptable
             return false;
         }
 
-        if (!Game.World.WorldState.TryGetWorldObject(origin, out originObj) &&
-            !Game.World.WorldState.TryGetValueByIndex(origin, out originCastable))
+        if (!Game.World.WorldState.TryGetWorldObject<WorldObject>(origin, out originObj) &&
+            !Game.World.WorldState.TryGetValueByIndex<CastableObject>(origin, out originCastable))
         {
             GameLog.ScriptingWarning("RequestDialog: {OriginGuid} not found", originGuid);
             return false;
@@ -362,7 +358,7 @@ public class HybrasylWorldObject : IScriptable
             return false;
         }
 
-        if (!Game.World.WorldState.TryGetWorldObject(source, out WorldObject worldObj))
+        if (!Game.World.WorldState.TryGetWorldObject<WorldObject>(source, out var worldObj))
         {
             GameLog.ScriptingError("RequestDialog: source guid {SourceGuid} could not be found", sourceGuid);
             return false;
@@ -434,9 +430,9 @@ public class HybrasylWorldObject : IScriptable
     {
         if (Obj is Creature creature)
         {
-            if (!creature.Map.IsWall(x, y))
+            if (creature.Location.Map is { } map && !map.IsWall(x, y))
             {
-                if (!creature.Map.GetTileContents(x, y).Any(predicate: o => o is Creature))
+                if (!map.GetTileContents(x, y).Any(predicate: o => o is Creature))
                     return true;
                 return false;
             }
@@ -538,7 +534,7 @@ public class HybrasylWorldObject : IScriptable
     /// <param name="y"></param>
     public void TeleportToCoords(int x, int y)
     {
-        if (Obj is not VisibleObject vo) return;
-        vo.Teleport(vo.Map.Id, (byte)x, (byte)y);
+        if (Obj is not VisibleObject vo || vo.Location.Map is not { } map) return;
+        vo.Teleport(map.Id, (byte)x, (byte)y);
     }
 }

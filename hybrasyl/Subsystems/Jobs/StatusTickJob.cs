@@ -34,8 +34,7 @@ public static class StatusTickJob
         GameLog.Debug("Status tick job starting");
         foreach (var connectionId in GlobalConnectionManifest.WorldClients.Keys)
         {
-            User user;
-            if (Game.World.WorldState.TryGetValueByIndex(connectionId, out user))
+            if (Game.World.WorldState.TryGetValueByIndex<User>(connectionId, out var user))
                 if (user.ActiveStatusCount > 0 && user.Condition.Alive)
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.StatusTick, user.Id));
         }

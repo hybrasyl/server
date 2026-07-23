@@ -42,7 +42,7 @@ public class ScriptFunctions
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Map.Clear();
+        Fixture.TestUser.Location.Map!.Clear();
 
         var assail = Game.World.WorldData.GetByIndex<Castable>("Assail");
         Assert.NotNull(assail);
@@ -112,7 +112,7 @@ public class ScriptFunctions
         Fixture.TestUser.SkillBook.Clear();
         Fixture.TestUser.SpellBook.Clear();
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Map.Clear();
+        Fixture.TestUser.Location.Map!.Clear();
 
         var assail = Game.World.WorldData.GetByIndex<Castable>("Assail");
         Assert.NotNull(assail);

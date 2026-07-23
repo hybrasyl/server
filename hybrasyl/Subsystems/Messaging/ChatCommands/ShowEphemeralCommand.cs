@@ -31,7 +31,7 @@ internal class ShowEphemeralCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.TryGetValue(args[0], out Merchant merchant))
+        if (Game.World.WorldState.TryGetValue<Merchant>(args[0], out var merchant))
         {
             var ephemerals = $"Mundane {merchant.Name} Ephemeral Store\n\n";
             foreach (var kv in (merchant as IEphemeral).GetEphemeralValues())

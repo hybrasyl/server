@@ -31,10 +31,10 @@ internal class UnvoiceCommand : ChatCommand
     {
         if (Game.World.WorldState.TryGetSocialEvent(user, out var e))
         {
-            if (e.MapId != user.Map.Id)
+            if (e.MapId != user.Location.Map?.Id)
                 return Fail("You are not at the event...?");
             // TODO: this is case sensitive which has the potential to be ungodly annoying
-            if (!user.Map.Users.ContainsKey(args[0]))
+            if (!user.Location.Map.Users.ContainsKey(args[0]))
                 return Fail("They are not at this event.");
             e.Speakers.Remove(args[0]);
             return Success($"{args[0]}: speaking privileges removed");

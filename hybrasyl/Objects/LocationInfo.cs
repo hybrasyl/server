@@ -26,19 +26,18 @@ namespace Hybrasyl.Objects;
 public class LocationInfo : IEquatable<LocationInfo>
 {
     // Runtime back-references resolved from MapId/DeathMapId via WorldState; only the ids are
-    // persisted. Map is typed non-null to match the existing VisibleObject.Map contract the
-    // codebase relies on; null! until the map is assigned/resolved.
-    private MapObject _map { get; set; } = null!;
+    // persisted. Null until the map is assigned/resolved.
+    private MapObject? _map { get; set; }
     private MapObject? _deathmap { get; set; }
 
-    public MapObject Map
+    public MapObject? Map
     {
         get => _map;
         set
         {
             _map = value;
             if (value != null)
-                _mapId = Map.Id;
+                _mapId = value.Id;
         }
     }
 
@@ -53,6 +52,13 @@ public class LocationInfo : IEquatable<LocationInfo>
         }
     }
 
+    /// <summary>Name of the current map, or "Unknown" when no map is assigned. Display
+    /// convenience for logs and scripting; logic that must distinguish "no map" uses Map.</summary>
+    public string MapName => Map?.Name ?? "Unknown";
+
+    /// <summary>Name of the death map, or "Unknown" when none is recorded.</summary>
+    public string DeathMapName => DeathMap?.Name ?? "Unknown";
+
     private ushort _mapId { get; set; }
 
     [Persist]
@@ -61,7 +67,7 @@ public class LocationInfo : IEquatable<LocationInfo>
         get => Map?.Id ?? _mapId;
         set
         {
-            if (Game.World.WorldState.TryGetValue(value, out MapObject map))
+            if (Game.World.WorldState.TryGetValue<MapObject>(value, out var map))
                 Map = map;
             _mapId = value;
         }
@@ -75,7 +81,7 @@ public class LocationInfo : IEquatable<LocationInfo>
         get => DeathMap?.Id ?? _deathmapId;
         set
         {
-            if (Game.World.WorldState.TryGetValue(value, out MapObject map))
+            if (Game.World.WorldState.TryGetValue<MapObject>(value, out var map))
                 DeathMap = map;
             _deathmapId = value;
         }

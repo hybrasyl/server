@@ -36,16 +36,16 @@ internal class RepopCommand : ChatCommand
         if (string.IsNullOrWhiteSpace(Game.ActiveConfiguration.Handlers.Death.Map?.Value))
             return Fail("Death map not defined.");
 
-        if (user.Location.Map.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
+        if (user.Location.MapName != Game.ActiveConfiguration.Handlers.Death.Map.Value)
         {
             GameLog.UserActivityWarning(
-                "User {User}: /repop usage, current map {Map}, last hit by {LastHitter}, stats {Stats}", user.Name, user.Location.Map.Name, user.LastHitter?.Name ?? "unknown", user.Stats);
+                "User {User}: /repop usage, current map {Map}, last hit by {LastHitter}, stats {Stats}", user.Name, user.Location.MapName, user.LastHitter?.Name ?? "unknown", user.Stats);
             if (user.Condition.Alive)
                 return Fail("You're not dead.");
             user.Teleport(Game.ActiveConfiguration.Handlers.Death.Map.Value,
                 Game.ActiveConfiguration.Handlers.Death.Map.X,
                 Game.ActiveConfiguration.Handlers.Death.Map.Y);
-            if (user.Map.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
+            if (user.Location.MapName != Game.ActiveConfiguration.Handlers.Death.Map.Value)
                 GameLog.UserActivityFatal(
                     "User {User}: teleported, but not in {DeathMap}...?", user.Name, Game.ActiveConfiguration.Handlers.Death.Map.Value);
         }

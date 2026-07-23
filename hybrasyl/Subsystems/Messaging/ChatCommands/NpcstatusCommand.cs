@@ -29,7 +29,7 @@ internal class NpcstatusCommand : ChatCommand
     public new static bool Privileged = true;
 
     public new static ChatCommandResult Run(User user, params string[] args) =>
-        Game.World.WorldState.TryGetValue(args[0], out Merchant merchant)
+        Game.World.WorldState.TryGetValue<Merchant>(args[0], out var merchant)
             ? Success(merchant.Status(), (byte) MessageType.SlateScrollbar)
             : Fail($"NPC {args[0]} not found.");
 }

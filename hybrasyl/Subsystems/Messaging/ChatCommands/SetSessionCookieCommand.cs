@@ -29,7 +29,7 @@ internal class SetSessionCookieCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.TryGetValue(args[0], out User target))
+        if (Game.World.WorldState.TryGetValue<User>(args[0], out var target))
         {
             target.SetSessionCookie(args[1], args[2], args[3]);
             return Success($"User {target.Name}: cookie {args[2]} in ns {args[1]} set");

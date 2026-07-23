@@ -18,6 +18,7 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
+using System.IO;
 using System.Linq;
 using Xunit;
 
@@ -483,7 +484,8 @@ public class Merchants
     {
         Fixture.ResetTestUserStats();
         var merchant = GetTestMerchant();
-        var otherMap = Game.World.WorldState.Get<MapObject>("40001");
+        var otherMap = Game.World.WorldState.Get<MapObject>("40001") ??
+                       throw new InvalidDataException("Fixture map 40001 missing from world data");
         var otherMerchant = otherMap.Objects.OfType<Merchant>().FirstOrDefault(x => x.Name == "Maria");
         Assert.NotNull(otherMerchant);
         Assert.NotEqual(merchant.Id, otherMerchant.Id);

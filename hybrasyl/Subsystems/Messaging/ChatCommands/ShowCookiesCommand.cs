@@ -31,7 +31,7 @@ internal class ShowCookiesCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.TryGetValue(args[0], out User target))
+        if (Game.World.WorldState.TryGetValue<User>(args[0], out var target))
         {
             var cookies = $"User {target.Name} Cookie List\n\n---Permanent Cookies---\n";
             foreach (var cookie in target.GetCookies())

@@ -32,9 +32,11 @@ internal class MusicCommand : ChatCommand
     {
         if (byte.TryParse(args[0], out var track))
         {
-            user.Map.Music = track;
-            foreach (var mapuser in user.Map.Users.Values) mapuser.SendMusic(track);
-            return Success($"Music track changed to {track} for all users on {user.Map.Name}.");
+            if (user.Location.Map is not { } map)
+                return Fail("You are not on a map.");
+            map.Music = track;
+            foreach (var mapuser in map.Users.Values) mapuser.SendMusic(track);
+            return Success($"Music track changed to {track} for all users on {map.Name}.");
         }
 
         return Fail("The value you specified could not be parsed (byte)");

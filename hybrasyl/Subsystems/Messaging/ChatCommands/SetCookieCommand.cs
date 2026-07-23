@@ -29,7 +29,7 @@ internal class SetCookieCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.TryGetValue(args[0], out User target))
+        if (Game.World.WorldState.TryGetValue<User>(args[0], out var target))
         {
             if (args.Length == 4)
                 target.SetCookie(args[1], args[2], args[3]);

@@ -38,9 +38,11 @@ internal class BeginClassCommand : ChatCommand
         user.SendSystemMessage("Use your spark.");
         if (Game.World.WorldState.TryGetSocialEvent(user, out var _))
             return Fail("An event is already occurring here.");
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
         var e = new SocialEvent(user, SocialEventType.Class, args[0]);
-        Game.World.WorldState.SetWithIndex(user.Name, e, user.Map.Id);
-        user.Map.MapMute();
+        Game.World.WorldState.SetWithIndex(user.Name, e, map.Id);
+        map.MapMute();
         return Success();
     }
 }

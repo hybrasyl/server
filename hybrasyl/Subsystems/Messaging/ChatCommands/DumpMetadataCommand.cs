@@ -32,9 +32,8 @@ internal class DumpMetadataCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.ContainsKey<CompiledMetafile>(args[0]))
+        if (Game.World.WorldState.TryGetValue<CompiledMetafile>(args[0], out var file))
         {
-            var file = Game.World.WorldState.Get<CompiledMetafile>(args[0]);
             var filepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hybrasyl");
             File.WriteAllBytes($"{filepath}\\{args[0]}.mdf", file.Data);
             return Success($"{filepath}\\{args[0]}.mdf written to disk");

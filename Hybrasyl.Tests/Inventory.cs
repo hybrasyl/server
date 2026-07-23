@@ -201,10 +201,10 @@ public class Inventory(HybrasylFixture fixture)
     public void DropItemPacket(params Item[] items)
     {
         Fixture.TestUser.Inventory.Clear();
-        Fixture.TestUser.Map.Clear();
+        Fixture.TestUser.Location.Map!.Clear();
         // A fixed, known-empty tile: prior tests may leave the user standing on an
         // occupied tile (e.g. Maria at 10,10), which breaks the exact-count assert below.
-        Fixture.TestUser.Teleport(Fixture.TestUser.Map.Id, 20, 20);
+        Fixture.TestUser.Teleport(Fixture.TestUser.Location.Map.Id, 20, 20);
 
 
         foreach (var item in items) 
@@ -223,7 +223,7 @@ public class Inventory(HybrasylFixture fixture)
         Thread.Sleep(1000);
         // Assert X,Y contains the item we just dropped
 
-        var tileContents = Fixture.TestUser.Map.GetTileContents(Fixture.TestUser.X, Fixture.TestUser.Y);
+        var tileContents = Fixture.TestUser.Location.Map.GetTileContents(Fixture.TestUser.X, Fixture.TestUser.Y);
         var tileGuids = tileContents.Select(selector: x => x.Guid);
         // Tile should contain the user and the dropped object
         Assert.True(tileContents.Count == 2, $"Tile should contain exactly two objects but contains {tileContents.Count}");

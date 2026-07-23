@@ -198,7 +198,8 @@ public class AsyncDialogSession : IInteractable, IStateStorable
         // If the request is local, the invokee (dialog recipient) and the invoker must 
         // be on the same map and within ASYNC_DIALOG_DISTANCE of each other.
         //
-        if ((!RequireLocal || Source.Location.Map.Id == Target.Location.Map.Id) &&
+        if ((!RequireLocal || (Source.Location.Map is { } sourceMap && Target.Location.Map is { } targetMap &&
+                               sourceMap.Id == targetMap.Id)) &&
             Source.Distance(Target) <= Game.ActiveConfiguration.Constants.PlayerAsyncDialogDistance) return true;
         InvokerError("You need to be closer to do that.");
         return false;

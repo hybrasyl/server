@@ -94,8 +94,10 @@ public class HybrasylFixture : IDisposable
         if (!Game.World.LoadData())
             throw new InvalidDataException("LoadData encountered errors");
 
-        Map = Game.World.WorldState.Get<MapObject>("40000");
-        MapNoCasting = Game.World.WorldState.Get<MapObject>("40000");
+        Map = Game.World.WorldState.Get<MapObject>("40000") ??
+              throw new InvalidDataException("Fixture map 40000 missing from world data");
+        MapNoCasting = Game.World.WorldState.Get<MapObject>("40000") ??
+                       throw new InvalidDataException("Fixture map 40000 missing from world data");
 
         var xmlNation = new Nation
         {
@@ -155,7 +157,7 @@ public class HybrasylFixture : IDisposable
         SecondTestUser = CreateUser("TestSecond");
 
         Game.World.Insert(TestUser);
-        TestUser.Teleport(TestUser.Map.Id, TestUser.X, TestUser.Y);
+        TestUser.Teleport(TestUser.Location.Map!.Id, TestUser.X, TestUser.Y);
     }
 
     public MapObject Map { get; }

@@ -128,7 +128,7 @@ internal class Monolith
 
     public void Spawn(SpawnGroup spawnGroup)
     {
-        if (!Game.World.WorldState.TryGetValue(spawnGroup.MapId, out MapObject spawnmap))
+        if (!Game.World.WorldState.TryGetValue<MapObject>(spawnGroup.MapId, out var spawnmap))
         {
             GameLog.SpawnWarning("Spawngroup {Spawngroup}: Map {MapId} not found, disabling group", spawnGroup.Name,
                 spawnGroup.MapId);

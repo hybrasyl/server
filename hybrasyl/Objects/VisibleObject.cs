@@ -32,13 +32,6 @@ namespace Hybrasyl.Objects;
 
 public class VisibleObject : WorldObject, IVisible
 {
-    // TODO: Clean these up later and simply use Location instead
-    public MapObject Map
-    {
-        get => Location.Map;
-        set => Location.Map = value;
-    }
-
     public Direction Direction
     {
         get => Location.Direction;
@@ -173,13 +166,14 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void Show()
     {
-        var withinViewport = Map.EntityTree.GetObjects(GetViewport());
+        if (Location.Map is not { } map) return;
+        var withinViewport = map.EntityTree.GetObjects(GetViewport());
         GameLog.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
 
         foreach (var obj in withinViewport)
         {
             // Skip objects that were removed from their map between the snapshot and now
-            if (obj.Map == null) continue;
+            if (obj.Location.Map == null) continue;
             GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
             obj.AoiEntry(this);
         }
@@ -187,12 +181,13 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void Hide()
     {
-        var withinViewport = Map.EntityTree.GetObjects(GetViewport());
+        if (Location.Map is not { } map) return;
+        var withinViewport = map.EntityTree.GetObjects(GetViewport());
         GameLog.DebugFormat("WithinViewport contains {0} objects", withinViewport.Count);
 
         foreach (var obj in withinViewport)
         {
-            if (obj.Map == null) continue;
+            if (obj.Location.Map == null) continue;
             GameLog.DebugFormat("Object type is {0} and its name is {1}", obj.GetType(), obj.Name);
             obj.AoiDeparture(this);
         }
@@ -202,21 +197,21 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void Teleport(ushort mapid, byte x, byte y)
     {
-        if (!World.WorldState.ContainsKey<MapObject>(mapid)) return;
-        Map?.Remove(this);
-        GameLog.DebugFormat("Teleporting {0} to {1}", Name, World.WorldState.Get<MapObject>(mapid).Name);
-        World.WorldState.Get<MapObject>(mapid).Insert(this, x, y);
+        if (!World.WorldState.TryGetValue<MapObject>(mapid, out var destination)) return;
+        Location.Map?.Remove(this);
+        GameLog.DebugFormat("Teleporting {0} to {1}", Name, destination.Name);
+        destination.Insert(this, x, y);
     }
 
     public virtual void Teleport(string name, byte x, byte y)
     {
-        if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex(name, out MapObject targetMap))
+        if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex<MapObject>(name, out var targetMap))
         {
             GameLog.Warning("Teleport to nonexistent map {Map}", name);
             return;
         }
 
-        Map?.Remove(this);
+        Location.Map?.Remove(this);
         GameLog.DebugFormat("Teleporting {0} to {1}", Name, targetMap.Name);
         targetMap.Insert(this, x, y);
     }
@@ -227,12 +222,12 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void Say(string message, string from = "")
     {
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport())) obj.OnHear(new SpokenEvent(this, message, from));
+        foreach (var obj in Location.Map?.EntityTree.GetObjects(GetViewport()) ?? []) obj.OnHear(new SpokenEvent(this, message, from));
     }
 
     public virtual void Shout(string message, string from = "")
     {
-        foreach (var obj in Map.EntityTree.GetObjects(GetShoutViewport()))
+        foreach (var obj in Location.Map?.EntityTree.GetObjects(GetShoutViewport()) ?? [])
             obj.OnHear(new SpokenEvent(this, message, from, true));
     }
 

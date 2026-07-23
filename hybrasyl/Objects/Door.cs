@@ -56,7 +56,7 @@ public class Door : VisibleObject
 
     public override void OnClick(User invoker)
     {
-        invoker.Map.ToggleDoors(X, Y);
+        invoker.Location.Map?.ToggleDoors(X, Y);
     }
 
     public override void AoiEntry(VisibleObject obj)

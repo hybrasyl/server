@@ -36,7 +36,9 @@ internal class EndClassCommand : ChatCommand
         {
             if (e.Type != SocialEventType.Class)
                 return Fail("You are not giving a class here.");
-            foreach (var participant in user.Map.Users.Values.Where(predicate: x => x.Distance(user) < 20))
+            if (user.Location.Map is not { } map)
+                return Fail("You are not on a map.");
+            foreach (var participant in map.Users.Values.Where(predicate: x => x.Distance(user) < 20))
             {
                 var reward = Random.Shared.Next(1, 100);
                 if (reward <= 80)
@@ -61,8 +63,8 @@ internal class EndClassCommand : ChatCommand
 
             e.End();
             Game.World.WorldState.Remove<SocialEvent>(user);
-            Game.World.WorldState.RemoveIndex<SocialEvent>(user.Map.Id);
-            user.Map.MapUnmute();
+            Game.World.WorldState.RemoveIndex<SocialEvent>(user.Location.Map.Id);
+            user.Location.Map.MapUnmute();
             return Success("Your class has concluded.");
         }
 

@@ -45,6 +45,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -765,14 +766,15 @@ public class World : Server
         WorldState.GetGuidReference(userobj);
     }
 
-    public bool TryGetActiveUser(string name, out User user) => WorldState.TryGetValue(name, out user);
+    public bool TryGetActiveUser(string name, [NotNullWhen(true)] out User? user) =>
+        WorldState.TryGetValue<User>(name, out user);
 
-    public bool TryGetActiveUserById(long connectionId, out User user) =>
-        WorldState.TryGetValueByIndex(connectionId, out user);
+    public bool TryGetActiveUserById(long connectionId, [NotNullWhen(true)] out User? user) =>
+        WorldState.TryGetValueByIndex<User>(connectionId, out user);
 
     public bool UserConnected(string name)
     {
-        if (WorldState.TryGetValue(name, out User user))
+        if (WorldState.TryGetValue<User>(name, out var user))
             return user.Connected;
         return false;
     }
@@ -885,7 +887,6 @@ public class World : Server
                 return;
             // Process messages.
             HybrasylMessage message;
-            User user;
             try
             {
                 message = MessageQueue.Take();
@@ -906,7 +907,7 @@ public class World : Server
 
                 try
                 {
-                    if (TryGetActiveUserById(clientMessage.ConnectionId, out user))
+                    if (TryGetActiveUserById(clientMessage.ConnectionId, out var user))
                     {
                         // Check if the action is prohibited due to statuses or flags
                         MethodBase method = handler.GetMethodInfo();
@@ -1356,7 +1357,7 @@ public class World : Server
         if (monster == null || map == null) return;
         // Don't handle control messages for dead/removed mobs, or mobs that cannot move or attack
         if (!monster.Condition.Alive || monster.DeathProcessed ||
-            monster.Id == 0 || monster.Map == null ||
+            monster.Id == 0 || monster.Location.Map == null ||
             monster.Condition.Asleep || monster.Condition.Stunned) return;
 
         monster.DetermineNextAction();
@@ -1402,7 +1403,7 @@ public class World : Server
                     cleanup.ActiveExchange.CancelExchange(cleanup);
                 cleanup.AuthInfo.CurrentState = UserState.Disconnected;
                 cleanup.UpdateLogoffTime();
-                cleanup.Map?.Remove(cleanup);
+                cleanup.Location.Map?.Remove(cleanup);
                 cleanup.Group?.Remove(cleanup);
                 cleanup.Save(true);
             }
@@ -1430,9 +1431,8 @@ public class World : Server
         // USDA Formula for HP: MAXHP * (0.1 + (CON - Lv) * 0.01) <20% MAXHP
         // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
         // Regen = regen * 0.0015 (so 100 regen = 15%)
-        User user;
         var connectionId = message.GetArgument<long>(0);
-        if (!TryGetActiveUserById(connectionId, out user)) return;
+        if (!TryGetActiveUserById(connectionId, out var user)) return;
         if (user.Condition.Comatose || !user.Condition.Alive) return;
         uint hpRegen = 0;
         uint mpRegen = 0;
@@ -1489,9 +1489,8 @@ public class World : Server
     private void ControlMessage_SaveUser(HybrasylControlMessage message)
     {
         // save a user
-        User user;
         var connectionId = message.GetArgument<long>(0);
-        if (TryGetActiveUserById(connectionId, out user))
+        if (TryGetActiveUserById(connectionId, out var user))
         {
             GameLog.DebugFormat("Saving user {0}", user.Name);
             user.Save(true);
@@ -1543,8 +1542,7 @@ public class World : Server
         // Log off the specified user
         var userName = message.GetArgument<string>(0);
         GameLog.WarningFormat("{0}: forcing logoff", userName);
-        User user;
-        if (TryGetActiveUser(userName, out user)) user.Logoff(true);
+        if (TryGetActiveUser(userName, out var user)) user.Logoff(true);
     }
 
     [HybrasylMessageHandler(ControlOpcode.MailNotifyUser)]
@@ -1553,8 +1551,7 @@ public class World : Server
         // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
         var userName = message.GetArgument<string>(0);
         GameLog.DebugFormat("mail: attempting to notify {0} of new mail", userName);
-        User user;
-        if (TryGetActiveUser(userName, out user))
+        if (TryGetActiveUser(userName, out var user))
         {
             user.UpdateAttributes(StatUpdateFlags.Secondary);
             GameLog.DebugFormat("mail: notification to {0} sent", userName);
@@ -1590,7 +1587,7 @@ public class World : Server
     private void ControlMessage_DialogRequest(HybrasylControlMessage message)
     {
         var asyncDialogId = message.GetArgument<uint>(0);
-        if (WorldState.TryGetValue(asyncDialogId, out AsyncDialogSession ads))
+        if (WorldState.TryGetValue<AsyncDialogSession>(asyncDialogId, out var ads))
             ads.ShowTo();
     }
 
@@ -1618,8 +1615,8 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.RemoveReactor)]
     private void ControlMessage_RemoveReactor(HybrasylControlMessage message)
     {
-        if (message.Arguments[0] is not Guid g || !WorldState.TryGetWorldObject(g, out Reactor obj) ||
-            !WorldState.TryGetValue(obj.Map.Id, out MapObject m)) return;
+        if (message.Arguments[0] is not Guid g || !WorldState.TryGetWorldObject<Reactor>(g, out var obj) ||
+            obj.Location.Map is not { } reactorMap || !WorldState.TryGetValue<MapObject>(reactorMap.Id, out var m)) return;
         m.Remove(obj);
     }
 
@@ -1628,7 +1625,7 @@ public class World : Server
     {
         var guid = message.GetArgument<Guid>(0);
         var statinfo = message.GetArgument<StatInfo>(1);
-        if (!WorldState.TryGetWorldObject(guid, out Creature obj)) return;
+        if (!WorldState.TryGetWorldObject<Creature>(guid, out var obj)) return;
         obj.Stats.Apply(statinfo);
         if (obj is User u)
             u.UpdateAttributes(StatUpdateFlags.Full);
@@ -1733,16 +1730,17 @@ public class World : Server
     private void PacketHandler_0x05_RequestMap(object obj, ClientPacket packet)
     {
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
         var index = 0;
 
-        for (ushort row = 0; row < user.Map.Y; ++row)
+        for (ushort row = 0; row < map.Y; ++row)
         {
             var x3C = new ServerPacket(0x3C);
             x3C.WriteUInt16(row);
-            for (var col = 0; col < user.Map.X * 6; col += 2)
+            for (var col = 0; col < map.X * 6; col += 2)
             {
-                x3C.WriteByte(user.Map.RawData[index + 1]);
-                x3C.WriteByte(user.Map.RawData[index]);
+                x3C.WriteByte(map.RawData[index + 1]);
+                x3C.WriteByte(map.RawData[index]);
                 index += 2;
             }
 
@@ -1768,6 +1766,7 @@ public class World : Server
     private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
     {
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
         var slot = packet.ReadByte();
         var x = packet.ReadInt16();
         var y = packet.ReadInt16();
@@ -1786,7 +1785,7 @@ public class World : Server
         var tile = new Rectangle(x, y, 1, 1);
 
         // We don't want to pick up people
-        var pickupList = user.Map.EntityTree.GetObjects(tile).Where(predicate: i => i is Gold || i is ItemObject)
+        var pickupList = map.EntityTree.GetObjects(tile).Where(predicate: i => i is Gold || i is ItemObject)
             .Reverse()
             .ToList();
 
@@ -1814,13 +1813,13 @@ public class World : Server
         // (for instance: a reactor that destroys items outright, or damages them
         // before being picked up, etc)
         var coordinates = ((byte)x, (byte)y);
-        if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
+        if (map.Reactors.TryGetValue(coordinates, out var reactors))
         {
             // Remove the item from the map
             if (pickupObject is Gold)
-                user.Map.RemoveGold((Gold)pickupObject);
+                map.RemoveGold((Gold)pickupObject);
             else
-                user.Map.Remove((ItemObject)pickupObject);
+                map.Remove((ItemObject)pickupObject);
             // If the reactor handles the pickup, we do nothing
             foreach (var reactor in reactors.Values.Where(predicate: reactor => reactor.OnTakeCapable))
             {
@@ -1845,8 +1844,8 @@ public class World : Server
                 if (user.AddGold(gold))
                 {
                     GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
-                        gold.Name, gold.Amount, user.Map.Name, x, y);
-                    user.Map.RemoveGold(gold);
+                        gold.Name, gold.Amount, map.Name, x, y);
+                    map.RemoveGold(gold);
                 }
             }
         }
@@ -1871,8 +1870,8 @@ public class World : Server
                 var success = user.AddItem(item.Name, (ushort)item.Count);
 
                 GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
-                    item.Name, item.Count, user.Map.Name, x, y);
-                user.Map.Remove(item);
+                    item.Name, item.Count, map.Name, x, y);
+                map.Remove(item);
                 user.SendItemUpdate(existingItem, existingSlot);
 
                 if (success)
@@ -1881,18 +1880,18 @@ public class World : Server
                 }
                 else
                 {
-                    user.Map.Insert(item, user.X, user.Y);
+                    map.Insert(item, user.X, user.Y);
                     user.SendMessage(string.Format("You can't carry any more {0}.", item.Name), 3);
                 }
             }
             else
             {
                 GameLog.DebugFormat("Removing {0}, qty {1} from {2}@{3},{4}",
-                    item.Name, item.Count, user.Map.Name, x, y);
+                    item.Name, item.Count, map.Name, x, y);
 
                 var success = user.AddItem(item, slot);
-                user.Map.Remove(item);
-                if (!success) user.Map.Insert(item, user.X, user.Y);
+                map.Remove(item);
+                if (!success) map.Insert(item, user.X, user.Y);
             }
         }
     }
@@ -1903,6 +1902,7 @@ public class World : Server
     private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
     {
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
         var slot = packet.ReadByte();
         var x = packet.ReadInt16();
         var y = packet.ReadInt16();
@@ -1940,7 +1940,7 @@ public class World : Server
         }
 
         if (count > invItem.Count ||
-            user.Map.IsWall(x, y) || !user.Map.IsValidPoint(x, y))
+            map.IsWall(x, y) || !map.IsValidPoint(x, y))
         {
             GameLog.ErrorFormat(
                 "Drop: count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
@@ -1979,14 +1979,14 @@ public class World : Server
         // Are we dropping an item onto a reactor?
 
         var coordinates = ((byte)x, (byte)y);
-        if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
+        if (map.Reactors.TryGetValue(coordinates, out var reactors))
             foreach (var reactor in reactors.Values.Where(predicate: x => x.OnDropCapable))
             {
                 reactor.OnDrop(user, toDrop);
                 return;
             }
 
-        user.Map.AddItem(x, y, toDrop);
+        map.AddItem(x, y, toDrop);
     }
 
     [PacketHandler(0x0E)]
@@ -2068,7 +2068,7 @@ public class World : Server
             user.SendRedirect(this, Game.Login, user.Name, false, transmitDelay: 50);
 
             user.UpdateLogoffTime();
-            user.Map.Remove(user);
+            if (user.Location.Map is { } map) map.Remove(user);
             if (user.Group is { } group) group.Remove(user);
             Remove(user);
             user.AuthInfo.CurrentState = UserState.Disconnected;
@@ -2094,7 +2094,7 @@ public class World : Server
         var missingObjId = packet.ReadUInt32();
         if (user.World.Objects.TryGetValue(missingObjId, out var missingObj) &&
             missingObj is VisibleObject missingVisibleObj &&
-            user.Map == missingVisibleObj.Map)
+            user.Location.Map == missingVisibleObj.Location.Map)
             //GameLog.InfoFormat("Showing missing object {0} with ID {1} to {2}", missingVisibleObj.Name, missingVisibleObj.Id, user.Name);
             user.AoiEntry(missingVisibleObj);
     }
@@ -2184,7 +2184,7 @@ public class World : Server
             {
                 var startmap = handler.GetStartMap();
                 loginUser.AuthInfo.FirstLogin = false;
-                if (WorldState.TryGetValueByIndex(startmap.Value, out MapObject map))
+                if (WorldState.TryGetValueByIndex<MapObject>(startmap.Value, out var map))
                 {
                     loginUser.Teleport(map.Id, startmap.X, startmap.Y);
                 }
@@ -2653,6 +2653,7 @@ public class World : Server
     private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
     {
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
         var amount = packet.ReadUInt32();
         var x = packet.ReadInt16();
         var y = packet.ReadInt16();
@@ -2679,8 +2680,8 @@ public class World : Server
         // Does the amount in the packet exceed the
         // amount of gold the player has?  Are they trying to drop the item on something that
         // is impassable (i.e. a wall)?
-        if (amount > user.Gold || x >= user.Map.X || y >= user.Map.Y ||
-            x < 0 || y < 0 || user.Map.IsWall(x, y))
+        if (amount > user.Gold || x >= map.X || y >= map.Y ||
+            x < 0 || y < 0 || map.IsWall(x, y))
         {
             GameLog.ErrorFormat("Amount {0} exceeds amount {1}, or {2},{3} is a wall, or {2},{3} is out of bounds",
                 amount, user.Gold, x, y);
@@ -2699,7 +2700,7 @@ public class World : Server
         // Are we dropping an item onto a reactor?
         var coordinates = ((byte)x, (byte)y);
         var handled = false;
-        if (user.Map.Reactors.TryGetValue(coordinates, out var reactors))
+        if (map.Reactors.TryGetValue(coordinates, out var reactors))
         {
             foreach (var reactor in reactors.Values.Where(predicate: x => x.OnDropCapable))
             {
@@ -2708,11 +2709,11 @@ public class World : Server
             }
 
             if (!handled)
-                user.Map.AddGold(x, y, toDrop);
+                map.AddGold(x, y, toDrop);
         }
         else
         {
-            user.Map.AddGold(x, y, toDrop);
+            map.AddGold(x, y, toDrop);
         }
     }
 
@@ -2887,6 +2888,7 @@ public class World : Server
         var targetId = packet.ReadUInt32();
 
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
         // If the object is a creature or an NPC, simply give them the item, otherwise,
         // initiate an exchange
         if (goldAmount > user.Gold)
@@ -2899,7 +2901,7 @@ public class World : Server
         if (!user.World.Objects.TryGetValue(targetId, out target))
             return;
 
-        if (user.Map.Objects.Contains((VisibleObject)target))
+        if (map.Objects.Contains((VisibleObject)target))
         {
             if (target is User)
             {
@@ -2942,6 +2944,7 @@ public class World : Server
         var targetId = packet.ReadUInt32();
         var quantity = packet.ReadByte();
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
 
 
         // If the object is a creature or an NPC, simply give them the item, otherwise,
@@ -2951,7 +2954,7 @@ public class World : Server
         if (!user.World.Objects.TryGetValue(targetId, out target))
             return;
 
-        if (user.Map.Objects.Contains((VisibleObject)target))
+        if (map.Objects.Contains((VisibleObject)target))
         {
             if (target is User)
             {
@@ -3284,14 +3287,14 @@ public class World : Server
 
         // Determine what is clicking / being clicked / etc
         if (objectType == DialogObjectType.CastableObject &&
-            Game.World.WorldState.TryGetValue(objectID, out CastableObject castableObj))
+            Game.World.WorldState.TryGetValue<CastableObject>(objectID, out var castableObj))
         {
             clickTarget = castableObj;
             invocation = new DialogInvocation(castableObj, user, user);
         }
         // Is this an async dialog session (either one in progress, or one starting)
         else if (objectType == DialogObjectType.Asynchronous &&
-                 Game.World.WorldState.TryGetValue(objectID, out AsyncDialogSession asyncSession))
+                 Game.World.WorldState.TryGetValue<AsyncDialogSession>(objectID, out var asyncSession))
         {
             session = asyncSession;
             clickTarget = asyncSession;
@@ -3515,6 +3518,7 @@ public class World : Server
     private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
+        if (user.Location.Map is not { } map) return;
         var clickType = packet.ReadByte();
         var commonViewport = user.GetViewport();
         // N.B. We handle dead checks here rather than at the Required attribute level due to some 
@@ -3529,7 +3533,7 @@ public class World : Server
                     var coords = (x, y);
                     GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
 
-                    if (user.Map.Doors.ContainsKey(coords))
+                    if (map.Doors.ContainsKey(coords))
                     {
                         if (!user.Condition.Alive)
                         {
@@ -3537,18 +3541,18 @@ public class World : Server
                             return;
                         }
 
-                        user.SendSystemMessage(user.Map.Doors[coords].Closed ? "It's open." : "It's closed.");
+                        user.SendSystemMessage(map.Doors[coords].Closed ? "It's open." : "It's closed.");
 
-                        user.Map.ToggleDoors(x, y);
+                        map.ToggleDoors(x, y);
                     }
-                    else if (user.Map.Signposts.ContainsKey(coords))
+                    else if (map.Signposts.ContainsKey(coords))
                     {
-                        user.Map.Signposts[coords].OnClick(user);
+                        map.Signposts[coords].OnClick(user);
                     }
                     else
                     {
                         GameLog.DebugFormat("User clicked {0}@{1},{2} but no door/signpost is present",
-                            user.Map.Name, x, y);
+                            map.Name, x, y);
                     }
 
                     break;
@@ -3566,7 +3570,7 @@ public class World : Server
                         var type = clickTarget.GetType();
                         var methodInfo = type.GetMethod("OnClick");
                         var associate = clickTarget as VisibleObject;
-                        if (associate != null && associate.Map == user.Map)
+                        if (associate != null && associate.Location.Map == map)
                         {
                             // Certain NPCs can be "spoken to" even when dead
                             if (user.LastAssociate is Merchant && !user.Condition.Alive && !user.LastAssociate.AllowDead)
@@ -3580,7 +3584,7 @@ public class World : Server
                         else
                         {
                             GameLog.Warning(
-                                "User {User}: Click packet for object not on current map: {EntityId} {ClickTargetId} {MapName}", user.Name, entityId, clickTarget.Id, user.Map.Name);
+                                "User {User}: Click packet for object not on current map: {EntityId} {ClickTargetId} {MapName}", user.Name, entityId, clickTarget.Id, map.Name);
                         }
                     }
 
@@ -3875,8 +3879,7 @@ public class World : Server
         else
         {
             var name = packet.ReadString8();
-            if (!WorldState.ContainsKey<CompiledMetafile>(name)) return;
-            var file = WorldState.Get<CompiledMetafile>(name);
+            if (!WorldState.TryGetValue<CompiledMetafile>(name, out var file)) return;
             GameLog.Info("Responding 6f notall: sending {Name}, checksum {Checksum}", file.Name, file.Checksum);
             var x6F = new ServerPacket(0x6F);
             x6F.WriteBoolean(all);

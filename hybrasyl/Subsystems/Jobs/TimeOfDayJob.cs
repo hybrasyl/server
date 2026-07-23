@@ -33,7 +33,7 @@ public static class TimeOfDayJob
         {
             foreach (var user in Game.World.ActiveUsers)
             {
-                if (user.Map.DynamicLighting)
+                if (user.Location.Map is { DynamicLighting: true })
                 {
                     user.SendLightLevel();
                 }

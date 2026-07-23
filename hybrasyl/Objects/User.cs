@@ -266,7 +266,7 @@ public class User : Creature
 
     public override void Say(string message, string from = "")
     {
-        if (Map.AllowSpeaking)
+        if (Location.Map is { AllowSpeaking: true })
         {
             if (World.WorldState.TryGetSocialEvent(this, out var e) &&
                 (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
@@ -287,7 +287,7 @@ public class User : Creature
 
     public override void Shout(string message, string from = "")
     {
-        if (Map.AllowSpeaking)
+        if (Location.Map is { AllowSpeaking: true })
         {
             if (World.WorldState.TryGetSocialEvent(this, out var e) &&
                 (e.Speakers.Contains(Name) || e.Type != SocialEventType.Class))
@@ -487,10 +487,28 @@ public class User : Creature
             return;
         }
 
+        // Save the death location immediately: status/script hooks fired during death
+        // processing can move or remove us, and the death pile must land where we died.
+        if (Location.Map is { } diedOn)
+        {
+            Location.DeathMap = diedOn;
+            Location.DeathMapX = X;
+            Location.DeathMapY = Y;
+        }
+
+        // Drops land on the current map, or the death-time snapshot if we were removed
+        // mid-processing. Both null means there is nowhere for the pile to go, and
+        // processing death anyway would destroy it.
+        if ((Location.Map ?? Location.DeathMap) is not { } map)
+        {
+            GameLog.UserActivityFatal("{Name}: OnDeath with no map or death map, death not processed", Name);
+            return;
+        }
+
         GameLog.UserActivityInfo(
             "{Name}: died on {Map} last hit by {LastHitter} on map {LastHitterMap}",
-            Name, Location.Map?.Name ?? "unknown", LastHitter?.Name ?? "unknown",
-            LastHitter?.Location?.Map?.Name ?? "unknown");
+            Name, Location.MapName, LastHitter?.Name ?? "unknown",
+            LastHitter?.Location.MapName ?? "Unknown");
         var timeofdeath = DateTime.Now;
         var looters = Group?.Members.Select(selector: user => user.Name).ToList() ?? new List<string>();
 
@@ -527,7 +545,7 @@ public class User : Creature
             item.ItemDropTime = timeofdeath;
             item.ItemDropAllowedLooters = looters;
             item.ItemDropType = ItemDropType.UserDeathPile;
-            Map.AddItem(X, Y, item);
+            map.AddItem(X, Y, item);
         }
 
         // Now process equipment
@@ -559,7 +577,7 @@ public class User : Creature
             item.ItemDropTime = timeofdeath;
             item.ItemDropAllowedLooters = looters;
             item.ItemDropType = ItemDropType.UserDeathPile;
-            Map.AddItem(X, Y, item);
+            map.AddItem(X, Y, item);
         }
 
         // Drop all gold
@@ -572,7 +590,7 @@ public class User : Creature
                 ItemDropTime = timeofdeath
             };
             World.Insert(newGold);
-            Map.AddGold(X, Y, newGold);
+            map.AddGold(X, Y, newGold);
             Stats.Gold = 0;
         }
 
@@ -607,11 +625,6 @@ public class User : Creature
         Stats.Mp = 0;
         UpdateAttributes(StatUpdateFlags.Full);
         Effect(76, 120);
-
-        // Save location for recall / etc
-        Location.DeathMap = Map;
-        Location.DeathMapX = X;
-        Location.DeathMapY = Y;
 
         SendSystemMessage("Your items are ripped from your body.");
 
@@ -1045,33 +1058,34 @@ public class User : Creature
 
     public override void SendMapInfo(int transmitDelay = 0)
     {
+        if (Location.Map is not { } map) return;
         var x15 = new ServerPacket(0x15);
-        x15.WriteUInt16(Map.Id);
-        x15.WriteByte(Map.X);
-        x15.WriteByte(Map.Y);
+        x15.WriteUInt16(map.Id);
+        x15.WriteByte(map.X);
+        x15.WriteByte(map.Y);
         // I also hate this
         byte flags = 0;
-        if (Map.Flags.HasFlag(MapFlags.Snow))
+        if (map.Flags.HasFlag(MapFlags.Snow))
             flags |= 1;
-        if (Map.Flags.HasFlag(MapFlags.Rain))
+        if (map.Flags.HasFlag(MapFlags.Rain))
             flags |= 2;
-        if (Map.Flags.HasFlag(MapFlags.Dark)) {
+        if (map.Flags.HasFlag(MapFlags.Dark)) {
             flags |= 1;
             flags |= 2;
         }
-        if (Map.Flags.HasFlag(MapFlags.NoMap))
+        if (map.Flags.HasFlag(MapFlags.NoMap))
             flags |= 64;
-        if (Map.Flags.HasFlag(MapFlags.Snow))
+        if (map.Flags.HasFlag(MapFlags.Snow))
             flags |= 128;
         x15.WriteByte(flags);
         x15.WriteUInt16(0);
-        x15.WriteByte((byte)(Map.Checksum % 256));
-        x15.WriteByte((byte)(Map.Checksum / 256));
-        x15.WriteString8(Map.Name);
+        x15.WriteByte((byte)(map.Checksum % 256));
+        x15.WriteByte((byte)(map.Checksum / 256));
+        x15.WriteString8(map.Name);
         x15.TransmitDelay = transmitDelay;
         Enqueue(x15);
-        if (Map.Music != 0xFF) SendMusic(Map.Music);
-        if (!string.IsNullOrEmpty(Map.Message)) SendMessage(Map.Message, 18);
+        if (map.Music != 0xFF) SendMusic(map.Music);
+        if (!string.IsNullOrEmpty(map.Message)) SendMessage(map.Message, 18);
     }
 
     public override void SendLocation(int transmitDelay = 0)
@@ -1086,13 +1100,13 @@ public class User : Creature
 
         var doors = GetDoorsCoordsInView(GetViewport());
 
-        if (doors.Count <= 0) return;
+        if (doors.Count <= 0 || Location.Map is not { } map) return;
 
         //skip static side panels of center-only 3-tile doors — they don't toggle and sending an update for them
         //would make the client swap an irrelevant sprite that retail places freely alongside the actual door.
         foreach (var door in doors)
         {
-            var panel = Map.Doors[door];
+            var panel = map.Doors[door];
             if (!panel.Toggles) continue;
             SendDoorUpdate(door.Item1, door.Item2, panel.Closed, panel.IsLeftRight);
         }
@@ -1101,13 +1115,14 @@ public class User : Creature
     public List<(byte X, byte Y)> GetDoorsCoordsInView(Rectangle viewPort)
     {
         var ret = new List<(byte X, byte Y)>();
+        if (Location.Map is not { } map) return ret;
 
         for (var x = viewPort.X; x < viewPort.X + viewPort.Width; x++)
             for (var y = viewPort.Y; y < viewPort.Y + viewPort.Height; y++)
             {
                 var coords = ((byte)x, (byte)y);
                 ;
-                if (Map.Doors.ContainsKey(coords)) ret.Add(coords);
+                if (map.Doors.ContainsKey(coords)) ret.Add(coords);
             }
 
         return ret;
@@ -1222,7 +1237,8 @@ public class User : Creature
 
     internal void UseSkill(byte slot)
     {
-        if (!Map.AllowCasting)
+        if (Location.Map is not { } map) return;
+        if (!map.AllowCasting)
             if (!AuthInfo.IsPrivileged)
             {
                 SendSystemMessage("You can't use that here.");
@@ -1273,7 +1289,8 @@ public class User : Creature
 
     internal void UseSpell(byte slot, uint target = 0)
     {
-        if (!Map.AllowCasting)
+        if (Location.Map is not { } map) return;
+        if (!map.AllowCasting)
             if (!AuthInfo.IsPrivileged)
             {
                 SendSystemMessage("You can't cast that here.");
@@ -1292,7 +1309,7 @@ public class User : Creature
             return;
         }
 
-        var targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(predicate: x => x.Id == target) ?? null;
+        var targetCreature = map.EntityTree.OfType<Creature>().SingleOrDefault(predicate: x => x.Id == target) ?? null;
 
         if (bookSlot.OnCooldown)
         {
@@ -1302,7 +1319,7 @@ public class User : Creature
 
         if (bookSlot.Castable.Intents[0].UseType == SpellUseType.Target)
         {
-            if (targetCreature == null || targetCreature.Map != Map)
+            if (targetCreature == null || targetCreature.Location.Map != Location.Map)
                 return;
 
             if (Distance(targetCreature) > Game.ActiveConfiguration.Constants.PlayerMaxCastDistance)
@@ -1445,7 +1462,8 @@ public class User : Creature
         HairStyle = hairStyle;
         SendUpdateToUser();
 
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+        if (Location.Map is not { } map) return;
+        foreach (var obj in map.EntityTree.GetObjects(GetViewport()))
         {
             obj.AoiEntry(this);
             AoiEntry(obj);
@@ -1457,7 +1475,8 @@ public class User : Creature
         HairColor = (byte)itemColor;
         SendUpdateToUser();
 
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+        if (Location.Map is not { } map) return;
+        foreach (var obj in map.EntityTree.GetObjects(GetViewport()))
         {
             obj.AoiEntry(this);
             AoiEntry(obj);
@@ -1862,21 +1881,22 @@ public class User : Creature
 
     public User? GetFacingUser()
     {
+        if (Location.Map is not { } map) return null;
         List<VisibleObject> contents;
 
         switch (Direction)
         {
             case Direction.North:
-                contents = Map.GetTileContents(X, Y - 1);
+                contents = map.GetTileContents(X, Y - 1);
                 break;
             case Direction.South:
-                contents = Map.GetTileContents(X, Y + 1);
+                contents = map.GetTileContents(X, Y + 1);
                 break;
             case Direction.West:
-                contents = Map.GetTileContents(X - 1, Y);
+                contents = map.GetTileContents(X - 1, Y);
                 break;
             case Direction.East:
-                contents = Map.GetTileContents(X + 1, Y);
+                contents = map.GetTileContents(X + 1, Y);
                 break;
             default:
                 contents = new List<VisibleObject>();
@@ -1893,27 +1913,28 @@ public class User : Creature
     public List<VisibleObject> GetFacingObjects(int distance = 1)
     {
         var contents = new List<VisibleObject>();
+        if (Location.Map is not { } map) return contents;
 
         switch (Direction)
         {
             case Direction.North:
                 {
-                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y - i));
+                    for (var i = 1; i <= distance; i++) contents.AddRange(map.GetTileContents(X, Y - i));
                 }
                 break;
             case Direction.South:
                 {
-                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X, Y + i));
+                    for (var i = 1; i <= distance; i++) contents.AddRange(map.GetTileContents(X, Y + i));
                 }
                 break;
             case Direction.West:
                 {
-                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X - i, Y));
+                    for (var i = 1; i <= distance; i++) contents.AddRange(map.GetTileContents(X - i, Y));
                 }
                 break;
             case Direction.East:
                 {
-                    for (var i = 1; i <= distance; i++) contents.AddRange(Map.GetTileContents(X + i, Y));
+                    for (var i = 1; i <= distance; i++) contents.AddRange(map.GetTileContents(X + i, Y));
                 }
                 break;
             default:
@@ -1926,6 +1947,7 @@ public class User : Creature
 
     public override bool Walk(Direction direction)
     {
+        if (Location.Map is not { } map) return false;
         int oldX = X, oldY = Y, newX = X, newY = Y;
         var arrivingViewport = Rectangle.Empty;
         var departingViewport = Rectangle.Empty;
@@ -1984,28 +2006,28 @@ public class User : Creature
                 break;
         }
 
-        Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
-        Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
-        Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
+        map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
+        map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
+        map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
 
         // Now that we know where we are going, perform some sanity checks.
         // Is the player trying to walk into a wall, or off the map?
 
-        if (newX > Map.X || newY > Map.Y || newX < 0 || newY < 0)
+        if (newX > map.X || newY > map.Y || newX < 0 || newY < 0)
         {
             Refresh();
             return false;
         }
         // Allow a user to walk into walls, if and only if collisions are disabled (implies privileged user)
 
-        if (Map.IsWall(newX, newY) && !CollisionsDisabled)
+        if (map.IsWall(newX, newY) && !CollisionsDisabled)
         {
             Refresh();
             return false;
         }
 
         // Is the player trying to walk into an occupied tile?
-        foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
+        foreach (var obj in map.GetTileContents((byte)newX, (byte)newY))
         {
             GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
             if (obj is Creature)
@@ -2079,7 +2101,7 @@ public class User : Creature
         // Objects in the arriving viewport receive a "show to" (0x33) packet
         // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
-        foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
+        foreach (var obj in map.EntityTree.GetObjects(commonViewport))
         {
             if (obj != this && obj is User)
             {
@@ -2102,13 +2124,13 @@ public class User : Creature
             }
         }
 
-        foreach (var obj in Map.EntityTree.GetObjects(arrivingViewport))
+        foreach (var obj in map.EntityTree.GetObjects(arrivingViewport))
         {
             obj.AoiEntry(this);
             AoiEntry(obj);
         }
 
-        foreach (var obj in Map.EntityTree.GetObjects(departingViewport))
+        foreach (var obj in map.EntityTree.GetObjects(departingViewport))
         {
             obj.AoiDeparture(this);
             AoiDeparture(obj);
@@ -2126,7 +2148,7 @@ public class User : Creature
                 reactor.OnLeave(this);
 
         HasMoved = true;
-        Map.EntityTree.Move(this);
+        map.EntityTree.Move(this);
         return true;
     }
 
@@ -2250,7 +2272,10 @@ public class User : Creature
         if (!Inventory.IsFull)
             return AddItem(itemObject, Inventory.FindEmptySlot(), updateWeight);
         SendSystemMessage("You cannot carry any more items.");
-        Map.Insert(itemObject, X, Y);
+        if (Location.Map is { } map)
+            map.Insert(itemObject, X, Y);
+        else
+            GameLog.UserActivityError("{Name}: AddItem: no map to drop {Item}, item lost", Name, itemObject.Name);
         return false;
     }
 
@@ -2261,7 +2286,11 @@ public class User : Creature
         if (itemObject.Weight + CurrentWeight > MaximumWeight && !itemObject.Bound)
         {
             SendSystemMessage("It's too heavy.");
-            Map.Insert(itemObject, X, Y);
+            if (Location.Map is { } map)
+                map.Insert(itemObject, X, Y);
+            else
+                GameLog.UserActivityError("{Name}: AddItem: no map to drop {Item}, item lost", Name,
+                    itemObject.Name);
             return false;
         }
 
@@ -2277,7 +2306,11 @@ public class User : Creature
                 itemObject.Count = inventoryItem.Count + itemObject.Count - inventoryItem.MaximumStack;
                 inventoryItem.Count = inventoryItem.MaximumStack;
                 SendSystemMessage(string.Format("You can't carry any more {0}", itemObject.Name));
-                Map.Insert(itemObject, X, Y);
+                if (Location.Map is { } map)
+                    map.Insert(itemObject, X, Y);
+                else
+                    GameLog.UserActivityError("{Name}: AddItem: no map to drop {Item}, item lost", Name,
+                        itemObject.Name);
                 return false;
             }
 
@@ -2295,7 +2328,11 @@ public class User : Creature
         if (!Inventory.Insert(slot, itemObject))
         {
             GameLog.DebugFormat("Slot was invalid or not null");
-            Map.Insert(itemObject, X, Y);
+            if (Location.Map is { } map)
+                map.Insert(itemObject, X, Y);
+            else
+                GameLog.UserActivityError("{Name}: AddItem: no map to drop {Item}, item lost", Name,
+                    itemObject.Name);
             return false;
         }
 
@@ -2565,13 +2602,14 @@ public class User : Creature
 
     public override void Refresh()
     {
+        if (Location.Map is not { } map) return;
         SendMapInfo();
         SendLocation();
         SendUpdateToUser();
         SendRefresh();
 
 
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+        foreach (var obj in map.EntityTree.GetObjects(GetViewport()))
         {
             AoiEntry(obj);
             obj.AoiEntry(this);
@@ -4329,7 +4367,9 @@ public class User : Creature
             SendInventory();
             prompt = merchant.GetLocalString("send_parcel_success");
 
-            var guidRef = World.WorldState.GetGuidReference(recipient);
+            // TryGetAuthInfo succeeded above (prompt is still empty), which guarantees the
+            // recipient's guid reference exists and info is non-null.
+            var guidRef = World.WorldState.GetGuidReference(recipient)!;
             var parcelStore = World.WorldState.GetOrCreate<ParcelStore>(guidRef);
             var recipientMailbox = World.WorldState.GetOrCreate<Mailbox>(guidRef);
             var mboxString = merchant.GetLocalString("send_parcel_mailbox_message",
@@ -4339,7 +4379,7 @@ public class User : Creature
                 merchant.GetLocalString("send_parcel_mailbox_subject", ("$NAME", Name)), mboxString));
             parcelStore.AddItem(Name, itemObj.Name, quantity);
             parcelStore.Save();
-            if (info.IsLoggedIn && Game.World.TryGetActiveUser(recipient, out var recipientUser))
+            if (info!.IsLoggedIn && Game.World.TryGetActiveUser(recipient, out var recipientUser))
             {
                 recipientUser.SendSystemMessage(merchant.GetLocalString("send_parcel_system_msg",
                     ("$NAME", Name)));
@@ -5419,7 +5459,8 @@ public class User : Creature
     }
 
 
-    public bool IsInViewport(VisibleObject obj) => Map.EntityTree.GetObjects(GetViewport()).Contains(obj);
+    public bool IsInViewport(VisibleObject obj) =>
+        Location.Map is { } map && map.EntityTree.GetObjects(GetViewport()).Contains(obj);
 
 
     public void SendSystemMessage(string msg)

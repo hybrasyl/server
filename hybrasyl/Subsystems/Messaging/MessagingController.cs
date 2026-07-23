@@ -81,7 +81,7 @@ internal static class MessagingController
         }
         else
         {
-            if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
+            if (Game.World.WorldState.TryGetValueByIndex<Board>(boardId, out var board))
             {
                 store = board;
                 displayname = board.DisplayName;
@@ -123,7 +123,7 @@ internal static class MessagingController
         }
         else
         {
-            if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
+            if (Game.World.WorldState.TryGetValueByIndex<Board>(boardId, out var board))
             {
                 if (!board.CheckAccessLevel(userRef.UserName, BoardAccessLevel.Read))
                     return new MessagingResponse
@@ -247,7 +247,7 @@ internal static class MessagingController
                 response = "The message could not be found.";
             }
         }
-        else if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
+        else if (Game.World.WorldState.TryGetValueByIndex<Board>(boardId, out var board))
         {
             if (Game.World.WorldState.TryGetAuthInfo(userRef.UserName, out var ainfo))
             {
@@ -426,7 +426,7 @@ internal static class MessagingController
         }
         else if (success)
         {
-            if (Game.World.WorldState.TryGetValueByIndex(boardId, out Board board))
+            if (Game.World.WorldState.TryGetValueByIndex<Board>(boardId, out var board))
             {
                 if (Game.World.WorldState.TryGetAuthInfo(senderRef.UserName, out var ainfo))
                 {
@@ -475,12 +475,11 @@ internal static class MessagingController
     {
         var response = string.Empty;
         var success = false;
-        Board board;
         var messageId = postId - 1;
 
         if (Game.World.WorldState.TryGetAuthInfo(userRef.UserName, out var ainfo) && ainfo.IsPrivileged)
         {
-            if (Game.World.WorldState.TryGetValueByIndex(boardId, out board))
+            if (Game.World.WorldState.TryGetValueByIndex<Board>(boardId, out var board))
             {
                 if (board.ToggleHighlight((short)messageId))
                 {

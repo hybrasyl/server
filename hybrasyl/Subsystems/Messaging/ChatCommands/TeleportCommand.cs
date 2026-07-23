@@ -35,21 +35,22 @@ internal class TeleportCommand : ChatCommand
         if (args.Length == 1)
         {
             // Either user or npc
-            if (Game.World.WorldState.ContainsKey<User>(args[0]))
+            if (Game.World.WorldState.TryGetValue<User>(args[0], out var target))
             {
-                var target = Game.World.WorldState.Get<User>(args[0]);
                 user.Teleport(target.Location.MapId, target.Location.X, target.Location.Y);
                 return Success(
-                    $"Teleported to {target.Name} - {target.Map.Name} ({target.Location.X},{target.Location.Y})");
+                    $"Teleported to {target.Name} - {target.Location.MapName} ({target.Location.X},{target.Location.Y})");
             }
 
-            if (Game.World.WorldState.TryGetValue(args[0], out Merchant merchant))
+            if (Game.World.WorldState.TryGetValue<Merchant>(args[0], out var merchant))
             {
-                var (x, y) = merchant.Map.FindEmptyTile((byte) (merchant.Map.X / 2), (byte) (merchant.Map.Y / 2));
+                if (merchant.Location.Map is not { } merchantMap)
+                    return Fail($"Sorry, {merchant.Name} is not on a map.");
+                var (x, y) = merchantMap.FindEmptyTile((byte) (merchantMap.X / 2), (byte) (merchantMap.Y / 2));
                 if (x > 0 && y > 0)
                 {
-                    user.Teleport(merchant.Map.Id, x, y);
-                    return Success($"Teleported to {merchant.Name} - {merchant.Map.Name} ({x}, {y})");
+                    user.Teleport(merchantMap.Id, x, y);
+                    return Success($"Teleported to {merchant.Name} - {merchantMap.Name} ({x}, {y})");
                 }
 
                 return Fail("Sorry, something went wrong (empty tile could not be found..?)");
@@ -61,12 +62,12 @@ internal class TeleportCommand : ChatCommand
         ushort? mapnum = null;
         if (ushort.TryParse(args[0], out var num))
             mapnum = num;
-        else if (Game.World.WorldState.TryGetValueByIndex(args[0], out MapObject targetMap))
+        else if (Game.World.WorldState.TryGetValueByIndex<MapObject>(args[0], out var targetMap))
             mapnum = targetMap.Id;
         else
             return Fail("Unknown map id or map name");
 
-        if (Game.World.WorldState.TryGetValue(mapnum, out MapObject map))
+        if (Game.World.WorldState.TryGetValue<MapObject>(mapnum, out var map))
         {
             if (byte.TryParse(args[1], out var x) && byte.TryParse(args[2], out var y))
             {

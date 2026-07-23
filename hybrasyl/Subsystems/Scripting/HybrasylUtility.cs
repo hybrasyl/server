@@ -139,8 +139,7 @@ public static class HybrasylUtility
     /// <returns></returns>
     public static bool SendMail(string to, string from, string subject, string body)
     {
-        User userObj;
-        if (!Game.World.TryGetActiveUser(to, out userObj) &&
+        if (!Game.World.TryGetActiveUser(to, out var userObj) &&
             !Game.World.WorldState.TryGetUser(to, out userObj))
             return false;
 
@@ -163,8 +162,7 @@ public static class HybrasylUtility
     /// <returns></returns>
     public static bool SendParcel(string to, string from, string itemName, int quantity = 1)
     {
-        User userObj;
-        if (!Game.World.TryGetActiveUser(to, out userObj) &&
+        if (!Game.World.TryGetActiveUser(to, out var userObj) &&
             !Game.World.WorldState.TryGetUser(to, out userObj))
             return false;
         if (!Game.World.WorldData.TryGetValueByIndex(itemName, out Item _))

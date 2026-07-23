@@ -152,7 +152,8 @@ public class UserGroup
          */
     private List<User> MembersWithinRange(User user)
     {
-        var inRange = user.Map.EntityTree.GetObjects(user.GetViewport()).OfType<User>();
+        if (user.Location.Map is not { } map) return new List<User>();
+        var inRange = map.EntityTree.GetObjects(user.GetViewport()).OfType<User>();
 
         return inRange.Intersect(Members).ToList();
     }

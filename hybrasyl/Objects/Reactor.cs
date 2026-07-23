@@ -63,7 +63,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         CreatedAt = DateTime.Now;
         Description = reactor.Description;
         AllowDead = reactor.AllowDead;
-        Map = map; 
+        Location.Map = map; 
         Init();
     }
 
@@ -72,7 +72,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
     {
         X = x;
         Y = y;
-        Map = map;
+        Location.Map = map;
         ScriptName = reactor.Script;
         Blocking = reactor.Blocking;
         CreatedAt = DateTime.Now;
@@ -145,7 +145,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         DialogSequences = new List<DialogSequence>();
         CreatedAt = DateTime.Now;
         Expiration = DateTime.MaxValue;
-        Name = $"{Map.Name}@{X},{Y}";
+        Name = $"{Location.MapName}@{X},{Y}";
         if (ExpirationSeconds <= 0) return;
         Expiration = CreatedAt.AddSeconds(ExpirationSeconds);
         Task.Run(OnExpiration);
@@ -193,7 +193,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         }
         else
         {
-            GameLog.Error("{Map}: reactor at {X},{Y}: reactor script {Script} not found!", Map, X, Y, ScriptName);
+            GameLog.Error("{Map}: reactor at {X},{Y}: reactor script {Script} not found!", Location.Map, X, Y, ScriptName);
             return;
         }
 

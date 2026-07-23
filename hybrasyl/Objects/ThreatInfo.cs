@@ -28,7 +28,9 @@ namespace Hybrasyl.Objects;
 public class ThreatEntry(Guid id) : IComparable
 {
     public Guid Target { get; set; } = id;
-    public Creature TargetObject => Game.World.WorldState.GetWorldObject<Creature>(Target);
+
+    // Null when the target has left the world (e.g. logout) before its threat entry is cleaned up.
+    public Creature? TargetObject => Game.World.WorldState.GetWorldObject<Creature>(Target);
     public uint Threat { get; set; }
     public bool IsHealer => TotalHeals > 0;
     public bool IsCaster => TotalCasts > 0;
@@ -61,7 +63,7 @@ public class ThreatEntry(Guid id) : IComparable
 public class ThreatInfo(Guid id)
 {
     public Guid Owner { get; set; } = id;
-    public Creature OwnerObject => Game.World.WorldState.GetWorldObject<Creature>(Owner);
+    public Creature? OwnerObject => Game.World.WorldState.GetWorldObject<Creature>(Owner);
 
     // ThreatTableByThreat sorts ascending, so Last() is the highest threat.
     public Creature? HighestThreat => ThreatTableByThreat.Count == 0
@@ -101,26 +103,26 @@ public class ThreatInfo(Guid id)
     public List<Creature> GetTargets(CreatureTargetPriority priority)
     {
         var ret = new List<Creature>();
-        if (OwnerObject == null)
+        if (OwnerObject is not { } owner || owner.Location.Map is null)
             return ret;
         var monstersInViewport =
-            OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList();
-        if (OwnerObject.Condition.Charmed)
+            owner.Location.Map.EntityTree.GetObjects(owner.GetViewport()).OfType<Monster>().ToList();
+        if (owner.Condition.Charmed)
         {
-            switch (OwnerObject.LastTarget)
+            switch (owner.LastTarget)
             {
                 // If our immediate target is grouped, add every monster they've collectively targeted to our target list,
                 // otherwise add their last target - but make sure not to add ourselves
                 case User u1:
                     if (u1.Group != null)
                         ret.AddRange(u1.Group.Members.Where(predicate: x =>
-                            x.LastTarget != null && x.LastTarget != OwnerObject));
-                    else if (u1.LastTarget != null && u1.LastTarget != OwnerObject)
+                            x.LastTarget != null && x.LastTarget != owner));
+                    else if (u1.LastTarget != null && u1.LastTarget != owner)
                         ret.Add(u1.LastTarget);
                     break;
                 // If we are already targeting a monster, continue to target it
-                case Monster:
-                    ret.Add(OwnerObject.LastTarget);
+                case Monster m:
+                    ret.Add(m);
                     break;
                 // Add everything targeting the last player to use a spell on this monster
                 default:
@@ -135,7 +137,7 @@ public class ThreatInfo(Guid id)
             if (ret.Count == 0 || (ret.Count == 1 && ret.First().Stats.Hp <= 0))
                 ret.AddRange(monstersInViewport);
             // Order by distance, take closest first, make sure to not target ourselves
-            return ret.OrderBy(keySelector: x => x.Distance(OwnerObject)).Where(predicate: x => x.Guid != Owner && x.Stats.Hp > 0)
+            return ret.OrderBy(keySelector: x => x.Distance(owner)).Where(predicate: x => x.Guid != Owner && x.Stats.Hp > 0)
                 .ToList();
         }
 
@@ -146,102 +148,105 @@ public class ThreatInfo(Guid id)
         switch (priority)
         {
             case CreatureTargetPriority.HighThreat:
-                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.Last().Value));
+                if (Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.Last().Value) is { } high)
+                    ret.Add(high);
                 break;
             case CreatureTargetPriority.LowThreat:
-                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
+                if (Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value) is { } low)
+                    ret.Add(low);
                 break;
             case CreatureTargetPriority.Attacker:
                 entry = ThreatTableByThreat.Keys.MaxBy(keySelector: x => x.SecondsSinceLastMelee);
-                if (entry != null)
-                    ret.Add(entry.TargetObject);
+                if (entry?.TargetObject is { } attackerTarget)
+                    ret.Add(attackerTarget);
                 break;
             case CreatureTargetPriority.AttackingCaster:
                 entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsCaster)
                     .MaxBy(keySelector: x => x.SecondsSinceLastNonHealCast);
-                if (entry != null)
-                    ret.Add(entry.TargetObject);
+                if (entry?.TargetObject is { } casterTarget)
+                    ret.Add(casterTarget);
                 break;
             case CreatureTargetPriority.AttackingGroup:
                 entry = ThreatTableByThreat.Keys.MaxBy(keySelector: x => x.SecondsSinceLastMelee);
-                if (entry != null)
-                    ret.Add(entry.TargetObject);
+                if (entry?.TargetObject is { } groupTarget)
+                    ret.Add(groupTarget);
                 break;
             case CreatureTargetPriority.AttackingHealer:
                 entry = ThreatTableByThreat.Keys.Where(predicate: x => x.IsHealer)
                     .MaxBy(keySelector: x => x.SecondsSinceLastHeal);
-                if (entry != null)
-                    ret.Add(entry.TargetObject);
+                if (entry?.TargetObject is { } healerTarget)
+                    ret.Add(healerTarget);
                 break;
             case CreatureTargetPriority.AllAllies:
-                ret.AddRange(OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>()
+                ret.AddRange(owner.Location.Map.EntityTree.GetObjects(owner.GetViewport()).OfType<Monster>()
                     .Select(selector: x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.RandomAlly:
-                if (Extensions.EnumerableExtension.PickRandom(OwnerObject.Map.EntityTree
-                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>()) is { } randomAlly)
+                if (Extensions.EnumerableExtension.PickRandom(owner.Location.Map.EntityTree
+                        .GetObjects(owner.GetViewport()).OfType<Monster>()) is { } randomAlly)
                     ret.Add(randomAlly);
                 break;
             case CreatureTargetPriority.RandomAttacker:
-                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(Extensions.EnumerableExtension
-                    .PickRandom(ThreatTableByCreature).Key));
+                if (Game.World.WorldState.GetWorldObject<Creature>(Extensions.EnumerableExtension
+                        .PickRandom(ThreatTableByCreature).Key) is { } randomAttacker)
+                    ret.Add(randomAttacker);
                 break;
             case CreatureTargetPriority.AllyWithLowestHp:
 
-                if (OwnerObject.Map.EntityTree
-                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Hp)
+                if (owner.Location.Map.EntityTree
+                        .GetObjects(owner.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Hp)
                         .FirstOrDefault() is { } lowestHpAlly)
                     ret.Add(lowestHpAlly);
                 break;
             case CreatureTargetPriority.AllyWithLowestMp:
 
-                if (OwnerObject.Map.EntityTree
-                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Mp)
+                if (owner.Location.Map.EntityTree
+                        .GetObjects(owner.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Mp)
                         .FirstOrDefault() is { } lowestMpAlly)
                     ret.Add(lowestMpAlly);
                 break;
             case CreatureTargetPriority.AllyWithHighestHp:
 
-                if (OwnerObject.Map.EntityTree
-                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Hp)
+                if (owner.Location.Map.EntityTree
+                        .GetObjects(owner.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Hp)
                         .FirstOrDefault() is { } highestHpAlly)
                     ret.Add(highestHpAlly);
                 break;
             case CreatureTargetPriority.AllyWithHighestMp:
 
-                if (OwnerObject.Map.EntityTree
-                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Mp)
+                if (owner.Location.Map.EntityTree
+                        .GetObjects(owner.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Mp)
                         .FirstOrDefault() is { } highestMpAlly)
                     ret.Add(highestMpAlly);
                 break;
             case CreatureTargetPriority.AllyWithLessThanMaxHp:
 
-                ret.AddRange(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.Stats.Hp < x.Stats.MaximumHp)
+                ret.AddRange(owner.Location.Map.EntityTree
+                    .GetObjects(owner.GetViewport()).OfType<Monster>().Where(x => x.Stats.Hp < x.Stats.MaximumHp)
                     .OrderBy(x => x.Stats.Hp).Select(x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.AllyWithLessThanMaxMp:
 
-                ret.AddRange(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.Stats.Mp < x.Stats.MaximumMp)
+                ret.AddRange(owner.Location.Map.EntityTree
+                    .GetObjects(owner.GetViewport()).OfType<Monster>().Where(x => x.Stats.Mp < x.Stats.MaximumMp)
                     .OrderBy(x => x.Stats.Mp).Select(x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.AllyWithStatusConditions:
-                ret.AddRange(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.CurrentStatuses.Count > 0)
+                ret.AddRange(owner.Location.Map.EntityTree
+                    .GetObjects(owner.GetViewport()).OfType<Monster>().Where(x => x.CurrentStatuses.Count > 0)
                     .OrderBy(x => x.Stats.Mp).Select(x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.AllyWithNoStatusConditions:
-                ret.AddRange(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().Where(x => x.CurrentStatuses.Count == 0)
+                ret.AddRange(owner.Location.Map.EntityTree
+                    .GetObjects(owner.GetViewport()).OfType<Monster>().Where(x => x.CurrentStatuses.Count == 0)
                     .OrderBy(x => x.Stats.Mp).Select(x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.Self:
-                ret.Add(OwnerObject);
+                ret.Add(owner);
                 break;
         }
 
-        GameLog.Debug("{Name}: priority {Priority}, picked {Target} as target", OwnerObject.Name, priority, ret.FirstOrDefault()?.Name ?? "null");
+        GameLog.Debug("{Name}: priority {Priority}, picked {Target} as target", owner.Name, priority, ret.FirstOrDefault()?.Name ?? "null");
         return ret;
     }
 

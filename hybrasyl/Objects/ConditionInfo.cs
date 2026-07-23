@@ -49,7 +49,7 @@ public class ConditionInfo
         {
             var previous = _Conditions;
             _Conditions = value;
-            if (User?.Map == null) return;
+            if (User?.Location.Map == null) return;
             Game.World.EnqueueUserUpdate(User.Guid);
             if ((value.HasFlag(CreatureCondition.Invisible) && !previous.HasFlag(CreatureCondition.Invisible)) ||
                 (!value.HasFlag(CreatureCondition.Invisible) && previous.HasFlag(CreatureCondition.Invisible)))

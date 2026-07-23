@@ -216,13 +216,14 @@ public class ItemObject : VisibleObject, IInteractable
 
     public virtual List<DialogSequence> DialogSequences
     {
-        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id).Sequences;
+        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id)?.Sequences ?? new List<DialogSequence>();
         set => throw new NotImplementedException();
     }
 
     public virtual Dictionary<string, DialogSequence> SequenceIndex
     {
-        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id).Index;
+        get => Game.World.WorldState.Get<HybrasylInteractable>(Template.Id)?.Index ??
+               new Dictionary<string, DialogSequence>();
         set => throw new NotImplementedException();
     }
 

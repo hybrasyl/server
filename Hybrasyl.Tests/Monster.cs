@@ -220,8 +220,8 @@ public class Monsters
         Assert.NotNull(castable);
         Assert.NotNull(castable);
         Game.World.Insert(bait);
-        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
-        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Fixture.TestUser.Location.Map!.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Location.Map, Fixture.TestUser.Location.Map);
 
         bait.BehaviorSet = behaviorSet;
 
@@ -269,8 +269,8 @@ public class Monsters
         Assert.NotNull(castable);
         Assert.NotNull(castable);
         Game.World.Insert(bait);
-        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
-        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Fixture.TestUser.Location.Map!.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Location.Map, Fixture.TestUser.Location.Map);
 
         bait.BehaviorSet = behaviorSet;
 
@@ -318,8 +318,8 @@ public class Monsters
         Assert.NotNull(castable);
         Assert.NotNull(castable);
         Game.World.Insert(bait);
-        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
-        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Fixture.TestUser.Location.Map!.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Location.Map, Fixture.TestUser.Location.Map);
 
         bait.BehaviorSet = behaviorSet;
 
@@ -371,8 +371,8 @@ public class Monsters
         Assert.NotNull(castable);
         Assert.NotNull(castable);
         Game.World.Insert(bait);
-        Fixture.TestUser.Map.Insert(bait, bait.X, bait.Y);
-        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Fixture.TestUser.Location.Map!.Insert(bait, bait.X, bait.Y);
+        Assert.Equal(bait.Location.Map, Fixture.TestUser.Location.Map);
 
         bait.BehaviorSet = behaviorSet;
 
@@ -457,8 +457,8 @@ public class Monsters
         };
 
         Assert.True(bait.IsHostile(Fixture.TestUser));
-        Fixture.TestUser.Map.InsertMonster(bait);
-        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Fixture.TestUser.Location.Map!.InsertMonster(bait);
+        Assert.Equal(bait.Location.Map, Fixture.TestUser.Location.Map);
         Assert.NotEmpty(bait.ThreatInfo.ThreatTableByCreature);
         bait.DetermineNextAction();
         Assert.NotNull(bait.NextAction);
@@ -486,8 +486,8 @@ public class Monsters
         };
 
         Assert.True(bait.IsHostile(Fixture.TestUser));
-        Fixture.TestUser.Map.InsertMonster(bait);
-        Assert.Equal(bait.Map, Fixture.TestUser.Map);
+        Fixture.TestUser.Location.Map!.InsertMonster(bait);
+        Assert.Equal(bait.Location.Map, Fixture.TestUser.Location.Map);
         Assert.NotEmpty(bait.ThreatInfo.ThreatTableByCreature);
         Assert.Equal(1, bait.Distance(Fixture.TestUser));
         bait.DetermineNextAction();

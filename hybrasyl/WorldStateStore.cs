@@ -28,6 +28,7 @@ using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -107,28 +108,27 @@ public class WorldStateStore
     }
 
     /// <summary>
-    ///     Given a type and a key, return the typed object matching the key, or a default value.
+    ///     Given a type and a key, return the typed object matching the key, or null if absent.
     /// </summary>
     /// <typeparam name="T">The type to be returned</typeparam>
     /// <param name="key">The key for the object</param>
-    /// <returns></returns>
-    // Returns default! when the key is absent despite the non-null signature. Callers must
-    // guard with ContainsKey/TryGetValue before dereferencing; an honest T? signature is
-    // deferred pending a caller audit.
-    public T Get<T>(dynamic key) where T : IStateStorable
+    /// <returns>The stored object, or null when the key is not present</returns>
+    public T? Get<T>(dynamic key) where T : IStateStorable
     {
-        if (_dataStore.ContainsKey(typeof(T))) return (T)_dataStore[typeof(T)][Sanitize(key)];
-        return default!;
+        if (_dataStore.TryGetValue(typeof(T), out var sub) && sub.TryGetValue((string)Sanitize(key), out var value))
+            return (T)value;
+        return default;
     }
 
-    public T GetWorldObject<T>(Guid guid) where T : WorldObject, IStateStorable =>
-        _indexByGuid.ContainsKey(guid) ? (T)_indexByGuid[guid] : null!;
+    public T? GetWorldObject<T>(Guid guid) where T : WorldObject, IStateStorable =>
+        _indexByGuid.TryGetValue(guid, out var obj) ? (T)obj : null;
 
-    public bool TryGetWorldObject<T>(Guid guid, out T obj) where T : WorldObject, IStateStorable
+    public bool TryGetWorldObject<T>(Guid guid, [MaybeNullWhen(false)] out T obj)
+        where T : WorldObject, IStateStorable
     {
-        obj = null!;
-        if (!_indexByGuid.ContainsKey(guid)) return false;
-        obj = (T)_indexByGuid[guid];
+        obj = default;
+        if (!_indexByGuid.TryGetValue(guid, out var found)) return false;
+        obj = (T)found;
         return true;
     }
 
@@ -146,31 +146,18 @@ public class WorldStateStore
     public T First<T>() where T : IStateStorable => (T)_dataStore[typeof(T)].First().Value;
 
     /// <summary>
-    ///     Given a type and a key, return the typed object matching the key in the subindex,
-    ///     or a default value.
-    /// </summary>
-    /// <typeparam name="T">The type to be returned</typeparam>
-    /// <param name="key">The index key for the object</param>
-    /// <returns>Found object</returns>
-    public T GetByIndex<T>(dynamic key) where T : IStateStorable
-    {
-        if (_index.ContainsKey(typeof(T))) return (T)_index[typeof(T)][Sanitize(key)];
-        return default!;
-    }
-
-    /// <summary>
     ///     Try to find a typed value in the store given a key.
     /// </summary>
     /// <typeparam name="T">The type to be returned</typeparam>
     /// <param name="key">The key</param>
     /// <param name="tresult">The out parameter which will contain the object, if found</param>
     /// <returns>True or false depending on whether or not item was found</returns>
-    public bool TryGetValue<T>(dynamic key, out T tresult) where T : IStateStorable
+    public bool TryGetValue<T>(dynamic key, [MaybeNullWhen(false)] out T tresult) where T : IStateStorable
     {
-        tresult = default!;
+        tresult = default;
         var sub = GetSubStore<T>();
-        if (!sub.ContainsKey(Sanitize(key))) return false;
-        tresult = (T)sub[Sanitize(key)];
+        if (!sub.TryGetValue((string)Sanitize(key), out var value)) return false;
+        tresult = (T)value;
         return true;
     }
 
@@ -181,14 +168,12 @@ public class WorldStateStore
     /// <param name="key">The index key</param>
     /// <param name="tresult">The out parameter which will contain the object, if found</param>
     /// <returns>True or false depending on whether or not item was found</returns>
-    public bool TryGetValueByIndex<T>(dynamic key, out T tresult) where T : IStateStorable
+    public bool TryGetValueByIndex<T>(dynamic key, [MaybeNullWhen(false)] out T tresult) where T : IStateStorable
     {
-        tresult = default!;
+        tresult = default;
         var sub = GetSubIndex<T>();
-        if (!sub.ContainsKey(Sanitize(key)))
-            //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
-            return false;
-        tresult = (T)sub[Sanitize(key)];
+        if (!sub.TryGetValue((object)Sanitize(key), out var value)) return false;
+        tresult = (T)value;
         return true;
     }
 
@@ -272,40 +257,39 @@ public class WorldStateStore
     /// <returns>The username or string.empty if not found</returns>
     public string GetNameByGuid(Guid guid)
     {
-        if (TryGetValue(guid, out GuidReference reference))
+        if (TryGetValue<GuidReference>(guid, out var reference))
             return reference.UserName;
         return string.Empty;
     }
 
     public Guid GetGuidByName(string name)
     {
-        if (TryGetValueByIndex(name, out GuidReference reference))
+        if (TryGetValueByIndex<GuidReference>(name, out var reference))
             return reference.UserGuid;
         // Does user exist?
         return TryGetUser(name, out var user) ? user.Guid : Guid.Empty;
     }
 
-    public bool TryGetSocialEvent(User name, out SocialEvent socialEvent)
+    public bool TryGetSocialEvent(User name, [NotNullWhen(true)] out SocialEvent? socialEvent)
     {
-        socialEvent = null!;
-        if (TryGetValue(name, out socialEvent))
+        if (TryGetValue<SocialEvent>(name, out socialEvent))
             return true;
-        if (TryGetValueByIndex(name.Map.Id, out socialEvent))
+        if (name.Location.Map is { } map && TryGetValueByIndex<SocialEvent>(map.Id, out socialEvent))
             return true;
+        socialEvent = null;
         return false;
     }
 
-    public bool TryGetAuthInfo(string name, out AuthInfo info)
+    public bool TryGetAuthInfo(string name, [NotNullWhen(true)] out AuthInfo? info)
     {
-        info = null!;
+        info = null;
         var guid = GetGuidByName(name);
 
         if (guid == Guid.Empty) return false;
-        if (TryGetValue(guid, out info)) return true;
-        if (TryGetValueByIndex(name, out info)) return true;
+        if (TryGetValue<AuthInfo>(guid, out info)) return true;
+        if (TryGetValueByIndex<AuthInfo>(name, out info)) return true;
         // Fall back to loading from Redis
         info = GetOrCreateByGuid<AuthInfo>(guid, name);
-        if (info == null) return false;
         if (!info.IsLoggedIn) return true;
         // If we loaded from Redis, the user (should not) be logged in, so reset state
         info.CurrentState = UserState.Disconnected;
@@ -323,7 +307,7 @@ public class WorldStateStore
             throw new ArgumentException($"Type {type} is not a Guid referenced Redis type");
 
         // Check for existence of object locally first
-        if (TryGetValue(guid, out T existing))
+        if (TryGetValue<T>(guid, out var existing))
             return existing;
 
         // Check for existence of object in Redis
@@ -349,7 +333,7 @@ public class WorldStateStore
     public Board GetBoard(string name)
     {
         Board newBoard;
-        if (ContainsKey<Board>(name)) return Get<Board>(name);
+        if (ContainsKey<Board>(name)) return Get<Board>(name)!;
         var newBoardId = Values<Board>().Count() + 1;
         // Check redis first, then fall back to creation
         if (Redis.KeyExists(Board.GetStorageKey(name)))
@@ -367,23 +351,21 @@ public class WorldStateStore
         }
 
         SetWithIndex(name, newBoard, newBoard.Id);
-        return Get<Board>(name);
+        return Get<Board>(name)!;
     }
 
-    // Returns null! when the user is unknown despite the non-null signature; callers deref
-    // directly. An honest T? signature is deferred with the other store getters.
-    public GuidReference GetGuidReference(string name)
+    public GuidReference? GetGuidReference(string name)
     {
-        if (TryGetValueByIndex(name, out GuidReference reference))
+        if (TryGetValueByIndex<GuidReference>(name, out var reference))
             return reference;
         if (TryGetUser(name, out var userobj))
             return GetGuidReference(userobj);
-        return null!;
+        return null;
     }
 
     public GuidReference GetGuidReference(User userObj)
     {
-        if (TryGetValue(userObj.Guid, out GuidReference reference))
+        if (TryGetValue<GuidReference>(userObj.Guid, out var reference))
             return reference;
 
         var guidRef = new GuidReference(userObj.Name)
@@ -393,12 +375,12 @@ public class WorldStateStore
         };
 
         SetWithIndex(userObj.Guid, guidRef, userObj.Name);
-        return Get<GuidReference>(userObj.Guid);
+        return Get<GuidReference>(userObj.Guid)!;
     }
 
-    public bool TryGetUser(string name, out User userobj)
+    public bool TryGetUser(string name, [NotNullWhen(true)] out User? userobj)
     {
-        userobj = null!;
+        userobj = null;
         try
         {
             var loaded = Redis.Get<User>(User.GetStorageKey(name));

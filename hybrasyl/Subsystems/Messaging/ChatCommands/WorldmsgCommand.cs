@@ -29,7 +29,9 @@ internal class WorldmsgCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        user.Map.Message = args[0];
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
+        map.Message = args[0];
         foreach (var connectedUser in Game.World.WorldState.Values<User>())
             connectedUser.SendWorldMessage(user.Name, args[0]);
         return Success("World message sent.");

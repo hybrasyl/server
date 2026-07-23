@@ -303,7 +303,7 @@ public class RedisSerialization
         finally
         {
             // A user left standing on the shared test map draws aggro in the monster tests
-            user.Map.Remove(user);
+            user.Location.Map!.Remove(user);
             Game.World.Remove(user);
         }
     }
@@ -577,7 +577,7 @@ public class RedisSerialization
         user.Stats.BaseMr = 1.5;
         user.Stats.Experience = 123456;
         var snapshotId = ((IStatSnapshotProvider)user).CreateStatSnapshot();
-        Assert.True(Game.World.WorldState.TryGetValue(snapshotId, out CreatureSnapshot snapshot),
+        Assert.True(Game.World.WorldState.TryGetValue<CreatureSnapshot>(snapshotId, out var snapshot),
             $"snapshot {snapshotId} not in Game.World.WorldState; " +
             $"user.World == Game.World: {ReferenceEquals(((IStatSnapshotProvider)user).World, Game.World)}");
         var serializedStats = RedisJsonSerializer.Serialize(user.Stats);

@@ -29,7 +29,7 @@ internal class ClearCookieCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        if (Game.World.WorldState.TryGetValue(args[0], out User target))
+        if (Game.World.WorldState.TryGetValue<User>(args[0], out var target))
         {
             if (target.HasCookie(args[1]))
             {

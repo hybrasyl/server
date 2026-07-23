@@ -133,4 +133,31 @@ public class Threat(HybrasylFixture fixture)
         Assert.Equal(Fixture.SecondTestUser.Guid, highest[0].Guid);
         Assert.Equal(Fixture.TestUser.Guid, lowest[0].Guid);
     }
+
+    // A threat entry can outlive its target (logout/despawn before threat cleanup);
+    // targeting must skip departed targets rather than emit a null Creature.
+    [Fact]
+    public void GetTargetsSkipsDepartedTarget()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.ResetSecondTestUserStats();
+        RegisterUsers();
+
+        Assert.True(Game.World.WorldData.TryGetValue<Creature>("Gabbaghoul", out var monsterXml),
+            "Gabbaghoul test monster not found");
+        var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99) { X = 45, Y = 45 };
+        Fixture.Map.InsertMonster(monster);
+
+        monster.ThreatInfo.AddNewThreat(Fixture.TestUser, 1);
+        monster.ThreatInfo.AddNewThreat(Fixture.SecondTestUser, 50);
+        Game.World.WorldState.RemoveWorldObject<User>(Fixture.SecondTestUser.Guid);
+
+        var highest = monster.ThreatInfo.GetTargets(CreatureTargetPriority.HighThreat);
+        var lowest = monster.ThreatInfo.GetTargets(CreatureTargetPriority.LowThreat);
+
+        Assert.Empty(highest);
+        Assert.Single(lowest);
+        Assert.Equal(Fixture.TestUser.Guid, lowest[0].Guid);
+        Assert.Null(monster.ThreatInfo.HighestThreat);
+    }
 }

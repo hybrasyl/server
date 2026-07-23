@@ -33,5 +33,5 @@ public record CreatureSnapshot : IStateStorable
 
     public bool IsPlayer => GetUserObject() != null;
 
-    public User? GetUserObject() => Game.World.WorldState.TryGetWorldObject(CreatureGuid, out User user) ? user : null;
+    public User? GetUserObject() => Game.World.WorldState.TryGetWorldObject<User>(CreatureGuid, out var user) ? user : null;
 }

@@ -53,7 +53,7 @@ public class Exchange
     }
 
     public bool ConditionsValid =>
-        _source.Map == _target.Map && _source.IsInViewport(_target) &&
+        _source.Location.Map == _target.Location.Map && _source.IsInViewport(_target) &&
         _target.IsInViewport(_source) &&
         _source.Condition.InExchange &&
         _target.Condition.InExchange &&
@@ -62,7 +62,7 @@ public class Exchange
     public static bool StartConditionsValid(User source, User target, out string errorMessage)
     {
         errorMessage = string.Empty;
-        var locationCheck = source.Map == target.Map && source.IsInViewport(target) &&
+        var locationCheck = source.Location.Map == target.Location.Map && source.IsInViewport(target) &&
                             target.IsInViewport(source) && target.Distance(source) <=
                             Game.ActiveConfiguration.Constants.PlayerExchangeDistance;
 

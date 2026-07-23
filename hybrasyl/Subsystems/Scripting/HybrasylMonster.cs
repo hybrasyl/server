@@ -31,7 +31,8 @@ public class HybrasylMonster : HybrasylWorldObject
     public HybrasylMonster(Monster monster) : base(monster)
     {
         World = new HybrasylWorld(monster.World);
-        Map = new HybrasylMap(monster.Map);
+        // Script wrappers are only constructed for in-world objects.
+        Map = new HybrasylMap(monster.Location.Map!);
     }
 
     // This wrapper is only ever constructed around a Monster.

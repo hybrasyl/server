@@ -170,12 +170,12 @@ public class DialogState
             {
                 if (target is Creature c && (target != Associate ||
                                              pursuitId != CurrentPursuitId ||
-                                             c.Map.Id != User.Map.Id || !InDialog))
+                                             c.Location.Map is null || c.Location.Map.Id != User.Location.Map?.Id || !InDialog))
                 {
                     Log.Error(
                         "{User}: Failed dialog sanity check: target {Target}, current pursuit {CurrentPursuitId}, pursuit {PursuitId}, index {Index}, " +
                         "target map {TargetMapId}, user map {UserMapId}, indialog {InDialog}",
-                        User.Name, c.Name, CurrentPursuitId, pursuitId, newIndex, c.Map.Id, User.Map.Id, InDialog);
+                        User.Name, c.Name, CurrentPursuitId, pursuitId, newIndex, c.Location.Map?.Id, User.Location.Map?.Id, InDialog);
                     return false;
                 }
 
@@ -189,7 +189,7 @@ public class DialogState
                         Log.Error(
                             "{User}: Failed dialog sanity check: item {Item} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {PursuitId}, index {Index}, " +
                             "user map {UserMapId}, indialog {InDialog}",
-                            User.Name, io.Name, CurrentPursuitId, pursuitId, newIndex, User.Map.Id, InDialog);
+                            User.Name, io.Name, CurrentPursuitId, pursuitId, newIndex, User.Location.Map?.Id, InDialog);
                         return false;
                     }
             }

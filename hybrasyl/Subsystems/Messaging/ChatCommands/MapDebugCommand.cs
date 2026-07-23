@@ -29,8 +29,10 @@ internal class MapDebugCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        user.Map.SpawnDebug = !user.Map.SpawnDebug;
-        var str = user.Map.SpawnDebug ? "on" : "off";
-        return Success($"Map debugging for {user.Map.Name}: {str}");
+        if (user.Location.Map is not { } map)
+            return Fail("You are not on a map.");
+        map.SpawnDebug = !map.SpawnDebug;
+        var str = map.SpawnDebug ? "on" : "off";
+        return Success($"Map debugging for {map.Name}: {str}");
     }
 }

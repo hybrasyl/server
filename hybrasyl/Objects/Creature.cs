@@ -152,12 +152,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     public List<Direction> GetClearSides()
     {
         var sides = new List<Direction>();
+        if (Location.Map is not { } map) return sides;
         if (Direction is Direction.North or Direction.South)
         {
             // Consider West, East
-            if (GetDirectionalTarget(Direction.West) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.West)))
+            if (GetDirectionalTarget(Direction.West) == null && !map.IsWall(GetCoordinatesInDirection(Direction.West)))
                 sides.Add(Direction.West);
-            if (GetDirectionalTarget(Direction.East) == null && !Map.IsWall(GetCoordinatesInDirection(Direction.East)))
+            if (GetDirectionalTarget(Direction.East) == null && !map.IsWall(GetCoordinatesInDirection(Direction.East)))
                 sides.Add(Direction.East);
         }
 
@@ -165,10 +166,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         {
             // consider North, South
             if (GetDirectionalTarget(Direction.North) == null &&
-                !Map.IsWall(GetCoordinatesInDirection(Direction.North)))
+                !map.IsWall(GetCoordinatesInDirection(Direction.North)))
                 sides.Add(Direction.North);
             if (GetDirectionalTarget(Direction.South) == null &&
-                !Map.IsWall(GetCoordinatesInDirection(Direction.South)))
+                !map.IsWall(GetCoordinatesInDirection(Direction.South)))
                 sides.Add(Direction.South);
         }
 
@@ -207,27 +208,28 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     public Creature? GetDirectionalTarget(Direction direction)
     {
         VisibleObject? obj;
+        if (Location.Map is not { } map) return null;
 
         switch (direction)
         {
             case Direction.East:
                 {
-                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X + 1 && x.Y == Y && x is Creature);
+                    obj = map.EntityTree.FirstOrDefault(predicate: x => x.X == X + 1 && x.Y == Y && x is Creature);
                 }
                 break;
             case Direction.West:
                 {
-                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X - 1 && x.Y == Y && x is Creature);
+                    obj = map.EntityTree.FirstOrDefault(predicate: x => x.X == X - 1 && x.Y == Y && x is Creature);
                 }
                 break;
             case Direction.North:
                 {
-                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y - 1 && x is Creature);
+                    obj = map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y - 1 && x is Creature);
                 }
                 break;
             case Direction.South:
                 {
-                    obj = Map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y + 1 && x is Creature);
+                    obj = map.EntityTree.FirstOrDefault(predicate: x => x.X == X && x.Y == Y + 1 && x is Creature);
                 }
                 break;
             default:
@@ -247,6 +249,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     public List<Creature> GetDirectionalTargets(Direction direction, int radius = 1)
     {
         var ret = new List<Creature>();
+        if (Location.Map is not { } map) return ret;
         var rect = new Rectangle(0, 0, 0, 0);
 
         switch (direction)
@@ -274,7 +277,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         }
 
         GameLog.UserActivityInfo("GetDirectionalTargets: {X}, {Y} {Height}, {Width}", rect.X, rect.Y, rect.Height, rect.Width);
-        ret.AddRange(Map.EntityTree.GetObjects(rect)
+        ret.AddRange(map.EntityTree.GetObjects(rect)
             .OfType<Creature>().OrderBy(keySelector: x => x.Distance(this)));
         return ret;
     }
@@ -316,6 +319,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         var finalTargets = new List<Creature>();
         Creature origin;
 
+        if (Location.Map is not { } map) return finalTargets;
+
         foreach (var intent in intents)
         {
             if (intent.IsShapeless)
@@ -350,7 +355,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             if (intent.Map != null)
                 // add entire map
                 //GameLog.UserActivityInfo("GetTarget: adding map targets");
-                possibleTargets.AddRange(Map.EntityTree.GetAllObjects().Where(predicate: e => e is Creature));
+                possibleTargets.AddRange(map.EntityTree.GetAllObjects().Where(predicate: e => e is Creature));
 
             if (intent.UseType == SpellUseType.NoTarget)
                 origin = this;
@@ -358,6 +363,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             else
                 //GameLog.UserActivityInfo($"GetTarget: origin is {target.Name} at {target.X}, {target.Y}");
                 origin = target!;
+
+            // origin is the caster (map-guarded above) or a target selected on the caster's map
+            var originMap = origin.Location.Map!;
 
             // Handle shapes
             foreach (var cross in intent.Cross)
@@ -387,7 +395,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 var r = (square.Side - 1) / 2;
                 var rect = new Rectangle(origin.X - r, origin.Y - r, square.Side, square.Side);
                 //GameLog.UserActivityInfo($"GetTarget: square, {origin.X - r}, {origin.Y - r} - origin {origin.Name}, side length {square.Side}");
-                possibleTargets.AddRange(origin.Map.EntityTree.GetObjects(rect).Where(predicate: e => e is Creature));
+                possibleTargets.AddRange(originMap.EntityTree.GetObjects(rect).Where(predicate: e => e is Creature));
             }
 
             foreach (var tile in intent.Tile)
@@ -397,7 +405,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     if (tile.RelativeX == 0 && tile.RelativeY == 0)
                         //GameLog.UserActivityInfo($"GetTarget: tile, origin {origin.Name}, RelativeX && RelativeY == 0, skipping");
                         continue;
-                    possibleTargets.AddRange(origin.Map
+                    possibleTargets.AddRange(originMap
                         .GetTileContents(origin.X + tile.RelativeX, origin.Y + tile.RelativeY)
                         .Where(predicate: e => e is Creature));
                 }
@@ -424,7 +432,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                         Direction.West => new Rectangle(X - i, Y - i + 1, 1, 2 * i - 1),
                         _ => throw new ArgumentOutOfRangeException(nameof(coneDirection))
                     };
-                    possibleTargets.AddRange(Map.EntityTree.GetObjects(rect).Where(predicate: e => e is Creature));
+                    possibleTargets.AddRange(map.EntityTree.GetObjects(rect).Where(predicate: e => e is Creature));
                 }
             }
 
@@ -577,7 +585,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             // If a script is defined we fire it immediately, and let it handle targeting / etc
             if (Game.World.ScriptProcessor.TryGetScript(castableXml.Script, out var script))
             {
-                Game.World.WorldState.TryGetValueByIndex(castableXml.Guid, out CastableObject castableObj);
+                Game.World.WorldState.TryGetValueByIndex<CastableObject>(castableXml.Guid, out var castableObj);
                 var ret = script.ExecuteFunction("OnUse",
                     ScriptEnvironment.Create(("target", target), ("origin", castableObj), ("source", this),
                         ("castable", castableObj)));
@@ -608,8 +616,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     continue;
                 var actualX = (byte)(X + reactor.RelativeX);
                 var actualY = (byte)(Y + reactor.RelativeY);
+                // Cast targets are selected from map entity trees and are always in-world
+                var targetMap = tar.Location.Map!;
                 var reactorObj =
-                    new Reactor(actualX, actualY, tar.Map, reactor, this, $"{Name}'s {castableXml.Name}")
+                    new Reactor(actualX, actualY, targetMap, reactor, this, $"{Name}'s {castableXml.Name}")
                     {
                         Sprite = reactor.Sprite,
                         CreatedBy = Guid,
@@ -619,7 +629,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 // Don't insert a reactor with no uses into the world
                 if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
-                tar.Map.InsertReactor(reactorObj);
+                targetMap.InsertReactor(reactorObj);
                 reactorObj.OnSpawn();
             }
 
@@ -769,7 +779,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     {
         GameLog.DebugFormat("SendCastLine");
         GameLog.DebugFormat("SendCastLine byte format is: {PacketBytes}", BitConverter.ToString(packet.ToArray()));
-        foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
+        if (Location.Map is not { } map) return;
+        foreach (var user in map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
             var nPacket = packet.Clone();
             GameLog.DebugFormat("SendCastLine to {User}", user.Name);
@@ -781,6 +792,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
     public virtual bool Walk(Direction direction)
     {
+        if (Location.Map is not { } map) return false;
         lock (_lock)
         {
             int oldX = X, oldY = Y, newX = X, newY = Y;
@@ -832,25 +844,25 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     break;
             }
 
-            Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
+            map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
 
-            if (newX >= Map.X || newY >= Map.Y || newX < 0 || newY < 0)
+            if (newX >= map.X || newY >= map.Y || newX < 0 || newY < 0)
             {
                 Refresh();
                 return false;
             }
 
-            if (Map.IsWall(newX, newY))
+            if (map.IsWall(newX, newY))
             {
                 Refresh();
                 return false;
             }
 
             // Is the player trying to walk into an occupied tile?
-            foreach (var obj in Map.GetTileContents((byte)newX, (byte)newY))
+            foreach (var obj in map.GetTileContents((byte)newX, (byte)newY))
             {
                 GameLog.DebugFormat("Collision check: found obj {0}", obj.Name);
                 if (obj is Creature)
@@ -901,7 +913,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             // Objects in the arriving viewport receive a "show to" (0x33) packet
             // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
-            foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
+            foreach (var obj in map.EntityTree.GetObjects(commonViewport))
                 if (obj != this && obj is User user)
                 {
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
@@ -914,15 +926,15 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     user.Enqueue(x0C);
                 }
 
-            Map.EntityTree.Move(this);
+            map.EntityTree.Move(this);
 
-            foreach (var obj in Map.EntityTree.GetObjects(arrivingViewport).Distinct())
+            foreach (var obj in map.EntityTree.GetObjects(arrivingViewport).Distinct())
             {
                 obj.AoiEntry(this);
                 AoiEntry(obj);
             }
 
-            foreach (var obj in Map.EntityTree.GetObjects(departingViewport).Distinct())
+            foreach (var obj in map.EntityTree.GetObjects(departingViewport).Distinct())
             {
                 obj.AoiDeparture(this);
                 AoiDeparture(obj);
@@ -930,7 +942,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         }
 
         // Have we entered a reactor?
-        if (Map.Reactors.TryGetValue((X, Y), out var reactors))
+        if (map.Reactors.TryGetValue((X, Y), out var reactors))
             foreach (var r in reactors.Values)
                 r.OnEntry(this);
 
@@ -941,8 +953,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     public virtual bool Turn(Direction direction)
     {
         Direction = direction;
+        if (Location.Map is not { } map) return true;
 
-        foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
+        foreach (var obj in map.EntityTree.GetObjects(GetViewport()))
         {
             if (obj is User targetUser)
             {
@@ -957,7 +970,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
                 x11.WriteByte((byte)direction);
-                foreach (var user in Map.EntityTree.GetObjects(Map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
+                foreach (var user in map.EntityTree.GetObjects(map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
                     user.Enqueue(x11);
             }
         }
@@ -967,7 +980,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
     public virtual void Motion(byte motion, short speed)
     {
-        foreach (var obj in Map?.EntityTree?.GetObjects(GetViewport()) ?? Enumerable.Empty<VisibleObject>())
+        foreach (var obj in Location.Map?.EntityTree?.GetObjects(GetViewport()) ?? Enumerable.Empty<VisibleObject>())
         {
             if (obj is not User user) continue;
             user.SendAnimation(Id, motion, speed);
@@ -1289,11 +1302,11 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
     private void SendDamageUpdate(Creature creature)
     {
-        if (Map == null) return;
+        if (Location.Map == null) return;
         var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
         var healthbar = new HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
 
-        foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
+        foreach (var user in Location.Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
             var nPacket = healthbar.Packet().Clone();
             user.Enqueue(nPacket);
@@ -1408,9 +1421,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             if (sendUpdates)
                 u.SendStatusUpdate(status);
 
-            foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
-                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
-                    reactor.ShowTo(this);
+            if (Location.Map is { } map)
+                foreach (var reactor in map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+                    if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                        reactor.ShowTo(this);
             u.SendCombatLogMessage(statusEvent);
             if (status.Source is User u2)
                 u2.SendCombatLogMessage(statusEvent);
@@ -1507,9 +1521,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         _removeStatus(status, onEnd);
         UpdateAttributes(StatUpdateFlags.Full);
         if (this is not User u) return true;
-        foreach (var reactor in Map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
-            if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
-                reactor.AoiDeparture(this);
+        if (Location.Map is { } map)
+            foreach (var reactor in map.EntityTree.GetObjects(GetViewport()).OfType<Reactor>())
+                if (reactor.VisibleToStatuses?.Contains(status.Name) ?? false)
+                    reactor.AoiDeparture(this);
         // Only announce removal when a remover actively triggered it; natural
         // expiry (ProcessStatusTicks passes remover=null) should be silent.
         if (remover != null)
