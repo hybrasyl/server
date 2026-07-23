@@ -23,6 +23,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Hybrasyl.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="api\**" />
     <Compile Remove="articles\**" />
     <Compile Remove="_site\**" />

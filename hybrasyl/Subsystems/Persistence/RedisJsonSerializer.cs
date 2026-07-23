@@ -105,6 +105,17 @@ internal sealed class WirePlan
             .OrderBy(keySelector: m => m.Order) // stable: declaration order within equal Order
             .ToArray();
 
+        // Reads resolve names case-insensitively, so case-only duplicates cannot share a wire
+        var collisions = members
+            .GroupBy(keySelector: m => m.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(predicate: g => g.Count() > 1)
+            .Select(selector: g => string.Join(", ", g.Select(selector: m => m.Name)))
+            .ToList();
+        if (collisions.Count > 0)
+            throw new InvalidOperationException(
+                $"{type.Name}: [Persist] member names collide case-insensitively ({string.Join("; ", collisions)}); " +
+                "deserialization matches names case-insensitively, so these are ambiguous on the wire");
+
         var ctor = type.GetConstructor(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null, Type.EmptyTypes, modifiers: null);
