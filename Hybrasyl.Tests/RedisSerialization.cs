@@ -35,6 +35,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
+using PlayerInventory = Hybrasyl.Subsystems.Players.Inventory;
 
 namespace Hybrasyl.Tests;
 
@@ -576,6 +577,19 @@ public class RedisSerialization
         var ex = Assert.Throws<InvalidDataException>(() => Cache.Get<Vault>(key));
         Assert.Contains(key, ex.Message);
         Assert.Contains(nameof(Vault), ex.Message);
+    }
+
+    [Fact]
+    public void CorruptFieldInValidJsonAlsoFailsWithKeyContext()
+    {
+        // Syntactically valid JSON with corrupt content: the converter throws
+        // FormatException (bad item GUID), not JsonException - the key-context
+        // guarantee must cover the whole deserialization, not just JSON parsing
+        var key = $"{KeyPrefix}corrupt:guid";
+        Cache.StringSet(key,
+            $$$"""{"1":{"Name":"Test Item","Count":1,"Id":"{{{Fixture.TestItem.Id}}}","Durability":1000,"Guid":"not-a-guid"}}""");
+        var ex = Assert.Throws<InvalidDataException>(() => Cache.Get<PlayerInventory>(key));
+        Assert.Contains(key, ex.Message);
     }
 
     [Fact]

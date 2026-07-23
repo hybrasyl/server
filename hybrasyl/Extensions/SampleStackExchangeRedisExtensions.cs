@@ -18,8 +18,8 @@
 
 using Hybrasyl.Subsystems.Persistence;
 using StackExchange.Redis;
+using System;
 using System.IO;
-using System.Text.Json;
 
 namespace Hybrasyl.Extensions;
 
@@ -27,13 +27,17 @@ public static class StackExchangeRedisExtensions
 {
     public static T Get<T>(this IDatabase cache, string key)
     {
+        // Fetched outside the wrap: a Redis connectivity failure is not data corruption
+        var data = cache.StringGet(key);
         try
         {
-            return RedisJsonSerializer.Deserialize<T>(cache.StringGet(key));
+            return RedisJsonSerializer.Deserialize<T>(data);
         }
-        catch (JsonException e)
+        catch (Exception e)
         {
-            // Corrupt data should fail loudly, but a bare JsonException is undiagnosable
+            // Corrupt data should fail loudly, but it must name its key - and converters
+            // surface valid-JSON corruption as more than JsonException (e.g. a malformed
+            // item guid throws FormatException)
             throw new InvalidDataException(
                 $"Redis key {key}: stored {typeof(T).Name} is corrupt or unreadable: {e.Message}", e);
         }
