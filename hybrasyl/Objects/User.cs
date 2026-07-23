@@ -986,8 +986,9 @@ public class User : Creature
         profilePacket.WriteString8(guildInfo.GuildRank);
         profilePacket.WriteString8(Game.ActiveConfiguration.GetClassName((byte)Class));
         profilePacket.WriteString8(guildInfo.GuildName);
-        profilePacket.WriteByte((byte)Legend.Count);
-        foreach (var mark in Legend.Where(predicate: mark => mark.Public))
+        var publicMarks = Legend.Where(predicate: mark => mark.Public).ToList();
+        profilePacket.WriteByte((byte)publicMarks.Count);
+        foreach (var mark in publicMarks)
         {
             profilePacket.WriteByte((byte)mark.Icon);
             profilePacket.WriteByte((byte)mark.Color);
