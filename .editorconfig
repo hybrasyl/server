@@ -10,6 +10,82 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 
+# ── Structure (standard §1) ──────────────────────────────────────────
+csharp_style_namespace_declarations = file_scoped:warning
+
+# ── Naming rules (standard §2) ───────────────────────────────────────
+# Roslyn evaluates naming rules most-specific-first; keep this ordering.
+
+# Interfaces: I prefix
+dotnet_naming_rule.interfaces_begin_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_begin_with_i.style = i_prefix_pascal
+dotnet_naming_rule.interfaces_begin_with_i.severity = warning
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.i_prefix_pascal.required_prefix = I
+dotnet_naming_style.i_prefix_pascal.capitalization = pascal_case
+
+# Type parameters: T prefix
+dotnet_naming_rule.type_params_begin_with_t.symbols = type_params
+dotnet_naming_rule.type_params_begin_with_t.style = t_prefix_pascal
+dotnet_naming_rule.type_params_begin_with_t.severity = warning
+dotnet_naming_symbols.type_params.applicable_kinds = type_parameter
+dotnet_naming_style.t_prefix_pascal.required_prefix = T
+dotnet_naming_style.t_prefix_pascal.capitalization = pascal_case
+
+# Async methods: Async suffix (matches methods declared with the async modifier)
+dotnet_naming_rule.async_methods_end_with_async.symbols = async_methods
+dotnet_naming_rule.async_methods_end_with_async.style = async_suffix
+dotnet_naming_rule.async_methods_end_with_async.severity = warning
+dotnet_naming_symbols.async_methods.applicable_kinds = method
+dotnet_naming_symbols.async_methods.required_modifiers = async
+dotnet_naming_style.async_suffix.required_suffix = Async
+dotnet_naming_style.async_suffix.capitalization = pascal_case
+
+# Constant fields: PascalCase (any visibility)
+dotnet_naming_rule.constants_pascal.symbols = constant_fields
+dotnet_naming_rule.constants_pascal.style = pascal
+dotnet_naming_rule.constants_pascal.severity = warning
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+
+# Private/protected fields (instance and static): _camelCase
+dotnet_naming_rule.private_fields_underscore_camel.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore_camel.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore_camel.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private, protected, private_protected
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# Public/internal fields: PascalCase (standard says prefer properties; this
+# rule just keeps the ones that exist honest)
+dotnet_naming_rule.public_fields_pascal.symbols = public_fields
+dotnet_naming_rule.public_fields_pascal.style = pascal
+dotnet_naming_rule.public_fields_pascal.severity = warning
+dotnet_naming_symbols.public_fields.applicable_kinds = field
+dotnet_naming_symbols.public_fields.applicable_accessibilities = public, internal, protected_internal
+
+# Types and namespaces: PascalCase
+dotnet_naming_rule.types_pascal.symbols = types
+dotnet_naming_rule.types_pascal.style = pascal
+dotnet_naming_rule.types_pascal.severity = warning
+dotnet_naming_symbols.types.applicable_kinds = class, struct, enum, delegate, namespace
+
+# Non-field members (methods, properties, events): PascalCase.
+# This is the rule that catches _initializeUser-style private methods.
+dotnet_naming_rule.members_pascal.symbols = members
+dotnet_naming_rule.members_pascal.style = pascal
+dotnet_naming_rule.members_pascal.severity = warning
+dotnet_naming_symbols.members.applicable_kinds = method, property, event
+dotnet_naming_style.pascal.capitalization = pascal_case
+
+# Locals and parameters: camelCase (suggestion — low stakes, high volume)
+dotnet_naming_rule.locals_camel.symbols = locals_params
+dotnet_naming_rule.locals_camel.style = camel
+dotnet_naming_rule.locals_camel.severity = suggestion
+dotnet_naming_symbols.locals_params.applicable_kinds = parameter, local
+dotnet_naming_style.camel.capitalization = camel_case
+
 [*.{csproj,sln,props,targets,xml,xsd}]
 indent_style = space
 indent_size = 2
@@ -21,3 +97,4 @@ indent_size = 2
 [*.lua]
 indent_style = space
 indent_size = 4
+
