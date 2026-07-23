@@ -107,12 +107,13 @@ public class ParcelStore : IStateStorable
     {
         lock (_lock)
         {
-            var gold = Gold.FirstOrDefault();
+            if (Gold.Count == 0) return;
+            var gold = Gold.First();
 
             if (receiver.AddGold(gold.Amount))
             {
                 receiver.SendSystemMessage($"Your gold from {gold.Sender} has been delivered.");
-                Items.RemoveAt(0);
+                Gold.RemoveAt(0);
             }
         }
 
