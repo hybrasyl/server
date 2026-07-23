@@ -114,7 +114,7 @@ internal class MessagingResponse
             else
             {
                 packet.WriteByte(0x03);
-                packet.WriteByte(0x00);
+                packet.WriteByte(0x03); // 0x03 keeps the client "Prev" button live; 0x00 disables backward paging
                 packet.WriteBoolean(message.Highlight);
             }
 
