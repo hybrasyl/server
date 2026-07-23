@@ -35,6 +35,8 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
     private readonly object Lock;
     [JsonProperty] public short CurrentId;
     [JsonProperty] public string DisplayName;
+    // Subclass constructor parameters must not be named after serialized properties
+    // (e.g. "guid") - Newtonsoft binds them by name and the value is lost on reload
     [JsonProperty] public Guid Guid;
     public int Id;
     public bool IsLocked;

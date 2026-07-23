@@ -27,7 +27,7 @@ namespace Hybrasyl.Subsystems.Messaging;
 public class SentMail : MessageStore
 {
     // TODO: correct
-    public SentMail(Guid guid) : base(guid.ToString()) { }
+    public SentMail(Guid ownerGuid) : base(ownerGuid.ToString()) { }
 
     [JsonProperty] public DateTime LastMailMessageSent { get; set; }
 

@@ -166,7 +166,8 @@ public class LegendMark
 
     [JsonProperty] public DateTime Timestamp { get; set; }
 
-    [JsonProperty] public DateTime Created { get; }
+    // Setter required, otherwise deserialization just resets the value
+    [JsonProperty] public DateTime Created { get; private set; }
 
     [JsonProperty] public DateTime LastUpdated { get; set; }
 
