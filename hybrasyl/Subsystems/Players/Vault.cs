@@ -30,7 +30,9 @@ namespace Hybrasyl.Subsystems.Players;
 [RedisType]
 public class Vault : IStateStorable
 {
-    private readonly object _saveLock = new();
+    // One lock for mutation and serialization: Save snapshots consistent state, and
+    // mutators can never interleave with an in-flight serialization
+    private readonly object _lock = new();
 
     public bool IsSaving;
 
@@ -74,98 +76,121 @@ public class Vault : IStateStorable
 
     public void Clear()
     {
-        CurrentGold = 0;
-        Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+        lock (_lock)
+        {
+            CurrentGold = 0;
+            Items = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     public bool AddGold(uint gold)
     {
-        if (gold <= RemainingGold)
+        lock (_lock)
         {
-            CurrentGold += gold;
+            if (gold <= RemainingGold)
+            {
+                CurrentGold += gold;
 
-            GameLog.Info("{Gold} gold added to vault {OwnerGuid}", gold, OwnerGuid);
-            return true;
+                GameLog.Info("{Gold} gold added to vault {OwnerGuid}", gold, OwnerGuid);
+                return true;
+            }
+
+            GameLog.Info("Attempt to add {Gold} gold to vault {OwnerGuid}, but only {RemainingGold} available", gold,
+                OwnerGuid, RemainingGold);
+            return false;
         }
-
-        GameLog.Info("Attempt to add {Gold} gold to vault {OwnerGuid}, but only {RemainingGold} available", gold,
-            OwnerGuid, RemainingGold);
-        return false;
     }
 
     public bool RemoveGold(uint gold)
     {
-        if (gold <= CurrentGold)
+        lock (_lock)
         {
-            CurrentGold -= gold;
-            GameLog.Info("{Gold} gold removed from vault {OwnerGuid}", gold, OwnerGuid);
-            return true;
-        }
+            if (gold <= CurrentGold)
+            {
+                CurrentGold -= gold;
+                GameLog.Info("{Gold} gold removed from vault {OwnerGuid}", gold, OwnerGuid);
+                return true;
+            }
 
-        GameLog.Info("Attempt to remove {Gold} gold from vault {OwnerGuid}, but only {CurrentGold} available", gold,
-            OwnerGuid, CurrentGold);
-        return false;
+            GameLog.Info("Attempt to remove {Gold} gold from vault {OwnerGuid}, but only {CurrentGold} available",
+                gold, OwnerGuid, CurrentGold);
+            return false;
+        }
     }
 
     public bool AddItem(string itemName, ushort quantity = 1)
     {
-        if (CurrentItemCount < ItemLimit)
+        lock (_lock)
         {
-            if (Items.ContainsKey(itemName))
+            if (CurrentItemCount < ItemLimit)
             {
-                Items[itemName] += quantity;
-                GameLog.Info("{Item} [{Quantity}] added to existing item in vault {OwnerGuid}", itemName, quantity,
-                    OwnerGuid);
-            }
-            else
-            {
-                Items.Add(itemName, quantity);
-                GameLog.Info("{Item} [{Quantity}] added as new item in vault {OwnerGuid}", itemName, quantity,
-                    OwnerGuid);
+                if (Items.ContainsKey(itemName))
+                {
+                    Items[itemName] += quantity;
+                    GameLog.Info("{Item} [{Quantity}] added to existing item in vault {OwnerGuid}", itemName, quantity,
+                        OwnerGuid);
+                }
+                else
+                {
+                    Items.Add(itemName, quantity);
+                    GameLog.Info("{Item} [{Quantity}] added as new item in vault {OwnerGuid}", itemName, quantity,
+                        OwnerGuid);
+                }
+
+                return true;
             }
 
-            return true;
+            GameLog.Info(
+                "Attempt to add {Item} [{Quantity}] to vault {OwnerGuid}, but vault is full ({Count}/{Limit})",
+                itemName, quantity, OwnerGuid, CurrentItemCount, ItemLimit);
+            return false;
         }
-
-        GameLog.Info("Attempt to add {Item} [{Quantity}] to vault {OwnerGuid}, but vault is full ({Count}/{Limit})",
-            itemName, quantity, OwnerGuid, CurrentItemCount, ItemLimit);
-        return false;
     }
 
     public bool RemoveItem(string itemName, ushort quantity = 1)
     {
-        if (Items.ContainsKey(itemName))
+        lock (_lock)
         {
-            if (Items[itemName] > quantity)
+            if (Items.ContainsKey(itemName))
             {
-                Items[itemName] -= quantity;
-                GameLog.Info("{Item} [{Quantity}] removed from existing item in vault {OwnerGuid}", itemName, quantity,
-                    OwnerGuid);
-            }
-            else
-            {
-                Items.Remove(itemName);
-                GameLog.Info("{Item} removed from vault {OwnerGuid}", itemName, OwnerGuid);
+                if (Items[itemName] > quantity)
+                {
+                    Items[itemName] -= quantity;
+                    GameLog.Info("{Item} [{Quantity}] removed from existing item in vault {OwnerGuid}", itemName,
+                        quantity, OwnerGuid);
+                }
+                else
+                {
+                    Items.Remove(itemName);
+                    GameLog.Info("{Item} removed from vault {OwnerGuid}", itemName, OwnerGuid);
+                }
+
+                return true;
             }
 
-            return true;
+            return false;
         }
-
-        return false;
     }
 
     public void Save()
     {
-        // IsSaving guards same-thread reentrancy during serialization; the lock
-        // serializes concurrent savers (same pattern as ParcelStore)
-        if (IsSaving) return;
-        lock (_saveLock)
+        lock (_lock)
         {
+            // Monitors are reentrant: a same-thread Save triggered during serialization
+            // re-enters the lock and is stopped here, while cross-thread savers queue
+            if (IsSaving) return;
             IsSaving = true;
-            var cache = World.DatastoreConnection.GetDatabase();
-            cache.Set(StorageKey, this);
-            Game.World.WorldState.Set(OwnerGuid, this);
-            IsSaving = false;
+            try
+            {
+                var cache = World.DatastoreConnection.GetDatabase();
+                cache.Set(StorageKey, this);
+                Game.World.WorldState.Set(OwnerGuid, this);
+            }
+            finally
+            {
+                // A failed save must not permanently disable saving
+                IsSaving = false;
+            }
         }
     }
 }

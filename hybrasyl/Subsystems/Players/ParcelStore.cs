@@ -52,14 +52,23 @@ public class ParcelStore : IStateStorable
 
     public void Save()
     {
-        if (IsSaving) return;
         lock (_lock)
         {
+            // Monitors are reentrant: a same-thread Save triggered during serialization
+            // re-enters the lock and is stopped here, while cross-thread savers queue
+            if (IsSaving) return;
             IsSaving = true;
-            var cache = World.DatastoreConnection.GetDatabase();
-            cache.Set(StorageKey, this);
-            Game.World.WorldState.Set(OwnerGuid, this);
-            IsSaving = false;
+            try
+            {
+                var cache = World.DatastoreConnection.GetDatabase();
+                cache.Set(StorageKey, this);
+                Game.World.WorldState.Set(OwnerGuid, this);
+            }
+            finally
+            {
+                // A failed save must not permanently disable saving
+                IsSaving = false;
+            }
         }
     }
 

@@ -32,7 +32,9 @@ namespace Hybrasyl.Subsystems.Players.Guilds;
 [Persistable]
 public class Guild : IStateStorable
 {
-    private readonly object _saveLock = new();
+    // One lock for mutation and serialization: Save snapshots consistent state, and
+    // mutators can never interleave with an in-flight serialization
+    private readonly object _lock = new();
 
     public bool IsSaving;
 
@@ -85,107 +87,128 @@ public class Guild : IStateStorable
 
     public void AddMember(User user)
     {
-        if (user.GuildGuid != Guid.Empty)
+        lock (_lock)
         {
-            GameLog.Info("Guild {Guild}: Attempt to add {User} to guild, but user is already in another guild.", Name,
-                user.Name);
-            return;
-        }
+            if (user.GuildGuid != Guid.Empty)
+            {
+                GameLog.Info("Guild {Guild}: Attempt to add {User} to guild, but user is already in another guild.",
+                    Name, user.Name);
+                return;
+            }
 
-        var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
-        GameLog.Info("Guild {Guild}: Lowest guild rank identified as {Rank}", Name, lowestRank.Name);
-        Members.Add(user.Guid, new GuildMember { Name = user.Name, RankGuid = lowestRank.Guid });
-        user.GuildGuid = Guid;
-        GameLog.Info("Guild {Guild}: Adding new member {User} to rank {Rank}", Name, user.Name, lowestRank.Name);
+            var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
+            GameLog.Info("Guild {Guild}: Lowest guild rank identified as {Rank}", Name, lowestRank.Name);
+            Members.Add(user.Guid, new GuildMember { Name = user.Name, RankGuid = lowestRank.Guid });
+            user.GuildGuid = Guid;
+            GameLog.Info("Guild {Guild}: Adding new member {User} to rank {Rank}", Name, user.Name, lowestRank.Name);
+        }
     }
 
     public void RemoveMember(User user)
     {
-        var (guid, membership) = Members.Single(predicate: x => x.Value.Name == user.Name);
-        if (membership.RankGuid == LeaderRank.Guid)
+        lock (_lock)
         {
-            GameLog.Info("Guild {Guild}: Sorry, the guild leader can't be removed.", Name);
-            return;
-        }
+            var (guid, membership) = Members.Single(predicate: x => x.Value.Name == user.Name);
+            if (membership.RankGuid == LeaderRank.Guid)
+            {
+                GameLog.Info("Guild {Guild}: Sorry, the guild leader can't be removed.", Name);
+                return;
+            }
 
-        Members.Remove(guid);
-        user.GuildGuid = Guid.Empty;
-        GameLog.Info("Guild {Guild}: Removing member {User}", Name, user.Name);
+            Members.Remove(guid);
+            user.GuildGuid = Guid.Empty;
+            GameLog.Info("Guild {Guild}: Removing member {User}", Name, user.Name);
+        }
     }
 
     public void PromoteMember(string name)
     {
-        var (guid, membership) = Members.Single(predicate: x => x.Value.Name == name);
-        var currentRank = Ranks.FirstOrDefault(predicate: x => x.Guid == membership.RankGuid);
-        var newRank = Ranks.FirstOrDefault(predicate: x => x.Level == currentRank.Level - 1);
+        lock (_lock)
+        {
+            var (guid, membership) = Members.Single(predicate: x => x.Value.Name == name);
+            var currentRank = Ranks.FirstOrDefault(predicate: x => x.Guid == membership.RankGuid);
+            var newRank = Ranks.FirstOrDefault(predicate: x => x.Level == currentRank.Level - 1);
 
-        if (newRank == null || newRank.Level <= 0) return;
-        membership.RankGuid = newRank.Guid;
-        GameLog.Info("Guild {Guild}: Promoting {Member} to rank {Rank}", Name, membership.Name, newRank.Name);
+            if (newRank == null || newRank.Level <= 0) return;
+            membership.RankGuid = newRank.Guid;
+            GameLog.Info("Guild {Guild}: Promoting {Member} to rank {Rank}", Name, membership.Name, newRank.Name);
+        }
     }
 
     public void DemoteMember(string name)
     {
-        var member = Members.Single(predicate: x => x.Value.Name == name);
-        var currentRank = Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid);
-        var newRank = Ranks.FirstOrDefault(predicate: x => x.Level == currentRank.Level + 1);
-
-        if (newRank != null && newRank.Level > currentRank.Level)
+        lock (_lock)
         {
-            if (currentRank.Level == 0)
-            {
-                GameLog.Info("Guild {Guild}: Sorry, the guild leader cannot be demoted.", Name);
-                return;
-            }
+            var member = Members.Single(predicate: x => x.Value.Name == name);
+            var currentRank = Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid);
+            var newRank = Ranks.FirstOrDefault(predicate: x => x.Level == currentRank.Level + 1);
 
-            member.Value.RankGuid = newRank.Guid;
-            GameLog.Info("Guild {Guild}: Demoting {Member} to rank {Rank}", Name, member.Value.Name, newRank.Name);
+            if (newRank != null && newRank.Level > currentRank.Level)
+            {
+                if (currentRank.Level == 0)
+                {
+                    GameLog.Info("Guild {Guild}: Sorry, the guild leader cannot be demoted.", Name);
+                    return;
+                }
+
+                member.Value.RankGuid = newRank.Guid;
+                GameLog.Info("Guild {Guild}: Demoting {Member} to rank {Rank}", Name, member.Value.Name, newRank.Name);
+            }
         }
     }
 
     public void ChangeRankTitle(string oldTitle, string newTitle)
     {
-        var rank = Ranks.FirstOrDefault(predicate: x => x.Name == oldTitle);
-
-        if (rank != null)
+        lock (_lock)
         {
-            rank.Name = newTitle;
-            GameLog.Info("Guild {Guild}: Renaming rank {OldTitle} to rank {NewTitle}", Name, oldTitle, newTitle);
+            var rank = Ranks.FirstOrDefault(predicate: x => x.Name == oldTitle);
+
+            if (rank != null)
+            {
+                rank.Name = newTitle;
+                GameLog.Info("Guild {Guild}: Renaming rank {OldTitle} to rank {NewTitle}", Name, oldTitle, newTitle);
+            }
         }
     }
 
     public void AddRank(string title) //adds a new rank at the lowest tier
     {
-        if (Ranks.Any(predicate: x => x.Name == title)) return;
+        lock (_lock)
+        {
+            if (Ranks.Any(predicate: x => x.Name == title)) return;
 
-        var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
+            var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
 
-        var rank = new GuildRank { Guid = Guid.NewGuid(), Name = title, Level = lowestRank.Level + 1 };
+            var rank = new GuildRank { Guid = Guid.NewGuid(), Name = title, Level = lowestRank.Level + 1 };
 
-        Ranks.Add(rank);
-        GameLog.Info("Guild {Guild}: New rank {Rank} added as level {Level}", Name, rank.Name, rank.Level);
+            Ranks.Add(rank);
+            GameLog.Info("Guild {Guild}: New rank {Rank} added as level {Level}", Name, rank.Name, rank.Level);
+        }
     }
 
     public void RemoveRank() //only remove the lowest tier rank and move all members in rank up one level.
     {
-        var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
-        var nextRank = Ranks.FirstOrDefault(predicate: x => x.Level == lowestRank.Level - 1);
-
-        if (nextRank != null && nextRank.Level != 0)
+        lock (_lock)
         {
-            var moveMembers = Members.Where(predicate: x => x.Value.RankGuid == lowestRank.Guid).ToList();
+            var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
+            var nextRank = Ranks.FirstOrDefault(predicate: x => x.Level == lowestRank.Level - 1);
 
-            foreach (var member in moveMembers)
+            if (nextRank != null && nextRank.Level != 0)
             {
-                member.Value.RankGuid = nextRank.Guid;
-                GameLog.Info(
-                    "Guild {Guild}: Member {Member} moved to rank {Rank} due to rank deletion", Name,
-                    member.Value.Name, nextRank.Name);
-            }
+                var moveMembers = Members.Where(predicate: x => x.Value.RankGuid == lowestRank.Guid).ToList();
 
-            //remove lowest rank here to avoid missing members
-            Ranks.Remove(lowestRank);
-            GameLog.Info("Guild {Guild}: Deleted rank {Rank}", Name, lowestRank.Name);
+                foreach (var member in moveMembers)
+                {
+                    member.Value.RankGuid = nextRank.Guid;
+                    GameLog.Info(
+                        "Guild {Guild}: Member {Member} moved to rank {Rank} due to rank deletion", Name,
+                        member.Value.Name, nextRank.Name);
+                }
+
+                //remove lowest rank here to avoid missing members
+                Ranks.Remove(lowestRank);
+                GameLog.Info("Guild {Guild}: Deleted rank {Rank}", Name, lowestRank.Name);
+            }
         }
     }
 
@@ -202,15 +225,22 @@ public class Guild : IStateStorable
 
     public void Save()
     {
-        // IsSaving guards same-thread reentrancy during serialization; the lock
-        // serializes concurrent savers (same pattern as ParcelStore)
-        if (IsSaving) return;
-        lock (_saveLock)
+        lock (_lock)
         {
+            // Monitors are reentrant: a same-thread Save triggered during serialization
+            // re-enters the lock and is stopped here, while cross-thread savers queue
+            if (IsSaving) return;
             IsSaving = true;
-            var cache = World.DatastoreConnection.GetDatabase();
-            cache.Set(StorageKey, this);
-            IsSaving = false;
+            try
+            {
+                var cache = World.DatastoreConnection.GetDatabase();
+                cache.Set(StorageKey, this);
+            }
+            finally
+            {
+                // A failed save must not permanently disable saving
+                IsSaving = false;
+            }
         }
     }
 
