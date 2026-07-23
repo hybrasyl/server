@@ -560,8 +560,9 @@ public static class Game
                 }
                 catch (Exception ex)
                 {
-                    Log.Fatal(
+                    Log.Fatal(ex,
                         "External address set to {ExternalAddress}, but {ServiceName} value {Address} could not be parsed!", activeConfiguration.Network.Login.ExternalAddress, svcName, addr);
+                    throw;
                 }
             }
             else

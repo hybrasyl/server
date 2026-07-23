@@ -57,8 +57,8 @@ public class Server
 
         Throttles = new Dictionary<byte, IPacketThrottle>();
         ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
-        for (byte i = 0; i < 255; ++i)
-            WorldPacketHandlers[i] = (c, p) => GameLog.Warning("{ServerType}: Unhandled opcode 0x{Opcode:X2}", GetType().Name, p.Opcode);
+        for (var i = 0; i < 256; ++i)
+            WorldPacketHandlers[(byte)i] = (c, p) => GameLog.Warning("{ServerType}: Unhandled opcode 0x{Opcode:X2}", GetType().Name, p.Opcode);
         foreach (var opcode in Enum.GetValues<ControlOpcode>())
             ControlMessageHandlers[opcode] = p =>
                 GameLog.Warning("{ServerType}: Unhandled control message type {ControlOpcode}", GetType().Name, opcode);

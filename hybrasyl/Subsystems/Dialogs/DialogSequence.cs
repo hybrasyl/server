@@ -45,7 +45,7 @@ public class DialogSequence(string sequenceName, bool closeOnEnd = false)
         {
             if (_script == null && !string.IsNullOrEmpty(ScriptName))
             {
-                if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out var _script)) return _script;
+                if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out _script)) return _script;
 
                 GameLog.Error("DialogSequence {Name}: script associate {ScriptName} is missing", Name, ScriptName);
                 return null;

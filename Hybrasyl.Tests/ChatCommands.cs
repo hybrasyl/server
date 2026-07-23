@@ -13,9 +13,12 @@
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using Hybrasyl.Internals.Enums;
+using Hybrasyl.Networking;
+using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Xml.Objects;
 using System.Reflection;
+using System.Text;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -41,6 +44,24 @@ public class ChatCommands
         var run = type!.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
         Assert.NotNull(run);
         return (ChatCommandResult)run!.Invoke(null, new object[] { Fixture.TestUser, args })!;
+    }
+
+    [Fact]
+    public void Handle_EchoesArgumentStringVerbatim()
+    {
+        var client = new TestClient(new TestSocket());
+        GlobalConnectionManifest.RegisterClient(client);
+        var user = Fixture.CreateUser("EchoTestUser");
+        Assert.True(user.AssociateConnection(Game.World.Guid, client.ConnectionId));
+
+        World.CommandHandler.Handle(user, "timeconvert", "terran forever");
+
+        // The echo is a 0x0A system message; the argument string must appear verbatim.
+        var echoed = false;
+        while (client.ClientState.SendBufferTake(out var packet))
+            if (Encoding.ASCII.GetString(packet.ToArray()).Contains("[Cmd] /timeconvert terran forever"))
+                echoed = true;
+        Assert.True(echoed);
     }
 
     [Fact]
