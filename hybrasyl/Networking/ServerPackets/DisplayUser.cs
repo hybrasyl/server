@@ -52,7 +52,10 @@ internal class DisplayUser
         packet.WriteUInt16(Y);
         packet.WriteByte((byte) Direction);
         packet.WriteUInt32(Id);
-        packet.WriteUInt16(Helmet);
+        // In creature form the client only renders the monster sprite when the
+        // first sprite field carries the 0xFFFF sentinel; otherwise it uses the
+        // real helmet sprite.
+        packet.WriteUInt16(DisplayAsMonster ? (ushort) 0xFFFF : Helmet);
 
         if (!DisplayAsMonster)
         {
