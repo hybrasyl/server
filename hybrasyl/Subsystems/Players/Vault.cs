@@ -30,6 +30,8 @@ namespace Hybrasyl.Subsystems.Players;
 [RedisType]
 public class Vault : IStateStorable
 {
+    private readonly object _saveLock = new();
+
     public bool IsSaving;
 
     public Vault() { }
@@ -154,11 +156,16 @@ public class Vault : IStateStorable
 
     public void Save()
     {
+        // IsSaving guards same-thread reentrancy during serialization; the lock
+        // serializes concurrent savers (same pattern as ParcelStore)
         if (IsSaving) return;
-        IsSaving = true;
-        var cache = World.DatastoreConnection.GetDatabase();
-        cache.Set(StorageKey, this);
-        Game.World.WorldState.Set(OwnerGuid, this);
-        IsSaving = false;
+        lock (_saveLock)
+        {
+            IsSaving = true;
+            var cache = World.DatastoreConnection.GetDatabase();
+            cache.Set(StorageKey, this);
+            Game.World.WorldState.Set(OwnerGuid, this);
+            IsSaving = false;
+        }
     }
 }

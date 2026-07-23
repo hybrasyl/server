@@ -32,6 +32,8 @@ namespace Hybrasyl.Subsystems.Players.Guilds;
 [Persistable]
 public class Guild : IStateStorable
 {
+    private readonly object _saveLock = new();
+
     public bool IsSaving;
 
     public Guild() { }
@@ -200,11 +202,16 @@ public class Guild : IStateStorable
 
     public void Save()
     {
+        // IsSaving guards same-thread reentrancy during serialization; the lock
+        // serializes concurrent savers (same pattern as ParcelStore)
         if (IsSaving) return;
-        IsSaving = true;
-        var cache = World.DatastoreConnection.GetDatabase();
-        cache.Set(StorageKey, this);
-        IsSaving = false;
+        lock (_saveLock)
+        {
+            IsSaving = true;
+            var cache = World.DatastoreConnection.GetDatabase();
+            cache.Set(StorageKey, this);
+            IsSaving = false;
+        }
     }
 
     public Dictionary<string, string> GetGuildMembers()
