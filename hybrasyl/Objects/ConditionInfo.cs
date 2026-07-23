@@ -25,6 +25,8 @@ namespace Hybrasyl.Objects;
 [JsonObject(MemberSerialization.OptIn)]
 public class ConditionInfo
 {
+    private ConditionInfo() { }
+
     public ConditionInfo(Creature owner, CreatureCondition condition = 0, PlayerFlags flags = PlayerFlags.Alive)
     {
         Creature = owner;

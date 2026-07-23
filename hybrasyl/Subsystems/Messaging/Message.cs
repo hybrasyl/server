@@ -38,6 +38,8 @@ public class Message : ICloneable
     [JsonProperty] public string Sender;
     [JsonProperty] public string Subject;
 
+    private Message() { }
+
     public Message(string recipient, string sender, string subject, string body)
     {
         Created = DateTime.Now;

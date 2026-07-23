@@ -38,6 +38,8 @@ public enum UserState : byte
 [RedisType]
 public class AuthInfo : IStateStorable
 {
+    private AuthInfo() { }
+
     public AuthInfo(Guid guid)
     {
         UserGuid = guid;

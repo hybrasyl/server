@@ -26,6 +26,11 @@ public class Board : MessageStore
 {
     [JsonProperty] public bool Global;
 
+    private Board()
+    {
+        InitializeStorage();
+    }
+
     public Board(string name) : base(name)
     {
         Global = false;

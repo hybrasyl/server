@@ -21,6 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Subsystems;
 using Newtonsoft.Json;
@@ -28,8 +29,11 @@ using Newtonsoft.Json;
 namespace Hybrasyl;
 
 [JsonObject(MemberSerialization.OptIn)]
-public class Legend : IEnumerable<LegendMark>
+public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
 {
+    // System.Text.Json counterpart of the [OnDeserialized] callback below
+    void IJsonOnDeserialized.OnDeserialized() => RegenerateIndex();
+
     public const int MaximumLegendSize = 254;
 
     [JsonProperty] private SortedDictionary<DateTime, LegendMark> _legend = new();
@@ -133,6 +137,8 @@ public class Legend : IEnumerable<LegendMark>
 [JsonObject(MemberSerialization.OptIn)]
 public class LegendMark
 {
+    private LegendMark() { }
+
     public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
         string prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
         bool displayTimestamp = true)

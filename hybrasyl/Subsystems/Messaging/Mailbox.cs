@@ -27,6 +27,8 @@ namespace Hybrasyl.Subsystems.Messaging;
 [RedisType]
 public class Mailbox : MessageStore
 {
+    private Mailbox() { }
+
     public Mailbox(Guid ownerGuid) : base(ownerGuid.ToString()) { }
 
     public bool HasUnreadMessages

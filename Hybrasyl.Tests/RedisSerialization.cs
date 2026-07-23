@@ -19,6 +19,7 @@
 using Hybrasyl.Extensions;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Subsystems.Persistence;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Players;
@@ -477,6 +478,104 @@ public class RedisSerialization
         Assert.Equal("Equip Test Weapon", user.Equipment.Weapon.Name);
         Assert.Single(user.SpellBook);
         Assert.Equal("TestPlusAc", user.SpellBook.Single().Castable.Name);
+    }
+
+    #endregion
+
+    #region System.Text.Json migration parity
+
+    /// <summary>
+    ///     Round-trips an object through RedisJsonSerializer and proves two things:
+    ///     the STJ serialization is a fixed point, and the round-tripped object is
+    ///     semantically identical to the original under the Newtonsoft contract
+    ///     (canonical Newtonsoft re-serialization compares equal) - i.e. the STJ
+    ///     resolver sees exactly the member set Newtonsoft did, and every value
+    ///     survives. Also asserts the new wire format carries no reference metadata.
+    /// </summary>
+    private static T AssertStjParity<T>(T obj)
+    {
+        var first = RedisJsonSerializer.Serialize(obj);
+        var firstJson = System.Text.Encoding.UTF8.GetString(first);
+        Assert.DoesNotContain("\"$id\"", firstJson);
+        Assert.DoesNotContain("\"$values\"", firstJson);
+
+        var reloaded = RedisJsonSerializer.Deserialize<T>(first);
+        Assert.NotNull(reloaded);
+        var second = RedisJsonSerializer.Serialize(reloaded);
+        AssertJsonEquivalent(JToken.Parse(firstJson), JToken.Parse(System.Text.Encoding.UTF8.GetString(second)),
+            $"{typeof(T).Name} (STJ fixed point)");
+
+        // Canonicalize both objects through Newtonsoft's default contract; trees only,
+        // so no reference handling is needed for the comparison
+        AssertJsonEquivalent(
+            JToken.Parse(JsonConvert.SerializeObject(obj)),
+            JToken.Parse(JsonConvert.SerializeObject(reloaded)),
+            $"{typeof(T).Name} (Newtonsoft-canonical cross-check)");
+
+        return reloaded;
+    }
+
+    [Fact]
+    public void Stj_Vault_RoundTrips() => AssertStjParity(BuildGoldenVault());
+
+    [Fact]
+    public void Stj_GuildVault_RoundTrips() => AssertStjParity(BuildGuildVault());
+
+    [Fact]
+    public void Stj_ParcelStore_RoundTrips() => AssertStjParity(BuildParcelStore());
+
+    [Fact]
+    public void Stj_AuthInfo_RoundTrips() => AssertStjParity(BuildAuthInfo());
+
+    [Fact]
+    public void Stj_Mailbox_RoundTrips()
+    {
+        var reloaded = AssertStjParity(BuildMailbox());
+        Assert.True(reloaded.Messages[0].Read, "read flag (private field _read) did not survive STJ");
+        Assert.True(reloaded.HasUnreadMessages);
+    }
+
+    [Fact]
+    public void Stj_SentMail_RoundTrips() => AssertStjParity(BuildSentMail());
+
+    [Fact]
+    public void Stj_Board_RoundTrips() => AssertStjParity(BuildBoard());
+
+    [Fact]
+    public void Stj_Guild_RoundTrips() => AssertStjParity(BuildGuild());
+
+    [Fact]
+    public void Stj_User_RoundTrips()
+    {
+        var user = Fixture.CreateUser("StjRoundTripUser");
+        Game.World.Insert(user);
+        user.Teleport(Fixture.Map.Id, 12, 12);
+        try
+        {
+            PopulateUser(user, deterministic: false);
+            var castable = Game.World.WorldData
+                .Find<Castable>(condition: x => x.Name == "TestPlusAc").FirstOrDefault();
+            Assert.NotNull(castable);
+            user.SpellBook.Add(castable);
+            Assert.True(user.UseCastable(castable, user));
+            Assert.NotEmpty(user.CurrentStatuses);
+            // Populates the Statuses snapshot (and writes via the current wire, which is irrelevant here)
+            user.Save(serializeStatus: true);
+
+            var reloaded = AssertStjParity(user);
+
+            Assert.Equal(user.Guid, reloaded.Guid);
+            Assert.Equal(2, reloaded.Legend.Count);
+            Assert.True(reloaded.Legend.TryGetMark("ser1", out _), "legend index not rebuilt after STJ deserialize");
+            Assert.Equal("Test Item", reloaded.Inventory[1].Name);
+            Assert.Equal("Equip Test Weapon", reloaded.Equipment.Weapon.Name);
+            Assert.Equal("TestPlusAc", reloaded.SpellBook.Single(predicate: s => s.Castable != null).Castable.Name);
+        }
+        finally
+        {
+            user.Map.Remove(user);
+            Game.World.Remove(user);
+        }
     }
 
     #endregion

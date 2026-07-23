@@ -32,7 +32,7 @@ public class MessageStoreLocked : Exception { }
 [JsonObject(MemberSerialization.OptIn)]
 public class MessageStore : IEnumerable<Message>, IStateStorable
 {
-    private readonly object Lock;
+    private readonly object Lock = new();
     [JsonProperty] public short CurrentId;
     [JsonProperty] public string DisplayName;
     // Subclass constructor parameters must not be named after serialized properties
@@ -41,8 +41,11 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
     public int Id;
     public bool IsLocked;
     public bool IsSaving;
-    [JsonProperty] public List<Message> Messages;
+    [JsonProperty] public List<Message> Messages = new();
     [JsonProperty] public string Name;
+
+    // Deserialization only; serialized state overwrites the members
+    protected MessageStore() { }
 
     public MessageStore(string name, string displayName = "")
     {
@@ -50,8 +53,6 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
         IsSaving = false;
         Guid = Guid.NewGuid();
         CurrentId = 0;
-        Lock = new object();
-        Messages = new List<Message>();
         DisplayName = displayName != "" ? displayName : Name;
     }
 
