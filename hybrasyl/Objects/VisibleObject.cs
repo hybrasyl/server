@@ -17,13 +17,13 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -69,7 +69,7 @@ public class VisibleObject : WorldObject, IVisible
 
     public SpokenEvent LastHeard { get; set; }
 
-    [JsonProperty] public LocationInfo Location { get; set; } = new();
+    [Persist] public LocationInfo Location { get; set; } = new();
 
     public ushort Sprite { get; set; }
     public string Portrait { get; set; }

@@ -17,15 +17,15 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Scripting;
-using Newtonsoft.Json;
 using System;
 using System.Drawing;
 
 namespace Hybrasyl.Objects;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class WorldObject : IQuadStorable, IWorldObject
 {
     public WorldObject()
@@ -52,9 +52,9 @@ public class WorldObject : IQuadStorable, IWorldObject
     public DateTime CreationTime { get; set; }
     public string Type => GetType().Name;
     public uint Id { get; set; }
-    [JsonProperty(Order = 0)] public Guid Guid { get; set; } = Guid.NewGuid();
+    [Persist(Order = 0)] public Guid Guid { get; set; } = Guid.NewGuid();
 
-    [JsonProperty(Order = 0)] public virtual string Name { get; set; }
+    [Persist(Order = 0)] public virtual string Name { get; set; }
 
     public Guid ServerGuid { get; set; } = Guid.Empty;
     public World World => Game.GetServerByGuid<World>(ServerGuid) ?? Game.GetDefaultServer<World>();

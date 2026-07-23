@@ -18,8 +18,8 @@
 
 using Hybrasyl.Extensions;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Servers;
-using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -29,20 +29,18 @@ namespace Hybrasyl.Subsystems.Messaging;
 
 public class MessageStoreLocked : Exception { }
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class MessageStore : IEnumerable<Message>, IStateStorable
 {
     private readonly object Lock = new();
-    [JsonProperty] public short CurrentId;
-    [JsonProperty] public string DisplayName;
-    // Subclass constructor parameters must not be named after serialized properties
-    // (e.g. "guid") - Newtonsoft binds them by name and the value is lost on reload
-    [JsonProperty] public Guid Guid;
+    [Persist] public short CurrentId;
+    [Persist] public string DisplayName;
+    [Persist] public Guid Guid;
     public int Id;
     public bool IsLocked;
     public bool IsSaving;
-    [JsonProperty] public List<Message> Messages = new();
-    [JsonProperty] public string Name;
+    [Persist] public List<Message> Messages = new();
+    [Persist] public string Name;
 
     // Deserialization only; serialized state overwrites the members
     protected MessageStore() { }

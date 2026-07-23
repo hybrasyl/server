@@ -18,12 +18,12 @@
 
 using System;
 using System.Collections.Generic;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Objects;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Subsystems.Players.Guilds;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class GuildCharter
 {
     public GuildCharter() { }
@@ -33,13 +33,13 @@ public class GuildCharter
         GuildName = guildName;
     }
 
-    [JsonProperty] public Guid Guid { get; set; } = Guid.NewGuid();
+    [Persist] public Guid Guid { get; set; } = Guid.NewGuid();
 
-    [JsonProperty] public string GuildName { get; set; }
+    [Persist] public string GuildName { get; set; }
 
-    [JsonProperty] public Guid LeaderGuid { get; set; }
+    [Persist] public Guid LeaderGuid { get; set; }
 
-    [JsonProperty] public List<Guid> Supporters { get; set; } = new();
+    [Persist] public List<Guid> Supporters { get; set; } = new();
 
     public bool AddSupporter(User user)
     {

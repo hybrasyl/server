@@ -16,33 +16,34 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Attributes;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Newtonsoft.Json;
-using JsonConverter = System.Text.Json.Serialization.JsonConverter;
-using JsonException = System.Text.Json.JsonException;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Hybrasyl.Subsystems.Persistence;
 
 /// <summary>
 ///     The System.Text.Json serializer for Redis persistence. Wire format is plain JSON
-///     trees (no reference metadata); the member contract comes from the same
-///     [JsonObject(OptIn)]/[JsonProperty] attributes Newtonsoft used, interpreted by
-///     <see cref="NewtonsoftCompatResolver" />. The contract is pinned by
+///     trees (no reference metadata); the member contract comes from
+///     [Persistable]/[Persist] attributes, compiled once per type into a
+///     <see cref="WirePlan" /> and applied by <see cref="PersistenceContractResolver" />
+///     (plain objects) or <see cref="OptInEnumerableConverterFactory" /> (types that
+///     implement IEnumerable but persist as objects). The contract is pinned by
 ///     Hybrasyl.Tests/RedisSerialization.cs and the golden corpus.
 /// </summary>
 public static class RedisJsonSerializer
 {
     public static readonly JsonSerializerOptions Options = new()
     {
-        TypeInfoResolver = new NewtonsoftCompatResolver(),
+        TypeInfoResolver = new PersistenceContractResolver(),
         // Redis blobs are not HTML; relaxed escaping keeps game text legible
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         PropertyNameCaseInsensitive = true,
@@ -64,58 +65,60 @@ public static class RedisJsonSerializer
 }
 
 /// <summary>
-///     Gives System.Text.Json the three Newtonsoft behaviors the persistence contract
-///     depends on, keyed off the existing Newtonsoft attributes so the ~200 attribute
-///     sites stay untouched until the phase-2 re-attribution:
-///     opt-in membership ([JsonObject(OptIn)] + [JsonProperty], walking the type
-///     hierarchy and including non-public members), materialization through a
-///     parameterless constructor of any visibility (so deserialization never re-runs
-///     scripted constructor logic), and [JsonProperty] Order support.
+///     One wire member of a [Persistable] type: name, declared type, ordering, and
+///     compiled accessors (expression-compiled so non-public members work at
+///     near-direct-access speed; Set is null for members with no usable setter).
 /// </summary>
-public class NewtonsoftCompatResolver : DefaultJsonTypeInfoResolver
-{
-    public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
-    {
-        // Opt-in enumerable types (Legend, MessageStore family) are handled by
-        // OptInEnumerableConverterFactory - STJ metadata cannot make an object
-        // out of a type it classifies as a collection
-        if (!IsOptIn(type) || typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
-            return base.GetTypeInfo(type, options);
+internal sealed record WireMember(string Name, Type MemberType, int Order,
+    Func<object, object> Get, Action<object, object> Set);
 
-        var typeInfo = base.GetTypeInfo(type, options);
-        typeInfo.Properties.Clear();
-        foreach (var member in GetWireMembers(type))
-            typeInfo.Properties.Add(CreateProperty(typeInfo, member));
+/// <summary>
+///     The compiled persistence contract for one [Persistable] type: its ordered wire
+///     members, a case-insensitive name index, and a compiled parameterless-constructor
+///     factory. Built once per type on first use; both serialization mechanisms consume
+///     the same plan, so the contract cannot drift between them.
+/// </summary>
+internal sealed class WirePlan
+{
+    private static readonly ConcurrentDictionary<Type, WirePlan> Cache = new();
+
+    private WirePlan(WireMember[] members, Func<object> createInstance)
+    {
+        Members = members;
+        CreateInstance = createInstance;
+        ByName = members.ToDictionary(keySelector: m => m.Name, elementSelector: m => m,
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    public WireMember[] Members { get; }
+    public Dictionary<string, WireMember> ByName { get; }
+    public Func<object> CreateInstance { get; }
+
+    public static WirePlan For(Type type) => Cache.GetOrAdd(type, valueFactory: Build);
+
+    private static WirePlan Build(Type type)
+    {
+        var members = GetWireMembers(type)
+            .Select(selector: Describe)
+            .OrderBy(keySelector: m => m.Order) // stable: declaration order within equal Order
+            .ToArray();
 
         var ctor = type.GetConstructor(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null, Type.EmptyTypes, modifiers: null);
-        if (ctor is not null)
-            typeInfo.CreateObject = () => ctor.Invoke(null);
+        if (ctor is null)
+            throw new InvalidOperationException(
+                $"{type} is [Persistable] but has no parameterless constructor for deserialization");
+        var createInstance = Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
 
-        return typeInfo;
+        return new WirePlan(members, createInstance);
     }
 
     /// <summary>
-    ///     Newtonsoft resolves [JsonObject] from the nearest type in the hierarchy that
-    ///     carries it; absence anywhere means the default (opt-out) contract applies.
+    ///     All [Persist]-annotated fields and properties, any visibility, walking the
+    ///     hierarchy most-derived first so overrides win the name dedup.
     /// </summary>
-    internal static bool IsOptIn(Type type)
-    {
-        for (var t = type; t is not null; t = t.BaseType)
-        {
-            var attr = t.GetCustomAttribute<JsonObjectAttribute>(inherit: false);
-            if (attr is not null) return attr.MemberSerialization == MemberSerialization.OptIn;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    ///     All [JsonProperty]-annotated fields and properties, any visibility, walking
-    ///     the hierarchy most-derived first so overrides win the name dedup.
-    /// </summary>
-    internal static IEnumerable<MemberInfo> GetWireMembers(Type type)
+    private static IEnumerable<MemberInfo> GetWireMembers(Type type)
     {
         var seen = new HashSet<string>();
         for (var t = type; t is not null && t != typeof(object); t = t.BaseType)
@@ -123,87 +126,120 @@ public class NewtonsoftCompatResolver : DefaultJsonTypeInfoResolver
                                                 BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
             {
                 if (member is not (PropertyInfo or FieldInfo)) continue;
-                if (member.GetCustomAttribute<JsonPropertyAttribute>() is null) continue;
+                if (member.GetCustomAttribute<Persist>() is null) continue;
                 if (seen.Add(member.Name)) yield return member;
             }
     }
 
-    private static JsonPropertyInfo CreateProperty(JsonTypeInfo typeInfo, MemberInfo member)
+    private static WireMember Describe(MemberInfo member)
     {
-        var attr = member.GetCustomAttribute<JsonPropertyAttribute>();
-        switch (member)
+        var memberType = member switch
         {
-            case PropertyInfo pi:
-            {
-                var prop = typeInfo.CreateJsonPropertyInfo(pi.PropertyType, attr!.PropertyName ?? pi.Name);
-                if (pi.GetMethod is not null) prop.Get = pi.GetValue;
-                if (pi.SetMethod is not null) prop.Set = pi.SetValue;
-                prop.Order = attr.Order;
-                return prop;
-            }
-            case FieldInfo fi:
-            {
-                var prop = typeInfo.CreateJsonPropertyInfo(fi.FieldType, attr!.PropertyName ?? fi.Name);
-                prop.Get = fi.GetValue;
-                prop.Set = fi.SetValue;
-                prop.Order = attr.Order;
-                return prop;
-            }
-            default:
-                throw new InvalidOperationException($"Unsupported wire member {member}");
-        }
+            PropertyInfo pi => pi.PropertyType,
+            FieldInfo fi => fi.FieldType,
+            _ => throw new InvalidOperationException($"Unsupported wire member {member}")
+        };
+        var order = member.GetCustomAttribute<Persist>()!.Order;
+        return new WireMember(member.Name, memberType, order, BuildGetter(member), BuildSetter(member));
+    }
+
+    private static Func<object, object> BuildGetter(MemberInfo member)
+    {
+        var instance = Expression.Parameter(typeof(object), "o");
+        var access = Expression.MakeMemberAccess(
+            Expression.Convert(instance, member.DeclaringType!), member);
+        return Expression.Lambda<Func<object, object>>(
+            Expression.Convert(access, typeof(object)), instance).Compile();
+    }
+
+    private static Action<object, object> BuildSetter(MemberInfo member)
+    {
+        if (member is PropertyInfo { SetMethod: null } or FieldInfo { IsInitOnly: true })
+            return null;
+        var instance = Expression.Parameter(typeof(object), "o");
+        var value = Expression.Parameter(typeof(object), "v");
+        var memberType = member is PropertyInfo pi ? pi.PropertyType : ((FieldInfo)member).FieldType;
+        var assign = Expression.Assign(
+            Expression.MakeMemberAccess(Expression.Convert(instance, member.DeclaringType!), member),
+            Expression.Convert(value, memberType));
+        return Expression.Lambda<Action<object, object>>(assign, instance, value).Compile();
     }
 }
 
 /// <summary>
-///     Serializes opt-in types that implement IEnumerable (Legend, the MessageStore
-///     family) as objects, which is what Newtonsoft's [JsonObject] attribute means on
-///     such types. STJ's metadata model classifies them as collections with no
-///     override, so the object shape is written by hand from the wire-member list.
+///     Gives System.Text.Json the behaviors the persistence contract depends on that it
+///     lacks natively: opt-in membership ([Persistable] + [Persist], including non-public
+///     members), materialization through a parameterless constructor of any visibility
+///     (so deserialization never re-runs scripted constructor logic), and
+///     [Persist(Order = N)] support. Types that implement IEnumerable are deferred to
+///     <see cref="OptInEnumerableConverterFactory" />.
+/// </summary>
+public class PersistenceContractResolver : DefaultJsonTypeInfoResolver
+{
+    public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+    {
+        if (!IsOptIn(type) || IsOptInEnumerable(type))
+            return base.GetTypeInfo(type, options);
+
+        var typeInfo = base.GetTypeInfo(type, options);
+        var plan = WirePlan.For(type);
+        typeInfo.Properties.Clear();
+        foreach (var member in plan.Members)
+        {
+            var prop = typeInfo.CreateJsonPropertyInfo(member.MemberType, member.Name);
+            prop.Get = member.Get;
+            if (member.Set is not null) prop.Set = member.Set;
+            prop.Order = member.Order;
+            typeInfo.Properties.Add(prop);
+        }
+
+        typeInfo.CreateObject = plan.CreateInstance;
+        return typeInfo;
+    }
+
+    /// <summary>
+    ///     A type is opt-in when [Persistable] appears anywhere in its hierarchy;
+    ///     absence means the default contract applies.
+    /// </summary>
+    internal static bool IsOptIn(Type type) =>
+        type.GetCustomAttribute<Persistable>(inherit: true) is not null;
+
+    /// <summary>
+    ///     [Persistable] types that implement IEnumerable persist as objects but are
+    ///     classified as collections by STJ's metadata model, so they serialize through
+    ///     OptInEnumerableConverterFactory rather than the resolver.
+    /// </summary>
+    internal static bool IsOptInEnumerable(Type type) =>
+        IsOptIn(type) && typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
+}
+
+/// <summary>
+///     Serializes [Persistable] types that implement IEnumerable (Legend, the
+///     MessageStore family) as objects. STJ's metadata model classifies them as
+///     collections with no override, so the object shape is written by hand from the
+///     same <see cref="WirePlan" /> the resolver uses.
 /// </summary>
 public class OptInEnumerableConverterFactory : JsonConverterFactory
 {
     public override bool CanConvert(Type typeToConvert) =>
-        NewtonsoftCompatResolver.IsOptIn(typeToConvert) &&
-        typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert);
+        PersistenceContractResolver.IsOptInEnumerable(typeToConvert);
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
         (JsonConverter)Activator.CreateInstance(
             typeof(OptInEnumerableConverter<>).MakeGenericType(typeToConvert));
 }
 
-internal class OptInEnumerableConverter<T> : System.Text.Json.Serialization.JsonConverter<T>
+internal class OptInEnumerableConverter<T> : JsonConverter<T>
 {
-    private static readonly List<(MemberInfo Member, string Name, Type MemberType)> WireMembers = Describe();
-
-    private static List<(MemberInfo, string, Type)> Describe()
-    {
-        var members = new List<(MemberInfo, string, Type)>();
-        foreach (var member in NewtonsoftCompatResolver.GetWireMembers(typeof(T)))
-        {
-            var attr = member.GetCustomAttribute<JsonPropertyAttribute>();
-            switch (member)
-            {
-                case PropertyInfo pi:
-                    members.Add((pi, attr!.PropertyName ?? pi.Name, pi.PropertyType));
-                    break;
-                case FieldInfo fi:
-                    members.Add((fi, attr!.PropertyName ?? fi.Name, fi.FieldType));
-                    break;
-            }
-        }
-
-        return members;
-    }
+    private static readonly WirePlan Plan = WirePlan.For(typeof(T));
 
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
     {
         writer.WriteStartObject();
-        foreach (var (member, name, memberType) in WireMembers)
+        foreach (var member in Plan.Members)
         {
-            writer.WritePropertyName(name);
-            var memberValue = member is PropertyInfo pi ? pi.GetValue(value) : ((FieldInfo)member).GetValue(value);
-            JsonSerializer.Serialize(writer, memberValue, memberType, options);
+            writer.WritePropertyName(member.Name);
+            JsonSerializer.Serialize(writer, member.Get(value), member.MemberType, options);
         }
 
         writer.WriteEndObject();
@@ -214,30 +250,18 @@ internal class OptInEnumerableConverter<T> : System.Text.Json.Serialization.Json
         if (reader.TokenType != JsonTokenType.StartObject)
             throw new JsonException($"Expected object for {typeof(T)}, got {reader.TokenType}");
 
-        var ctor = typeof(T).GetConstructor(
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-            binder: null, Type.EmptyTypes, modifiers: null);
-        if (ctor is null)
-            throw new JsonException($"{typeof(T)} has no parameterless constructor for deserialization");
-        var result = (T)ctor.Invoke(null);
-
+        var result = (T)Plan.CreateInstance();
         while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
         {
             var propertyName = reader.GetString();
             reader.Read();
-            var match = WireMembers.FirstOrDefault(
-                predicate: m => string.Equals(m.Name, propertyName, StringComparison.OrdinalIgnoreCase));
-            if (match.Member is null)
+            if (!Plan.ByName.TryGetValue(propertyName!, out var member) || member.Set is null)
             {
                 reader.Skip();
                 continue;
             }
 
-            var memberValue = JsonSerializer.Deserialize(ref reader, match.MemberType, options);
-            if (match.Member is PropertyInfo { SetMethod: not null } prop)
-                prop.SetValue(result, memberValue);
-            else if (match.Member is FieldInfo field)
-                field.SetValue(result, memberValue);
+            member.Set(result, JsonSerializer.Deserialize(ref reader, member.MemberType, options));
         }
 
         (result as IJsonOnDeserialized)?.OnDeserialized();

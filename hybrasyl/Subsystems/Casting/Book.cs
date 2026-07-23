@@ -17,7 +17,6 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,7 +25,6 @@ using XmlBook = Hybrasyl.Xml.Objects.Book;
 
 namespace Hybrasyl.Casting;
 
-[JsonConverter(typeof(BookConverter))]
 public class Book : IEnumerable<BookSlot>
 {
     private readonly Dictionary<int, BookSlot> _itemIndex;

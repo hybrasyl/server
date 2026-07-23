@@ -30,7 +30,7 @@ using Hybrasyl.Subsystems.Spawning;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using HybrasylGrpc;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Serilog;
@@ -834,15 +834,15 @@ public static class Game
             using var releaseResponse = await client.GetAsync("https://api.github.com/repos/hybrasyl/server/releases/latest");
 
             var lR = await releaseResponse.Content.ReadAsStringAsync();
-            var latestRelease = JObject.Parse(lR);
-            var latestTag = latestRelease["tag_name"].ToString();
-            var latestReleaseDate = DateTime.Parse(latestRelease["published_at"].ToString());
+            var latestRelease = JsonNode.Parse(lR);
+            var latestTag = latestRelease["tag_name"].GetValue<string>();
+            var latestReleaseDate = DateTime.Parse(latestRelease["published_at"].GetValue<string>());
 
             using var theirHashResponse =
                 await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/git/refs/tags/{latestTag}");
 
-            var theirHash = JObject.Parse(await theirHashResponse.Content.ReadAsStringAsync())["object"]["sha"]
-                .ToString().ToLower()[..8];
+            var theirHash = JsonNode.Parse(await theirHashResponse.Content.ReadAsStringAsync())["object"]["sha"]
+                .GetValue<string>().ToLower()[..8];
 
             if (theirHash != Assemblyinfo.GitHash[..8])
             {
@@ -880,10 +880,10 @@ public static class Game
             using var content = res.Content;
 
             var data = await content.ReadAsStringAsync();
-            var jsonobj = JObject.Parse(data);
+            var jsonobj = JsonNode.Parse(data);
 
             if (res.StatusCode == System.Net.HttpStatusCode.OK)
-                CommitLog = jsonobj["commit"]["message"].ToString();
+                CommitLog = jsonobj["commit"]["message"].GetValue<string>();
         }
         catch (Exception e)
         {

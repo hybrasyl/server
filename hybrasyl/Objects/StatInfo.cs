@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Newtonsoft.Json;
 using System;
 
 namespace Hybrasyl.Objects;
@@ -38,7 +38,7 @@ public class FormulaVariable : Attribute { }
 [AttributeUsage(AttributeTargets.Property)]
 public class StatusAttribute : Attribute { }
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [MoonSharpUserData]
 public class StatInfo
 {
@@ -48,7 +48,7 @@ public class StatInfo
     public decimal HpPercentage => (decimal) Hp / MaximumHp * 100m;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public byte Level
     {
         get
@@ -68,7 +68,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public uint Experience
     {
         get
@@ -88,7 +88,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public int Faith
     {
         get
@@ -108,7 +108,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public uint Gold
     {
         get
@@ -128,7 +128,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public byte Ability
     {
         get
@@ -148,7 +148,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public uint AbilityExp
     {
         get
@@ -204,7 +204,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseHp
     {
         get
@@ -243,7 +243,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public uint Hp
     {
         get
@@ -263,7 +263,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseMp
     {
         get
@@ -302,7 +302,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public uint Mp
     {
         get
@@ -322,7 +322,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseStr
     {
         get
@@ -361,7 +361,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseInt
     {
         get
@@ -400,7 +400,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseWis
     {
         get
@@ -439,7 +439,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseCon
     {
         get
@@ -478,7 +478,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseDex
     {
         get
@@ -517,7 +517,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseCrit
     {
         get
@@ -558,7 +558,7 @@ public class StatInfo
     [FormulaVariable] public double Crit => BaseCrit + BonusCrit;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseMagicCrit
     {
         get
@@ -599,7 +599,7 @@ public class StatInfo
     [FormulaVariable] public double MagicCrit => BaseMagicCrit + BonusMagicCrit;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseDmg
     {
         get
@@ -639,7 +639,7 @@ public class StatInfo
 
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseHit
     {
         get
@@ -678,7 +678,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public long BaseAc
     {
         get
@@ -717,7 +717,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseMr
     {
         get
@@ -756,7 +756,7 @@ public class StatInfo
     }
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseRegen
     {
         get
@@ -794,7 +794,7 @@ public class StatInfo
         }
     }
 
-    [JsonProperty]
+    [Persist]
     public double BaseInboundDamageModifier
     {
         get
@@ -834,7 +834,7 @@ public class StatInfo
 
     [FormulaVariable] public double InboundDamageModifier => BaseInboundDamageModifier + BonusInboundDamageModifier;
 
-    [JsonProperty]
+    [Persist]
     [FormulaVariable]
     public double BaseInboundHealModifier
     {
@@ -875,7 +875,7 @@ public class StatInfo
 
     public double InboundHealModifier => BaseInboundHealModifier + BonusInboundHealModifier;
 
-    [JsonProperty]
+    [Persist]
     public double BaseOutboundDamageModifier
     {
         get
@@ -915,7 +915,7 @@ public class StatInfo
 
     [FormulaVariable] public double OutboundDamageModifier => BaseOutboundDamageModifier + BonusOutboundDamageModifier;
 
-    [JsonProperty]
+    [Persist]
     [FormulaVariable]
     public double BaseOutboundHealModifier
     {
@@ -957,7 +957,7 @@ public class StatInfo
     [FormulaVariable] public double OutboundHealModifier => BaseOutboundHealModifier + BonusOutboundHealModifier;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseReflectMagical
     {
         get
@@ -998,7 +998,7 @@ public class StatInfo
     [FormulaVariable] public double ReflectMagical => BaseReflectMagical + BonusReflectMagical;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseReflectPhysical
     {
         get
@@ -1039,7 +1039,7 @@ public class StatInfo
     [FormulaVariable] public double ReflectPhysical => BaseReflectPhysical + BonusReflectPhysical;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseExtraGold
     {
         get
@@ -1080,7 +1080,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraGold => BaseExtraGold + BonusExtraGold;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseDodge
     {
         get
@@ -1121,7 +1121,7 @@ public class StatInfo
     [FormulaVariable] public double Dodge => BaseDodge + BonusDodge;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseMagicDodge
     {
         get
@@ -1162,7 +1162,7 @@ public class StatInfo
     [FormulaVariable] public double MagicDodge => BaseMagicDodge + BonusMagicDodge;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseExtraXp
     {
         get
@@ -1203,7 +1203,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraXp => BaseExtraXp + BonusExtraXp;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseExtraItemFind
     {
         get
@@ -1244,7 +1244,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraItemFind => BaseExtraItemFind + BonusExtraItemFind;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseExtraFaith
     {
         get
@@ -1285,7 +1285,7 @@ public class StatInfo
     [FormulaVariable] public double ExtraFaith => BaseExtraFaith + BonusExtraFaith;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseLifeSteal
     {
         get
@@ -1326,7 +1326,7 @@ public class StatInfo
     [FormulaVariable] public double LifeSteal => BaseLifeSteal + BonusLifeSteal;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseManaSteal
     {
         get
@@ -1367,7 +1367,7 @@ public class StatInfo
     [FormulaVariable] public double ManaSteal => BaseManaSteal + BonusManaSteal;
 
     [FormulaVariable]
-    [JsonProperty]
+    [Persist]
     public double BaseInboundDamageToMp
     {
         get

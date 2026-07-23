@@ -25,20 +25,18 @@ using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Guilds;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Hybrasyl.Tests;
 
 /// <summary>
-///     Pins the Redis persistence wire contract ahead of the Newtonsoft.Json ->
-///     System.Text.Json migration. Two layers:
+///     Pins the Redis persistence wire contract. Two layers:
 ///     <para>
 ///         Round-trip tests: every persisted root type is written through the production
 ///         serialization path, read back through the production deserialization path, and
@@ -84,17 +82,20 @@ public class RedisSerialization
         var secondKey = $"{key}:second";
         Cache.Set(key, obj);
         var first = (string)Cache.StringGet(key);
+        // The wire format is plain trees; reference metadata is a contract violation
+        Assert.DoesNotContain("\"$id\"", first);
+        Assert.DoesNotContain("\"$values\"", first);
         var reloaded = Cache.Get<T>(key);
         Assert.NotNull(reloaded);
         Cache.Set(secondKey, reloaded);
         var second = (string)Cache.StringGet(secondKey);
-        AssertJsonEquivalent(JToken.Parse(first), JToken.Parse(second), typeof(T).Name);
+        AssertJsonEquivalent(JsonNode.Parse(first), JsonNode.Parse(second), typeof(T).Name);
         return reloaded;
     }
 
-    private static void AssertJsonEquivalent(JToken expected, JToken actual, string context)
+    private static void AssertJsonEquivalent(JsonNode expected, JsonNode actual, string context)
     {
-        if (JToken.DeepEquals(expected, actual)) return;
+        if (JsonNode.DeepEquals(expected, actual)) return;
         var diffs = new List<string>();
         CollectDiffs(expected, actual, "$", diffs);
         Assert.Fail(
@@ -102,29 +103,25 @@ public class RedisSerialization
             string.Join('\n', diffs.Take(25)));
     }
 
-    private static void CollectDiffs(JToken expected, JToken actual, string path, List<string> diffs)
+    private static void CollectDiffs(JsonNode expected, JsonNode actual, string path, List<string> diffs)
     {
-        if (JToken.DeepEquals(expected, actual)) return;
-        if (expected is JObject expectedObj && actual is JObject actualObj)
+        if (JsonNode.DeepEquals(expected, actual)) return;
+        if (expected is JsonObject expectedObj && actual is JsonObject actualObj)
         {
-            var names = expectedObj.Properties().Select(selector: p => p.Name)
-                .Union(actualObj.Properties().Select(selector: p => p.Name));
+            var names = expectedObj.Select(selector: p => p.Key)
+                .Union(actualObj.Select(selector: p => p.Key));
             foreach (var name in names)
-            {
-                var e = expectedObj[name];
-                var a = actualObj[name];
-                if (e == null)
+                if (!expectedObj.ContainsKey(name))
                     diffs.Add($"{path}.{name}: absent before round trip, present after");
-                else if (a == null)
+                else if (!actualObj.ContainsKey(name))
                     diffs.Add($"{path}.{name}: present before round trip, absent after");
                 else
-                    CollectDiffs(e, a, $"{path}.{name}", diffs);
-            }
+                    CollectDiffs(expectedObj[name], actualObj[name], $"{path}.{name}", diffs);
 
             return;
         }
 
-        if (expected is JArray expectedArr && actual is JArray actualArr)
+        if (expected is JsonArray expectedArr && actual is JsonArray actualArr)
         {
             if (expectedArr.Count != actualArr.Count)
             {
@@ -140,9 +137,9 @@ public class RedisSerialization
         diffs.Add($"{path}: {Describe(expected)} -> {Describe(actual)}");
     }
 
-    private static string Describe(JToken token)
+    private static string Describe(JsonNode node)
     {
-        var text = token.ToString(Formatting.None);
+        var text = node?.ToJsonString() ?? "null";
         return text.Length > 80 ? text[..77] + "..." : text;
     }
 
@@ -326,18 +323,19 @@ public class RedisSerialization
         Cache.Set(secondKey, reloaded);
         var second = (string)Cache.StringGet(secondKey);
 
-        var firstToken = JToken.Parse(first);
+        var firstNode = JsonNode.Parse(first);
         // Guard: the status snapshot must actually be on the wire for this test to mean anything
-        Assert.True(firstToken["Statuses"] is JToken statuses && statuses.HasValues,
+        Assert.True(firstNode["Statuses"] is JsonArray { Count: > 0 },
             "expected serialized user to contain a status snapshot");
 
-        AssertJsonEquivalent(firstToken, JToken.Parse(second), "User");
+        AssertJsonEquivalent(firstNode, JsonNode.Parse(second), "User");
 
         Assert.Equal(user.Name, reloaded.Name);
         Assert.Equal(user.Guid, reloaded.Guid);
         Assert.Equal(255, reloaded.Stats.BaseStr);
         Assert.Equal("A serialization test user", reloaded.ProfileText);
         Assert.Equal(2, reloaded.Legend.Count);
+        Assert.True(reloaded.Legend.TryGetMark("ser1", out _), "legend index not rebuilt after deserialize");
         Assert.Equal("Test Item", reloaded.Inventory[1].Name);
         Assert.Equal("Equip Test Weapon", reloaded.Equipment.Weapon.Name);
         Assert.Single(reloaded.SpellBook);
@@ -483,104 +481,6 @@ public class RedisSerialization
 
     #endregion
 
-    #region System.Text.Json migration parity
-
-    /// <summary>
-    ///     Round-trips an object through RedisJsonSerializer and proves two things:
-    ///     the STJ serialization is a fixed point, and the round-tripped object is
-    ///     semantically identical to the original under the Newtonsoft contract
-    ///     (canonical Newtonsoft re-serialization compares equal) - i.e. the STJ
-    ///     resolver sees exactly the member set Newtonsoft did, and every value
-    ///     survives. Also asserts the new wire format carries no reference metadata.
-    /// </summary>
-    private static T AssertStjParity<T>(T obj)
-    {
-        var first = RedisJsonSerializer.Serialize(obj);
-        var firstJson = System.Text.Encoding.UTF8.GetString(first);
-        Assert.DoesNotContain("\"$id\"", firstJson);
-        Assert.DoesNotContain("\"$values\"", firstJson);
-
-        var reloaded = RedisJsonSerializer.Deserialize<T>(first);
-        Assert.NotNull(reloaded);
-        var second = RedisJsonSerializer.Serialize(reloaded);
-        AssertJsonEquivalent(JToken.Parse(firstJson), JToken.Parse(System.Text.Encoding.UTF8.GetString(second)),
-            $"{typeof(T).Name} (STJ fixed point)");
-
-        // Canonicalize both objects through Newtonsoft's default contract; trees only,
-        // so no reference handling is needed for the comparison
-        AssertJsonEquivalent(
-            JToken.Parse(JsonConvert.SerializeObject(obj)),
-            JToken.Parse(JsonConvert.SerializeObject(reloaded)),
-            $"{typeof(T).Name} (Newtonsoft-canonical cross-check)");
-
-        return reloaded;
-    }
-
-    [Fact]
-    public void Stj_Vault_RoundTrips() => AssertStjParity(BuildGoldenVault());
-
-    [Fact]
-    public void Stj_GuildVault_RoundTrips() => AssertStjParity(BuildGuildVault());
-
-    [Fact]
-    public void Stj_ParcelStore_RoundTrips() => AssertStjParity(BuildParcelStore());
-
-    [Fact]
-    public void Stj_AuthInfo_RoundTrips() => AssertStjParity(BuildAuthInfo());
-
-    [Fact]
-    public void Stj_Mailbox_RoundTrips()
-    {
-        var reloaded = AssertStjParity(BuildMailbox());
-        Assert.True(reloaded.Messages[0].Read, "read flag (private field _read) did not survive STJ");
-        Assert.True(reloaded.HasUnreadMessages);
-    }
-
-    [Fact]
-    public void Stj_SentMail_RoundTrips() => AssertStjParity(BuildSentMail());
-
-    [Fact]
-    public void Stj_Board_RoundTrips() => AssertStjParity(BuildBoard());
-
-    [Fact]
-    public void Stj_Guild_RoundTrips() => AssertStjParity(BuildGuild());
-
-    [Fact]
-    public void Stj_User_RoundTrips()
-    {
-        var user = Fixture.CreateUser("StjRoundTripUser");
-        Game.World.Insert(user);
-        user.Teleport(Fixture.Map.Id, 12, 12);
-        try
-        {
-            PopulateUser(user, deterministic: false);
-            var castable = Game.World.WorldData
-                .Find<Castable>(condition: x => x.Name == "TestPlusAc").FirstOrDefault();
-            Assert.NotNull(castable);
-            user.SpellBook.Add(castable);
-            Assert.True(user.UseCastable(castable, user));
-            Assert.NotEmpty(user.CurrentStatuses);
-            // Populates the Statuses snapshot (and writes via the current wire, which is irrelevant here)
-            user.Save(serializeStatus: true);
-
-            var reloaded = AssertStjParity(user);
-
-            Assert.Equal(user.Guid, reloaded.Guid);
-            Assert.Equal(2, reloaded.Legend.Count);
-            Assert.True(reloaded.Legend.TryGetMark("ser1", out _), "legend index not rebuilt after STJ deserialize");
-            Assert.Equal("Test Item", reloaded.Inventory[1].Name);
-            Assert.Equal("Equip Test Weapon", reloaded.Equipment.Weapon.Name);
-            Assert.Equal("TestPlusAc", reloaded.SpellBook.Single(predicate: s => s.Castable != null).Castable.Name);
-        }
-        finally
-        {
-            user.Map.Remove(user);
-            Game.World.Remove(user);
-        }
-    }
-
-    #endregion
-
     #region Builders
 
     private static Message BuildMessage(int id, bool read, bool deleted = false)
@@ -615,7 +515,7 @@ public class RedisSerialization
         vault.AddGold(1000000);
         vault.AddItem("Test Item", 10);
         // No public mutators exist for the authorization lists, but they are on the wire
-        // (Newtonsoft sets private setters); populate them so the contract test covers that path
+        // (the resolver sets private setters); populate them so the contract test covers that path
         SetPrivate(vault, nameof(GuildVault.GuildMasterGuid), SecondGuid);
         SetPrivate(vault, nameof(GuildVault.AuthorizedViewerGuids), new List<Guid> { ThirdGuid });
         SetPrivate(vault, nameof(GuildVault.AuthorizedWithdrawalGuids), new List<Guid> { SecondGuid, ThirdGuid });

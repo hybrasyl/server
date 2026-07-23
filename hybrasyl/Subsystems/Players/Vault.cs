@@ -21,13 +21,12 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Servers;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
 namespace Hybrasyl.Subsystems.Players;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [RedisType]
 public class Vault : IStateStorable
 {
@@ -52,15 +51,15 @@ public class Vault : IStateStorable
         OwnerGuid = ownerGuid;
     }
 
-    [JsonProperty] public Guid OwnerGuid { get; set; }
+    [Persist] public Guid OwnerGuid { get; set; }
 
-    [JsonProperty] public uint GoldLimit { get; private set; }
+    [Persist] public uint GoldLimit { get; private set; }
 
-    [JsonProperty] public uint CurrentGold { get; private set; }
+    [Persist] public uint CurrentGold { get; private set; }
 
-    [JsonProperty] public ushort ItemLimit { get; private set; }
+    [Persist] public ushort ItemLimit { get; private set; }
 
-    [JsonProperty] public ushort CurrentItemCount => (ushort)Items.Count;
+    [Persist] public ushort CurrentItemCount => (ushort)Items.Count;
 
     public bool CanDepositGold => CurrentGold != GoldLimit;
     public uint RemainingGold => GoldLimit - CurrentGold;
@@ -69,7 +68,7 @@ public class Vault : IStateStorable
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
-    [JsonProperty] public Dictionary<string, uint> Items { get; private set; } //item name, quantity
+    [Persist] public Dictionary<string, uint> Items { get; private set; } //item name, quantity
 
     public void Clear()
     {

@@ -18,11 +18,10 @@
 
 using System;
 using Hybrasyl.Internals.Attributes;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Subsystems.Messaging;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [RedisType]
 public class SentMail : MessageStore
 {
@@ -31,13 +30,13 @@ public class SentMail : MessageStore
     // TODO: correct
     public SentMail(Guid ownerGuid) : base(ownerGuid.ToString()) { }
 
-    [JsonProperty] public DateTime LastMailMessageSent { get; set; }
+    [Persist] public DateTime LastMailMessageSent { get; set; }
 
-    [JsonProperty] public string LastMailRecipient { get; set; }
+    [Persist] public string LastMailRecipient { get; set; }
 
-    [JsonProperty] public DateTime LastBoardMessageSent { get; set; }
+    [Persist] public DateTime LastBoardMessageSent { get; set; }
 
-    [JsonProperty] public string LastBoardRecipient { get; set; }
+    [Persist] public string LastBoardRecipient { get; set; }
 
     public bool HasUnreadMessages => false;
 

@@ -19,18 +19,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [MoonSharpUserData]
 public class ElementalModifiers
 {
-    [JsonProperty] private Dictionary<ElementType, double> Augments = new();
-    [JsonProperty] private Dictionary<ElementType, double> Resistances = new();
+    [Persist] private Dictionary<ElementType, double> Augments = new();
+    [Persist] private Dictionary<ElementType, double> Resistances = new();
 
     public ElementalModifiers()
     {

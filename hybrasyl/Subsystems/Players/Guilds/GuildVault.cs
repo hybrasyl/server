@@ -19,11 +19,10 @@
 using System;
 using System.Collections.Generic;
 using Hybrasyl.Internals.Attributes;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Subsystems.Players.Guilds;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [RedisType]
 public class GuildVault : Vault
 {
@@ -34,18 +33,18 @@ public class GuildVault : Vault
     public GuildVault(Guid ownerGuid, uint goldLimit, ushort itemLimit) : base(ownerGuid, goldLimit, itemLimit) { }
 
     //strings are guid identifiers
-    [JsonProperty] public Guid GuildMasterGuid { get; private set; } //no restrictions
+    [Persist] public Guid GuildMasterGuid { get; private set; } //no restrictions
 
-    [JsonProperty]
+    [Persist]
     public List<Guid>
         AuthorizedViewerGuids { get; private set; } //authorized to see what is stored, but cannot withdraw
 
-    [JsonProperty]
+    [Persist]
     public List<Guid> AuthorizedWithdrawalGuids { get; private set; } //authorized to withdraw,  up to limit
 
-    [JsonProperty] public List<Guid> CouncilMemberGuids { get; private set; } //possible restrictions?
+    [Persist] public List<Guid> CouncilMemberGuids { get; private set; } //possible restrictions?
 
-    [JsonProperty] public int AuthorizedWithdrawalLimit { get; private set; }
+    [Persist] public int AuthorizedWithdrawalLimit { get; private set; }
 
-    [JsonProperty] public int CouncilMemberLimit { get; private set; }
+    [Persist] public int CouncilMemberLimit { get; private set; }
 }

@@ -20,7 +20,6 @@ using Hybrasyl.Extensions;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Servers;
-using Newtonsoft.Json;
 using System;
 using System.Data;
 
@@ -34,7 +33,7 @@ public enum UserState : byte
     InWorld = 3
 }
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [RedisType]
 public class AuthInfo : IStateStorable
 {
@@ -45,37 +44,37 @@ public class AuthInfo : IStateStorable
         UserGuid = guid;
     }
 
-    [JsonProperty] public Guid UserGuid { get; set; }
+    [Persist] public Guid UserGuid { get; set; }
 
     public bool IsLoggedIn => CurrentState == UserState.InWorld;
 
-    [JsonProperty] public UserState CurrentState { get; set; }
+    [Persist] public UserState CurrentState { get; set; }
 
-    [JsonProperty] public DateTime LastStateChange { get; set; }
+    [Persist] public DateTime LastStateChange { get; set; }
 
     public double StateChangeDuration => (DateTime.Now - LastStateChange).TotalMilliseconds;
 
-    [JsonProperty] public DateTime LastLogin { get; set; }
+    [Persist] public DateTime LastLogin { get; set; }
 
-    [JsonProperty] public DateTime LastLogoff { get; set; }
+    [Persist] public DateTime LastLogoff { get; set; }
 
-    [JsonProperty] public DateTime LastLoginFailure { get; set; }
+    [Persist] public DateTime LastLoginFailure { get; set; }
 
-    [JsonProperty] public string LastLoginFrom { get; set; }
+    [Persist] public string LastLoginFrom { get; set; }
 
-    [JsonProperty] public string LastLoginFailureFrom { get; set; }
+    [Persist] public string LastLoginFailureFrom { get; set; }
 
-    [JsonProperty] public long LoginFailureCount { get; set; }
+    [Persist] public long LoginFailureCount { get; set; }
 
-    [JsonProperty] public DateTime CreatedTime { get; set; }
+    [Persist] public DateTime CreatedTime { get; set; }
 
-    [JsonProperty] public bool FirstLogin { get; set; }
+    [Persist] public bool FirstLogin { get; set; }
 
-    [JsonProperty] public string PasswordHash { get; set; }
+    [Persist] public string PasswordHash { get; set; }
 
-    [JsonProperty] public DateTime LastPasswordChange { get; set; }
+    [Persist] public DateTime LastPasswordChange { get; set; }
 
-    [JsonProperty] public string LastPasswordChangeFrom { get; set; }
+    [Persist] public string LastPasswordChangeFrom { get; set; }
 
     public string StorageKey => $"{GetType()}:{UserGuid}";
     public bool IsSaving { get; set; }

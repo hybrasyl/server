@@ -18,18 +18,18 @@
 
 using Hybrasyl.Extensions;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Hybrasyl.Subsystems.Players.Guilds;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class Guild : IStateStorable
 {
     public bool IsSaving;
@@ -66,16 +66,16 @@ public class Guild : IStateStorable
         }
     }
 
-    [JsonProperty] public Guid Guid { get; set; }
+    [Persist] public Guid Guid { get; set; }
 
-    [JsonProperty] public string Name { get; set; }
+    [Persist] public string Name { get; set; }
 
-    [JsonProperty] public List<GuildRank> Ranks { get; set; }
+    [Persist] public List<GuildRank> Ranks { get; set; }
 
     public Board Board => Game.World.WorldState.GetBoard(Name);
     public GuildVault Vault => Game.World.WorldState.GetOrCreateByGuid<GuildVault>(Guid, Name);
 
-    [JsonProperty] public Dictionary<Guid, GuildMember> Members { get; set; } = new();
+    [Persist] public Dictionary<Guid, GuildMember> Members { get; set; } = new();
 
     public GuildRank LeaderRank => Ranks.Single(predicate: x => x.Level == 0);
 

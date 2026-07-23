@@ -19,11 +19,10 @@
 using System;
 using System.Linq;
 using Hybrasyl.Internals.Attributes;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Subsystems.Messaging;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [RedisType]
 public class Mailbox : MessageStore
 {

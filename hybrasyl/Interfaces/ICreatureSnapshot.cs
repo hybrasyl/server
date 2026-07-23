@@ -1,6 +1,6 @@
 ﻿using Hybrasyl.Objects;
 using Hybrasyl.Servers;
-using Newtonsoft.Json;
+using Hybrasyl.Subsystems.Persistence;
 using System;
 
 namespace Hybrasyl.Interfaces
@@ -14,8 +14,8 @@ namespace Hybrasyl.Interfaces
 
         public Guid CreateStatSnapshot()
         {
-            var stats = JsonConvert.SerializeObject(Stats);
-            var statInfo = JsonConvert.DeserializeObject<StatInfo>(stats);
+            // Serialization round trip as a deep copy of the wire-visible stats
+            var statInfo = RedisJsonSerializer.Deserialize<StatInfo>(RedisJsonSerializer.Serialize(Stats));
             var snapshot = new CreatureSnapshot
             {
                 Name = Name,

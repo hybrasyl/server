@@ -23,11 +23,9 @@ using System.Linq;
 using Hybrasyl.Internals;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Subsystems.Players;
 
-[JsonConverter(typeof(InventoryConverter))]
 public class Inventory : IEnumerable<ItemObject>
 {
     public const byte DefaultSize = 59;

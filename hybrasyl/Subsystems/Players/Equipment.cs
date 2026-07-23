@@ -21,11 +21,9 @@ using System.Collections.Generic;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Subsystems.Players;
 
-[JsonConverter(typeof(EquipmentConverter))]
 public class Equipment : Inventory
 {
     public new const byte DefaultSize = 18;

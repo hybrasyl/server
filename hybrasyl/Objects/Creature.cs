@@ -19,6 +19,7 @@
 using Hybrasyl.Casting;
 using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
@@ -29,7 +30,6 @@ using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -59,17 +59,17 @@ public class Creature : VisibleObject, IStatSnapshotProvider
         SessionCookies = new Dictionary<string, string>();
     }
 
-    [JsonProperty(Order = 2)] public StatInfo Stats { get; set; }
-    [JsonProperty(Order = 3)] public ConditionInfo Condition { get; set; }
+    [Persist(Order = 2)] public StatInfo Stats { get; set; }
+    [Persist(Order = 3)] public ConditionInfo Condition { get; set; }
 
     public uint Gold => Stats.Gold;
 
-    [JsonProperty] private Dictionary<string, string> Cookies { get; set; }
+    [Persist] private Dictionary<string, string> Cookies { get; set; }
     private Dictionary<string, string> SessionCookies { get; set; }
 
-    [JsonProperty] public Inventory Inventory { get; protected set; }
+    [Persist] public Inventory Inventory { get; protected set; }
 
-    [JsonProperty] public Equipment Equipment { get; protected set; }
+    [Persist] public Equipment Equipment { get; protected set; }
 
     public DateTime LastHitTime { get; private set; }
     public Creature FirstHitter { get; internal set; }

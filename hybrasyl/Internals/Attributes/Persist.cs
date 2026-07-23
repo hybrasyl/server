@@ -1,21 +1,32 @@
-﻿// This file is part of Project Hybrasyl.
-// 
+// This file is part of Project Hybrasyl.
+//
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
 // the Free Software Foundation, version 3.
-// 
+//
 // This program is distributed in the hope that it will be useful, but
 // without ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 // or FITNESS FOR A PARTICULAR PURPOSE. See the Affero General Public License
 // for more details.
-// 
+//
 // You should have received a copy of the Affero General Public License along
 // with this program. If not, see <http://www.gnu.org/licenses/>.
-// 
-// (C) 2020-2023 ERISCO, LLC
-// 
+//
+// (C) 2020-2026 ERISCO, LLC
+//
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-namespace Hybrasyl.Casting;
+using System;
 
-public sealed class SpellBook : Book;
+namespace Hybrasyl.Internals.Attributes;
+
+/// <summary>
+///     Puts a member of a [Persistable] type on the persistence wire. Any
+///     visibility; fields and properties alike. Order sorts members in the
+///     serialized output (default 0, ties keep declaration order).
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class Persist : Attribute
+{
+    public int Order { get; set; }
+}

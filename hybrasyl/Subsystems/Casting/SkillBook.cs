@@ -16,9 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Newtonsoft.Json;
-
 namespace Hybrasyl.Casting;
 
-[JsonConverter(typeof(BookConverter))]
 public sealed class SkillBook : Book;

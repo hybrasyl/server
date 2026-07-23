@@ -20,6 +20,7 @@ using Hybrasyl.Casting;
 using Hybrasyl.Extensions;
 using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Interfaces;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
@@ -35,7 +36,6 @@ using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Players.Guilds;
 using Hybrasyl.Subsystems.Statuses;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -48,21 +48,20 @@ using MessageType = Hybrasyl.Internals.Enums.MessageType;
 
 namespace Hybrasyl.Objects;
 
-[JsonObject]
 public class KillRecord
 {
     public string Name { get; set; }
     public DateTime Timestamp { get; set; }
 }
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class User : Creature
 {
     private object _serializeLock = new();
 
     private IClient Client;
 
-    [JsonProperty] public uint LevelPoints;
+    [Persist] public uint LevelPoints;
 
     public User()
     {
@@ -90,25 +89,25 @@ public class User : Creature
 
     public GuidReference GuidReference => Game.World.WorldState.GetGuidReference(this);
 
-    [JsonProperty] public Guid AccountGuid { get; set; } = Guid.Empty;
+    [Persist] public Guid AccountGuid { get; set; } = Guid.Empty;
     public bool Connected => Client?.Connected ?? false;
     public long ConnectionId => Client?.ConnectionId ?? PreviousConnectionId;
     public long PreviousConnectionId { get; set; }
 
-    [JsonProperty] public Gender Gender { get; set; }
+    [Persist] public Gender Gender { get; set; }
     //private account Account { get; set; }
 
-    [JsonProperty] public Class Class { get; set; }
+    [Persist] public Class Class { get; set; }
 
-    [JsonProperty] public Class PreviousClass { get; set; }
+    [Persist] public Class PreviousClass { get; set; }
 
-    [JsonProperty] public bool IsMaster { get; set; }
+    [Persist] public bool IsMaster { get; set; }
 
     public string AdHocScript { get; set; }
     public UserGroup Group { get; set; }
     public GroupRecruit GroupRecruit { get; set; }
 
-    [JsonProperty] private List<StatusSnapshot> Statuses { get; set; } = new();
+    [Persist] private List<StatusSnapshot> Statuses { get; set; } = new();
 
     public int LevelCircle
     {
@@ -203,14 +202,14 @@ public class User : Creature
 
     public bool Grouped => Group != null;
 
-    [JsonProperty] public Dictionary<byte, bool> ClientSettings { get; set; }
+    [Persist] public Dictionary<byte, bool> ClientSettings { get; set; }
 
 
-    [JsonProperty] public bool IsMuted { get; set; }
+    [Persist] public bool IsMuted { get; set; }
 
-    [JsonProperty] public bool IsIgnoringWhispers { get; set; }
+    [Persist] public bool IsIgnoringWhispers { get; set; }
 
-    [JsonProperty]
+    [Persist]
     public bool IsAtWorldMap
     {
         get => Location.WorldMap;
@@ -5317,25 +5316,25 @@ public class User : Creature
 
     #region Appearance settings
 
-    [JsonProperty] public RestPosition RestPosition { get; set; }
+    [Persist] public RestPosition RestPosition { get; set; }
 
-    [JsonProperty] public SkinColor SkinColor { get; set; }
+    [Persist] public SkinColor SkinColor { get; set; }
 
-    [JsonProperty] internal bool Transparent { get; set; }
+    [Persist] internal bool Transparent { get; set; }
 
-    [JsonProperty] public byte FaceShape { get; set; }
+    [Persist] public byte FaceShape { get; set; }
 
-    [JsonProperty] public LanternSize LanternSize { get; set; }
+    [Persist] public LanternSize LanternSize { get; set; }
 
-    [JsonProperty] public NameDisplayStyle NameStyle { get; set; }
+    [Persist] public NameDisplayStyle NameStyle { get; set; }
 
-    [JsonProperty] public bool DisplayAsMonster { get; set; }
+    [Persist] public bool DisplayAsMonster { get; set; }
 
-    [JsonProperty] public ushort MonsterSprite { get; set; }
+    [Persist] public ushort MonsterSprite { get; set; }
 
-    [JsonProperty] public ushort HairStyle { get; set; }
+    [Persist] public ushort HairStyle { get; set; }
 
-    [JsonProperty] public byte HairColor { get; set; }
+    [Persist] public byte HairColor { get; set; }
 
     #endregion
 
@@ -5344,17 +5343,17 @@ public class User : Creature
     // Some structs helping us to define various metadata
     public AuthInfo AuthInfo => Game.World.WorldState.GetOrCreateByGuid<AuthInfo>(Guid, Name);
 
-    [JsonProperty] public SkillBook SkillBook { get; private set; }
+    [Persist] public SkillBook SkillBook { get; private set; }
 
-    [JsonProperty] public SpellBook SpellBook { get; private set; }
+    [Persist] public SpellBook SpellBook { get; private set; }
 
-    [JsonProperty] public bool Grouping { get; set; }
+    [Persist] public bool Grouping { get; set; }
 
     public UserStatus GroupStatus { get; set; }
 
-    [JsonProperty] public byte[] PortraitData { get; set; }
+    [Persist] public byte[] PortraitData { get; set; }
 
-    [JsonProperty] public string ProfileText { get; set; }
+    [Persist] public string ProfileText { get; set; }
 
     public Castable PendingLearnableCastable { get; private set; }
     public ItemObject PendingSendableParcel { get; private set; }
@@ -5370,13 +5369,13 @@ public class User : Creature
     public byte PendingRepairSlot { get; private set; }
     public uint PendingRepairCost { get; private set; }
 
-    [JsonProperty] public List<KillRecord> RecentKills { get; private set; }
+    [Persist] public List<KillRecord> RecentKills { get; private set; }
 
     public Stack<ICombatEvent> CombatEvents { get; } = new(50);
 
     public List<SpokenEvent> MessagesReceived { get; private set; }
 
-    [JsonProperty] public Guid GuildGuid { get; set; } = Guid.Empty;
+    [Persist] public Guid GuildGuid { get; set; } = Guid.Empty;
 
     public List<string> UseCastRestrictions =>
         CurrentStatuses.SelectMany(selector: e => e.Value.UseCastRestrictions).ToList();
@@ -5396,12 +5395,12 @@ public class User : Creature
         }
     }
 
-    [JsonProperty] private string Citizenship { get; set; }
+    [Persist] private string Citizenship { get; set; }
 
     public string NationName => Nation != null ? Nation.Name : string.Empty;
 
-    [JsonProperty] public Legend Legend;
-    [JsonProperty] public string Title;
+    [Persist] public Legend Legend;
+    [Persist] public string Title;
 
     public AsyncDialogSession ActiveDialogSession { get; set; }
     public DialogState DialogState { get; set; }

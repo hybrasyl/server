@@ -21,14 +21,13 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Hybrasyl.Subsystems.Players;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 [RedisType]
 public class ParcelStore : IStateStorable
 {
@@ -45,9 +44,9 @@ public class ParcelStore : IStateStorable
         OwnerGuid = ownerGuid;
     }
 
-    [JsonProperty] public Guid OwnerGuid { get; set; }
-    [JsonProperty] public List<Parcel> Items { get; set; } //storage id, named tuple
-    [JsonProperty] public List<Moneygram> Gold { get; set; } //storage id, named tuple
+    [Persist] public Guid OwnerGuid { get; set; }
+    [Persist] public List<Parcel> Items { get; set; } //storage id, named tuple
+    [Persist] public List<Moneygram> Gold { get; set; } //storage id, named tuple
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 

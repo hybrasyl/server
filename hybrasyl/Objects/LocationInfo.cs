@@ -16,13 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 using System;
 
 namespace Hybrasyl.Objects;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class LocationInfo : IEquatable<LocationInfo>
 {
     private MapObject _map { get; set; }
@@ -52,7 +52,7 @@ public class LocationInfo : IEquatable<LocationInfo>
 
     private ushort _mapId { get; set; }
 
-    [JsonProperty]
+    [Persist]
     public ushort MapId
     {
         get => Map?.Id ?? _mapId;
@@ -66,7 +66,7 @@ public class LocationInfo : IEquatable<LocationInfo>
 
     private ushort _deathmapId { get; set; }
 
-    [JsonProperty]
+    [Persist]
     public ushort DeathMapId
     {
         get => DeathMap?.Id ?? _deathmapId;
@@ -78,17 +78,17 @@ public class LocationInfo : IEquatable<LocationInfo>
         }
     }
 
-    [JsonProperty] public Direction Direction { get; set; }
+    [Persist] public Direction Direction { get; set; }
 
-    [JsonProperty] public byte X { get; set; }
+    [Persist] public byte X { get; set; }
 
-    [JsonProperty] public byte Y { get; set; }
+    [Persist] public byte Y { get; set; }
 
-    [JsonProperty] public bool WorldMap { get; set; }
+    [Persist] public bool WorldMap { get; set; }
 
-    [JsonProperty] public byte DeathMapX { get; set; }
+    [Persist] public byte DeathMapX { get; set; }
 
-    [JsonProperty] public byte DeathMapY { get; set; }
+    [Persist] public byte DeathMapY { get; set; }
 
     public override bool Equals(object obj) => Equals(obj as LocationInfo);
     public override int GetHashCode() => (X, Y, MapId).GetHashCode();

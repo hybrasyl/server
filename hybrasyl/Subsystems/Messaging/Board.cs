@@ -17,14 +17,14 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using Hybrasyl.Internals.Attributes;
 
 namespace Hybrasyl.Subsystems.Messaging;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class Board : MessageStore
 {
-    [JsonProperty] public bool Global;
+    [Persist] public bool Global;
 
     private Board()
     {
@@ -37,10 +37,10 @@ public class Board : MessageStore
         InitializeStorage();
     }
 
-    [JsonProperty] public HashSet<string> ModeratorList { get; private set; }
-    [JsonProperty] public HashSet<string> ReaderList { get; private set; }
-    [JsonProperty] public HashSet<string> WriterList { get; private set; }
-    [JsonProperty] public HashSet<string> BlockList { get; private set; }
+    [Persist] public HashSet<string> ModeratorList { get; private set; }
+    [Persist] public HashSet<string> ReaderList { get; private set; }
+    [Persist] public HashSet<string> WriterList { get; private set; }
+    [Persist] public HashSet<string> BlockList { get; private set; }
 
     private void InitializeStorage()
     {

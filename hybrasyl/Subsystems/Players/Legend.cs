@@ -20,23 +20,21 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Subsystems;
-using Newtonsoft.Json;
 
 namespace Hybrasyl;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
 {
-    // System.Text.Json counterpart of the [OnDeserialized] callback below
     void IJsonOnDeserialized.OnDeserialized() => RegenerateIndex();
 
     public const int MaximumLegendSize = 254;
 
-    [JsonProperty] private SortedDictionary<DateTime, LegendMark> _legend = new();
+    [Persist] private SortedDictionary<DateTime, LegendMark> _legend = new();
 
     private Dictionary<string, LegendMark> _legendIndex = new();
 
@@ -112,12 +110,6 @@ public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
         return _addLegendMark(newMark);
     }
 
-    [OnDeserialized]
-    private void _CreateIndex(StreamingContext context)
-    {
-        RegenerateIndex();
-    }
-
     public void RegenerateIndex()
     {
         if (_legendIndex.Count == _legend.Count) return;
@@ -134,7 +126,7 @@ public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
     }
 }
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class LegendMark
 {
     private LegendMark() { }
@@ -156,28 +148,28 @@ public class LegendMark
         DisplayTimestamp = displayTimestamp;
     }
 
-    [JsonProperty] public string Prefix { get; set; }
+    [Persist] public string Prefix { get; set; }
 
-    [JsonProperty] public LegendColor Color { get; set; }
+    [Persist] public LegendColor Color { get; set; }
 
-    [JsonProperty] public LegendIcon Icon { get; set; }
+    [Persist] public LegendIcon Icon { get; set; }
 
-    [JsonProperty] public string Text { get; set; }
+    [Persist] public string Text { get; set; }
 
-    [JsonProperty] public bool Public { get; set; }
+    [Persist] public bool Public { get; set; }
 
-    [JsonProperty] public bool DisplaySeason { get; set; }
+    [Persist] public bool DisplaySeason { get; set; }
 
-    [JsonProperty] public bool DisplayTimestamp { get; set; }
+    [Persist] public bool DisplayTimestamp { get; set; }
 
-    [JsonProperty] public DateTime Timestamp { get; set; }
+    [Persist] public DateTime Timestamp { get; set; }
 
     // Setter required, otherwise deserialization just resets the value
-    [JsonProperty] public DateTime Created { get; private set; }
+    [Persist] public DateTime Created { get; private set; }
 
-    [JsonProperty] public DateTime LastUpdated { get; set; }
+    [Persist] public DateTime LastUpdated { get; set; }
 
-    [JsonProperty] public int Quantity { get; set; }
+    [Persist] public int Quantity { get; set; }
 
     public HybrasylTime HybrasylDate => HybrasylTime.ConvertToHybrasyl(Timestamp);
 

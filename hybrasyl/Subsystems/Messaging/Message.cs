@@ -18,25 +18,25 @@
 
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using Hybrasyl.Internals.Attributes;
 
 namespace Hybrasyl.Subsystems.Messaging;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class Message : ICloneable
 {
-    [JsonProperty] private bool _read;
-    [JsonProperty] public string Body;
-    [JsonProperty] public DateTime Created;
-    [JsonProperty] public bool Deleted;
-    [JsonProperty] public string Guid;
-    [JsonProperty] public bool Highlighted;
-    [JsonProperty] public int Id;
+    [Persist] private bool _read;
+    [Persist] public string Body;
+    [Persist] public DateTime Created;
+    [Persist] public bool Deleted;
+    [Persist] public string Guid;
+    [Persist] public bool Highlighted;
+    [Persist] public int Id;
 
-    [JsonProperty] public DateTime ReadTime;
-    [JsonProperty] public string Recipient;
-    [JsonProperty] public string Sender;
-    [JsonProperty] public string Subject;
+    [Persist] public DateTime ReadTime;
+    [Persist] public string Recipient;
+    [Persist] public string Sender;
+    [Persist] public string Subject;
 
     private Message() { }
 

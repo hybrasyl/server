@@ -33,31 +33,27 @@ using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 namespace Hybrasyl.Subsystems.Persistence;
 
 /// <summary>
-///     System.Text.Json ports of the Newtonsoft persistence converters. The wire shapes
-///     (slot dictionaries for inventory/equipment, null-padded fixed-size arrays for
-///     books, including the 1-based indexer quirk that leaves array position 0 null)
-///     are load-bearing contract; see the golden corpus.
+///     Custom persistence converters for the container types. The wire shapes (slot
+///     dictionaries for inventory/equipment, null-padded fixed-size arrays for books,
+///     including the 1-based indexer quirk that leaves array position 0 null) are
+///     load-bearing contract; see the golden corpus.
 /// </summary>
 public class InventoryJsonConverter : JsonConverter<Inventory>
 {
-    public override bool CanConvert(Type typeToConvert) => typeToConvert == typeof(Inventory);
-
     public override void Write(Utf8JsonWriter writer, Inventory value, JsonSerializerOptions options) =>
         SlotConverter.Write(writer, value, options);
 
     public override Inventory Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        SlotConverter.Read(ref reader, new Inventory(Inventory.DefaultSize), options, "Inventory");
+        SlotConverter.Read(ref reader, new Inventory(Inventory.DefaultSize), options);
 }
 
 public class EquipmentJsonConverter : JsonConverter<Equipment>
 {
-    public override bool CanConvert(Type typeToConvert) => typeToConvert == typeof(Equipment);
-
     public override void Write(Utf8JsonWriter writer, Equipment value, JsonSerializerOptions options) =>
         SlotConverter.Write(writer, value, options);
 
     public override Equipment Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        SlotConverter.Read(ref reader, new Equipment(Equipment.DefaultSize), options, "Equipment");
+        SlotConverter.Read(ref reader, new Equipment(Equipment.DefaultSize), options);
 }
 
 internal static class SlotConverter
@@ -67,26 +63,28 @@ internal static class SlotConverter
         var output = new Dictionary<byte, InventorySlot>();
         for (byte i = 1; i <= value.Size; i++)
         {
-            if (value[i] == null) continue;
+            var item = value[i];
+            if (item == null) continue;
             output[i] = new InventorySlot
             {
-                Count = value[i].Count,
-                Id = value[i].TemplateId,
-                Name = value[i].Name,
-                Durability = value[i].Durability,
-                Guid = value[i].Guid.ToString()
+                Count = item.Count,
+                Id = item.TemplateId,
+                Name = item.Name,
+                Durability = item.Durability,
+                Guid = item.Guid.ToString()
             };
         }
 
         JsonSerializer.Serialize(writer, output, options);
     }
 
-    public static T Read<T>(ref Utf8JsonReader reader, T target, JsonSerializerOptions options, string context)
+    public static T Read<T>(ref Utf8JsonReader reader, T target, JsonSerializerOptions options)
         where T : Inventory
     {
         var slots = JsonSerializer.Deserialize<Dictionary<byte, InventorySlot>>(ref reader, options);
+        if (slots == null) return target;
         for (byte i = 1; i <= target.Size; i++)
-            if (slots != null && slots.TryGetValue(i, out var slot))
+            if (slots.TryGetValue(i, out var slot))
             {
                 if (Game.World.WorldData.TryGetValue(slot.Id, out Item _))
                     target[i] = new ItemObject(slot.Id, Game.GetDefaultServerGuid<World>(), new Guid(slot.Guid))
@@ -95,15 +93,8 @@ internal static class SlotConverter
                         Durability = slot.Durability
                     };
                 else
-                {
-                    GameLog.Error("{Context} deserializer error: item {ItemId} not found in index, skipping",
-                        context, slot.Id);
-                    target[i] = null;
-                }
-            }
-            else
-            {
-                target[i] = null;
+                    GameLog.Error("{Type} deserializer error: item {ItemId} not found in index, skipping",
+                        target.GetType().Name, slot.Id);
             }
 
         return target;
@@ -162,20 +153,17 @@ internal static class BookSlotConverter
         byte i = 0;
         foreach (var element in doc.RootElement.EnumerateArray())
         {
-            var slotIndex = i;
-            i++;
+            var slotIndex = i++;
             if (element.ValueKind != JsonValueKind.Object) continue;
             var name = element.GetProperty("Name").GetString();
             book[slotIndex] = new BookSlot
             {
                 Castable = Game.World.WorldData.Values<Castable>()
-                    .SingleOrDefault(predicate: x => x.Name.ToLower() == name)
+                    .SingleOrDefault(predicate: x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase)),
+                UseCount = element.TryGetProperty("TotalUses", out var uses) ? uses.GetUInt32() : 0,
+                MasteryLevel = element.TryGetProperty("MasteryLevel", out var mastery) ? mastery.GetByte() : (byte)0,
+                LastCast = element.GetProperty("LastCast").GetDateTime()
             };
-            var bookSlot = book[slotIndex];
-            if (bookSlot == null) continue;
-            bookSlot.UseCount = element.TryGetProperty("TotalUses", out var uses) ? uses.GetUInt32() : 0;
-            bookSlot.MasteryLevel = element.TryGetProperty("MasteryLevel", out var mastery) ? mastery.GetByte() : (byte)0;
-            bookSlot.LastCast = element.GetProperty("LastCast").GetDateTime();
         }
 
         return book;

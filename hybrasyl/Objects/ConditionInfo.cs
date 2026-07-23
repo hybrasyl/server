@@ -16,13 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Xml.Objects;
-using Newtonsoft.Json;
 
 namespace Hybrasyl.Objects;
 
-[JsonObject(MemberSerialization.OptIn)]
+[Persistable]
 public class ConditionInfo
 {
     private ConditionInfo() { }
@@ -39,7 +39,7 @@ public class ConditionInfo
 
     private CreatureCondition _Conditions { get; set; }
 
-    [JsonProperty]
+    [Persist]
     public CreatureCondition Conditions
     {
         get => _Conditions;
@@ -55,7 +55,7 @@ public class ConditionInfo
         }
     }
 
-    [JsonProperty] public PlayerFlags Flags { get; set; }
+    [Persist] public PlayerFlags Flags { get; set; }
 
     public bool CastingAllowed
     {

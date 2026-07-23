@@ -16,9 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 namespace Hybrasyl.Tests;
 
@@ -30,7 +30,7 @@ public class Settings
     private Settings()
     {
         var json = File.ReadAllText("hybrasyltest-settings.json");
-        PlatformSettings = JsonConvert.DeserializeObject<PlatformSettings>(json);
+        PlatformSettings = JsonSerializer.Deserialize<PlatformSettings>(json);
     }
 
     private static object _lock { get; } = new();
