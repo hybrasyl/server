@@ -1,1 +1,1 @@
-{"$id":"1","OwnerGuid":"7b1c4e9a-0d2f-4b6e-9a3c-1f5d8e7a2b4c","GoldLimit":4294967295,"CurrentGold":31337,"ItemLimit":65535,"CurrentItemCount":2,"Items":{"$id":"2","Test Item":3,"Stackable Test Item":20}}
+{"OwnerGuid":"7b1c4e9a-0d2f-4b6e-9a3c-1f5d8e7a2b4c","GoldLimit":4294967295,"CurrentGold":31337,"ItemLimit":65535,"CurrentItemCount":2,"Items":{"Test Item":3,"Stackable Test Item":20}}

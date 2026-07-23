@@ -1,1 +1,1 @@
-{"$id":"1","OwnerGuid":"7b1c4e9a-0d2f-4b6e-9a3c-1f5d8e7a2b4c","Items":{"$id":"2","$values":[{"$id":"3","Sender":"Aisling","Item":"Test Item","Quantity":5}]},"Gold":{"$id":"4","$values":[{"$id":"5","Sender":"Aisling","Amount":12345}]}}
+{"OwnerGuid":"7b1c4e9a-0d2f-4b6e-9a3c-1f5d8e7a2b4c","Items":[{"Sender":"Aisling","Item":"Test Item","Quantity":5}],"Gold":[{"Sender":"Aisling","Amount":12345}]}

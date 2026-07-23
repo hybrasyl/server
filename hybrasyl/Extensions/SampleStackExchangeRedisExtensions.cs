@@ -16,37 +16,19 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Text;
-using Newtonsoft.Json;
+using Hybrasyl.Subsystems.Persistence;
 using StackExchange.Redis;
 
 namespace Hybrasyl.Extensions;
 
 public static class StackExchangeRedisExtensions
 {
-    public static T Get<T>(this IDatabase cache, string key) => Deserialize<T>(cache.StringGet(key));
+    public static T Get<T>(this IDatabase cache, string key) => RedisJsonSerializer.Deserialize<T>(cache.StringGet(key));
 
-    public static object Get(this IDatabase cache, string key) => Deserialize<object>(cache.StringGet(key));
+    public static object Get(this IDatabase cache, string key) => RedisJsonSerializer.Deserialize<object>(cache.StringGet(key));
 
     public static void Set(this IDatabase cache, string key, object value)
     {
-        cache.StringSet(key, Serialize(value));
-    }
-
-    private static byte[] Serialize(object o, ObjectCreationHandling handling = ObjectCreationHandling.Replace,
-        PreserveReferencesHandling refHandling = PreserveReferencesHandling.All)
-    {
-        if (o == null) return null;
-        var settings = new JsonSerializerSettings();
-        settings.ObjectCreationHandling = handling;
-        settings.PreserveReferencesHandling = refHandling;
-
-        return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, settings));
-    }
-
-    private static T Deserialize<T>(byte[] stream)
-    {
-        if (stream == null) return default;
-        return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(stream));
+        cache.StringSet(key, RedisJsonSerializer.Serialize(value));
     }
 }

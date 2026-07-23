@@ -384,8 +384,9 @@ public class RedisSerialization
         return File.ReadAllText(path);
     }
 
-    // Mirrors StackExchangeRedisExtensions.Deserialize: reads use default serializer settings
-    private static T DeserializeAsProduction<T>(string json) => JsonConvert.DeserializeObject<T>(json);
+    // Mirrors the production read path (StackExchangeRedisExtensions.Get)
+    private static T DeserializeAsProduction<T>(string json) =>
+        RedisJsonSerializer.Deserialize<T>(System.Text.Encoding.UTF8.GetBytes(json));
 
     [Fact]
     public void Golden_Vault_IsReadable()
