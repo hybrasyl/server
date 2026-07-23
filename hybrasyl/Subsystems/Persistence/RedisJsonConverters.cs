@@ -97,6 +97,7 @@ internal static class SlotConverter
                         target.GetType().Name, slot.Id);
             }
 
+        (target as IJsonOnDeserialized)?.OnDeserialized();
         return target;
     }
 }
@@ -183,6 +184,7 @@ internal static class BookSlotConverter
             };
         }
 
+        (book as IJsonOnDeserialized)?.OnDeserialized();
         return book;
     }
 }
