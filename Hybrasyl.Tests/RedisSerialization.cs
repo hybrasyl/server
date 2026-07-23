@@ -567,6 +567,18 @@ public class RedisSerialization
     }
 
     [Fact]
+    public void CorruptBlobFailsWithKeyContext()
+    {
+        // A corrupt blob must still fail loudly, but naming the Redis key - a bare
+        // JsonException at server startup is undiagnosable
+        var key = $"{KeyPrefix}corrupt";
+        Cache.StringSet(key, "{this is not json");
+        var ex = Assert.Throws<InvalidDataException>(() => Cache.Get<Vault>(key));
+        Assert.Contains(key, ex.Message);
+        Assert.Contains(nameof(Vault), ex.Message);
+    }
+
+    [Fact]
     public void Golden_WriteSideMatchesCorpus()
     {
         // The goldens pin the write side too: dropping a [Persist] must fail here,

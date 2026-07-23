@@ -18,12 +18,26 @@
 
 using Hybrasyl.Subsystems.Persistence;
 using StackExchange.Redis;
+using System.IO;
+using System.Text.Json;
 
 namespace Hybrasyl.Extensions;
 
 public static class StackExchangeRedisExtensions
 {
-    public static T Get<T>(this IDatabase cache, string key) => RedisJsonSerializer.Deserialize<T>(cache.StringGet(key));
+    public static T Get<T>(this IDatabase cache, string key)
+    {
+        try
+        {
+            return RedisJsonSerializer.Deserialize<T>(cache.StringGet(key));
+        }
+        catch (JsonException e)
+        {
+            // Corrupt data should fail loudly, but a bare JsonException is undiagnosable
+            throw new InvalidDataException(
+                $"Redis key {key}: stored {typeof(T).Name} is corrupt or unreadable: {e.Message}", e);
+        }
+    }
 
     public static object Get(this IDatabase cache, string key) => RedisJsonSerializer.Deserialize<object>(cache.StringGet(key));
 
