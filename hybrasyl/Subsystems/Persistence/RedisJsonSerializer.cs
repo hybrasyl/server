@@ -47,6 +47,8 @@ public static class RedisJsonSerializer
         // Redis blobs are not HTML; relaxed escaping keeps game text legible
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         PropertyNameCaseInsensitive = true,
+        // Formula/scripting can produce non-finite doubles; a save must never abort on one
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
         Converters =
         {
             new InventoryJsonConverter(),

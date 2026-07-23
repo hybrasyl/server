@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System;
+using System.Globalization;
 using Hybrasyl.Internals.Attributes;
 
 namespace Hybrasyl.Subsystems.Messaging;
@@ -45,8 +46,9 @@ public class SentMail : MessageStore
         if (IsLocked || Full) return false;
         CurrentId++;
         newMessage.Id = CurrentId;
+        // Fixed format: mail bodies are persisted, so they must not vary with server locale
         newMessage.Body =
-            $"{{=e(( Originally Sent: {newMessage.Created} ))\n{{=e(( Sent To: {newMessage.Recipient} ))\n\n{{=a{newMessage.Body}";
+            $"{{=e(( Originally Sent: {newMessage.Created.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} ))\n{{=e(( Sent To: {newMessage.Recipient} ))\n\n{{=a{newMessage.Body}";
         if (newMessage.Body.Length > ushort.MaxValue)
             newMessage.Body = newMessage.Body.Substring(0, ushort.MaxValue);
         // Sent mail is always read

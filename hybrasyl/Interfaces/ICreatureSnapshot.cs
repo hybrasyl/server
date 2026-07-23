@@ -14,13 +14,17 @@ namespace Hybrasyl.Interfaces
 
         public Guid CreateStatSnapshot()
         {
-            // Serialization round trip as a deep copy of the wire-visible stats
-            var statInfo = RedisJsonSerializer.Deserialize<StatInfo>(RedisJsonSerializer.Serialize(Stats));
+            // WirePlan member copy of the wire-visible stats: runs on every status
+            // application, so no JSON round trip. Plan order matters - the Hp/Mp
+            // setters clamp against maxima assigned by earlier members.
+            var statInfo = new StatInfo();
+            foreach (var member in WirePlan.For(typeof(StatInfo)).Members)
+                member.Set?.Invoke(statInfo, member.Get(Stats));
             var snapshot = new CreatureSnapshot
             {
                 Name = Name,
                 CreatureGuid = Guid,
-                Stats = statInfo ?? new StatInfo()
+                Stats = statInfo
             };
             World.WorldState.Set(snapshot.Guid, snapshot);
             return snapshot.Guid;

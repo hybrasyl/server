@@ -35,11 +35,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 namespace Hybrasyl.Objects;
 
-public class Creature : VisibleObject, IStatSnapshotProvider
+public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialized
 {
     private readonly object _lock = new();
 
@@ -57,6 +58,12 @@ public class Creature : VisibleObject, IStatSnapshotProvider
         LastHitTime = DateTime.MinValue;
         Cookies = new Dictionary<string, string>();
         SessionCookies = new Dictionary<string, string>();
+    }
+
+    // Deserialization replaces the ctor-created ConditionInfo; Creature is not on the wire
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        if (Condition is not null) Condition.Creature = this;
     }
 
     [Persist(Order = 2)] public StatInfo Stats { get; set; }

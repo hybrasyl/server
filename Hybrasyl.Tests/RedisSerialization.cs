@@ -16,7 +16,9 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Casting;
 using Hybrasyl.Extensions;
+using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Persistence;
@@ -30,6 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
 
@@ -302,6 +305,72 @@ public class RedisSerialization
         }
     }
 
+    [Fact]
+    public void User_ConditionBackrefIsReattachedOnLoad()
+    {
+        var user = Fixture.CreateUser("BackrefUser");
+        var key = $"{KeyPrefix}User:backref";
+        Cache.Set(key, user);
+        var reloaded = Cache.Get<User>(key);
+
+        Assert.NotNull(reloaded.Condition);
+        Assert.Same(reloaded, reloaded.Condition.Creature);
+
+        // User-gated setters are silent no-ops when the backref is missing
+        Assert.False(reloaded.Condition.InExchange);
+        reloaded.Condition.InExchange = true;
+        Assert.True(reloaded.Condition.InExchange);
+    }
+
+    [Fact]
+    public void User_NonFiniteStatSavesAndRoundTrips()
+    {
+        var user = Fixture.CreateUser("NaNUser");
+        user.Stats.BaseCrit = double.NaN;
+        user.Stats.BaseMr = double.PositiveInfinity;
+        var key = $"{KeyPrefix}User:nonfinite";
+        Cache.Set(key, user); // a save-abort here would loop forever in production
+        var reloaded = Cache.Get<User>(key);
+
+        Assert.True(double.IsNaN(reloaded.Stats.BaseCrit));
+        Assert.True(double.IsPositiveInfinity(reloaded.Stats.BaseMr));
+    }
+
+    [Fact]
+    public void Book_MalformedSlotsAreDroppedNotFatal()
+    {
+        // A corrupt slot entry costs that slot, not the whole character load
+        const string json =
+            """[null,{"Name":"testplusac","LastCast":"2026-07-01T12:00:00Z","TotalUses":3,"MasteryLevel":1},{},{"LastCast":"2026-07-01T12:00:00Z"},{"Name":"testplusac"}]""";
+        var book = JsonSerializer.Deserialize<SpellBook>(json, RedisJsonSerializer.Options);
+
+        Assert.NotNull(book);
+        Assert.Equal("TestPlusAc", book[1].Castable.Name);
+        Assert.Equal(3u, book[1].UseCount);
+        Assert.Null(book[2]); // {}
+        Assert.Null(book[3]); // no Name
+        Assert.NotNull(book[4]); // Name but no LastCast: survives with default timestamp
+        Assert.Equal(default, book[4].LastCast);
+    }
+
+    [Fact]
+    public void Book_OversizedArrayDoesNotWrapOntoEarlySlots()
+    {
+        // A corrupt array longer than 256 entries must not wrap a byte counter
+        // back onto slot 1 and overwrite it
+        var entries = new List<string>
+        {
+            "null",
+            """{"Name":"testplusac","LastCast":"2026-07-01T12:00:00Z","TotalUses":1,"MasteryLevel":0}"""
+        };
+        entries.AddRange(Enumerable.Repeat("null", 255));
+        entries.Add("""{"Name":"testplusac","LastCast":"2026-07-01T12:00:00Z","TotalUses":99,"MasteryLevel":0}""");
+        var book = JsonSerializer.Deserialize<SpellBook>("[" + string.Join(",", entries) + "]",
+            RedisJsonSerializer.Options);
+
+        Assert.Equal(1u, book[1].UseCount);
+    }
+
     private void RoundTripUser(User user)
     {
         PopulateUser(user, deterministic: false);
@@ -477,6 +546,49 @@ public class RedisSerialization
         Assert.Equal("Equip Test Weapon", user.Equipment.Weapon.Name);
         Assert.Single(user.SpellBook);
         Assert.Equal("TestPlusAc", user.SpellBook.Single().Castable.Name);
+    }
+
+    [Fact]
+    public void StatSnapshot_IsWireEquivalentToSource()
+    {
+        // The status-origin snapshot must carry exactly the wire-visible stat members
+        var user = Fixture.CreateUser("SnapshotEquivUser");
+        user.Stats.BaseCrit = 0.25;
+        user.Stats.BaseMr = 1.5;
+        user.Stats.Experience = 123456;
+        var snapshotId = ((IStatSnapshotProvider)user).CreateStatSnapshot();
+        Assert.True(Game.World.WorldState.TryGetValue(snapshotId, out CreatureSnapshot snapshot),
+            $"snapshot {snapshotId} not in Game.World.WorldState; " +
+            $"user.World == Game.World: {ReferenceEquals(((IStatSnapshotProvider)user).World, Game.World)}");
+        AssertJsonEquivalent(
+            JsonNode.Parse(System.Text.Encoding.UTF8.GetString(RedisJsonSerializer.Serialize(user.Stats))),
+            JsonNode.Parse(System.Text.Encoding.UTF8.GetString(RedisJsonSerializer.Serialize(snapshot.Stats))),
+            "StatInfo snapshot");
+    }
+
+    [Fact]
+    public void Golden_WriteSideMatchesCorpus()
+    {
+        // The goldens pin the write side too: dropping a [Persist] must fail here,
+        // not silently survive because reads and writes share the same WirePlan
+        AssertWriteMatchesGolden(BuildGoldenVault);
+        AssertWriteMatchesGolden(BuildGuildVault);
+        AssertWriteMatchesGolden(BuildParcelStore);
+        AssertWriteMatchesGolden(BuildAuthInfo);
+        AssertWriteMatchesGolden(BuildMailbox);
+        AssertWriteMatchesGolden(BuildSentMail);
+        AssertWriteMatchesGolden(BuildBoard);
+        AssertWriteMatchesGolden(BuildGuild);
+        AssertWriteMatchesGolden(BuildGoldenUser);
+    }
+
+    private static void AssertWriteMatchesGolden<T>(Func<T> build)
+    {
+        var key = $"{KeyPrefix}writeside:{typeof(T).Name}";
+        Cache.Set(key, build());
+        AssertJsonEquivalent(JsonNode.Parse(GoldenJson(build)),
+            JsonNode.Parse((string)Cache.StringGet(key)),
+            $"{typeof(T).Name} (write side vs golden)");
     }
 
     #endregion

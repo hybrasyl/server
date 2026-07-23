@@ -150,19 +150,36 @@ internal static class BookSlotConverter
     public static T Read<T>(ref Utf8JsonReader reader, T book) where T : Book
     {
         using var doc = JsonDocument.ParseValue(ref reader);
-        byte i = 0;
+        var i = 0;
         foreach (var element in doc.RootElement.EnumerateArray())
         {
             var slotIndex = i++;
+            if (slotIndex > book.Size) break;
             if (element.ValueKind != JsonValueKind.Object) continue;
-            var name = element.GetProperty("Name").GetString();
-            book[slotIndex] = new BookSlot
+            // A malformed slot entry costs that slot, not the whole character load
+            if (!element.TryGetProperty("Name", out var nameProperty) ||
+                nameProperty.ValueKind != JsonValueKind.String)
             {
-                Castable = Game.World.WorldData.Values<Castable>()
-                    .SingleOrDefault(predicate: x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase)),
+                GameLog.Error("{Type} deserializer error: slot {Slot} has no castable name, dropping",
+                    book.GetType().Name, slotIndex);
+                continue;
+            }
+
+            var name = nameProperty.GetString();
+            // Castables are indexed by exact and lowercase name; the wire is lowercase,
+            // so the first lookup hits - any other casing falls back through ToLower
+            if (!Game.World.WorldData.TryGetValueByIndex(name, out Castable castable))
+                Game.World.WorldData.TryGetValueByIndex(name!.ToLower(), out castable);
+            book[(byte)slotIndex] = new BookSlot
+            {
+                Castable = castable,
                 UseCount = element.TryGetProperty("TotalUses", out var uses) ? uses.GetUInt32() : 0,
                 MasteryLevel = element.TryGetProperty("MasteryLevel", out var mastery) ? mastery.GetByte() : (byte)0,
-                LastCast = element.GetProperty("LastCast").GetDateTime()
+                LastCast = element.TryGetProperty("LastCast", out var lastCast) &&
+                           lastCast.ValueKind == JsonValueKind.String &&
+                           lastCast.TryGetDateTime(out var cast)
+                    ? cast
+                    : default
             };
         }
 

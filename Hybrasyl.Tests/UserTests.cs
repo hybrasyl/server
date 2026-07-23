@@ -28,8 +28,8 @@ using Xunit;
 
 namespace Hybrasyl.Tests;
 
-[Collection("hybrasyl")]
-public class UserTests(HybrasylFixture fixture) : IClassFixture<HybrasylFixture>
+[Collection("Hybrasyl")]
+public class UserTests(HybrasylFixture fixture)
 {
     public HybrasylFixture Fixture { get; set; } = fixture;
 
