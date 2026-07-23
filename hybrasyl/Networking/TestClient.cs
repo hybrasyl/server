@@ -81,7 +81,24 @@ public class TestClient : AbstractClient, IClient
         ClientState.Dispose();
     }
 
-    public void Enqueue(ServerPacket packet, bool flush = false) => ClientState.SendBufferAdd(packet);
+    /// <summary>
+    ///     Decoded text of every message (0x0A) packet or direct message send, oldest first.
+    /// </summary>
+    public List<string> Messages { get; } = new();
+
+    public void Enqueue(ServerPacket packet, bool flush = false)
+    {
+        // Message packet payload: type byte, then a string16 (big-endian length + ASCII).
+        if (packet.Opcode == 0x0A)
+        {
+            var raw = packet.ToArray();
+            var payload = packet.ShouldEncrypt ? 5 : 4;
+            var length = (raw[payload + 1] << 8) | raw[payload + 2];
+            RecordMessage(Encoding.ASCII.GetString(raw, payload + 3, length));
+        }
+
+        ClientState.SendBufferAdd(packet);
+    }
 
     public void Enqueue(ClientPacket packet) => ClientState.ReceiveBufferAdd(packet);
 
@@ -105,7 +122,13 @@ public class TestClient : AbstractClient, IClient
 
     public void LoginMessage(string message, byte type)
     {
+        RecordMessage(message);
+    }
+
+    private void RecordMessage(string message)
+    {
         LastMessage = message;
+        Messages.Add(message);
     }
 
     public void Redirect(Redirect redirect, bool isLogoff, int transmitDelay)
@@ -131,7 +154,7 @@ public class TestClient : AbstractClient, IClient
 
     public void SendMessage(string message, byte type)
     {
-        LastMessage = message;
+        RecordMessage(message);
     }
 
     public void SendTickHeartbeat()

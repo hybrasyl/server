@@ -18,7 +18,6 @@ using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Xml.Objects;
 using System.Reflection;
-using System.Text;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -56,12 +55,7 @@ public class ChatCommands
 
         World.CommandHandler.Handle(user, "timeconvert", "terran forever");
 
-        // The echo is a 0x0A system message; the argument string must appear verbatim.
-        var echoed = false;
-        while (client.ClientState.SendBufferTake(out var packet))
-            if (Encoding.ASCII.GetString(packet.ToArray()).Contains("[Cmd] /timeconvert terran forever"))
-                echoed = true;
-        Assert.True(echoed);
+        Assert.Contains("[Cmd] /timeconvert terran forever", client.Messages);
     }
 
     [Fact]
