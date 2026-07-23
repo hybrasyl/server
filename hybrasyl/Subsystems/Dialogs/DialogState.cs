@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -38,9 +38,9 @@ public class DialogState
         PreviousPursuitId = null;
     }
 
-    internal IInteractable Associate { get; private set; }
-    internal Dialog ActiveDialog { get; private set; }
-    internal DialogSequence ActiveDialogSequence { get; private set; }
+    internal IInteractable? Associate { get; private set; }
+    internal Dialog? ActiveDialog { get; private set; }
+    internal DialogSequence? ActiveDialogSequence { get; private set; }
     internal User User { get; }
 
     public uint CurrentPursuitId
@@ -90,7 +90,8 @@ public class DialogState
 
     public void RunCallback(DialogInvocation invocation)
     {
-        ActiveDialog.RunCallback(invocation);
+        // No-op when not mid-dialog; RunCallback is only meaningful while a dialog is active.
+        ActiveDialog?.RunCallback(invocation);
     }
 
     /// <summary>
@@ -100,7 +101,7 @@ public class DialogState
     /// <param name="target"></param>
     /// <param name="dialogStart"></param>
     /// <returns></returns>
-    public bool StartDialog(IInteractable target, DialogSequence dialogStart)
+    public bool StartDialog(IInteractable? target, DialogSequence dialogStart)
     {
         if (dialogStart.Id == null)
         {
@@ -127,7 +128,7 @@ public class DialogState
     /// <param name="target">A VisibleObject that is the target of the dialog sequence</param>
     /// <param name="dialogStart">The dialog sequence to which we will transition.</param>
     /// <returns></returns>
-    public bool TransitionDialog(IInteractable target, DialogSequence dialogStart)
+    public bool TransitionDialog(IInteractable? target, DialogSequence dialogStart)
     {
         if (!InDialog)
         {
@@ -159,7 +160,7 @@ public class DialogState
     /// <param name="pursuitId">A dialog sequence (pursuit) ID.</param>
     /// <param name="newIndex">The index to which we are navigating.</param>
     /// <returns></returns>
-    public bool SetDialogIndex(IInteractable target, int pursuitId, int newIndex)
+    public bool SetDialogIndex(IInteractable? target, int pursuitId, int newIndex)
     {
         switch (target)
         {
@@ -200,6 +201,10 @@ public class DialogState
             Log.Error("{Username}: dialog associate is null but pursuitId is associate-specific", User.Name);
             return false;
         }
+
+        // Navigation only occurs mid-dialog; bail out rather than NRE if state is somehow cleared.
+        if (ActiveDialog == null || ActiveDialogSequence == null)
+            return false;
 
         if (newIndex == ActiveDialog.Index + 1 &&
             newIndex != ActiveDialogSequence.Dialogs.Count &&

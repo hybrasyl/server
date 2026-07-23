@@ -80,24 +80,26 @@ public class RedisSerialization
     ///     Serialize -> deserialize -> serialize through the production path
     ///     (StackExchangeRedisExtensions.Set/Get) and assert the fixed point.
     /// </summary>
-    private static T AssertRoundTripStable<T>(T obj)
+    private static T AssertRoundTripStable<T>(T obj) where T : notnull
     {
         var key = $"{KeyPrefix}{typeof(T).Name}";
         var secondKey = $"{key}:second";
         Cache.Set(key, obj);
-        var first = (string)Cache.StringGet(key);
+        var first = (string?)Cache.StringGet(key);
+        Assert.NotNull(first);
         // The wire format is plain trees; reference metadata is a contract violation
         Assert.DoesNotContain("\"$id\"", first);
         Assert.DoesNotContain("\"$values\"", first);
         var reloaded = Cache.Get<T>(key);
         Assert.NotNull(reloaded);
         Cache.Set(secondKey, reloaded);
-        var second = (string)Cache.StringGet(secondKey);
+        var second = (string?)Cache.StringGet(secondKey);
+        Assert.NotNull(second);
         AssertJsonEquivalent(JsonNode.Parse(first), JsonNode.Parse(second), typeof(T).Name);
         return reloaded;
     }
 
-    private static void AssertJsonEquivalent(JsonNode expected, JsonNode actual, string context)
+    private static void AssertJsonEquivalent(JsonNode? expected, JsonNode? actual, string context)
     {
         if (JsonNode.DeepEquals(expected, actual)) return;
         var diffs = new List<string>();
@@ -107,7 +109,7 @@ public class RedisSerialization
             string.Join('\n', diffs.Take(25)));
     }
 
-    private static void CollectDiffs(JsonNode expected, JsonNode actual, string path, List<string> diffs)
+    private static void CollectDiffs(JsonNode? expected, JsonNode? actual, string path, List<string> diffs)
     {
         if (JsonNode.DeepEquals(expected, actual)) return;
         if (expected is JsonObject expectedObj && actual is JsonObject actualObj)
@@ -141,7 +143,7 @@ public class RedisSerialization
         diffs.Add($"{path}: {Describe(expected)} -> {Describe(actual)}");
     }
 
-    private static string Describe(JsonNode node)
+    private static string Describe(JsonNode? node)
     {
         var text = node?.ToJsonString() ?? "null";
         return text.Length > 80 ? text[..77] + "..." : text;
@@ -313,6 +315,7 @@ public class RedisSerialization
         var key = $"{KeyPrefix}User:backref";
         Cache.Set(key, user);
         var reloaded = Cache.Get<User>(key);
+        Assert.NotNull(reloaded);
 
         Assert.NotNull(reloaded.Condition);
         Assert.Same(reloaded, reloaded.Condition.Creature);
@@ -332,6 +335,7 @@ public class RedisSerialization
         var key = $"{KeyPrefix}User:nonfinite";
         Cache.Set(key, user); // a save-abort here would loop forever in production
         var reloaded = Cache.Get<User>(key);
+        Assert.NotNull(reloaded);
 
         Assert.True(double.IsNaN(reloaded.Stats.BaseCrit));
         Assert.True(double.IsPositiveInfinity(reloaded.Stats.BaseMr));
@@ -346,12 +350,15 @@ public class RedisSerialization
         var book = JsonSerializer.Deserialize<SpellBook>(json, RedisJsonSerializer.Options);
 
         Assert.NotNull(book);
-        Assert.Equal("TestPlusAc", book[1].Castable.Name);
-        Assert.Equal(3u, book[1].UseCount);
+        var slot1 = book[1];
+        Assert.NotNull(slot1);
+        Assert.Equal("TestPlusAc", slot1.Castable.Name);
+        Assert.Equal(3u, slot1.UseCount);
         Assert.Null(book[2]); // {}
         Assert.Null(book[3]); // no Name
-        Assert.NotNull(book[4]); // Name but no LastCast: survives with default timestamp
-        Assert.Equal(default, book[4].LastCast);
+        var slot4 = book[4];
+        Assert.NotNull(slot4); // Name but no LastCast: survives with default timestamp
+        Assert.Equal(default, slot4.LastCast);
     }
 
     [Fact]
@@ -369,7 +376,10 @@ public class RedisSerialization
         var book = JsonSerializer.Deserialize<SpellBook>("[" + string.Join(",", entries) + "]",
             RedisJsonSerializer.Options);
 
-        Assert.Equal(1u, book[1].UseCount);
+        Assert.NotNull(book);
+        var slot1 = book[1];
+        Assert.NotNull(slot1);
+        Assert.Equal(1u, slot1.UseCount);
     }
 
     private void RoundTripUser(User user)
@@ -386,14 +396,17 @@ public class RedisSerialization
 
         user.Save(serializeStatus: true);
         var key = User.GetStorageKey(user.Name);
-        var first = (string)Cache.StringGet(key);
+        var first = (string?)Cache.StringGet(key);
+        Assert.NotNull(first);
         var reloaded = Cache.Get<User>(key);
         Assert.NotNull(reloaded);
         var secondKey = $"{KeyPrefix}User:second";
         Cache.Set(secondKey, reloaded);
-        var second = (string)Cache.StringGet(secondKey);
+        var second = (string?)Cache.StringGet(secondKey);
+        Assert.NotNull(second);
 
         var firstNode = JsonNode.Parse(first);
+        Assert.NotNull(firstNode);
         // Guard: the status snapshot must actually be on the wire for this test to mean anything
         Assert.True(firstNode["Statuses"] is JsonArray { Count: > 0 },
             "expected serialized user to contain a status snapshot");
@@ -406,8 +419,8 @@ public class RedisSerialization
         Assert.Equal("A serialization test user", reloaded.ProfileText);
         Assert.Equal(2, reloaded.Legend.Count);
         Assert.True(reloaded.Legend.TryGetMark("ser1", out _), "legend index not rebuilt after deserialize");
-        Assert.Equal("Test Item", reloaded.Inventory[1].Name);
-        Assert.Equal("Equip Test Weapon", reloaded.Equipment.Weapon.Name);
+        Assert.Equal("Test Item", reloaded.Inventory[1]?.Name);
+        Assert.Equal("Equip Test Weapon", reloaded.Equipment.Weapon?.Name);
         Assert.Single(reloaded.SpellBook);
         Assert.Equal("TestPlusAc", reloaded.SpellBook.Single().Castable.Name);
     }
@@ -436,7 +449,7 @@ public class RedisSerialization
     ///     Load a golden fixture, regenerating it through the production write path
     ///     (StackExchangeRedisExtensions.Set) when HYB_REGEN_GOLDEN=1.
     /// </summary>
-    private static string GoldenJson<T>(Func<T> build)
+    private static string GoldenJson<T>(Func<T> build) where T : notnull
     {
         var path = Path.Combine(GoldenDir, $"{typeof(T).Name}.json");
         if (Regenerate)
@@ -444,7 +457,9 @@ public class RedisSerialization
             Directory.CreateDirectory(GoldenDir);
             var key = $"{KeyPrefix}golden:{typeof(T).Name}";
             Cache.Set(key, build());
-            File.WriteAllText(path, (string)Cache.StringGet(key));
+            var regenerated = (string?)Cache.StringGet(key);
+            Assert.NotNull(regenerated);
+            File.WriteAllText(path, regenerated);
         }
 
         Assert.True(File.Exists(path),
@@ -453,8 +468,12 @@ public class RedisSerialization
     }
 
     // Mirrors the production read path (StackExchangeRedisExtensions.Get)
-    private static T DeserializeAsProduction<T>(string json) =>
-        RedisJsonSerializer.Deserialize<T>(System.Text.Encoding.UTF8.GetBytes(json));
+    private static T DeserializeAsProduction<T>(string json)
+    {
+        var result = RedisJsonSerializer.Deserialize<T>(System.Text.Encoding.UTF8.GetBytes(json));
+        Assert.NotNull(result);
+        return result;
+    }
 
     [Fact]
     public void Golden_Vault_IsReadable()
@@ -542,9 +561,9 @@ public class RedisSerialization
         Assert.Equal(99, user.Stats.Level);
         Assert.Equal("A serialization test user", user.ProfileText);
         Assert.Equal(2, user.Legend.Count);
-        Assert.Equal("Test Item", user.Inventory[1].Name);
-        Assert.Equal(20, user.Inventory[2].Count);
-        Assert.Equal("Equip Test Weapon", user.Equipment.Weapon.Name);
+        Assert.Equal("Test Item", user.Inventory[1]?.Name);
+        Assert.Equal(20, user.Inventory[2]?.Count);
+        Assert.Equal("Equip Test Weapon", user.Equipment.Weapon?.Name);
         Assert.Single(user.SpellBook);
         Assert.Equal("TestPlusAc", user.SpellBook.Single().Castable.Name);
     }
@@ -561,9 +580,13 @@ public class RedisSerialization
         Assert.True(Game.World.WorldState.TryGetValue(snapshotId, out CreatureSnapshot snapshot),
             $"snapshot {snapshotId} not in Game.World.WorldState; " +
             $"user.World == Game.World: {ReferenceEquals(((IStatSnapshotProvider)user).World, Game.World)}");
+        var serializedStats = RedisJsonSerializer.Serialize(user.Stats);
+        var serializedSnapshotStats = RedisJsonSerializer.Serialize(snapshot.Stats);
+        Assert.NotNull(serializedStats);
+        Assert.NotNull(serializedSnapshotStats);
         AssertJsonEquivalent(
-            JsonNode.Parse(System.Text.Encoding.UTF8.GetString(RedisJsonSerializer.Serialize(user.Stats))),
-            JsonNode.Parse(System.Text.Encoding.UTF8.GetString(RedisJsonSerializer.Serialize(snapshot.Stats))),
+            JsonNode.Parse(System.Text.Encoding.UTF8.GetString(serializedStats)),
+            JsonNode.Parse(System.Text.Encoding.UTF8.GetString(serializedSnapshotStats)),
             "StatInfo snapshot");
     }
 
@@ -608,12 +631,14 @@ public class RedisSerialization
         AssertWriteMatchesGolden(BuildGoldenUser);
     }
 
-    private static void AssertWriteMatchesGolden<T>(Func<T> build)
+    private static void AssertWriteMatchesGolden<T>(Func<T> build) where T : notnull
     {
         var key = $"{KeyPrefix}writeside:{typeof(T).Name}";
         Cache.Set(key, build());
+        var written = (string?)Cache.StringGet(key);
+        Assert.NotNull(written);
         AssertJsonEquivalent(JsonNode.Parse(GoldenJson(build)),
-            JsonNode.Parse((string)Cache.StringGet(key)),
+            JsonNode.Parse(written),
             $"{typeof(T).Name} (write side vs golden)");
     }
 

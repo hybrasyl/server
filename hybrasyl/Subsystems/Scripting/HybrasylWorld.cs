@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -77,7 +77,7 @@ public class HybrasylWorld
     /// </summary>
     /// <param name="username">The user to be returned</param>
     /// <returns>HybrasylUser object for the given user, or nil, if the player is not logged in.</returns>
-    public HybrasylUser GetUser(string username) =>
+    public HybrasylUser? GetUser(string username) =>
          Game.World.TryGetActiveUser(username, out var user) ? new HybrasylUser(user) : null;
 
     /// <summary>
@@ -99,9 +99,8 @@ public class HybrasylWorld
 
         var dialogSequence = new HybrasylDialogSequence(sequenceName);
         foreach (var entry in list)
-            if (entry is HybrasylDialog)
+            if (entry is HybrasylDialog newdialog)
             {
-                var newdialog = entry as HybrasylDialog;
                 dialogSequence.AddDialog(newdialog);
                 newdialog.Sequence = dialogSequence.Sequence;
             }
@@ -127,7 +126,7 @@ public class HybrasylWorld
     ///     shown to a player.
     /// </param>
     /// <returns>The constructed dialog</returns>
-    public HybrasylDialog NewDialog(string displayText, string callback = null)
+    public HybrasylDialog NewDialog(string displayText, string? callback = null)
     {
         if (string.IsNullOrEmpty(displayText))
             throw new ArgumentException($"{nameof(NewDialog)}: displayText was null or empty");
@@ -170,7 +169,7 @@ public class HybrasylWorld
     /// <param name="name">An optional name to give the dialog sequence.</param>
     /// <returns>The constructed dialog sequence</returns>
     public HybrasylDialogSequence NewTextAndJumpDialog(string simpleDialog, string jumpTarget, string callback = "",
-        string name = null)
+        string? name = null)
     {
         DialogSequence sequence;
         if (string.IsNullOrEmpty(simpleDialog) || string.IsNullOrEmpty(jumpTarget))
@@ -196,7 +195,7 @@ public class HybrasylWorld
     /// <param name="callback">An optional Lua callback expression that will be attached to the simple dialog.</param>
     /// <param name="name">An optional name to give the dialog sequence.</param>
     /// <returns>The constructed dialog sequence</returns>
-    public HybrasylDialogSequence NewEndSequence(string simpleDialog, string callback = "", string name = null)
+    public HybrasylDialogSequence NewEndSequence(string simpleDialog, string callback = "", string? name = null)
     {
         DialogSequence sequence;
 
@@ -230,7 +229,7 @@ public class HybrasylWorld
     ///     next.
     /// </param>
     /// <returns>The constructed dialog</returns>
-    public HybrasylDialog NewTextDialog(string displayText, string topCaption, string bottomCaption,
+    public HybrasylDialog? NewTextDialog(string displayText, string topCaption, string bottomCaption,
         int inputLength = 254, string callback = "", string handler = "")
     {
         if (string.IsNullOrEmpty(displayText))
@@ -307,7 +306,7 @@ public class HybrasylWorld
     /// <param name="targetSequence">The name of the sequence that will start when this JumpDialog is "shown" to the player.</param>
     /// <param name="callbackExpression">A lua expression that will run when this dialog is shown to the player.</param>
     /// <returns>The constructed dialog</returns>
-    public HybrasylDialog NewJumpDialog(string targetSequence, string callbackExpression = null)
+    public HybrasylDialog NewJumpDialog(string targetSequence, string? callbackExpression = null)
     {
         if (string.IsNullOrEmpty(targetSequence))
             throw new ArgumentException($"{nameof(NewJumpDialog)}: targetSequence argument cannot be null or empty");
@@ -331,7 +330,7 @@ public class HybrasylWorld
     }
 
     public void SpawnMonster(ushort mapId, byte x, byte y, string name, string behaviorSet, int level,
-        string displayName = null)
+        string? displayName = null)
     {
         if (!Game.World.WorldData.TryGetValue(name, out Creature creature)) return;
         if (!Game.World.WorldData.TryGetValue(behaviorSet, out CreatureBehaviorSet cbs)) return;

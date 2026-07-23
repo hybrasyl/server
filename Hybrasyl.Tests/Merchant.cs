@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -33,11 +33,138 @@ public class Merchants
 
     public HybrasylFixture Fixture { get; set; }
 
+    private Merchant GetTestMerchant()
+    {
+        var merchant = Fixture.Map.Objects.OfType<Merchant>().FirstOrDefault(predicate: x => x.Name == "Maria");
+        Assert.NotNull(merchant);
+        return merchant;
+    }
+
+    // Regression tests: merchant slot handlers must ignore (not NRE on) crafted packets
+    // referencing an empty inventory slot.
+
+    // Continuation handlers are selected by menu id from the packet; a crafted or
+    // out-of-order packet can invoke them without the preceding dialog step having
+    // established the pending state they rely on. All must ignore, not throw.
+    [Fact]
+    public void ContinuationHandlersWithoutPendingStateAreIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        Assert.Null(Record.Exception(() => Fixture.TestUser.ShowLearnSkillAgree(merchant)));
+        Assert.Null(Record.Exception(() => Fixture.TestUser.ShowLearnSkillAccept(merchant)));
+        Assert.Null(Record.Exception(() => Fixture.TestUser.ShowLearnSpellAgree(merchant)));
+        Assert.Null(Record.Exception(() => Fixture.TestUser.ShowLearnSpellAccept(merchant)));
+        Assert.Null(Record.Exception(() => Fixture.TestUser.ShowBuyItem(merchant)));
+        Assert.Null(Record.Exception(() => Fixture.TestUser.ShowMerchantSendParcelAccept(merchant, "nobody")));
+    }
+
+    [Fact]
+    public void SellQuantityEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var pendingBefore = Fixture.TestUser.PendingSellableSlot;
+        var ex = Record.Exception(() => Fixture.TestUser.ShowSellQuantity(merchant, 5));
+        Assert.Null(ex);
+        Assert.Equal(pendingBefore, Fixture.TestUser.PendingSellableSlot);
+    }
+
+    [Fact]
+    public void SellConfirmEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var pendingBefore = Fixture.TestUser.PendingSellableSlot;
+        var goldBefore = Fixture.TestUser.Stats.Gold;
+        var ex = Record.Exception(() => Fixture.TestUser.ShowSellConfirm(merchant, 5));
+        Assert.Null(ex);
+        Assert.Equal(pendingBefore, Fixture.TestUser.PendingSellableSlot);
+        Assert.Equal(goldBefore, Fixture.TestUser.Stats.Gold);
+    }
+
+    [Fact]
+    public void DepositQuantityEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var pendingBefore = Fixture.TestUser.PendingDepositSlot;
+        var ex = Record.Exception(() => Fixture.TestUser.ShowDepositItemQuantity(merchant, 5));
+        Assert.Null(ex);
+        Assert.Equal(pendingBefore, Fixture.TestUser.PendingDepositSlot);
+    }
+
+    [Fact]
+    public void DepositConfirmEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var goldBefore = Fixture.TestUser.Stats.Gold;
+        var ex = Record.Exception(() => Fixture.TestUser.DepositItemConfirm(merchant, 5));
+        Assert.Null(ex);
+        Assert.Equal(goldBefore, Fixture.TestUser.Stats.Gold);
+        Assert.Empty(Fixture.TestUser.Vault.Items);
+    }
+
+    [Fact]
+    public void RepairItemEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var pendingBefore = Fixture.TestUser.PendingRepairSlot;
+        var ex = Record.Exception(() => Fixture.TestUser.ShowRepairItem(merchant, 5));
+        Assert.Null(ex);
+        Assert.Equal(pendingBefore, Fixture.TestUser.PendingRepairSlot);
+    }
+
+    [Fact]
+    public void RepairItemAcceptEmptiedSlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item epee),
+            "Couldn't find epee in test items");
+        var item = new ItemObject(epee, Fixture.TestUser.World.Guid);
+        Assert.True(Fixture.TestUser.AddItem(item), "Couldn't add item to inventory");
+        item.Durability /= 2;
+        Fixture.TestUser.ShowRepairItem(merchant, 1);
+        Assert.Equal(1, Fixture.TestUser.PendingRepairSlot);
+        // Item vanishes between the repair offer and the accept (drop, trade, crafted packet)
+        Assert.True(Fixture.TestUser.RemoveItem(1), "Couldn't remove item from inventory");
+        Fixture.TestUser.Stats.Gold = 10000;
+        var goldBefore = Fixture.TestUser.Stats.Gold;
+        var ex = Record.Exception(() => Fixture.TestUser.ShowRepairItemAccept(merchant));
+        Assert.Null(ex);
+        Assert.Equal(goldBefore, Fixture.TestUser.Stats.Gold);
+    }
+
+    [Fact]
+    public void RepairItemAcceptReplayIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item epee),
+            "Couldn't find epee in test items");
+        var item = new ItemObject(epee, Fixture.TestUser.World.Guid);
+        Assert.True(Fixture.TestUser.AddItem(item), "Couldn't add item to inventory");
+        item.Durability /= 2;
+        Fixture.TestUser.Stats.Gold = 10000;
+        Fixture.TestUser.ShowRepairItem(merchant, 1);
+        Fixture.TestUser.ShowRepairItemAccept(merchant);
+        Assert.Equal(item.MaximumDurability, item.Durability);
+        Assert.Equal(0, Fixture.TestUser.PendingRepairSlot);
+        // Replaying the accept packet with no pending repair (PendingRepairSlot == 0) must be ignored
+        var goldBefore = Fixture.TestUser.Stats.Gold;
+        var ex = Record.Exception(() => Fixture.TestUser.ShowRepairItemAccept(merchant));
+        Assert.Null(ex);
+        Assert.Equal(goldBefore, Fixture.TestUser.Stats.Gold);
+    }
+
     [Fact]
     public void CheckOnDeposit()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Fixture.TestUser.Say("how many epee do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
@@ -75,7 +202,7 @@ public class Merchants
     public void CheckGoldOnDeposit()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Fixture.TestUser.Say("how much gold do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
@@ -107,7 +234,7 @@ public class Merchants
     {
         Fixture.ResetTestUserStats();
         var before = Fixture.TestUser.Stats.Gold;
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Prayer Book", out Item junk),
             "Couldn't find prayer book in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -131,7 +258,7 @@ public class Merchants
     public void BuyItem()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
         Fixture.TestUser.AddItem(item);
@@ -148,7 +275,7 @@ public class Merchants
     public void RepairAll()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var before = Fixture.TestUser.Stats.Gold;
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -175,7 +302,7 @@ public class Merchants
     public void RepairItem()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk),
             "Couldn't find epee in very test items");
         var before = Fixture.TestUser.Stats.Gold;
@@ -199,7 +326,7 @@ public class Merchants
     public void DepositGold()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Fixture.TestUser.Say("how much gold do i have on deposit");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
@@ -226,7 +353,7 @@ public class Merchants
     public void DepositItem()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk),
             "Couldn't find prayer book in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -245,7 +372,7 @@ public class Merchants
     public void WithdrawGold()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         var before = Fixture.TestUser.Stats.Gold;
         Fixture.TestUser.Vault.AddGold(30000);
         Fixture.TestUser.Say("withdraw 30000 coins");
@@ -260,7 +387,7 @@ public class Merchants
     public void WithdrawItem()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
         Fixture.TestUser.AddItem(item);
@@ -271,7 +398,7 @@ public class Merchants
     public void WithdrawStackableItem()
     {
         Fixture.ResetTestUserStats();
-        Fixture.TestUser.Teleport("XUnit Test Realm", 8, 8);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Bent Needle", out Item junk),
             "Couldn't find bent needle in test items");
         var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
@@ -284,5 +411,117 @@ public class Merchants
         Assert.Equal("Maria", msg.Speaker.Name);
         Assert.Equal("Here's your Bent Needle back.", msg.Message);
         Assert.Equal(item.Count, item.MaximumStack);
+    }
+
+    // Learn-flow continuation state is consumed atomically by the accept handlers and is
+    // bound to the merchant and flow (skill/spell) that established it. Replayed,
+    // cross-flow, and cross-merchant accept packets must all be ignored.
+
+    private Castable GetLearnable(string name)
+    {
+        Assert.True(Game.World.WorldData.TryGetValueByIndex(name, out Castable castable),
+            $"Couldn't find {name} in test castables");
+        return castable;
+    }
+
+    private void ForgetIfKnown(Casting.Book book, Castable castable)
+    {
+        if (book.Contains(castable.Id))
+            Assert.True(book.Remove(book.SlotOf(castable.Id)), $"Couldn't remove {castable.Name}");
+    }
+
+    [Fact]
+    public void LearnSkillAcceptReplayIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var user = Fixture.TestUser;
+        var skill = GetLearnable("TestNoCookie");
+        ForgetIfKnown(user.SkillBook, skill);
+        user.ShowLearnSkillDisagree(merchant);
+        user.Stats.Gold = 10000;
+
+        user.ShowLearnSkill(merchant, skill);
+        user.ShowLearnSkillAccept(merchant);
+        Assert.True(user.SkillBook.Contains(skill.Id), "Skill was not learned");
+        Assert.Equal(10000u - 1234u, user.Stats.Gold);
+
+        // Replaying the accept must not deduct requirements again or duplicate the entry
+        var ex = Record.Exception(() => user.ShowLearnSkillAccept(merchant));
+        Assert.Null(ex);
+        Assert.Equal(10000u - 1234u, user.Stats.Gold);
+        Assert.Equal(1, user.SkillBook.Count(x => x.Castable.Id == skill.Id));
+    }
+
+    [Fact]
+    public void LearnSkillAcceptFromSpellFlowIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var user = Fixture.TestUser;
+        var spell = GetLearnable("TestAddBlind");
+        ForgetIfKnown(user.SpellBook, spell);
+        user.ShowLearnSpellDisagree(merchant);
+        user.Stats.Gold = 10000;
+
+        // Select a spell, then dispatch the skill accept: the spell must not enter the
+        // skill book and nothing may be deducted
+        user.ShowLearnSpell(merchant, spell);
+        var ex = Record.Exception(() => user.ShowLearnSkillAccept(merchant));
+        Assert.Null(ex);
+        Assert.False(user.SkillBook.Contains(spell.Id), "Spell was placed in the skill book");
+        Assert.Equal(10000u, user.Stats.Gold);
+
+        // The legitimate spell accept still works afterward
+        user.ShowLearnSpellAccept(merchant);
+        Assert.True(user.SpellBook.Contains(spell.Id), "Spell was not learned");
+        Assert.Equal(10000u - 1234u, user.Stats.Gold);
+    }
+
+    [Fact]
+    public void LearnSkillAcceptFromOtherMerchantIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var otherMap = Game.World.WorldState.Get<MapObject>("40001");
+        var otherMerchant = otherMap.Objects.OfType<Merchant>().FirstOrDefault(x => x.Name == "Maria");
+        Assert.NotNull(otherMerchant);
+        Assert.NotEqual(merchant.Id, otherMerchant.Id);
+        var user = Fixture.TestUser;
+        var skill = GetLearnable("TestNoCookie");
+        ForgetIfKnown(user.SkillBook, skill);
+        user.ShowLearnSkillDisagree(merchant);
+        user.Stats.Gold = 10000;
+
+        // Pending state was established at one merchant; an accept naming another must be ignored
+        user.ShowLearnSkill(merchant, skill);
+        var ex = Record.Exception(() => user.ShowLearnSkillAccept(otherMerchant));
+        Assert.Null(ex);
+        Assert.False(user.SkillBook.Contains(skill.Id), "Skill was learned through the wrong merchant");
+        Assert.Equal(10000u, user.Stats.Gold);
+    }
+
+    [Fact]
+    public void LearnSkillAcceptAlreadyKnownIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        var user = Fixture.TestUser;
+        var skill = GetLearnable("TestNoCookie");
+        ForgetIfKnown(user.SkillBook, skill);
+        user.ShowLearnSkillDisagree(merchant);
+        user.Stats.Gold = 10000;
+
+        user.ShowLearnSkill(merchant, skill);
+        user.ShowLearnSkillAccept(merchant);
+        Assert.True(user.SkillBook.Contains(skill.Id), "Skill was not learned");
+
+        // A second full flow for an already-known castable must not deduct or duplicate
+        user.ShowLearnSkill(merchant, skill);
+        var goldBefore = user.Stats.Gold;
+        var ex = Record.Exception(() => user.ShowLearnSkillAccept(merchant));
+        Assert.Null(ex);
+        Assert.Equal(goldBefore, user.Stats.Gold);
+        Assert.Equal(1, user.SkillBook.Count(x => x.Castable.Id == skill.Id));
     }
 }

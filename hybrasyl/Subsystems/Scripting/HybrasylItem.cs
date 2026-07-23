@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,12 +31,13 @@ namespace Hybrasyl.Subsystems.Scripting;
 public class HybrasylItemObject : HybrasylWorldObject, IInteractable
 {
     public HybrasylItemObject(ItemObject obj) : base(obj) { }
-    internal ItemObject Item => WorldObject as ItemObject;
+    // This wrapper is only ever constructed around an ItemObject.
+    internal ItemObject Item => (WorldObject as ItemObject)!;
     public double Durability => Item.Durability;
     public uint MaximumDurability => Item.MaximumDurability;
     public int Weight => Item.Weight;
     public int Value => (int)Item.Value;
-    public StatInfo Stats => Item.Stats;
+    public StatInfo? Stats => Item.Stats;
     public List<string> Categories => Item.Categories;
     public int MinLevel => Item.Template.Properties?.Restrictions?.Level?.Min ?? 1;
     public int MaxLevel => Item.Template.Properties?.Restrictions?.Level?.Max ?? 1;
@@ -71,7 +72,7 @@ public class HybrasylItemObject : HybrasylWorldObject, IInteractable
         set => throw new NotImplementedException();
     }
 
-    public Script Script => Item.Script;
+    public Script? Script => Item.Script;
 
     public List<DialogSequence> DialogSequences
     {

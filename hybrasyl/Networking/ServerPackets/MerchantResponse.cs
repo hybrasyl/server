@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -43,9 +43,9 @@ internal class MerchantResponse
     internal byte Color2 { get; set; } //affect item only
     internal byte PortraitType { get; set; } //portrait style. 0 = anime 1 = sprite
     internal byte NameLength => Convert.ToByte(Name.Length);
-    internal string Name { get; set; }
+    internal string Name { get; set; } = string.Empty;
     internal ushort TextLength { get; set; }
-    internal string Text { get; set; }
+    internal string Text { get; set; } = string.Empty;
     internal byte Slot { get; set; }
     internal uint Quantity { get; set; }
 

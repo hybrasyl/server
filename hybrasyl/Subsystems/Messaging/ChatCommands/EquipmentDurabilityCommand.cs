@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -34,18 +34,18 @@ internal class EquipmentDurabilityCommand : ChatCommand
         {
             for (byte i = 1; i <= user.Equipment.Size; i++)
             {
-                if (user.Equipment[i] == null) continue;
-                if (user.Equipment[i].MaximumDurability < dura) continue;
-                user.Equipment[i].Durability = dura;
-                user.AddEquipment(user.Equipment[i], i);
+                if (user.Equipment[i] is not { } equipItem) continue;
+                if (equipItem.MaximumDurability < dura) continue;
+                equipItem.Durability = dura;
+                user.AddEquipment(equipItem, i);
             }
 
             for (byte i = 1; i <= user.Inventory.Size; i++)
             {
-                if (user.Inventory[i] == null) continue;
-                if (user.Inventory[i].MaximumDurability < dura) continue;
-                user.Inventory[i].Durability = dura;
-                user.SendItemUpdate(user.Inventory[i], i);
+                if (user.Inventory[i] is not { } invItem) continue;
+                if (invItem.MaximumDurability < dura) continue;
+                invItem.Durability = dura;
+                user.SendItemUpdate(invItem, i);
             }
 
             user.UpdateAttributes(StatUpdateFlags.Full);

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -37,7 +37,8 @@ public class RotationEntry
     public bool UseOnce => Directive.UseOnce;
     public bool Expired => SecondsSinceLastUse >= Directive.Interval;
     public bool ThresholdTriggered { get; set; } = false;
-    public Rotation Parent { get; set; }
+    // Assigned by Rotation.Add immediately after construction, before any use.
+    public Rotation Parent { get; set; } = null!;
     public CreatureTargetPriority DefaultTargetPriority => Directive.TargetPriority;
     public int Threshold => Directive.HealthPercentage;
 

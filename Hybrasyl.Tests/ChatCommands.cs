@@ -24,7 +24,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class ChatCommands
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public ChatCommands(HybrasylFixture fixture)
     {

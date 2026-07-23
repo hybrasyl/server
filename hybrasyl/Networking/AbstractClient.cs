@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,7 +25,7 @@ namespace Hybrasyl.Networking;
 public abstract class AbstractClient
 {
     protected byte[] EncryptionKeyTable { get; set; } = new byte[1024];
-    protected Server Server { get; init; }
+    protected Server? Server { get; init; }
     public string LastMessage { get; set; } = string.Empty;
 
     /// <summary>

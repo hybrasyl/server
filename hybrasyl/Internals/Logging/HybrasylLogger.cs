@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -24,8 +24,8 @@ namespace Hybrasyl.Internals.Logging;
 
 public class HybrasylLogger
 {
-    public ILogger Logger { get; set; }
-    public LoggingLevelSwitch Level { get; set; }
+    public required ILogger Logger { get; set; }
+    public LoggingLevelSwitch Level { get; set; } = new() { MinimumLevel = LogEventLevel.Warning };
     public LogEventLevel DefaultLevel { get; set; }
     public string Path { get; set; } = string.Empty;
 }

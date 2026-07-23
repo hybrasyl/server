@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -34,13 +34,14 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
 {
     private readonly object Lock = new();
     [Persist] public short CurrentId;
-    [Persist] public string DisplayName;
+    // Persisted (STJ): initialize non-null; a stored record overwrites, an absent field keeps the default.
+    [Persist] public string DisplayName = string.Empty;
     [Persist] public Guid Guid;
     public int Id;
     public bool IsLocked;
     public bool IsSaving;
     [Persist] public List<Message> Messages = new();
-    [Persist] public string Name;
+    [Persist] public string Name = string.Empty;
 
     // Deserialization only; serialized state overwrites the members
     protected MessageStore() { }
@@ -108,7 +109,7 @@ public class MessageStore : IEnumerable<Message>, IStateStorable
         }
     }
 
-    public Message GetMessage(int id)
+    public Message? GetMessage(int id)
     {
         if (id > Messages.Count)
             return null;

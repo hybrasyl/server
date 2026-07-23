@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -50,7 +50,7 @@ public class ThrottleInfo
         Squelched = false;
     }
 
-    public string SquelchObject { get; set; }
+    public string? SquelchObject { get; set; }
 
     public bool Squelched { get; set; }
     public bool Throttled { get; set; }

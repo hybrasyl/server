@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,14 +25,16 @@ namespace Hybrasyl.Subsystems.Statuses;
 /// </summary>
 public class StatusSnapshot
 {
-    public string Name { get; set; }
+    // Persisted ([Persist] List<StatusSnapshot> on User, STJ) — no `required`; defaults keep
+    // deserialization of older records safe.
+    public string Name { get; set; } = string.Empty;
     public ushort Icon { get; set; }
     public Guid OriginSnapshotId { get; set; }
-    public string RemovalFormula { get; set; }
-    public SimpleStatusEffect OnStartEffect { get; set; }
-    public SimpleStatusEffect OnTickEffect { get; set; }
-    public SimpleStatusEffect OnRemoveEffect { get; set; }
-    public SimpleStatusEffect OnExpireEffect { get; set; }
+    public string RemovalFormula { get; set; } = string.Empty;
+    public SimpleStatusEffect? OnStartEffect { get; set; }
+    public SimpleStatusEffect? OnTickEffect { get; set; }
+    public SimpleStatusEffect? OnRemoveEffect { get; set; }
+    public SimpleStatusEffect? OnExpireEffect { get; set; }
     public double Remaining { get; set; }
     public double Tick { get; set; }
     public double Intensity { get; set; }

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Hybrasyl.Internals;
 using Hybrasyl.Objects;
@@ -34,7 +35,8 @@ public class Inventory : IEnumerable<ItemObject>
     protected Dictionary<string, List<(byte Slot, ItemObject Item)>> CategoryIndex = new();
     protected Dictionary<string, List<(byte Slot, ItemObject Item)>> ItemIndex = new();
 
-    protected Dictionary<byte, ItemObject> Items = new();
+    // Empty slots are stored as null; every slot 1..Size is present as a key.
+    protected Dictionary<byte, ItemObject?> Items = new();
 
     public Inventory(byte size)
     {
@@ -69,21 +71,25 @@ public class Inventory : IEnumerable<ItemObject>
 
     public virtual bool IsEmpty => Count == 0;
 
-    public ItemObject this[byte slot]
+    public ItemObject? this[byte slot]
     {
         get
         {
-            if (slot < 1 || slot > Size) throw new ArgumentException("Inventory slot does not exist");
+            // Out-of-range slots (crafted packets, stale references) read as empty,
+            // mirroring Book; callers already treat null as the empty-slot path.
+            if (slot < 1 || slot > Size) return null;
             return Items[slot];
         }
         internal set
         {
             lock (ContainerLock)
             {
-                if (slot > Size)
-                    throw new ArgumentException("Requested slot is greater than inventory size");
+                // Slot 0 must throw too: Items[0] would be unreadable by the getter,
+                // silently losing the item.
+                if (slot < 1 || slot > Size)
+                    throw new ArgumentException($"Requested slot {slot} is outside inventory size {Size}");
                 if (value == null && Items[slot] != null)
-                    _removeFromIndexes(slot, Items[slot]);
+                    _removeFromIndexes(slot, Items[slot]!);
                 else if (value != null)
                     _addToIndexes(slot, value);
                 Items[slot] = value;
@@ -93,7 +99,7 @@ public class Inventory : IEnumerable<ItemObject>
 
     public IEnumerator<ItemObject> GetEnumerator()
     {
-        return Items.Values.Where(predicate: x => x is not null).GetEnumerator();
+        return Items.Values.OfType<ItemObject>().GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -174,7 +180,7 @@ public class Inventory : IEnumerable<ItemObject>
                 }
                 else
                 {
-                    Items[slot].Count -= need;
+                    Items[slot]!.Count -= need; // slot came from ItemIndex; item present
                     removed += need;
                     affectedSlots.Add((slot, need));
                     return true;
@@ -201,7 +207,7 @@ public class Inventory : IEnumerable<ItemObject>
         return ret;
     }
 
-    public bool TryGetValue(string templateId, out ItemObject itemObject)
+    public bool TryGetValue(string templateId, [MaybeNullWhen(false)] out ItemObject itemObject)
     {
         itemObject = null;
         if (!ItemIndex.TryGetValue(templateId, out var itemList)) return false;
@@ -243,9 +249,9 @@ public class Inventory : IEnumerable<ItemObject>
         return ret;
     }
 
-    public ItemObject FindById(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Item : null;
+    public ItemObject? FindById(string id) => ItemIndex.ContainsKey(id) ? ItemIndex[id].First().Item : null;
 
-    public ItemObject FindByName(string name) =>
+    public ItemObject? FindByName(string name) =>
         (from id in Item.GenerateIds(name) where ItemIndex.ContainsKey(id) select ItemIndex[id].First().Item)
         .FirstOrDefault();
 
@@ -277,7 +283,7 @@ public class Inventory : IEnumerable<ItemObject>
             return false;
         lock (ContainerLock)
         {
-            var item = Items[slot];
+            var item = Items[slot]!;
             Items[slot] = null;
             Count--;
             Weight -= item.Weight;
@@ -293,11 +299,11 @@ public class Inventory : IEnumerable<ItemObject>
         {
             if (slot1 == 0 || slot1 > Size || slot2 == 0 || slot2 > Size)
                 return false;
-            if (Items[slot1] != null) _removeFromIndexes(slot1, Items[slot1]);
-            if (Items[slot2] != null) _removeFromIndexes(slot2, Items[slot2]);
+            if (Items[slot1] != null) _removeFromIndexes(slot1, Items[slot1]!);
+            if (Items[slot2] != null) _removeFromIndexes(slot2, Items[slot2]!);
             (Items[slot1], Items[slot2]) = (Items[slot2], Items[slot1]);
-            if (Items[slot1] != null) _addToIndexes(slot1, Items[slot1]);
-            if (Items[slot2] != null) _addToIndexes(slot2, Items[slot2]);
+            if (Items[slot1] != null) _addToIndexes(slot1, Items[slot1]!);
+            if (Items[slot2] != null) _addToIndexes(slot2, Items[slot2]!);
             return true;
         }
     }
@@ -320,12 +326,12 @@ public class Inventory : IEnumerable<ItemObject>
         if (slot == 0 || slot > Size || Items[slot] == null)
             return false;
 
-        if (Items[slot].Count + amount > Items[slot].MaximumStack)
+        if (Items[slot]!.Count + amount > Items[slot]!.MaximumStack)
             return false;
 
         lock (ContainerLock)
         {
-            Items[slot].Count += amount;
+            Items[slot]!.Count += amount;
         }
 
         return true;
@@ -333,14 +339,14 @@ public class Inventory : IEnumerable<ItemObject>
 
     public bool Decrease(byte slot, int amount)
     {
-        if (slot == 0 || slot > Size || Items[slot] == null || Items[slot].Count < amount)
+        if (slot == 0 || slot > Size || Items[slot] == null || Items[slot]!.Count < amount)
             return false;
-        return Items[slot].Count > 0 || Remove(slot);
+        return Items[slot]!.Count > 0 || Remove(slot);
     }
 
     public override string ToString()
     {
         return Items.Where(predicate: x => x.Value != null).Aggregate(string.Empty, func: (current, item)
-            => $"{current}\nslot {item.Key}: {item.Value.Name}, qty {item.Value.Count}");
+            => $"{current}\nslot {item.Key}: {item.Value!.Name}, qty {item.Value.Count}");
     }
 }

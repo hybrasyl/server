@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -43,6 +43,8 @@ public class UserTests(HybrasylFixture fixture)
         var loginPacket = new Login(username, "leethax6");
         handler(client, (ClientPacket)loginPacket);
         Assert.Equal("Welcome to Hybrasyl!", client.LastMessage);
+        Assert.NotNull(client.LastRedirect);
+        Assert.NotNull(client.EncryptionKey);
         var worldLoginHandler = Game.World.WorldPacketHandlers[0x10];
         GlobalConnectionManifest.RegisterClient(client);
         worldLoginHandler(client.ConnectionId, (ClientPacket)
@@ -198,5 +200,28 @@ public class UserTests(HybrasylFixture fixture)
         Assert.NotEmpty(user.CurrentStatuses);
         LogoutOfWorld("SSSROR");
         DeleteTestUser("SSSROR");
+    }
+
+    // Regression tests: using an empty skill/spell book slot (crafted packet) must be
+    // ignored, not NRE.
+
+    [Fact]
+    public void UseSkillEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 8, 8);
+        Fixture.TestUser.SkillBook.Clear();
+        var ex = Record.Exception(() => Fixture.TestUser.UseSkill(3));
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void UseSpellEmptySlotIsIgnored()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 8, 8);
+        Fixture.TestUser.SpellBook.Clear();
+        var ex = Record.Exception(() => Fixture.TestUser.UseSpell(3));
+        Assert.Null(ex);
     }
 }

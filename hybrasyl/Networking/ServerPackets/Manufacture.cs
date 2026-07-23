@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -34,9 +34,9 @@ internal class Manufacture
     public byte RecipeCount { get; set; }
     public byte Index { get; set; }
     public ushort Sprite { get; set; }
-    public string RecipeName { get; set; }
-    public string RecipeDescription { get; set; }
-    public Dictionary<string, int> RecipeIngredients { get; set; }
+    public string RecipeName { get; set; } = string.Empty;
+    public string RecipeDescription { get; set; } = string.Empty;
+    public required Dictionary<string, int> RecipeIngredients { get; set; }
 
     internal ServerPacket Packet()
     {

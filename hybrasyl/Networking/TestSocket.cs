@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -45,14 +45,14 @@ public sealed class TestSocket : ISocketProxy
     public static ISocketProxy Create(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) =>
         throw new NotImplementedException();
 
-    public static ISocketProxy CreateFromAsyncResult(IAsyncResult asyncResult) => (TestSocket)asyncResult.AsyncState;
+    public static ISocketProxy CreateFromAsyncResult(IAsyncResult asyncResult) => (TestSocket)asyncResult.AsyncState!;
 
     public ISocketProxy EndAccept(IAsyncResult asyncResult) => TaskToAsyncResult.End<TestSocket>(asyncResult);
 
-    public IAsyncResult BeginAccept(AsyncCallback callback, object state) => throw new NotImplementedException();
+    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state) => throw new NotImplementedException();
 
     public IAsyncResult BeginReceive(byte[] buffer, int offset, int size, SocketFlags socketFlags,
-        AsyncCallback callback, object state) => throw new NotImplementedException();
+        AsyncCallback? callback, object? state) => throw new NotImplementedException();
 
     public IAsyncResult BeginSend(byte[] buffer, int offset, int size, SocketFlags socketFlags, AsyncCallback callback,
         object state) => throw new NotImplementedException();

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -29,7 +29,7 @@ internal class CastLine
         OpCode = OpCodes.CastLine;
     }
 
-    internal string LineText { get; set; }
+    internal string LineText { get; set; } = string.Empty;
     internal byte ChatType { get; set; }
     internal uint TargetId { get; set; }
     internal byte LineLength { get; set; }

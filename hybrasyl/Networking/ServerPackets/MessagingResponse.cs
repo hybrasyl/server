@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -41,7 +41,7 @@ internal class MessagingResponse
     public bool isClick { get; set; }
     public ushort BoardId { get; set; }
     public string BoardName { get; set; }
-    public string ResponseString { get; set; }
+    public string ResponseString { get; set; } = string.Empty;
     public bool ResponseSuccess { get; set; }
 
     public ServerPacket Packet()

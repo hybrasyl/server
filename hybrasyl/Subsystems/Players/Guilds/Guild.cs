@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -72,9 +72,9 @@ public class Guild : IStateStorable
 
     [Persist] public Guid Guid { get; set; }
 
-    [Persist] public string Name { get; set; }
+    [Persist] public string Name { get; set; } = string.Empty;
 
-    [Persist] public List<GuildRank> Ranks { get; set; }
+    [Persist] public List<GuildRank> Ranks { get; set; } = new();
 
     public Board Board => Game.World.WorldState.GetBoard(Name);
     public GuildVault Vault => Game.World.WorldState.GetOrCreateByGuid<GuildVault>(Guid, Name);
@@ -127,6 +127,13 @@ public class Guild : IStateStorable
         {
             var (guid, membership) = Members.Single(predicate: x => x.Value.Name == name);
             var currentRank = Ranks.FirstOrDefault(predicate: x => x.Guid == membership.RankGuid);
+            if (currentRank == null)
+            {
+                GameLog.Error("Guild {Guild}: member {Member} has dangling rank {Rank}, cannot promote", Name,
+                    membership.Name, membership.RankGuid);
+                return;
+            }
+
             var newRank = Ranks.FirstOrDefault(predicate: x => x.Level == currentRank.Level - 1);
 
             if (newRank == null || newRank.Level <= 0) return;
@@ -141,6 +148,13 @@ public class Guild : IStateStorable
         {
             var member = Members.Single(predicate: x => x.Value.Name == name);
             var currentRank = Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid);
+            if (currentRank == null)
+            {
+                GameLog.Error("Guild {Guild}: member {Member} has dangling rank {Rank}, cannot demote", Name,
+                    member.Value.Name, member.Value.RankGuid);
+                return;
+            }
+
             var newRank = Ranks.FirstOrDefault(predicate: x => x.Level == currentRank.Level + 1);
 
             if (newRank != null && newRank.Level > currentRank.Level)
@@ -217,9 +231,12 @@ public class Guild : IStateStorable
         var member = Members.FirstOrDefault(predicate: x => x.Key == guid);
 
         var guildName = Name;
-        var rank = Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid);
+        // member.Value is null when the guid isn't a member; RankGuid can dangle after rank edits
+        var rank = member.Value is null ? null : Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid);
+        if (rank is null)
+            GameLog.Error("Guild {Guild}: user {Guid} has no resolvable rank", Name, guid);
 
-        return (guildName, rank.Name);
+        return (guildName, rank?.Name ?? "Unknown");
     }
 
 
@@ -249,8 +266,15 @@ public class Guild : IStateStorable
         var ret = new Dictionary<string, string>();
         foreach (var member in Members)
         {
-            var rank = Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid).Name;
-            ret.Add(member.Value.Name, rank);
+            var rank = Ranks.FirstOrDefault(predicate: x => x.Guid == member.Value.RankGuid);
+            if (rank is null)
+            {
+                GameLog.Error("Guild {Guild}: member {Member} has dangling rank {Rank}", Name, member.Value.Name,
+                    member.Value.RankGuid);
+                continue;
+            }
+
+            ret.Add(member.Value.Name, rank.Name);
         }
 
         return ret;

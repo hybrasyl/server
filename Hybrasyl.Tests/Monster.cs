@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -134,6 +134,7 @@ public class Monsters
         Assert.NotNull(monster.BehaviorSet);
         Game.World.Insert(monster);
         var rot = monster.CastableController.GetAssailRotation();
+        Assert.NotNull(rot);
         var entry2 = monster.CastableController.GetNextAssail();
         Assert.NotNull(entry2);
         // Rotations should now proceed normally
@@ -463,6 +464,7 @@ public class Monsters
         Assert.NotNull(bait.NextAction);
         Assert.Equal(MobAction.Move, bait.NextAction);
         bait.ProcessActions();
+        Assert.NotNull(bait.ActiveTarget);
         Assert.Equal(Fixture.TestUser.Guid, bait.ActiveTarget.Guid);
         Assert.NotNull(bait.CurrentPath);
         // Last tile in current path should terminate at player, since we're supposed to be pathing towards it

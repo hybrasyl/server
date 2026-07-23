@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -19,18 +19,19 @@
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Servers;
+using System;
 
 namespace Hybrasyl.Networking;
 
 public static class ClientFactory
 {
-    public static IClient CreateClient(ClientType type, ISocketProxy socketProxy = null, Server server = null)
+    public static IClient CreateClient(ClientType type, ISocketProxy socketProxy, Server server)
     {
         return type switch
         {
             ClientType.Client => new Client(socketProxy, server),
             ClientType.TestClient => new TestClient(socketProxy, server),
-            _ => null
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown client type")
         };
     }
 }

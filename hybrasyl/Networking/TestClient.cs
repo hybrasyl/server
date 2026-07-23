@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,7 +31,7 @@ public class TestClient : AbstractClient, IClient
     private static int _clientId;
     private readonly object _lock = new();
 
-    public TestClient(ISocketProxy proxy, Server server = null)
+    public TestClient(ISocketProxy proxy, Server? server = null)
     {
         lock (_lock)
         {
@@ -43,7 +43,7 @@ public class TestClient : AbstractClient, IClient
         ClientState = new TestClientState(proxy);
     }
 
-    public Redirect LastRedirect { get; set; }
+    public Redirect? LastRedirect { get; set; }
 
     public IClientState ClientState { get; set; }
 
@@ -67,11 +67,11 @@ public class TestClient : AbstractClient, IClient
 
     public byte EncryptionSeed { get; set; }
 
-    public byte[] EncryptionKey { get; set; }
+    public byte[]? EncryptionKey { get; set; }
 
-    public string NewCharacterName { get; set; }
+    public string NewCharacterName { get; set; } = string.Empty;
 
-    public string NewCharacterPassword { get; set; }
+    public string NewCharacterPassword { get; set; } = string.Empty;
 
     public void CheckIdle() { }
 

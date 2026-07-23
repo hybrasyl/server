@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -28,18 +28,18 @@ namespace Hybrasyl.Casting;
 public class Book : IEnumerable<BookSlot>
 {
     private readonly Dictionary<int, BookSlot> _itemIndex;
-    private readonly BookSlot[] _items;
+    private readonly BookSlot?[] _items;
 
     public Book()
     {
-        _items = new BookSlot[90];
+        _items = new BookSlot?[90];
         Size = 90;
         _itemIndex = new Dictionary<int, BookSlot>();
     }
 
     public Book(int size)
     {
-        _items = new BookSlot[size];
+        _items = new BookSlot?[size];
         Size = size;
         _itemIndex = new Dictionary<int, BookSlot>();
     }
@@ -58,7 +58,7 @@ public class Book : IEnumerable<BookSlot>
     public int Size { get; }
     public int Count { get; private set; }
 
-    public BookSlot this[byte slot]
+    public BookSlot? this[byte slot]
     {
         get
         {
@@ -83,10 +83,10 @@ public class Book : IEnumerable<BookSlot>
     public IEnumerator<BookSlot> GetEnumerator()
     {
         for (var i = 0; i < Size; ++i)
-            if (_items[i] != null)
+            if (_items[i] is { } item)
             {
-                _items[i].ClientSlot = i + 1;
-                yield return _items[i];
+                item.ClientSlot = i + 1;
+                yield return item;
             }
     }
 
@@ -109,7 +109,7 @@ public class Book : IEnumerable<BookSlot>
             _itemIndex[item.Castable.Id] = item;
     }
 
-    private void _RemoveFromIndex(BookSlot item)
+    private void _RemoveFromIndex(BookSlot? item)
     {
         if (item != null)
             if (_itemIndex.Keys.Contains(item.Castable.Id))
@@ -146,7 +146,7 @@ public class Book : IEnumerable<BookSlot>
     public int IndexOf(int id)
     {
         for (var i = 0; i < Size; ++i)
-            if (_items[i] != null && _items[i].Castable.Id == id)
+            if (_items[i] is { } item && item.Castable.Id == id)
                 return i;
         return -1;
     }
@@ -154,7 +154,7 @@ public class Book : IEnumerable<BookSlot>
     public int IndexOf(string name)
     {
         for (var i = 0; i < Size; ++i)
-            if (_items[i] != null && _items[i].Castable.Name == name)
+            if (_items[i] is { } item && item.Castable.Name == name)
                 return i;
         return -1;
     }
@@ -213,7 +213,7 @@ public class Book : IEnumerable<BookSlot>
         _itemIndex.Clear();
     }
 
-    public BookSlot GetSlotByName(string name)
+    public BookSlot? GetSlotByName(string name)
     {
         var i = IndexOf(name);
         return i == -1 ? null : _items[i];

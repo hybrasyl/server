@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -41,13 +41,16 @@ public class ThreatEntry(Guid id) : IComparable
     public double SecondsSinceLastMelee => (DateTime.Now - LastMelee).TotalSeconds;
     public double SecondsSinceLastNonHealCast => (DateTime.Now - LastNonHealCast).TotalSeconds;
 
-    public int CompareTo(object e)
+    public int CompareTo(object? e)
     {
         if (e == null) return 1;
         if (!(e is ThreatEntry other))
             throw new ArgumentException("Object is not a ThreatEntry");
         if (Threat == other.Threat)
-            return 0;
+            // Distinct targets must never compare equal: SortedDictionary treats
+            // compare-0 as the same key, so two creatures entering aggro range with
+            // equal threat would collide (and crash the Add).
+            return Target.CompareTo(other.Target);
         if (Threat > other.Threat)
             return 1;
         return -1;
@@ -60,16 +63,17 @@ public class ThreatInfo(Guid id)
     public Guid Owner { get; set; } = id;
     public Creature OwnerObject => Game.World.WorldState.GetWorldObject<Creature>(Owner);
 
-    public Creature HighestThreat => ThreatTableByThreat.Count == 0
+    // ThreatTableByThreat sorts ascending, so Last() is the highest threat.
+    public Creature? HighestThreat => ThreatTableByThreat.Count == 0
         ? null
-        : Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value);
+        : Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.Last().Value);
 
-    public ThreatEntry HighestThreatEntry => ThreatTableByThreat.First().Key;
+    public ThreatEntry HighestThreatEntry => ThreatTableByThreat.Last().Key;
 
     public int Count => ThreatTableByCreature.Count;
     public Dictionary<Guid, ThreatEntry> ThreatTableByCreature { get; } = new();
     public SortedDictionary<ThreatEntry, Guid> ThreatTableByThreat { get; } = new();
-    public Creature LastCaster { get; set; }
+    public Creature? LastCaster { get; set; }
 
     public uint this[Creature threat]
     {
@@ -77,10 +81,21 @@ public class ThreatInfo(Guid id)
         set
         {
             if (ThreatTableByCreature.TryGetValue(threat.Guid, out var entry))
-                entry.Threat = value;
+                SetThreat(entry, value);
             else
                 AddNewThreat(threat, value);
         }
+    }
+
+    // Threat is the SortedDictionary comparison key; a key must not change while
+    // resident or the tree silently corrupts (wrong ordering, failed removals).
+    // Every Threat mutation must go through here: remove under the old value,
+    // mutate, reinsert under the new one.
+    private void SetThreat(ThreatEntry entry, uint value)
+    {
+        ThreatTableByThreat.Remove(entry);
+        entry.Threat = value;
+        ThreatTableByThreat.Add(entry, entry.Target);
     }
 
     public List<Creature> GetTargets(CreatureTargetPriority priority)
@@ -88,7 +103,6 @@ public class ThreatInfo(Guid id)
         var ret = new List<Creature>();
         if (OwnerObject == null)
             return ret;
-        ThreatEntry entry;
         var monstersInViewport =
             OwnerObject.Map.EntityTree.GetObjects(OwnerObject.GetViewport()).OfType<Monster>().ToList();
         if (OwnerObject.Condition.Charmed)
@@ -101,7 +115,7 @@ public class ThreatInfo(Guid id)
                     if (u1.Group != null)
                         ret.AddRange(u1.Group.Members.Where(predicate: x =>
                             x.LastTarget != null && x.LastTarget != OwnerObject));
-                    else if (u1.LastTarget != OwnerObject)
+                    else if (u1.LastTarget != null && u1.LastTarget != OwnerObject)
                         ret.Add(u1.LastTarget);
                     break;
                 // If we are already targeting a monster, continue to target it
@@ -112,7 +126,7 @@ public class ThreatInfo(Guid id)
                 default:
                     {
                         if (LastCaster is User u2)
-                            ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(LastCaster)));
+                            ret.AddRange(monstersInViewport.Where(predicate: x => x.ThreatInfo.ContainsThreat(u2)));
                         break;
                     }
             }
@@ -128,10 +142,11 @@ public class ThreatInfo(Guid id)
         if (ThreatTableByThreat.Count == 0)
             return ret;
 
+        ThreatEntry? entry;
         switch (priority)
         {
             case CreatureTargetPriority.HighThreat:
-                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
+                ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.Last().Value));
                 break;
             case CreatureTargetPriority.LowThreat:
                 ret.Add(Game.World.WorldState.GetWorldObject<Creature>(ThreatTableByThreat.First().Value));
@@ -163,9 +178,9 @@ public class ThreatInfo(Guid id)
                     .Select(selector: x => x as Creature).ToList());
                 break;
             case CreatureTargetPriority.RandomAlly:
-                ret.Add(Extensions.EnumerableExtension.PickRandom(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>()
-                    .Select(selector: x => x as Creature)));
+                if (Extensions.EnumerableExtension.PickRandom(OwnerObject.Map.EntityTree
+                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>()) is { } randomAlly)
+                    ret.Add(randomAlly);
                 break;
             case CreatureTargetPriority.RandomAttacker:
                 ret.Add(Game.World.WorldState.GetWorldObject<Creature>(Extensions.EnumerableExtension
@@ -173,27 +188,31 @@ public class ThreatInfo(Guid id)
                 break;
             case CreatureTargetPriority.AllyWithLowestHp:
 
-                ret.Add(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Hp)
-                    .Select(x => x as Creature).FirstOrDefault());
+                if (OwnerObject.Map.EntityTree
+                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Hp)
+                        .FirstOrDefault() is { } lowestHpAlly)
+                    ret.Add(lowestHpAlly);
                 break;
             case CreatureTargetPriority.AllyWithLowestMp:
 
-                ret.Add(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Mp)
-                    .Select(x => x as Creature).FirstOrDefault());
+                if (OwnerObject.Map.EntityTree
+                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderBy(x => x.Stats.Mp)
+                        .FirstOrDefault() is { } lowestMpAlly)
+                    ret.Add(lowestMpAlly);
                 break;
             case CreatureTargetPriority.AllyWithHighestHp:
 
-                ret.Add(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Hp)
-                    .Select(x => x as Creature).FirstOrDefault());
+                if (OwnerObject.Map.EntityTree
+                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Hp)
+                        .FirstOrDefault() is { } highestHpAlly)
+                    ret.Add(highestHpAlly);
                 break;
             case CreatureTargetPriority.AllyWithHighestMp:
 
-                ret.Add(OwnerObject.Map.EntityTree
-                    .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Mp)
-                    .Select(x => x as Creature).FirstOrDefault());
+                if (OwnerObject.Map.EntityTree
+                        .GetObjects(OwnerObject.GetViewport()).OfType<Monster>().OrderByDescending(x => x.Stats.Mp)
+                        .FirstOrDefault() is { } highestMpAlly)
+                    ret.Add(highestMpAlly);
                 break;
             case CreatureTargetPriority.AllyWithLessThanMaxHp:
 
@@ -228,21 +247,23 @@ public class ThreatInfo(Guid id)
 
     public void IncreaseThreat(Creature threat, uint amount)
     {
-        if (!ThreatTableByCreature.ContainsKey(threat.Guid))
+        if (ThreatTableByCreature.TryGetValue(threat.Guid, out var entry))
+            SetThreat(entry, entry.Threat + amount);
+        else
             AddNewThreat(threat, amount);
-        ThreatTableByCreature[threat.Guid].Threat += amount;
     }
 
     public void DecreaseThreat(Creature threat, uint amount)
     {
-        if (ThreatTableByCreature.ContainsKey(threat.Guid))
-            ThreatTableByCreature[threat.Guid].Threat -= amount;
+        // Saturate at zero; unsigned subtraction would wrap to a huge threat value.
+        if (ThreatTableByCreature.TryGetValue(threat.Guid, out var entry))
+            SetThreat(entry, amount > entry.Threat ? 0 : entry.Threat - amount);
     }
 
     public void ClearThreat(Creature threat)
     {
-        if (ThreatTableByCreature.ContainsKey(threat.Guid))
-            ThreatTableByCreature[threat.Guid].Threat = 0;
+        if (ThreatTableByCreature.TryGetValue(threat.Guid, out var entry))
+            SetThreat(entry, 0);
     }
 
     public void AddNewThreat(Creature newThreat, uint amount = 0)
@@ -295,7 +316,7 @@ public class ThreatInfo(Guid id)
         {
             if (HighestThreat == threat)
                 return;
-            entry.Threat = (uint)(HighestThreatEntry.Threat * 1.10);
+            SetThreat(entry, (uint)(HighestThreatEntry.Threat * 1.10));
         }
         else
         {
@@ -307,9 +328,10 @@ public class ThreatInfo(Guid id)
     {
         if (ContainsThreat(threat))
             IncreaseThreat(threat, amount);
-        else if (threat is User user && user.Grouped && ContainsAny(user.Group.Members))
+        else if (threat is User user && user.Group is { } group && ContainsAny(group.Members))
             AddNewThreat(threat, amount);
-        var entry = ThreatTableByCreature[threat.Guid];
+        // Neither branch may have added the caster (ungrouped, not yet a threat).
+        if (!ThreatTableByCreature.TryGetValue(threat.Guid, out var entry)) return;
         entry.TotalCasts++;
         entry.LastNonHealCast = DateTime.Now;
     }
@@ -321,13 +343,14 @@ public class ThreatInfo(Guid id)
         {
             IncreaseThreat(threat, amount);
         }
-        else if (user.Grouped && ContainsAny(user.Group.Members))
+        else if (user.Group is { } group && ContainsAny(group.Members))
         {
             AddNewThreat(threat, amount);
             return;
         }
 
-        var entry = ThreatTableByCreature[threat.Guid];
+        // The healer may not be a threat at all (ungrouped, never attacked).
+        if (!ThreatTableByCreature.TryGetValue(user.Guid, out var entry)) return;
         entry.TotalHeals++;
         entry.LastHeal = DateTime.Now;
     }

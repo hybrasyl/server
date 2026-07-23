@@ -16,8 +16,6 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-#nullable enable
-
 using Hybrasyl.Casting;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Xml.Objects;

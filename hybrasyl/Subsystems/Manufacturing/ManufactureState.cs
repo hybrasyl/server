@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -28,10 +28,10 @@ public class ManufactureState
     private const int NonInventorySlot = 60;
 
     public ManufactureState(User user)
-        : this(user, NonInventorySlot, Array.Empty<ManufactureRecipe>()) { }
+        : this(user, NonInventorySlot, []) { }
 
     public ManufactureState(User user, int slot)
-        : this(user, slot, Array.Empty<ManufactureRecipe>()) { }
+        : this(user, slot, []) { }
 
     public ManufactureState(User user, IEnumerable<ManufactureRecipe> recipes)
         : this(user, NonInventorySlot, recipes) { }

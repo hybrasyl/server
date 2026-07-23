@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -145,11 +145,20 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             GameLog.DebugFormat("Pursuit {0}, id {1}", pursuit.Name, pursuit.Id);
             if (pursuit.MenuCheckExpression != string.Empty)
             {
+                // A pursuit implies a script; a missing one is a data error (e.g. script file
+                // absent at load). Skip the pursuit loudly rather than killing the whole menu.
+                if (Script is null)
+                {
+                    GameLog.ScriptingError(
+                        "DisplayPursuits: {Name}: pursuit {Pursuit} has a menu check expression but no script is attached, skipping",
+                        Name, pursuit.Name);
+                    continue;
+                }
+
                 var env = ScriptEnvironment.CreateWithTargetAndSource(invoker, invoker);
                 env.DialogPath = $"{Name}:DisplayPursuits:MenuCheckExpression";
-                var ret = Script.ExecuteExpression(pursuit.MenuCheckExpression,
-                    env);
-                // If the menu check expression returns anything other than true, we don't include the 
+                var ret = Script.ExecuteExpression(pursuit.MenuCheckExpression, env);
+                // If the menu check expression returns anything other than true, we don't include the
                 // pursuit on the main menu that is sent to the user
                 if (!ret.Return.CastToBool())
                 {
@@ -158,7 +167,8 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
                 }
             }
 
-            options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id.Value, Text = pursuit.Name });
+            // Pursuits in the list always have an Id assigned (AddPursuit / shared sequences).
+            options.Options.Add(new MerchantDialogOption { Id = (ushort)pursuit.Id!.Value, Text = pursuit.Name });
             optionsCount++;
         }
 
@@ -173,7 +183,9 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             Color2 = 0,
             PortraitType = 1,
             Name = string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName,
-            Text = merchant.GetLocalString("greeting"),
+            // merchant (`this as Merchant`) is null for Reactor, the other IPursuitable
+            // implementer; fall back to an empty greeting.
+            Text = merchant?.GetLocalString("greeting") ?? string.Empty,
             Options = options
         };
 

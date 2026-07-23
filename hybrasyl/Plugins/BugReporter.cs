@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -30,7 +30,8 @@ namespace Hybrasyl.Plugins;
 /// </summary>
 public class BugReporter : MessagePlugin, IProcessingMessageHandler
 {
-    private DiscordWebhookClient client;
+    // Set in Initialize(); the plugin stays Disabled (so Process bails) until then
+    private DiscordWebhookClient? client;
     private string OutputDir = string.Empty;
     private string WebhookUrl = string.Empty;
 
@@ -73,7 +74,7 @@ public class BugReporter : MessagePlugin, IProcessingMessageHandler
         else
             text = $"{text}\n\n{inbound.Text}";
 
-        Task.Run(function: () => client.SendMessageAsync(text));
+        Task.Run(function: () => client?.SendMessageAsync(text));
         Task.Run(action: () => SaveToDisk(inbound.Sender, id, text));
         resp.Success = true;
         resp.PluginResponse = $"Thank you for your bug submission (BUG-{id}). It has been received.";

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,7 +31,7 @@ internal class MapData
         OpCode = OpCodes.MapData;
     }
 
-    internal MapObject Map { get; set; }
+    internal required MapObject Map { get; set; }
 
     internal List<ServerPacket> Packets()
     {

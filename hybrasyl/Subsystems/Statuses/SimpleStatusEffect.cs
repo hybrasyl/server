@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -22,12 +22,13 @@ namespace Hybrasyl.Subsystems.Statuses;
 
 public class SimpleStatusEffect
 {
-    public SimpleStatusEffect(double heal, DamageOutput damage)
+    public SimpleStatusEffect(double heal, DamageOutput? damage)
     {
         Heal = heal;
         Damage = damage;
     }
 
     public double Heal { get; set; }
-    public DamageOutput Damage { get; set; }
+    // Null for heal-only effects; consumers (CreatureStatus.ProcessNumericEffects) null-check.
+    public DamageOutput? Damage { get; set; }
 }

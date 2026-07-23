@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -73,7 +73,7 @@ public class Status
         Assert.NotNull(monster.BehaviorSet);
         monster.X = 11;
         monster.Y = 11;
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         Fixture.TestUser.Map.InsertMonster(monster);
         Assert.NotNull(castable);
         Fixture.TestUser.SpellBook.Add(castable);
@@ -195,7 +195,7 @@ public class Status
         Assert.NotNull(monster.BehaviorSet);
         monster.X = 11;
         monster.Y = 11;
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         Fixture.TestUser.Map.InsertMonster(monster);
 
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
@@ -242,7 +242,7 @@ public class Status
         Assert.NotNull(monster.BehaviorSet);
         monster.X = 11;
         monster.Y = 11;
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         Fixture.TestUser.Map.InsertMonster(monster);
 
         Assert.True(Fixture.TestUser.SpellBook.Add(testadd1));
@@ -294,8 +294,8 @@ public class Status
         monster.X = 11;
         monster.Y = 11;
 
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
-        Fixture.SecondTestUser.Teleport("XUnit Test Realm", 9, 9);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
+        Fixture.SecondTestUser.Teleport("XUnit Test Realm - With Casting", 9, 9);
         
         Fixture.TestUser.Map.InsertMonster(monster);
 
@@ -329,7 +329,7 @@ public class Status
         Assert.True(Game.World.WorldData.TryGetValue<Hybrasyl.Xml.Objects.Status>("TestFailCurse", out var failXml),
             "Status TestFailCurse not found");
 
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         var monster = new Monster(monsterXml, SpawnFlags.AiDisabled, 99) { X = 11, Y = 11 };
         Fixture.TestUser.Map.InsertMonster(monster);
 

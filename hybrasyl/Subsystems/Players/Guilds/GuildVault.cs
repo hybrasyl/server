@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -37,12 +37,12 @@ public class GuildVault : Vault
 
     [Persist]
     public List<Guid>
-        AuthorizedViewerGuids { get; private set; } //authorized to see what is stored, but cannot withdraw
+        AuthorizedViewerGuids { get; private set; } = new(); //authorized to see what is stored, but cannot withdraw
 
     [Persist]
-    public List<Guid> AuthorizedWithdrawalGuids { get; private set; } //authorized to withdraw,  up to limit
+    public List<Guid> AuthorizedWithdrawalGuids { get; private set; } = new(); //authorized to withdraw,  up to limit
 
-    [Persist] public List<Guid> CouncilMemberGuids { get; private set; } //possible restrictions?
+    [Persist] public List<Guid> CouncilMemberGuids { get; private set; } = new(); //possible restrictions?
 
     [Persist] public int AuthorizedWithdrawalLimit { get; private set; }
 

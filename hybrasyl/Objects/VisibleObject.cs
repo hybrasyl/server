@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -67,12 +67,12 @@ public class VisibleObject : WorldObject, IVisible
 
     public HashSet<User> viewportUsers { get; private set; } = new();
 
-    public SpokenEvent LastHeard { get; set; }
+    public SpokenEvent? LastHeard { get; set; }
 
     [Persist] public LocationInfo Location { get; set; } = new();
 
     public ushort Sprite { get; set; }
-    public string Portrait { get; set; }
+    public string Portrait { get; set; } = string.Empty;
     public string DisplayText { get; set; } = string.Empty;
     public virtual void ShowTo(IVisible target) { }
 

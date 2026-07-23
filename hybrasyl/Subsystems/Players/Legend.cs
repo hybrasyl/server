@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
 using Hybrasyl.Internals.Attributes;
@@ -44,7 +45,7 @@ public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public bool TryGetMark(string searchKey, out LegendMark mark, bool byPrefix = true)
+    public bool TryGetMark(string searchKey, [MaybeNullWhen(false)] out LegendMark mark, bool byPrefix = true)
     {
         if (byPrefix) return _legendIndex.TryGetValue(searchKey, out mark);
 
@@ -66,8 +67,7 @@ public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
 
     public bool RemoveMark(string prefix)
     {
-        LegendMark mark;
-        if (!_legendIndex.TryGetValue(prefix, out mark)) return false;
+        if (!_legendIndex.TryGetValue(prefix, out var mark)) return false;
         _legendIndex.Remove(prefix);
         _legend.Remove(mark.Timestamp);
         return true;
@@ -93,7 +93,7 @@ public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
     }
 
     public bool AddMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-        string prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
+        string? prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
         bool displayTimestamp = true)
     {
         var newMark = new LegendMark(icon, color, text, timestamp, prefix, isPublic, quantity, displaySeason,
@@ -101,7 +101,7 @@ public class Legend : IEnumerable<LegendMark>, IJsonOnDeserialized
         return _addLegendMark(newMark);
     }
 
-    public bool AddMark(LegendIcon icon, LegendColor color, string text, string prefix = default,
+    public bool AddMark(LegendIcon icon, LegendColor color, string text, string? prefix = default,
         bool isPublic = true, int quantity = -1, bool displaySeason = true, bool displayTimestamp = true)
     {
         var datetime = DateTime.Now;
@@ -132,7 +132,7 @@ public class LegendMark
     private LegendMark() { }
 
     public LegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-        string prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
+        string? prefix = default, bool isPublic = true, int quantity = -1, bool displaySeason = true,
         bool displayTimestamp = true)
     {
         Icon = icon;
@@ -148,13 +148,13 @@ public class LegendMark
         DisplayTimestamp = displayTimestamp;
     }
 
-    [Persist] public string Prefix { get; set; }
+    [Persist] public string? Prefix { get; set; }
 
     [Persist] public LegendColor Color { get; set; }
 
     [Persist] public LegendIcon Icon { get; set; }
 
-    [Persist] public string Text { get; set; }
+    [Persist] public string Text { get; set; } = string.Empty;
 
     [Persist] public bool Public { get; set; }
 

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -42,7 +42,9 @@ public enum ScriptErrorType
     InternalError,
     RuntimeError,
     CSharpError,
-    Unknown
+    Unknown,
+    NoExecution,
+    None
 }
 
 public class ScriptExecutionResult
@@ -54,41 +56,55 @@ public class ScriptExecutionResult
     }
 
     public ScriptResult Result { get; set; }
-    public DynValue Return { get; set; }
-    public string ExecutedExpression { get; set; }
-    public string Location { get; set; }
+    public DynValue Return { get; set; } = DynValue.Nil;
+    public string ExecutedExpression { get; set; } = string.Empty;
+    public string? Location { get; set; }
 
     public DateTime ExecutionTime { get; set; }
 
-    public ScriptExecutionError Error { get; set; }
+    public ScriptExecutionError Error { get; set; } = ScriptExecutionError.NoError;
     public Guid Guid { get; set; }
 
-    public static ScriptExecutionResult Disabled =>
-        new() { Result = ScriptResult.Disabled, Return = DynValue.Nil, Error = null };
+    public static ScriptExecutionResult Disabled => new()
+    {
+        Result = ScriptResult.Disabled,
+        Return = DynValue.Nil,
+        Error = ScriptExecutionError.ScriptDisabled
+    };
 
     public static ScriptExecutionResult NotFound => new()
     {
         Result = ScriptResult.NoExecution,
         Return = DynValue.Nil,
-        Error = null
+        Error = new ScriptExecutionError
+        { ErrorType = ScriptErrorType.NoExecution, HumanizedError = "script not found" }
     };
 
     public static ScriptExecutionResult NoExecution => new()
     {
         Result = ScriptResult.NoExecution,
         Return = DynValue.Nil,
-        Error = null
+        Error = new ScriptExecutionError
+        { ErrorType = ScriptErrorType.NoExecution, HumanizedError = "script was not executed" }
     };
 }
 
 public class ScriptExecutionError
 {
+    public static ScriptExecutionError NoError => new() { ErrorType = ScriptErrorType.None };
+
+    public static ScriptExecutionError ScriptDisabled => new()
+    { ErrorType = ScriptErrorType.NoExecution, HumanizedError = "script is disabled" };
+
+    public static ScriptExecutionError MissingFunction(string functionName) => new()
+    { ErrorType = ScriptErrorType.NoExecution, HumanizedError = $"function {functionName} not found" };
+
     public ScriptErrorType ErrorType { get; set; }
-    public string HumanizedError { get; set; }
-    public Exception ScriptException { get; set; }
-    public string Filename { get; set; }
+    public string HumanizedError { get; set; } = string.Empty;
+    public Exception? ScriptException { get; set; }
+    public string Filename { get; set; } = string.Empty;
     public int LineNumber { get; set; }
-    public string Error { get; set; }
+    public string Error { get; set; } = string.Empty;
 
     public override string ToString() => $"{ErrorType}: {Filename} line {LineNumber}\n{Error}\n\n{HumanizedError}";
 }
@@ -108,7 +124,10 @@ public class DialogInvocation
     // Origin is the script responsible for what is currently happening
     public IInteractable Origin { get; set; }
 
-    public Script Script => Origin?.Script;
+    // Origin is a non-null ctor arg; matches the unguarded Origin.Sprite deref below.
+    // Origin.Script is nullable on the interface, but this wrapper keeps the pre-nullable
+    // non-null contract its consumers rely on.
+    public Script Script => Origin.Script!;
 
     // Target is the target of a (dialog) spell, the recipient of a dialog, etc. Somewhat obviously,
     // mundanes cannot be shown dialogs
@@ -159,18 +178,19 @@ public class ScriptEnvironment
 {
     public ScriptEnvironment()
     {
-        Variables = new Dictionary<string, dynamic>();
+        Variables = new Dictionary<string, dynamic?>();
     }
 
-    public Dictionary<string, dynamic> Variables { get; set; }
-    public string DialogPath { get; set; }
+    // Values are genuinely nullable: script vars like source/origin/lasthitter can be null.
+    public Dictionary<string, dynamic?> Variables { get; set; }
+    public string? DialogPath { get; set; }
 
-    public void Add(string name, dynamic obj)
+    public void Add(string name, dynamic? obj)
     {
         Variables[name] = obj;
     }
 
-    public static ScriptEnvironment Create(params (string name, dynamic obj)[] variables)
+    public static ScriptEnvironment Create(params (string name, dynamic? obj)[] variables)
     {
         var ret = new ScriptEnvironment();
         foreach (var v in variables) ret.Add(v.name, v.obj);
@@ -178,14 +198,14 @@ public class ScriptEnvironment
     }
 
     // TODO: clarify this terminology in scripting
-    public static ScriptEnvironment CreateWithTarget(dynamic target) => Create(("target", target));
+    public static ScriptEnvironment CreateWithTarget(dynamic? target) => Create(("target", target));
 
-    public static ScriptEnvironment CreateWithTargetAndSource(dynamic target, dynamic source) =>
+    public static ScriptEnvironment CreateWithTargetAndSource(dynamic? target, dynamic? source) =>
         Create(("target", target), ("source", source));
 
-    public static ScriptEnvironment CreateWithOriginAndTarget(dynamic origin, dynamic target) =>
+    public static ScriptEnvironment CreateWithOriginAndTarget(dynamic? origin, dynamic? target) =>
         Create(("origin", origin), ("target", target));
 
-    public static ScriptEnvironment CreateWithOriginTargetAndSource(dynamic origin, dynamic target, dynamic source) =>
+    public static ScriptEnvironment CreateWithOriginTargetAndSource(dynamic? origin, dynamic? target, dynamic? source) =>
         Create(("origin", origin), ("target", target), ("source", source));
 }

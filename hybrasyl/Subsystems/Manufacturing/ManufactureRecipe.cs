@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -23,15 +23,16 @@ namespace Hybrasyl.Subsystems.Manufacturing;
 
 public class ManufactureRecipe
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     public ushort Tile { get; set; }
 
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
-    public List<ManufactureIngredient> Ingredients { get; set; }
+    public List<ManufactureIngredient> Ingredients { get; set; } = new();
 
-    public string AddItemName { get; set; }
+    // Optional; null means the recipe has no "add" item slot (see HasAddItem).
+    public string? AddItemName { get; set; }
 
     public bool HasAddItem => AddItemName != null;
 
@@ -74,7 +75,7 @@ public class ManufactureRecipe
         List<string> ingredientLines = new();
         if (HasAddItem)
         {
-            var addItemColorCode = user.Inventory.ContainsName(AddItemName) ? 'c' : 'a';
+            var addItemColorCode = user.Inventory.ContainsName(AddItemName!) ? 'c' : 'a';
             ingredientLines.Add($"{{={addItemColorCode}{AddItemName} {{=s[add]");
         }
 
@@ -84,7 +85,7 @@ public class ManufactureRecipe
 
     public bool CheckIngredientsFor(User user)
     {
-        if (HasAddItem && !user.Inventory.ContainsName(AddItemName)) return false;
+        if (HasAddItem && !user.Inventory.ContainsName(AddItemName!)) return false;
 
         foreach (var ingredient in Ingredients)
             if (!ingredient.CheckFor(user))

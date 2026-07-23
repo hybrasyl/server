@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,18 +32,22 @@ namespace Hybrasyl.Subsystems.Statuses;
 
 public class CreatureStatus : ICreatureStatus
 {
-    protected User TargetUser => Target as User;
-    protected User SourceUser => Source as User;
+    protected User? TargetUser => Target as User;
+    protected User? SourceUser => Source as User;
 
     public Guid Guid { get; } = Guid.NewGuid();
     public Guid OriginSnapshotId { get; set; } = Guid.Empty;
     public string RemoveChance { get; set; } = string.Empty;
     public World World => Target.World;
 
-    public Conditions ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
+    public Conditions? ConditionChanges => XmlStatus.Effects?.OnApply?.Conditions;
 
-    public Castable Castable { get; set; }
-    public Status XmlStatus { get; set; }
+    // Not assigned by either ctor: the ctor's `castable` arg feeds damage/heal calculation only;
+    // assigned externally after construction.
+    public Castable? Castable { get; set; }
+    // Runtime lookup from WorldData; non-null for any usable status. The StatusSnapshot ctor's
+    // empty-name early-return leaves this null (a broken sentinel — see ctor note).
+    public Status XmlStatus { get; set; } = null!;
     public StatInfo BonusModifiers { get; set; } = new();
 
     // TODO: xmlfix
@@ -57,16 +61,16 @@ public class CreatureStatus : ICreatureStatus
     public double Intensity { get; set; } = 1;
 
     public Creature Target { get; }
-    public Creature Source { get; }
+    public Creature? Source { get; }
 
     public DateTime Start { get; }
 
     public DateTime LastTick { get; private set; }
-    public string ActionProhibitedMessage { get; set; }
-    public SimpleStatusEffect OnTickEffect { get; }
-    public SimpleStatusEffect OnStartEffect { get; }
-    public SimpleStatusEffect OnRemoveEffect { get; }
-    public SimpleStatusEffect OnExpireEffect { get; }
+    public string? ActionProhibitedMessage { get; set; }
+    public SimpleStatusEffect? OnTickEffect { get; }
+    public SimpleStatusEffect? OnStartEffect { get; }
+    public SimpleStatusEffect? OnRemoveEffect { get; }
+    public SimpleStatusEffect? OnExpireEffect { get; }
 
     public bool Expired => (DateTime.Now - Start).TotalSeconds >= Duration;
     public double Elapsed => (DateTime.Now - Start).TotalSeconds;
@@ -74,13 +78,14 @@ public class CreatureStatus : ICreatureStatus
 
     public double ElapsedSinceTick => (DateTime.Now - LastTick).TotalSeconds;
 
-    public CreatureStatus(Status xmlstatus, Creature target, Castable castable = null, Creature source = null,
+    public CreatureStatus(Status xmlstatus, Creature target, Castable? castable = null, Creature? source = null,
         int duration = -1, int tickFrequency = -1, double intensity = 1.0)
     {
         if (source != null)
         {
-            var provider = source as IStatSnapshotProvider; 
-            OriginSnapshotId = provider.CreateStatSnapshot();
+            var provider = source as IStatSnapshotProvider;
+            // Creature always implements IStatSnapshotProvider, so the cast never yields null.
+            OriginSnapshotId = provider!.CreateStatSnapshot();
         }
 
         Target = target;
@@ -105,8 +110,11 @@ public class CreatureStatus : ICreatureStatus
         OnTickEffect = new SimpleStatusEffect(tick.Heal, tick.Damage);
         OnRemoveEffect = new SimpleStatusEffect(end.Heal, end.Damage);
         OnExpireEffect = new SimpleStatusEffect(expire.Heal, expire.Damage);
-        BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable, intensity,
-            xmlstatus.Effects.OnApply.StatModifiers, source, target);
+        // NumberCruncher's status overloads declare castable/source non-null but forward them to a
+        // null-tolerant _evalFormula and guard with ?. internally; ! bridges the annotation gap.
+        // (castable is null for most callers.)
+        BonusModifiers = NumberCruncher.CalculateStatusModifiers(castable!, intensity,
+            xmlstatus.Effects.OnApply.StatModifiers, source!, target);
     }
 
     public CreatureStatus(StatusSnapshot serialized, Creature target)
@@ -200,23 +208,24 @@ public class CreatureStatus : ICreatureStatus
             }
 
             if (effect.Animations?.SpellEffect != null && effect.Animations?.SpellEffect.Id != 0)
-                Source?.Effect(effect.Animations.SpellEffect.Id, effect.Animations.SpellEffect.Speed);
+                Source?.Effect(effect.Animations!.SpellEffect!.Id, effect.Animations!.SpellEffect!.Speed);
         }
 
         // Message handling
         if (effect.Messages != null)
         {
-            if (TargetUser != null)
+            var targetUser = TargetUser;
+            if (targetUser != null)
             {
                 if (effect.Messages?.Target != null)
-                    TargetUser.SendSystemMessage(string.Format(effect.Messages.Target, SourceUser?.Name));
+                    targetUser.SendSystemMessage(string.Format(effect.Messages.Target, SourceUser?.Name));
                 if (effect.Messages?.Group != null)
-                    TargetUser.Group?.SendMessage(string.Format(effect.Messages.Group, SourceUser?.Name));
+                    targetUser.Group?.SendMessage(string.Format(effect.Messages.Group, SourceUser?.Name));
             }
 
-            if (effect.Messages?.Source != null && TargetUser != null && TargetUser != SourceUser)
+            if (effect.Messages?.Source != null && targetUser != null && targetUser != SourceUser)
                 (Source as User)?.SendSystemMessage(string.Format(effect.Messages.Source,
-                    TargetUser?.Name ?? string.Empty));
+                    targetUser.Name ?? string.Empty));
             if (effect.Messages?.Say != null)
                 Target.Say(string.Format(effect.Messages.Say, Target.Name ?? string.Empty));
             if (effect.Messages?.Shout != null)
@@ -241,16 +250,18 @@ public class CreatureStatus : ICreatureStatus
             Target.Stats.Apply(BonusModifiers);
     }
 
-    private (double Heal, DamageOutput Damage) CalculateNumericEffects(Castable castable, ModifierEffect effect,
-        Creature source)
+    private (double Heal, DamageOutput Damage) CalculateNumericEffects(Castable? castable, ModifierEffect effect,
+        Creature? source)
     {
         double heal = 0;
         var dmg = new DamageOutput();
         if (effect == null) return (heal, dmg);
-        if (effect.Heal != null) heal = NumberCruncher.CalculateHeal(castable, effect, Target, source, Name);
+        // castable!/source! bridge NumberCruncher's non-null status-overload params; it tolerates
+        // null internally (?. and null-tolerant _evalFormula).
+        if (effect.Heal != null) heal = NumberCruncher.CalculateHeal(castable!, effect, Target, source!, Name);
         if (effect.Damage != null)
         {
-            dmg = NumberCruncher.CalculateDamage(castable, effect, Target, source, Name);
+            dmg = NumberCruncher.CalculateDamage(castable!, effect, Target, source!, Name);
             // If the tick itself defines an element, use it, along with the damage type
             if (effect.Damage.Element != ElementType.None)
                 dmg.Element = effect.Damage.Element;
@@ -260,7 +271,7 @@ public class CreatureStatus : ICreatureStatus
         return (heal, dmg);
     }
 
-    private void ProcessNumericEffects(SimpleStatusEffect effect)
+    private void ProcessNumericEffects(SimpleStatusEffect? effect)
     {
         if (effect == null) return;
         if (effect.Damage != null && effect.Damage.Amount != 0)
@@ -270,7 +281,7 @@ public class CreatureStatus : ICreatureStatus
             Target.Heal(effect.Heal, Source, Castable);
     }
 
-    private void ProcessFullEffects(ModifierEffect effect, bool RemoveStatBonuses = false, bool displaySfx = true)
+    private void ProcessFullEffects(ModifierEffect? effect, bool RemoveStatBonuses = false, bool displaySfx = true)
     {
         if (effect == null) return;
         // Stat modifiers and condition changes are only processed during start/remove
@@ -280,16 +291,17 @@ public class CreatureStatus : ICreatureStatus
             ProcessSfx(effect);
     }
 
-    private void ProcessHandler(Handler handler)
+    private void ProcessHandler(Handler? handler)
     {
-        if ((handler?.Function ?? string.Empty) == string.Empty)
+        if (string.IsNullOrEmpty(handler?.Function))
             return;
 
         // If a handler is specified, check the script for it first. Note that we don't run both;
         // if you override something like OnDeath, that's your problem.
-        VisibleObject invoker;
+        VisibleObject? invoker;
         VisibleObject invokee;
 
+        // Source is null for sourceless statuses (e.g. environmental effects)
         if (handler.ScriptSource == ScriptSource.Target)
         {
             invokee = Target;
@@ -297,6 +309,13 @@ public class CreatureStatus : ICreatureStatus
         }
         else // Caster
         {
+            if (Source is null)
+            {
+                GameLog.Error("Status {Status}: caster-dispatched handler {Function} has no source, skipping",
+                    Name, handler.Function);
+                return;
+            }
+
             invokee = Source;
             invoker = Target;
         }
@@ -313,7 +332,8 @@ public class CreatureStatus : ICreatureStatus
         try
         {
             var methodInfo = type.GetMethod(handler.Function);
-            methodInfo.Invoke(invokee, null);
+            // GetMethod returns null for an unknown function; the resulting NRE is caught below.
+            methodInfo!.Invoke(invokee, null);
         }
         catch (Exception e)
         {

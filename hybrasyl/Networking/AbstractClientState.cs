@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -21,6 +21,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -62,7 +63,7 @@ public abstract class AbstractClientState
     }
 
     public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
-    public bool ReceiveBufferTake(out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
+    public bool ReceiveBufferTake([MaybeNullWhen(false)] out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
 
     public IEnumerable<byte> ReceiveBufferTake(int range)
     {
@@ -80,8 +81,8 @@ public abstract class AbstractClientState
     }
 
     public void SendBufferAdd(ServerPacket packet) => _sendBuffer.Enqueue(packet);
-    public bool SendBufferPeek(out ServerPacket packet) => _sendBuffer.TryPeek(out packet);
-    public bool SendBufferTake(out ServerPacket packet) => _sendBuffer.TryDequeue(out packet);
+    public bool SendBufferPeek([MaybeNullWhen(false)] out ServerPacket packet) => _sendBuffer.TryPeek(out packet);
+    public bool SendBufferTake([MaybeNullWhen(false)] out ServerPacket packet) => _sendBuffer.TryDequeue(out packet);
 
     public void ResetReceive()
     {
@@ -96,9 +97,9 @@ public abstract class AbstractClientState
         _sendBuffer = new ConcurrentQueue<ServerPacket>();
     }
 
-    public bool TryGetPacket(out ClientPacket packet)
+    public bool TryGetPacket([MaybeNullWhen(false)] out ClientPacket packet)
     {
-        packet = null;
+        packet = null!;
         lock (ReceiveLock)
         {
             if (Buffer.Length == 0 || Buffer[0] != 0xAA || Buffer.Length <= 3) return false;

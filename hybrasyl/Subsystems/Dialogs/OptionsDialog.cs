@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -42,7 +42,7 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
 
         dialogPacket.WriteByte((byte)displayedOptions.Count);
         foreach (var option in displayedOptions)
-            dialogPacket.WriteString8(option.OptionText);
+            dialogPacket.WriteString8(option.OptionText ?? string.Empty);
         invocation.Target.Enqueue(dialogPacket);
         RunCallback(invocation);
     }
@@ -74,16 +74,15 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
         if (Options[optionSelected - 1].JumpDialog != null)
         {
             // Use jump dialog first
-            Options[optionSelected - 1].JumpDialog.ShowTo(invocation);
+            Options[optionSelected - 1].JumpDialog!.ShowTo(invocation);
             return true;
         }
 
         // If the response is a sequence, start it
         if (Options[optionSelected - 1].OverrideSequence != null)
         {
-            var sequence = Options[optionSelected - 1].OverrideSequence;
-            invocation.Target.DialogState.TransitionDialog(invocation.Origin,
-                Options[optionSelected - 1].OverrideSequence);
+            var sequence = Options[optionSelected - 1].OverrideSequence!;
+            invocation.Target.DialogState.TransitionDialog(invocation.Origin, sequence);
             sequence.ShowTo(invocation);
         }
 
@@ -91,7 +90,7 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
         if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
             expression = Handler;
         else if (Options[optionSelected - 1].CallbackFunction != null)
-            expression = Options[optionSelected - 1].CallbackFunction;
+            expression = Options[optionSelected - 1].CallbackFunction!;
         // Regardless of what handler we use, make sure the script can see the value.
         // We pass everything as string to not make UserData barf, as it can't handle dynamics.
         // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.

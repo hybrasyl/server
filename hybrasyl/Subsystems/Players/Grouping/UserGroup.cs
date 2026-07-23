@@ -60,7 +60,7 @@ public class UserGroup
     public List<User> Members { get; }
     public DateTime CreatedOn { get; }
     public Dictionary<Class, uint> ClassCount { get; }
-    public GroupRecruit RecruitInfo => Founder.GroupRecruit;
+    public GroupRecruit? RecruitInfo => Founder.GroupRecruit;
 
     public byte AverageLevel => (byte) Math.Ceiling(Members.Average(selector: x => x.Stats.Level));
 
@@ -264,11 +264,11 @@ public class GroupRecruit
 
     public User Recruiter { get; }
 
-    public UserGroup Group => Recruiter.Group;
+    public UserGroup? Group => Recruiter.Group;
 
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
-    public string Note { get; set; }
+    public string Note { get; set; } = string.Empty;
 
     public int StartingLevelRange { get; set; }
 

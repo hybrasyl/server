@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -20,7 +20,7 @@ namespace Hybrasyl.Networking.ClientPackets;
 
 public class CreateALogin : PacketBase
 {
-    public CreateALogin(string name, string password, string email = null)
+    public CreateALogin(string name, string password, string? email = null)
     {
         WriteString(name);
         WriteString(password);

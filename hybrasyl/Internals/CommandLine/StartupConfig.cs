@@ -1,4 +1,5 @@
-﻿using System;
+
+using System;
 using System.CommandLine;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -8,15 +9,16 @@ namespace Hybrasyl.Internals.CommandLine;
 
 public record StartupConfig
 {
-    public string DataDir { get; set; } 
-    public string WorldDataDir { get; set; }
-    public string LogDir { get; set; } = null;
-    public string ConfigName { get; set; }
-    public string ConfigFile { get; set; }
-    public string RedisHost { get; set; }
+    // Populated from parsed CLI options; any option not supplied is null.
+    public string? DataDir { get; set; }
+    public string? WorldDataDir { get; set; }
+    public string? LogDir { get; set; }
+    public string? ConfigName { get; set; }
+    public string? ConfigFile { get; set; }
+    public string? RedisHost { get; set; }
     public int RedisPort { get; set; }
     public int RedisDb { get; set; }
-    public string RedisPassword { get; set; }
+    public string? RedisPassword { get; set; }
 
     public static StartupConfig FromParseResult(ParseResult result)
     {

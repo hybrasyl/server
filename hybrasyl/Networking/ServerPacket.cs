@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -27,7 +27,7 @@ public class ServerPacket : Packet
     public ServerPacket(byte opcode)
     {
         Opcode = opcode;
-        Data = new byte[0];
+        Data = [];
     }
 
     public ServerPacket(byte[] buffer)
@@ -148,7 +148,6 @@ public class ServerPacket : Packet
 
     public void WriteString8(string value)
     {
-        value = value ?? string.Empty;
         var buffer = Encoding.ASCII.GetBytes(value);
         if (_position + 1 + buffer.Length > Data.Length) Array.Resize(ref Data, _position + 1 + buffer.Length);
         Data[_position++] = (byte) buffer.Length;
@@ -185,7 +184,9 @@ public class ServerPacket : Packet
         Array.Resize(ref Data, length + 3);
     }
 
-    public void Encrypt(Client client)
+    // Returns false when the packet needs the handshake-negotiated key and none exists yet;
+    // the packet cannot be encrypted and must not be transmitted.
+    public bool Encrypt(Client client)
     {
         var length = Data.Length - 3;
 
@@ -194,7 +195,7 @@ public class ServerPacket : Packet
         //var sRand = (byte)(rand.Next() % 155 + 100);
         var sRand = (byte) (Random.Shared.Next(155) + 100);
 
-        byte[] key;
+        byte[]? key;
         switch (EncryptMethod)
         {
             case EncryptMethod.Normal:
@@ -204,8 +205,10 @@ public class ServerPacket : Packet
                 key = client.GenerateKey(bRand, sRand);
                 break;
             default:
-                return;
+                return true;
         }
+
+        if (key == null) return false;
 
         //var key = (UseDefaultKey) ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
 
@@ -220,6 +223,7 @@ public class ServerPacket : Packet
         Data[length] = (byte) ((bRand % 256) ^ 0x74);
         Data[length + 1] = (byte) (sRand ^ 0x24);
         Data[length + 2] = (byte) (((bRand >> 8) % 256) ^ 0x64);
+        return true;
     }
 
     public ServerPacket Clone()

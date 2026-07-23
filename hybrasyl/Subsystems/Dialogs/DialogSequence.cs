@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -27,7 +27,7 @@ namespace Hybrasyl.Subsystems.Dialogs;
 
 public class DialogSequence(string sequenceName, bool closeOnEnd = false)
 {
-    private Script _script = null;
+    private Script? _script = null;
     public string ScriptName = string.Empty;
 
     public List<Dialog> Dialogs { get; } = new();
@@ -35,9 +35,9 @@ public class DialogSequence(string sequenceName, bool closeOnEnd = false)
     public string DisplayName { get; set; } = string.Empty;
     public uint? Id { get; set; } = null;
 
-    private Dictionary<string, string> Tokens { get; set; }
+    private Dictionary<string, string> Tokens { get; set; } = new();
 
-    public Script Script
+    public Script? Script
     {
         // This allows a form of lazy evaluation to prevent chicken in egg problems with registering
         // dialogs associated with a running script which is in the process of registering said dialogs

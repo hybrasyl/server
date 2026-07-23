@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,7 +25,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class CastableRestrictions
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public CastableRestrictions(HybrasylFixture fixture)
     {

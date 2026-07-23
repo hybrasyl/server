@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System;
 using System.IO;
 using System.Text;
 using Hybrasyl.Interfaces;
@@ -26,6 +27,11 @@ namespace Hybrasyl.Internals.Metafiles;
 
 public class CompiledMetafile : IStateStorable
 {
+    // Code page 949 (EUC-KR): prove availability once instead of asserting per call
+    private static readonly Encoding KoreanEncoding =
+        CodePagesEncodingProvider.Instance.GetEncoding(949)
+        ?? throw new InvalidOperationException("Code page 949 (EUC-KR) is unavailable");
+
     public CompiledMetafile(Metafile file)
     {
         Name = file.Name;
@@ -34,20 +40,20 @@ public class CompiledMetafile : IStateStorable
         using (var metaFileStream = new MemoryStream())
         {
             using (var metaFileWriter =
-                   new BinaryWriter(metaFileStream, CodePagesEncodingProvider.Instance.GetEncoding(949), true))
+                   new BinaryWriter(metaFileStream, KoreanEncoding, true))
             {
                 metaFileWriter.Write((byte) (file.Nodes.Count / 256));
                 metaFileWriter.Write((byte) (file.Nodes.Count % 256));
                 foreach (var node in file.Nodes)
                 {
-                    var nodeBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(node.Text);
+                    var nodeBuffer = KoreanEncoding.GetBytes(node.Text);
                     metaFileWriter.Write((byte) nodeBuffer.Length);
                     metaFileWriter.Write(nodeBuffer);
                     metaFileWriter.Write((byte) (node.Properties.Count / 256));
                     metaFileWriter.Write((byte) (node.Properties.Count % 256));
                     foreach (var property in node.Properties)
                     {
-                        var propertyBuffer = CodePagesEncodingProvider.Instance.GetEncoding(949).GetBytes(property);
+                        var propertyBuffer = KoreanEncoding.GetBytes(property);
                         metaFileWriter.Write((byte) (propertyBuffer.Length / 256));
                         metaFileWriter.Write((byte) (propertyBuffer.Length % 256));
                         metaFileWriter.Write(propertyBuffer);
@@ -70,6 +76,4 @@ public class CompiledMetafile : IStateStorable
     public Metafile Source { get; }
     public uint Checksum { get; }
     public byte[] Data { get; }
-
-    public byte[] Decompressed { get;  }
 }

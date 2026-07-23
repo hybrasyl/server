@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -258,7 +258,9 @@ public class ClientPacket : Packet
         for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
 
-    public void Decrypt(Client client)
+    // Returns false when the packet needs the handshake-negotiated key and none exists yet
+    // (crafted traffic on a pre-handshake connection); the packet cannot be decrypted.
+    public bool Decrypt(Client client)
     {
         var length = Data.Length - 3;
 
@@ -266,6 +268,7 @@ public class ClientPacket : Packet
         var sRand = (byte)(Data[length + 1] ^ 0x23);
 
         var key = UseDefaultKey ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
+        if (key == null) return false;
 
         for (var i = 0; i < length; i++)
         {
@@ -274,6 +277,8 @@ public class ClientPacket : Packet
             if (i / key.Length % SaltTable[client.EncryptionSeed].Length != Ordinal)
                 Data[i] ^= SaltTable[client.EncryptionSeed][Ordinal];
         }
+
+        return true;
     }
 
     public ClientPacket Clone()

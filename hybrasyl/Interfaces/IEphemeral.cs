@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -46,7 +46,7 @@ public interface IEphemeral
         return ret;
     }
 
-    public dynamic GetEphemeral(string key)
+    public dynamic? GetEphemeral(string key)
     {
         lock (StoreLock)
         {
@@ -62,7 +62,7 @@ public interface IEphemeral
         }
     }
 
-    public bool TryGetEphemeral(string key, out dynamic value)
+    public bool TryGetEphemeral(string key, out dynamic? value)
     {
         lock (StoreLock)
         {

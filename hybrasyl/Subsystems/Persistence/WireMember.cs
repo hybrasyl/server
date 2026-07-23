@@ -16,8 +16,6 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-#nullable enable
-
 using System;
 
 namespace Hybrasyl.Subsystems.Persistence;

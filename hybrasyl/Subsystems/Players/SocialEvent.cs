@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -37,7 +37,7 @@ public class SocialEvent : IStateStorable
     public string Subtype;
     public SocialEventType Type;
 
-    public SocialEvent(User origin, SocialEventType type, string subtype = null)
+    public SocialEvent(User origin, SocialEventType type, string? subtype = null)
     {
         if (subtype == null)
             Subtype = "Unknown";

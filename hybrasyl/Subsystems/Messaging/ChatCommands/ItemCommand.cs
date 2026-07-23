@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,7 +32,7 @@ internal class ItemCommand : ChatCommand
     {
         if (Game.World.WorldData.TryGetValueByIndex(args[0], out Item template))
         {
-            var item = Game.World.CreateItem(template.Id);
+            var item = Game.World.CreateItem(template);
             if (args.Length == 2 && int.TryParse(args[1], out var count) && count <= item.MaximumStack)
                 item.Count = count;
             else

@@ -26,7 +26,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class Doors
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public Doors(HybrasylFixture fixture)
     {

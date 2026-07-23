@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,6 +25,7 @@ using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace Hybrasyl.Subsystems.Scripting;
@@ -110,7 +111,7 @@ public class ScriptProcessor(World world)
         _scriptAttachments[script.Guid].Add(obj.Guid);
     }
 
-    public bool TryGetScript(string scriptName, out Script script)
+    public bool TryGetScript(string scriptName, [MaybeNullWhen(false)] out Script script)
     {
         script = null;
         if (_nameIndex.TryGetValue(scriptName, out var guid) || _nameIndex.TryGetValue($"{scriptName.ToLower()}.lua", out guid))
@@ -119,7 +120,7 @@ public class ScriptProcessor(World world)
         return script != null;
     }
 
-    public bool TryGetScriptByLocator(string relativePath, out Script script)
+    public bool TryGetScriptByLocator(string relativePath, [MaybeNullWhen(false)] out Script script)
     {
         script = null;
         var locator = GenerateLocator(relativePath);

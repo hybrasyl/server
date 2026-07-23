@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -55,9 +55,10 @@ internal class GcmCommand : ChatCommand
 
             try
             {
+                // RemoteEndPoint may be null on a disposed socket; the try/catch below handles that.
                 gcmContents = gcmContents + string.Format("{0}:{1} - {2}:{3}\n", pair.Key,
-                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Address,
-                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint).Port, serverType);
+                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint!).Address,
+                    ((IPEndPoint) pair.Value.Socket.RemoteEndPoint!).Port, serverType);
             }
             catch
             {

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -39,7 +39,7 @@ public class Dialog
     protected ushort DialogType;
     public int Index;
 
-    public Dialog(int dialogType, string displayText = null, string callbackFunction = "")
+    public Dialog(int dialogType, string? displayText = null, string callbackFunction = "")
     {
         DialogType = (ushort)dialogType;
         _displayText = displayText;
@@ -48,17 +48,26 @@ public class Dialog
         Sprite = ushort.MinValue;
     }
 
-    public DialogSequence Sequence { get; private set; }
+    // Lifecycle: set by AssociateWithSequence (DialogSequence.AddDialog) immediately after
+    // construction; a dialog shown without a sequence is a bug, surfaced clearly here
+    private DialogSequence? _sequence;
 
-    public string CallbackExpression { get; set; }
+    public DialogSequence Sequence
+    {
+        get => _sequence ??
+               throw new InvalidOperationException($"{GetType().Name}: dialog not associated with a sequence");
+        private set => _sequence = value;
+    }
+
+    public string? CallbackExpression { get; set; }
 
     public ushort Sprite { get; set; }
 
-    private string _displayText { get; }
+    private string? _displayText { get; }
 
     protected string DialogPath => $"{Sequence.Name}:{GetType().Name}:{Index}";
 
-    public ScriptExecutionResult LastScriptResult { get; set; }
+    public ScriptExecutionResult LastScriptResult { get; set; } = ScriptExecutionResult.NoExecution;
 
     /// <summary>
     ///     Using the sequence associate or an override, evaluate the display text and replace
@@ -68,14 +77,14 @@ public class Dialog
     /// <returns>An evaluated string</returns>
     public string EvaluateDisplayText(DialogInvocation invocation)
     {
-        var matches = _regex.Matches(_displayText);
+        var matches = _regex.Matches(_displayText ?? string.Empty);
 
         if (matches.Count == 0)
-            return _displayText;
+            return _displayText ?? string.Empty;
 
         // Handle a few special cases here
 
-        var ret = _displayText;
+        var ret = _displayText ?? string.Empty;
 
         ret = ret.Replace("{{target}}", invocation.Target.Name);
         ret = ret.Replace("{{source}}", invocation.Source.Name);
@@ -88,15 +97,15 @@ public class Dialog
             var groups = match.Groups;
             if (ephemeral.TryGetEphemeral(groups["token"].Value, out var value))
             {
-                ret = ret.Replace("{{" + groups["token"] + "}}", value.ToString());
+                ret = ret.Replace("{{" + groups["token"] + "}}", value?.ToString() ?? string.Empty);
                 GameLog.ScriptingInfo("{Function}: {Name}: token {Token} replaced with {String}",
-                    MethodBase.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"], value);
+                    MethodBase.GetCurrentMethod()?.Name, invocation.Origin.Name, groups["token"], value);
             }
             else
             {
                 GameLog.ScriptingError(
                     "{Function}: {Name}: template script references {Token} which could not be evaluated",
-                    MethodBase.GetCurrentMethod().Name, invocation.Origin.Name, groups["token"]);
+                    MethodBase.GetCurrentMethod()?.Name, invocation.Origin.Name, groups["token"]);
             }
         }
 
@@ -106,7 +115,7 @@ public class Dialog
     // Any Dialog can have a callback function which can be used to process dialog responses, or
     // take some action after a dialog fires.
     // response. Normally this is set to a resolvable function inside a Hybrasyl script.
-    public void SetCallbackHandler(string callback)
+    public void SetCallbackHandler(string? callback)
     {
         CallbackExpression = callback;
     }
@@ -176,7 +185,7 @@ public class Dialog
         }
 
         if (sprite == 0)
-            sprite = Sprite > 0 ? Sprite : Sequence?.Sprite ?? invocation.Target.DialogState.Associate.DialogSprite;
+            sprite = Sprite > 0 ? Sprite : Sequence.Sprite;
 
         dialogPacket.WriteByte((byte)objType);
         dialogPacket.WriteUInt32(invocation.Origin.Id);
@@ -189,7 +198,7 @@ public class Dialog
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
         GameLog.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
-        dialogPacket.WriteUInt16((ushort)Sequence.Id);
+        dialogPacket.WriteUInt16((ushort)(Sequence.Id ?? 0));
         dialogPacket.WriteUInt16((ushort)Index);
 
         dialogPacket.WriteBoolean(HasPrevDialog());

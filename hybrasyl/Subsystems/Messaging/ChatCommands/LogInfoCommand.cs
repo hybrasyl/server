@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -36,7 +36,8 @@ internal class LogInfoCommand : ChatCommand
     {
         var txt = "Current Logging Configuration\n-----------------------------\n";
         foreach (var (type, logger) in GameLog.Loggers)
-            txt = $"{txt}\n{type}: {logger.Level.MinimumLevel} ->\n {logger.Path.Replace("\\", "/")}\n";
+            // logger.Level is unset on the fast logger-init path.
+            txt = $"{txt}\n{type}: {logger.Level?.MinimumLevel} ->\n {logger.Path.Replace("\\", "/")}\n";
 
         txt = $"{txt}\nAvailable Log Types:\n\n";
         txt = Enum.GetValues<LogType>().Aggregate(txt, func: (current, strEnum) => $"{current} {strEnum}");

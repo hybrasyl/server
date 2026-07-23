@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -23,13 +23,14 @@ namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
 public abstract class ChatCommand
 {
-    public string Command { get; }
-    public string ArgumentText { get; }
-    public string HelpText { get; }
+    // Vestigial instance props: command metadata lives in subclass `new static` fields read via reflection.
+    public string Command { get; } = string.Empty;
+    public string ArgumentText { get; } = string.Empty;
+    public string HelpText { get; } = string.Empty;
     public bool Privileged { get; }
     public int ArgumentCount { get; }
 
-    public static ChatCommandResult Success(string ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
+    public static ChatCommandResult Success(string? ErrorMessage = null, byte MessageType = MessageTypes.SYSTEM) =>
         new() { Success = true, Message = ErrorMessage ?? string.Empty, MessageType = MessageType };
 
     public static ChatCommandResult Fail(string ErrorMessage, byte MessageType = MessageTypes.SYSTEM) => new()

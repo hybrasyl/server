@@ -39,17 +39,16 @@ public class MerchantInventoryItem(Item item, uint onHand, uint restockAmount, i
     public DateTime LastRestock { get; set; } = lastRestock;
 }
 
-public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemeral, ISpawnable
+public sealed class Merchant : Creature, IPursuitable, IEphemeral, ISpawnable
 {
     // TODO: move these to new base class (eg Creature->NewClass->Merchant|Reactor etc)
     private readonly object inventoryLock = new();
 
     public bool Ready;
     public Npc Template;
-    public string Filename { get; set; }
     public MerchantJob Jobs { get; set; }
     private MerchantController Controller { get; set; }
-    public List<MerchantInventoryItem> MerchantInventory { get; set; }
+    public List<MerchantInventoryItem> MerchantInventory { get; set; } = new();
 
     // TODO: create "computer controllable object" base class and put this there instead
     public Dictionary<string, dynamic> EphemeralStore { get; set; } = new();
@@ -59,7 +58,7 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
     public Dictionary<string, string> Responses { get; set; } = new();
     public List<DialogSequence> DialogSequences { get; set; } = new();
     public Dictionary<string, DialogSequence> SequenceIndex { get; set; } = new();
-    public string DisplayName { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
 
     public Merchant(Npc npc)
     {
@@ -128,7 +127,9 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
     {
         lock (inventoryLock)
         {
-            return MerchantInventory.FirstOrDefault(predicate: x => x.Item.Name == itemName).OnHand;
+            // An unstocked item reads as 0 on hand.
+            var item = MerchantInventory.FirstOrDefault(predicate: x => x.Item.Name == itemName);
+            return item?.OnHand ?? 0;
         }
     }
 
@@ -136,7 +137,9 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
     {
         lock (inventoryLock)
         {
-            MerchantInventory.FirstOrDefault(predicate: x => x.Item.Name == itemName).OnHand -= quantity;
+            // Reducing an unstocked item is intentionally a no-op.
+            var item = MerchantInventory.FirstOrDefault(predicate: x => x.Item.Name == itemName);
+            if (item != null) item.OnHand -= quantity;
         }
     }
 
@@ -167,11 +170,11 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
     }
 
     // Currently, NPCs can not be healed or damaged in any way whatsoever
-    public override void Heal(double heal, Creature source = null, Castable castable = null) { }
+    public override void Heal(double heal, Creature? source = null, Castable? castable = null) { }
 
     public override void Damage(double damage, ElementType element = ElementType.None,
-        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        Castable castable = null, bool onDeath = true) { }
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature? attacker = null,
+        Castable? castable = null, bool onDeath = true) { }
 
     public void OnSpawn()
     {
@@ -191,7 +194,7 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         }
 
         // Do we have a script? If so, get it and run OnSpawn.
-        if (World.ScriptProcessor.TryGetScript(Name, out Script script) || World.ScriptProcessor.TryGetScript(DisplayName, out script))
+        if (World.ScriptProcessor.TryGetScript(Name, out Script? script) || World.ScriptProcessor.TryGetScript(DisplayName, out script))
         {
             DialogSequences.Clear();
             Script = script;
@@ -249,11 +252,11 @@ public sealed class Merchant : Creature, IXmlReloadable, IPursuitable, IEphemera
         else
         {
             ret =
-                $"NPC {Name}, script {Script.FileName}\nLast Execution: {LastExecutionResult.Result} at {LastExecutionResult.ExecutionTime}";
+                $"NPC {Name}, script {Script!.FileName}\nLast Execution: {LastExecutionResult.Result} at {LastExecutionResult.ExecutionTime}";
             ret = $"{ret}\nExpression: {LastExecutionResult.ExecutedExpression}";
             if (!string.IsNullOrEmpty(LastExecutionResult.Location))
                 ret = $"{ret}\nLocation: {LastExecutionResult.Location}";
-            if (LastExecutionResult.Error != null)
+            if (LastExecutionResult.Error.ErrorType != ScriptErrorType.None)
                 ret = $"{ret}\nLast Error: {LastExecutionResult.Error}";
         }
 

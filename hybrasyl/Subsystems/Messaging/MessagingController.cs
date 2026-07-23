@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -110,7 +110,7 @@ internal static class MessagingController
     public static MessagingResponse GetMessage(GuidReference userRef, short postId, sbyte offset,
         ushort boardId)
     {
-        Message message = null;
+        Message? message = null;
         var error = "An unknown error occured.";
         MessageStore store;
         if (boardId == 0)
@@ -331,7 +331,7 @@ internal static class MessagingController
             return UnknownError;
         try
         {
-            IMessageHandler handler;
+            IMessageHandler? handler;
             MessageType type;
             type = boardId == 0 ? MessageType.Mail : MessageType.BoardMessage;
 
@@ -355,11 +355,11 @@ internal static class MessagingController
                     {
                         ResponseType = BoardResponseType.EndResult,
                         ResponseSuccess = resp.Success,
-                        ResponseString = resp.PluginResponse
+                        ResponseString = resp.PluginResponse ?? string.Empty
                     };
                 }
 
-                if (resp.Transformed)
+                if (resp.Transformed && resp.Message != null)
                 {
                     // Update message if transformed, and keep going
                     recipient = resp.Message.Recipient;

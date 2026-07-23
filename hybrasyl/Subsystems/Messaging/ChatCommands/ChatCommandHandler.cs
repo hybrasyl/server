@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -46,9 +47,9 @@ public class ChatCommandHandler
                 // ArgumentText example
                 // <string foo> <int bar> | <int baz> [<string quux> <int bazbar>] 
                 var command =
-                    (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
                 var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
+                    !.GetValue(null)!;
                 var options = argtext.Split('|');
                 var allowedArgcounts = new List<int>();
 
@@ -69,7 +70,7 @@ public class ChatCommandHandler
                         }
                 }
 
-                // int argcount = ((string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static).GetValue(null)).Count(e => e == '<');
+                // int argcount = ((string)x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!).Count(e => e == '<');
                 _associates.Add(command, (x, allowedArgcounts));
                 numCommands++;
             }
@@ -87,7 +88,7 @@ public class ChatCommandHandler
         _associates.ContainsKey(command);
     }
 
-    public bool TryGetHandler(string command, out Type handler)
+    public bool TryGetHandler(string command, [MaybeNullWhen(false)] out Type handler)
     {
         handler = null;
         if (_associates.ContainsKey(command))
@@ -107,7 +108,7 @@ public class ChatCommandHandler
 
             var handler = _associates[command];
             var priv = (bool) handler.Type.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
-                .GetValue(null);
+                !.GetValue(null)!;
 
             if (priv && !user.AuthInfo.IsPrivileged)
             {
@@ -125,7 +126,7 @@ public class ChatCommandHandler
             {
                 var argText = (string) handler.Type
                     .GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
+                    !.GetValue(null)!;
                 if (argText.Length <= 50)
                     user.SendSystemMessage($"Usage: {command} {argText}");
                 else
@@ -146,7 +147,8 @@ public class ChatCommandHandler
 
             var wtf = handler.Type.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
 
-            var result = (ChatCommandResult) wtf.Invoke(null, new object[] { user, splitArgs });
+            // ChatCommand contract: every registered command exposes a static Run method.
+            var result = (ChatCommandResult) wtf!.Invoke(null, new object[] { user, splitArgs })!;
             user.SendMessage($"[Cmd] /{command} {args}", MessageType.Guild);
             user.SendMessage(result.Message, result.MessageType);
         }

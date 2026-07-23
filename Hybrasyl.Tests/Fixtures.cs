@@ -54,7 +54,9 @@ public class HybrasylFixture : IDisposable
         sink.OnMessage(new DiagnosticMessage($"World data: {worldDataDir}"));
 
         Game.LoadCollisions();
-        Game.DataDirectory = Path.GetDirectoryName(worldDataDir);
+        Game.DataDirectory = Path.GetDirectoryName(worldDataDir) ??
+                             throw new DirectoryNotFoundException(
+                                 $"World data directory {worldDataDir} has no parent directory");
         Game.WorldDataDirectory = worldDataDir;
         Game.LogDirectory = Path.Combine(Path.GetTempPath(), "hybrasyl-tests", "logs");
 
@@ -167,14 +169,14 @@ public class HybrasylFixture : IDisposable
     public User SecondTestUser { get; init; }
     public User SerializableUser { get; init; }
 
-    public CreatureBehaviorSet TestSet { get; set; }
+    public CreatureBehaviorSet? TestSet { get; set; }
 
     public void Dispose()
     {
         try
         {
             var ep = World.DatastoreConnection.GetEndPoints();
-            var server = World.DatastoreConnection.GetServer(ep.First().ToString());
+            var server = World.DatastoreConnection.GetServer(ep.First());
             server.FlushDatabase(15);
         }
         catch (Exception) { }
@@ -252,7 +254,7 @@ public class HybrasylFixture : IDisposable
 
         // Find the solution root by walking up from the build output directory
         var dir = AppDomain.CurrentDomain.BaseDirectory;
-        string solutionRoot = null;
+        string? solutionRoot = null;
         while (dir != null)
         {
             if (File.Exists(Path.Combine(dir, "Hybrasyl.sln")))

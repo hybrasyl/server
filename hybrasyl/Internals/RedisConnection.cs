@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -23,9 +23,9 @@ public struct RedisConnection
     public string Host { get; set; }
     public int Port { get; set; }
     public int Database { get; set; }
-    public string Password { get; set; }
+    public string? Password { get; set; }
 
-    public RedisConnection(string host, int port = -1, int database = -1, string password = null)
+    public RedisConnection(string host, int port = -1, int database = -1, string? password = null)
     {
         Host = host ?? "127.0.0.1";
         Port = port == -1 ? 6379 : port;

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,7 +25,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class Items
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public Items(HybrasylFixture fixture)
     {
@@ -41,7 +41,7 @@ public class Items
         var error = string.Empty;
         Assert.True(Game.World.WorldData.TryGetValueByIndex("Require Boots", out Item armorItem));
         Assert.NotNull(armorItem);
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         var armor = Fixture.TestUser.World.CreateItem(armorItem);
         // Check requirement: equip armor with slot restriction (requires boots), should fail
         Assert.False(armor.CheckRequirements(Fixture.TestUser, out error));
@@ -73,7 +73,7 @@ public class Items
         var error = string.Empty;
         var item = Game.World.WorldData.TryGetValueByIndex("Forbid Boots", out Item armorItem);
         Assert.NotNull(armorItem);
-        Fixture.TestUser.Teleport("XUnit Test Realm", 10, 10);
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 10, 10);
         var armor = Fixture.TestUser.World.CreateItem(armorItem);
         // Equip armor with slot restriction
         Assert.True(armor.CheckRequirements(Fixture.TestUser, out error));

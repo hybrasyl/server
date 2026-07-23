@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -40,7 +40,8 @@ public class HybrasylUser : HybrasylWorldObject
         Map = new HybrasylMap(user.Map);
     }
 
-    internal User User => WorldObject as User;
+    // This wrapper is only ever constructed around a User.
+    internal User User => (WorldObject as User)!;
     internal HybrasylWorld World { get; set; }
     public HybrasylMap Map { get; set; }
     public new string Guid => User.Guid.ToString();
@@ -50,13 +51,12 @@ public class HybrasylUser : HybrasylWorldObject
     /// <summary>
     ///     The item in the first inventory slot of the player.
     /// </summary>
-    public HybrasylItemObject FirstInventorySlot
+    public HybrasylItemObject? FirstInventorySlot
     {
         get
         {
             var f = User.Inventory[1];
-            var hio = new HybrasylItemObject(f);
-            return f is null ? null : hio;
+            return f is null ? null : new HybrasylItemObject(f);
         }
     }
 
@@ -176,7 +176,7 @@ public class HybrasylUser : HybrasylWorldObject
     ///     another
     ///     player.
     /// </returns>
-    public HybrasylUser GetFacingUser()
+    public HybrasylUser? GetFacingUser()
     {
         var facing = User.GetFacingUser();
         return facing != null ? new HybrasylUser(facing) : null;
@@ -196,9 +196,9 @@ public class HybrasylUser : HybrasylWorldObject
     ///     Get the monster that the player is facing.
     /// </summary>
     /// <returns>A <see cref="HybrasylMonster" /> object.</returns>
-    public HybrasylMonster GetFacingMonster()
+    public HybrasylMonster? GetFacingMonster()
     {
-        var facing = (Monster) User.GetFacingObjects().FirstOrDefault(predicate: x => x is Monster);
+        var facing = User.GetFacingObjects().FirstOrDefault(predicate: x => x is Monster) as Monster;
         return facing != null ? new HybrasylMonster(facing) : null;
     }
 
@@ -286,7 +286,13 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="direction">A cardinal direction (north, south, east, west).</param>
     public void ChangeDirection(string direction)
     {
-        Enum.TryParse(typeof(Direction), direction, out var result);
+        // Direction strings come from Lua and may be invalid; reject a failed parse instead of unboxing null.
+        if (!Enum.TryParse(typeof(Direction), direction, out var result) || result is null)
+        {
+            GameLog.ScriptingError("ChangeDirection: {User} - invalid direction {Direction}", User.Name, direction);
+            return;
+        }
+
         User.Direction = (Direction) result;
     }
 
@@ -324,11 +330,8 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="prefix">The prefix we want to retrieve (legend key)</param>
     /// <returns></returns>
-    public dynamic GetLegendMark(string prefix)
-    {
-        LegendMark mark;
-        return User.Legend.TryGetMark(prefix, out mark) ? mark : (object) null;
-    }
+    public dynamic? GetLegendMark(string prefix) =>
+        User.Legend.TryGetMark(prefix, out var mark) ? mark : null;
 
     /// <summary>
     ///     Check to see if a player has a legend mark with the specified prefix in their legend.
@@ -394,8 +397,8 @@ public class HybrasylUser : HybrasylWorldObject
     /// <returns>List of <see cref="HybrasylReactor" /> objects in the player's viewport.</returns>
     public List<HybrasylReactor> GetReactorsInViewport()
     {
-        return User.Map.EntityTree.GetObjects(User.GetViewport()).Where(predicate: x => x is Reactor)
-            .Select(selector: r => new HybrasylReactor(r as Reactor)).ToList();
+        return User.Map.EntityTree.GetObjects(User.GetViewport()).Where(predicate: x => x is Reactor).Cast<Reactor>()
+            .Select(selector: r => new HybrasylReactor(r)).ToList();
     }
 
     /// <summary>
@@ -480,7 +483,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="displaySeason">Whether or not to display the season of a mark (e.g. Fall, Summer)</param>
     /// <param name="displayTimestamp">Whether or not to display the in-game time of a mark (e.g. Hybrasyl 5)</param>
     /// <returns>Boolean indicating success or failure.</returns>
-    public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string prefix = default,
+    public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, string? prefix = default,
         bool isPublic = true,
         int quantity = 0, bool displaySeason = true, bool displayTimestamp = true) =>
         AddLegendMark(icon, color, text, DateTime.Now, prefix, isPublic, quantity, displaySeason,
@@ -530,7 +533,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="displayTimestamp">Whether or not to display the in-game time of a mark (e.g. Hybrasyl 5)</param>
     /// <returns>Boolean indicating success or failure.</returns>
     public bool AddLegendMark(LegendIcon icon, LegendColor color, string text, DateTime timestamp,
-        string prefix = default,
+        string? prefix = default,
         bool isPublic = true, int quantity = 0, bool displaySeason = true, bool displayTimestamp = true)
     {
         try
@@ -725,7 +728,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="cookieName">The name of the cookie to fetch</param>
     /// <returns>string representation of the cookie value</returns>
-    public string GetSessionCookie(string cookieName)
+    public string? GetSessionCookie(string cookieName)
     {
         if (string.IsNullOrEmpty(cookieName))
         {
@@ -743,7 +746,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="ns">The namespace to consult</param>
     /// <param name="cookieName">The name of the cookie to fetch</param>
     /// <returns>string representation of the cookie value</returns>
-    public string GetSessionCookie(string ns, string cookieName)
+    public string? GetSessionCookie(string ns, string cookieName)
     {
         if (string.IsNullOrEmpty(cookieName))
         {
@@ -762,7 +765,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="cookieName">The name of the cookie to fetch</param>
     /// <param name="defaultNamespace">Whether or not to use the default namespace (defaults to true, eg when retrieving an unscoped cookie)</param>
     /// <returns>string representation of the cookie value</returns>
-    public string GetCookie(string cookieName)
+    public string? GetCookie(string cookieName)
     {
         if (!string.IsNullOrEmpty(cookieName)) return User.GetCookie(cookieName);
         GameLog.ScriptingError("GetCookie: {user} - cookie name (first argument) was null or empty - returning nil",
@@ -776,7 +779,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="ns">The namespace to consult</param>
     /// <param name="cookieName">The name of the cookie to fetch</param>
     /// <returns>string representation of the cookie value</returns>
-    public string GetCookie(string ns, string cookieName)
+    public string? GetCookie(string ns, string cookieName)
     {
         if (!string.IsNullOrEmpty(cookieName)) return User.GetCookie(ns, cookieName);
         GameLog.ScriptingError("GetCookie: {user} - cookie name (first argument) was null or empty - returning nil",
@@ -971,7 +974,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// <param name="xp">Amount of XP to award.</param>
     /// <param name="completionMessage">A system message that will be sent to the user.</param>
     /// <returns>Boolean indicating whether or not the user was awarded XP.</returns>
-    public bool CompletionAward(string cookie, uint xp = 0, string completionMessage = null)
+    public bool CompletionAward(string cookie, uint xp = 0, string? completionMessage = null)
     {
         if (string.IsNullOrEmpty(cookie))
         {
@@ -1011,7 +1014,7 @@ public class HybrasylUser : HybrasylWorldObject
         {
             if (template.Stackable)
             {
-                var item = Game.World.CreateItem(template.Id);
+                var item = Game.World.CreateItem(template);
                 if (count >= 1)
                     item.Count = count > item.MaximumStack ? item.MaximumStack : count;
                 else
@@ -1026,7 +1029,7 @@ public class HybrasylUser : HybrasylWorldObject
             // becomes full, the items will drop to the ground.
             for (var i = 0; i < count; i++)
             {
-                var item = Game.World.CreateItem(template.Id);
+                var item = Game.World.CreateItem(template);
                 Game.World.Insert(item);
                 success = success && User.AddItem(item);
             }
@@ -1279,7 +1282,7 @@ public class HybrasylUser : HybrasylWorldObject
     /// </summary>
     /// <param name="sequenceName">The name of the sequence to start</param>
     /// <param name="associateOverride">An IInteractable to associate with the dialog as the origin.</param>
-    public void StartSequence(string sequenceName, dynamic associateOverride = null)
+    public void StartSequence(string sequenceName, dynamic? associateOverride = null)
     {
         if (sequenceName == null)
         {
@@ -1288,8 +1291,8 @@ public class HybrasylUser : HybrasylWorldObject
             return;
         }
 
-        DialogSequence sequence = null;
-        IInteractable associate = null;
+        DialogSequence? sequence = null;
+        IInteractable? associate = null;
         GameLog.DebugFormat("{0} starting sequence {1}", User.Name, sequenceName);
 
         // First: is this a global sequence?
@@ -1353,7 +1356,7 @@ public class HybrasylUser : HybrasylWorldObject
             _ => null
         };
         if (invocation is not null)
-            User.DialogState.ActiveDialog.ShowTo(invocation);
+            User.DialogState.ActiveDialog?.ShowTo(invocation);
     }
 
     /// <summary>

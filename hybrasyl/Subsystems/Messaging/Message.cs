@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -26,17 +26,18 @@ namespace Hybrasyl.Subsystems.Messaging;
 public class Message : ICloneable
 {
     [Persist] private bool _read;
-    [Persist] public string Body;
+    // Persisted (STJ): initialize non-null; a stored record overwrites, an absent field keeps the default.
+    [Persist] public string Body = string.Empty;
     [Persist] public DateTime Created;
     [Persist] public bool Deleted;
-    [Persist] public string Guid;
+    [Persist] public string Guid = string.Empty;
     [Persist] public bool Highlighted;
     [Persist] public int Id;
 
     [Persist] public DateTime ReadTime;
-    [Persist] public string Recipient;
-    [Persist] public string Sender;
-    [Persist] public string Subject;
+    [Persist] public string Recipient = string.Empty;
+    [Persist] public string Sender = string.Empty;
+    [Persist] public string Subject = string.Empty;
 
     private Message() { }
 

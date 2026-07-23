@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -60,9 +60,10 @@ public class AuthInfo : IStateStorable
 
     [Persist] public DateTime LastLoginFailure { get; set; }
 
-    [Persist] public string LastLoginFrom { get; set; }
+    // Persisted, but absent from records predating the field / before a login has occurred.
+    [Persist] public string? LastLoginFrom { get; set; }
 
-    [Persist] public string LastLoginFailureFrom { get; set; }
+    [Persist] public string? LastLoginFailureFrom { get; set; }
 
     [Persist] public long LoginFailureCount { get; set; }
 
@@ -70,11 +71,12 @@ public class AuthInfo : IStateStorable
 
     [Persist] public bool FirstLogin { get; set; }
 
-    [Persist] public string PasswordHash { get; set; }
+    // Nullable: VerifyPassword explicitly guards against a null hash.
+    [Persist] public string? PasswordHash { get; set; }
 
     [Persist] public DateTime LastPasswordChange { get; set; }
 
-    [Persist] public string LastPasswordChangeFrom { get; set; }
+    [Persist] public string? LastPasswordChangeFrom { get; set; }
 
     public string StorageKey => $"{GetType()}:{UserGuid}";
     public bool IsSaving { get; set; }

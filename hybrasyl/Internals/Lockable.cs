@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -18,14 +18,15 @@
 
 namespace Hybrasyl.Internals;
 
-public class Lockable<T>
+public class Lockable<T> where T : notnull
 {
     private readonly object _lock = new();
     private T _value;
 
     public Lockable(T value)
     {
-        Value = value;
+        // No lock needed: no other thread can observe this instance during construction.
+        _value = value;
     }
 
     public T Value

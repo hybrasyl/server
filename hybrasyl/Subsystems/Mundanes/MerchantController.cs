@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -45,11 +45,14 @@ public class MerchantController
             if (attr == null) continue;
             var regex = new Regex(attr.Trigger, RegexOptions.IgnoreCase);
             var job = MerchantJob.None;
-            var action = (Action<MerchantControllerRequest>) Delegate.CreateDelegate(
+            var action = (Action<MerchantControllerRequest>?) Delegate.CreateDelegate(
                 typeof(Action<MerchantControllerRequest>), this, method, false);
             var jobAttr = method.GetCustomAttribute<MerchantRequiredJob>();
             if (jobAttr != null)
                 job = jobAttr.Job;
+            // CreateDelegate with throwOnBindFailure=false returns null on failure; skip rather than
+            // register a command whose action would NRE when triggered. (Never observed in practice.)
+            if (action == null) continue;
             Triggers.Add(regex, new MerchantCommand(action, job));
         }
     }
@@ -126,9 +129,11 @@ public class MerchantController
                 var removed = 0;
                 foreach (var slot in user.Inventory.GetSlotsByName(request.Match["target"].Value))
                 {
-                    coins += (uint) Math.Round(user.Inventory[slot].Value * user.Inventory[slot].Count *
+                    // GetSlotsByName returns only occupied slots.
+                    var invItem = user.Inventory[slot]!;
+                    coins += (uint) Math.Round(invItem.Value * invItem.Count *
                                                Game.ActiveConfiguration.Constants.MerchantBuybackPercentage);
-                    removed += user.Inventory[slot].Count;
+                    removed += invItem.Count;
                     user.RemoveItem(slot);
                 }
 
@@ -187,7 +192,9 @@ public class MerchantController
             // Only support "buy all my <category>"
             foreach (var slot in user.Inventory.GetSlotsByCategory(request.Match["target"].Value))
             {
-                coins += (uint) (user.Inventory[slot].Value * user.Inventory[slot].Count);
+                // GetSlotsByCategory returns only occupied slots.
+                var invItem = user.Inventory[slot]!;
+                coins += (uint) (invItem.Value * invItem.Count);
                 user.RemoveItem(slot);
             }
 
@@ -354,7 +361,7 @@ public class MerchantController
         }
 
 
-        if (user.Inventory[first.slot].Stackable && user.Inventory[first.slot].Count > 1)
+        if (first.obj.Stackable && first.obj.Count > 1)
             user.RemoveItem(first.obj.Name);
         else
             user.RemoveItem(first.slot);
@@ -415,13 +422,17 @@ public class MerchantController
         }
 
         foreach (var slot in match)
-            if (user.Inventory[slot].Stackable && user.Inventory[slot].Count != user.Inventory[slot].MaximumStack)
+        {
+            // GetSlotsByName returns only occupied slots.
+            var invItem = user.Inventory[slot]!;
+            if (invItem.Stackable && invItem.Count != invItem.MaximumStack)
             {
-                user.Inventory[slot].Count++;
+                invItem.Count++;
                 user.SendInventorySlot(slot);
-                Merchant.Say($"Here's your {user.Inventory[slot].Name} back.");
+                Merchant.Say($"Here's your {invItem.Name} back.");
                 return;
             }
+        }
 
         if (user.Inventory.IsFull)
         {

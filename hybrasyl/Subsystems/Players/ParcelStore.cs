@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -45,8 +45,8 @@ public class ParcelStore : IStateStorable
     }
 
     [Persist] public Guid OwnerGuid { get; set; }
-    [Persist] public List<Parcel> Items { get; set; } //storage id, named tuple
-    [Persist] public List<Moneygram> Gold { get; set; } //storage id, named tuple
+    [Persist] public List<Parcel> Items { get; set; } = new();
+    [Persist] public List<Moneygram> Gold { get; set; } = new();
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 

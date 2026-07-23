@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,7 +31,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class Reactor
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public Reactor(HybrasylFixture fixture)
     {
@@ -162,6 +162,30 @@ public class Reactor
 
     private static HybrasylReactor CreateBareReactor(byte x = 5, byte y = 5) =>
         new(new XmlReactor { X = x, Y = y, DisplayName = "TestReactor" }, Fixture.Map);
+
+    [Fact]
+    public void ScriptlessReactor_IsReadyAndInteractionsDoNotThrow()
+    {
+        // Regression: a reactor with an empty ScriptName is marked Ready by OnSpawn without a
+        // Script ever being assigned. Pre-fix, every interaction path deref'd Script! and threw.
+        Fixture.ResetTestUserStats();
+        var reactor = CreateBareReactor();
+        reactor.OnSpawn();
+
+        Assert.True(reactor.Ready);
+        Assert.Null(reactor.Script);
+        Assert.False(reactor.OnDropCapable);
+        Assert.False(reactor.OnTakeCapable);
+
+        var user = Fixture.TestUser;
+        reactor.OnEntry(user);
+        reactor.AoiEntry(user);
+        reactor.OnMove(user);
+        reactor.OnLeave(user);
+        reactor.AoiDeparture(user);
+        reactor.OnDrop(user, user);
+        reactor.OnTake(user, user);
+    }
 
     [Fact]
     public void ResetPursuits_ClearsAllSequenceCollections()

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -34,7 +34,7 @@ public class Equipment : Inventory
     public bool GauntletEquipped => LGauntlet != null || RGauntlet != null;
 
 
-    public ItemObject this[EquipmentSlot slot] => this[(byte) slot];
+    public ItemObject? this[EquipmentSlot slot] => this[(byte) slot];
 
     public List<Tuple<ushort, byte>> GetEquipmentDisplayList()
     {
@@ -45,28 +45,26 @@ public class Equipment : Inventory
             {
                 // Work around a very weird edge case in the client
                 case ItemSlots.Foot:
-                    returnList.Add(Items[(byte) ItemSlots.FirstAcc] == null
+                    var footAcc = Items[(byte) ItemSlots.FirstAcc];
+                    returnList.Add(footAcc == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.FirstAcc].EquipSprite),
-                            Items[
-                                (byte) ItemSlots.FirstAcc].Color));
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + footAcc.EquipSprite), footAcc.Color));
                     break;
                 case ItemSlots.FirstAcc:
-                    returnList.Add(Items[(byte) ItemSlots.Foot] == null
+                    var accFoot = Items[(byte) ItemSlots.Foot];
+                    returnList.Add(accFoot == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) ItemSlots.Foot].EquipSprite),
-                            Items[
-                                (byte) ItemSlots.Foot].Color));
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + accFoot.EquipSprite), accFoot.Color));
                     break;
                 case ItemSlots.None:
                 case ItemSlots.Ring:
                 case ItemSlots.Gauntlet:
                     break;
                 default:
-                    returnList.Add(Items[(byte) slot] == null
+                    var item = Items[(byte) slot];
+                    returnList.Add(item == null
                         ? new Tuple<ushort, byte>(0, 0)
-                        : new Tuple<ushort, byte>((ushort) (0x8000 + Items[(byte) slot].EquipSprite),
-                            Items[(byte) slot].Color));
+                        : new Tuple<ushort, byte>((ushort) (0x8000 + item.EquipSprite), item.Color));
                     break;
             }
 
@@ -75,41 +73,41 @@ public class Equipment : Inventory
 
     #region Equipment Properties
 
-    public ItemObject Weapon => Items[(byte) ItemSlots.Weapon];
+    public ItemObject? Weapon => Items[(byte) ItemSlots.Weapon];
 
-    public ItemObject Armor => Items[(byte) ItemSlots.Armor];
+    public ItemObject? Armor => Items[(byte) ItemSlots.Armor];
 
-    public ItemObject Shield => Items[(byte) ItemSlots.Shield];
+    public ItemObject? Shield => Items[(byte) ItemSlots.Shield];
 
-    public ItemObject Helmet => Items[(byte) ItemSlots.Helmet];
+    public ItemObject? Helmet => Items[(byte) ItemSlots.Helmet];
 
-    public ItemObject Earring => Items[(byte) ItemSlots.Earring];
+    public ItemObject? Earring => Items[(byte) ItemSlots.Earring];
 
-    public ItemObject Necklace => Items[(byte) ItemSlots.Necklace];
+    public ItemObject? Necklace => Items[(byte) ItemSlots.Necklace];
 
-    public ItemObject LRing => Items[(byte) ItemSlots.LHand];
+    public ItemObject? LRing => Items[(byte) ItemSlots.LHand];
 
-    public ItemObject RRing => Items[(byte) ItemSlots.RHand];
+    public ItemObject? RRing => Items[(byte) ItemSlots.RHand];
 
-    public ItemObject LGauntlet => Items[(byte) ItemSlots.LArm];
+    public ItemObject? LGauntlet => Items[(byte) ItemSlots.LArm];
 
-    public ItemObject RGauntlet => Items[(byte) ItemSlots.RArm];
+    public ItemObject? RGauntlet => Items[(byte) ItemSlots.RArm];
 
-    public ItemObject Belt => Items[(byte) ItemSlots.Waist];
+    public ItemObject? Belt => Items[(byte) ItemSlots.Waist];
 
-    public ItemObject Greaves => Items[(byte) ItemSlots.Leg];
+    public ItemObject? Greaves => Items[(byte) ItemSlots.Leg];
 
-    public ItemObject Boots => Items[(byte) ItemSlots.Foot];
+    public ItemObject? Boots => Items[(byte) ItemSlots.Foot];
 
-    public ItemObject FirstAcc => Items[(byte) ItemSlots.FirstAcc];
+    public ItemObject? FirstAcc => Items[(byte) ItemSlots.FirstAcc];
 
-    public ItemObject Overcoat => Items[(byte) ItemSlots.Trousers];
+    public ItemObject? Overcoat => Items[(byte) ItemSlots.Trousers];
 
-    public ItemObject DisplayHelm => Items[(byte) ItemSlots.Coat];
+    public ItemObject? DisplayHelm => Items[(byte) ItemSlots.Coat];
 
-    public ItemObject SecondAcc => Items[(byte) ItemSlots.SecondAcc];
+    public ItemObject? SecondAcc => Items[(byte) ItemSlots.SecondAcc];
 
-    public ItemObject ThirdAcc => Items[(byte) ItemSlots.ThirdAcc];
+    public ItemObject? ThirdAcc => Items[(byte) ItemSlots.ThirdAcc];
 
     #endregion Equipment Properties
 }

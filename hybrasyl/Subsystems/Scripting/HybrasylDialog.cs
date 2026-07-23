@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,7 +32,7 @@ public class HybrasylDialog
     }
 
     internal Dialog Dialog { get; set; }
-    internal DialogSequence Sequence { get; set; }
+    internal DialogSequence? Sequence { get; set; }
     internal Type DialogType => Dialog.GetType();
 
     /// <summary>

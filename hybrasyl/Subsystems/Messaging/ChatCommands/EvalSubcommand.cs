@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -24,6 +24,7 @@ namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
 public class EvalSubcommand
 {
-    public Func<User, Match, CommandResult> Delegate;
-    public string UsageText;
+    public required Func<User, Match, CommandResult> Delegate;
+    // Set only when the handler carries a [UsageText] attribute; empty means "no usage text".
+    public string UsageText = string.Empty;
 }

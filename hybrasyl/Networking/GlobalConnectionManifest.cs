@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,6 +25,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Threading;
 
@@ -32,6 +33,8 @@ namespace Hybrasyl.Networking;
 
 public static class GlobalConnectionManifest
 {
+    private static readonly byte[] InvalidEncryptionKey = Encoding.ASCII.GetBytes("NOTVALID!");
+
     private static long _connectionId;
 
     public static ConcurrentDictionary<long, IClient> ConnectedClients = new();
@@ -49,7 +52,7 @@ public static class GlobalConnectionManifest
         Redirects[client.ConnectionId] = redirect;
     }
 
-    public static bool TryGetRedirect(long cid, out Redirect redirect) => Redirects.TryGetValue(cid, out redirect);
+    public static bool TryGetRedirect(long cid, [MaybeNullWhen(false)] out Redirect redirect) => Redirects.TryGetValue(cid, out redirect);
 
     public static void RegisterClient(IClient client)
     {
@@ -104,14 +107,14 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                key = (byte[])JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(byte[]));
+                key = JsonSerializer.Deserialize<byte[]>(sr.ReadToEnd()) ?? InvalidEncryptionKey;
             }
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.Error("RequestEncryptionKey failure: {e}", e);
-            key = Encoding.ASCII.GetBytes("NOTVALID!");
+            key = InvalidEncryptionKey;
         }
 
         return key;
@@ -137,7 +140,7 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                valid = (bool)JsonSerializer.Deserialize(sr.ReadToEnd(), typeof(bool));
+                valid = JsonSerializer.Deserialize<bool?>(sr.ReadToEnd()) ?? false;
             }
         }
         catch (Exception e)

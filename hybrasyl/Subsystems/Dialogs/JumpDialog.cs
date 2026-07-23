@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -52,7 +52,7 @@ public class JumpDialog : Dialog
             return;
         }
 
-        DialogSequence sequence;
+        DialogSequence? sequence;
 
         if (invocation.Origin.SequenceIndex.TryGetValue(NextSequence, out sequence) ||
             Game.World.GlobalSequences.TryGetValue(NextSequence, out sequence))

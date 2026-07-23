@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -20,28 +20,34 @@ using System.Threading.Tasks;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Subsystems.Messaging;
+using System;
 
 namespace Hybrasyl.Objects;
 
 public class Signpost : VisibleObject
 {
     public Signpost(byte postX, byte postY, string message, bool messageboard = false,
-        string boardkey = null)
+        string? boardkey = null)
     {
         X = postX;
         Y = postY;
         Message = message;
         IsMessageboard = messageboard;
         BoardKey = boardkey;
-        Board = null;
-        if (IsMessageboard && !string.IsNullOrEmpty(boardkey))
-            Board = Game.World.WorldState.GetBoard(BoardKey);
+        if (IsMessageboard)
+        {
+            // World data error; fail at load rather than NRE on first click
+            if (string.IsNullOrEmpty(boardkey))
+                throw new ArgumentException($"Messageboard signpost at {postX},{postY} requires a board key",
+                    nameof(boardkey));
+            Board = Game.World.WorldState.GetBoard(boardkey);
+        }
     }
 
     public string Message { get; set; }
     public bool IsMessageboard { get; set; }
-    public string BoardKey { get; set; }
-    public Board Board { get; private set; }
+    public string? BoardKey { get; set; }
+    public Board? Board { get; private set; }
     public ushort AoiEntryEffect { get; set; }
     public short AoiEntryEffectSpeed { get; set; }
 
@@ -52,7 +58,8 @@ public class Signpost : VisibleObject
             invoker.SendMessage(Message,
                 Message.Length < 1024 ? (byte) MessageTypes.SLATE : (byte) MessageTypes.SLATE_WITH_SCROLLBAR);
         else
-            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board.Id, 0, true)
+            // Ctor guarantees Board for messageboard signposts (GetBoard creates on demand)
+            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board!.Id, 0, true)
                 .Packet());
     }
 

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,7 +32,7 @@ internal class EditablePaper
     public PaperType Type { get; set; }
     public byte Width { get; set; }
     public byte Height { get; set; }
-    public string Text { get; set; }
+    public string Text { get; set; } = string.Empty;
     public byte Slot { get; set; }
 
     public ServerPacket Packet()

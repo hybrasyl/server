@@ -56,15 +56,15 @@ public class Client : AbstractClient, IClient
         ClientState = new ClientState(socket);
         Server = server;
         GameLog.InfoFormat("Connection {0} from {1}:{2}", ConnectionId,
-            ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(),
-            ((IPEndPoint)socket.RemoteEndPoint).Port);
+            ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString(),
+            ((IPEndPoint)socket.RemoteEndPoint!).Port);
 
         if (server is Lobby)
         {
             EncryptionKey = Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint != null
                 ? GlobalConnectionManifest.RequestEncryptionKey(
                     Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
-                    ((IPEndPoint)socket.RemoteEndPoint).Address)
+                    ((IPEndPoint)socket.RemoteEndPoint!).Address)
                 : Encoding.ASCII.GetBytes("UrkcnItnI");
             GameLog.InfoFormat("EncryptionKey is {EncryptionKey}", Encoding.ASCII.GetString(EncryptionKey));
 
@@ -72,12 +72,12 @@ public class Client : AbstractClient, IClient
                 ? GlobalConnectionManifest.ValidateEncryptionKey(
                     Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint.Url,
                     new ServerToken
-                    { Ip = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString(), Seed = EncryptionKey })
+                    { Ip = ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString(), Seed = EncryptionKey })
                 : true;
 
             if (!valid)
             {
-                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString());
+                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint!).Address.ToString());
                 socket.Disconnect(true);
             }
         }
@@ -89,7 +89,7 @@ public class Client : AbstractClient, IClient
         ConnectedSince = DateTime.Now.Ticks;
     }
 
-    public IClientState ClientState { get; set; }
+    public IClientState ClientState { get; set; } = null!; // set by the socket ctor; parameterless ctor is degenerate
 
     public long ConnectedSince { get; set; }
 
@@ -109,10 +109,12 @@ public class Client : AbstractClient, IClient
         : "unknown";
 
     public byte EncryptionSeed { get; set; }
-    public byte[] EncryptionKey { get; set; }
 
-    public string NewCharacterName { get; set; }
-    public string NewCharacterPassword { get; set; }
+    // Null until the lobby handshake (lobby client ctor) or a confirmed redirect supplies it.
+    public byte[]? EncryptionKey { get; set; }
+
+    public string NewCharacterName { get; set; } = string.Empty;
+    public string NewCharacterPassword { get; set; } = string.Empty;
 
 
     /// <summary>
@@ -309,7 +311,13 @@ public class Client : AbstractClient, IClient
                         ++ServerOrdinal;
                         packet.Ordinal = ServerOrdinal;
                         packet.GenerateFooter();
-                        packet.Encrypt(this);
+                        if (!packet.Encrypt(this))
+                        {
+                            GameLog.Warning(
+                                "cid {ConnectionId}: opcode 0x{Opcode:X2} requires encryption but no key is set, dropping packet",
+                                ConnectionId, packet.Opcode);
+                            continue;
+                        }
                     }
 
                     if (packet.TransmitDelay > 0)
@@ -356,27 +364,32 @@ public class Client : AbstractClient, IClient
         {
             try
             {
-                ClientPacket packet;
-                while (ClientState.ReceiveBufferTake(out packet))
+                while (ClientState.ReceiveBufferTake(out var packet))
                 {
-                    if (packet.ShouldEncrypt) packet.Decrypt(this);
+                    if (packet.ShouldEncrypt && !packet.Decrypt(this))
+                    {
+                        GameLog.Warning(
+                            "cid {ConnectionId}: encrypted opcode 0x{Opcode:X2} received before key exchange, discarding",
+                            ConnectionId, packet.Opcode);
+                        continue;
+                    }
 
                     if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
                         packet.DecryptDialog();
                     try
                     {
-                        if (Server is Lobby)
+                        if (Server is Lobby lobby)
                         {
                             GameLog.DebugFormat("Lobby: 0x{0:X2}", packet.Opcode);
-                            var handler = (Server as Lobby).PacketHandlers[packet.Opcode];
+                            var handler = lobby.PacketHandlers[packet.Opcode];
                             handler.Invoke(this, packet);
                             GameLog.DebugFormat("Lobby packet done");
                             UpdateLastReceived();
                         }
-                        else if (Server is Login)
+                        else if (Server is Login login)
                         {
                             GameLog.Debug("Login: 0x{Opcode:X2}", packet.Opcode);
-                            var handler = (Server as Login).PacketHandlers[packet.Opcode];
+                            var handler = login.PacketHandlers[packet.Opcode];
                             handler.Invoke(this, packet);
                             GameLog.DebugFormat("Login packet done");
                             UpdateLastReceived();
@@ -388,7 +401,8 @@ public class Client : AbstractClient, IClient
                             GameLog.Debug("Queuing: 0x{Opcode:X2}", packet.Opcode);
                             //packet.DumpPacket();
                             // Check for throttling
-                            var throttleResult = Server.PacketThrottleCheck(this, packet);
+                            // Real clients always have a non-null (World) server on this path.
+                            var throttleResult = Server!.PacketThrottleCheck(this, packet);
                             if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd ||
                                 throttleResult == ThrottleResult.SquelchEnd)
                                 World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
@@ -415,8 +429,8 @@ public class Client : AbstractClient, IClient
 
     public void SendCallback(IAsyncResult ar)
     {
-        var state = (ClientState)ar.AsyncState;
-        IClient client;
+        var state = (ClientState)ar.AsyncState!;
+        IClient? client;
         GameLog.DebugFormat(
             "EndSend: SocketConnected: {SocketConnected}, IAsyncResult: Completed: {Completed}, CompletedSynchronously: {CompletedSynchronously}", state.WorkSocket.Connected, ar.IsCompleted, ar.CompletedSynchronously);
 
@@ -490,7 +504,8 @@ public class Client : AbstractClient, IClient
         if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
         redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
-        var endPoint = Socket.RemoteEndPoint as IPEndPoint;
+        var endPoint = Socket.RemoteEndPoint as IPEndPoint
+                       ?? throw new InvalidOperationException("Redirect: socket has no remote endpoint");
         byte[] addressBytes;
 
         if (Game.RedirectTarget != null)

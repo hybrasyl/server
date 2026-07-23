@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -18,6 +18,7 @@
 
 using Hybrasyl.Networking;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace Hybrasyl.Interfaces;
@@ -37,12 +38,12 @@ public interface IClientState
     public IEnumerable<byte> ReceiveBufferTake(int range);
     public IEnumerable<byte> ReceiveBufferPop(int range);
     public void SendBufferAdd(ServerPacket packet);
-    public bool SendBufferPeek(out ServerPacket packet);
-    public bool SendBufferTake(out ServerPacket packet);
+    public bool SendBufferPeek([MaybeNullWhen(false)] out ServerPacket packet);
+    public bool SendBufferTake([MaybeNullWhen(false)] out ServerPacket packet);
     public void ResetReceive();
     public void ResetSend();
     public void Dispose();
-    public bool TryGetPacket(out ClientPacket packet);
+    public bool TryGetPacket([MaybeNullWhen(false)] out ClientPacket packet);
     public void ReceiveBufferAdd(ClientPacket packet);
-    public bool ReceiveBufferTake(out ClientPacket packet);
+    public bool ReceiveBufferTake([MaybeNullWhen(false)] out ClientPacket packet);
 }

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -33,8 +33,8 @@ internal class AddSpell
     internal byte Icon { get; set; }
     internal byte UseType { get; set; }
     internal byte Lines { get; set; }
-    internal string Name { get; set; }
-    internal string Prompt { get; set; }
+    internal string Name { get; set; } = string.Empty;
+    internal string Prompt { get; set; } = string.Empty;
 
     internal ServerPacket Packet()
     {

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -46,7 +46,7 @@ public class TextDialog(string displayText, string topCaption, string bottomCapt
     {
         Log.Debug("Response {Response} from player {Invoker}", response, invocation.Source.Name);
 
-        if (Handler == string.Empty) return false;
+        if (string.IsNullOrEmpty(Handler)) return false;
 
         if (invocation.Script == null)
         {

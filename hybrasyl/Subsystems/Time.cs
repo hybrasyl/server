@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -152,13 +152,13 @@ public class HybrasylTime
 
     public static string DefaultAgeName => Game.ActiveConfiguration != null
         ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultAge != string.Empty
-            ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultAge
+            ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultAge ?? "Hybrasyl"
             : "Hybrasyl"
         : "Hybrasyl";
 
     public static int DefaultYear => Game.ActiveConfiguration != null
         ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultYear != 1
-            ? Game.ActiveConfiguration.Time.ServerStart.DefaultYear
+            ? Game.ActiveConfiguration.Time?.ServerStart?.DefaultYear ?? 1
             : 1
         : 1;
 
@@ -184,7 +184,8 @@ public class HybrasylTime
             var now = DateTime.Now;
             if (Game.ActiveConfiguration.Time.Ages.Count == 0)
                 return DefaultAge;
-            var currentAge = Game.ActiveConfiguration.Time.Ages?.Where(predicate: age => age.DateInAge(now));
+            var currentAge = Game.ActiveConfiguration.Time.Ages?.Where(predicate: age => age.DateInAge(now)) ??
+                             Enumerable.Empty<HybrasylAge>();
             return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
         }
     }
@@ -198,7 +199,8 @@ public class HybrasylTime
     {
         if (Game.ActiveConfiguration.Time.Ages.Count == 0)
             return DefaultAge;
-        var currentAge = Game.ActiveConfiguration.Time.Ages?.Where(predicate: age => age.DateInAge(datetime));
+        var currentAge = Game.ActiveConfiguration.Time.Ages?.Where(predicate: age => age.DateInAge(datetime)) ??
+                         Enumerable.Empty<HybrasylAge>();
         return currentAge.Count() == 0 ? DefaultAge : currentAge.First();
     }
 
@@ -242,7 +244,8 @@ public class HybrasylTime
         if (!ValidAge(age))
             throw new ArgumentException("Age is unknown to server; check time/age configuration in config.xml", age);
 
-        var theAge = Game.ActiveConfiguration.Time?.Ages?.Where(predicate: a => a.Name == age);
+        var theAge = Game.ActiveConfiguration.Time?.Ages?.Where(predicate: a => a.Name == age) ??
+                     Enumerable.Empty<HybrasylAge>();
         if (theAge.Count() == 0)
             return DefaultYear;
         return theAge.First().StartYear != 1 ? 1 : theAge.First().StartYear;
@@ -265,7 +268,8 @@ public class HybrasylTime
 
     public static DateTime ConvertToTerran(HybrasylTime hybrasyltime)
     {
-        var thisAge = Game.ActiveConfiguration.Time?.Ages?.Where(predicate: age => age.Name == hybrasyltime.AgeName);
+        var thisAge = Game.ActiveConfiguration.Time?.Ages?.Where(predicate: age => age.Name == hybrasyltime.AgeName) ??
+                      Enumerable.Empty<HybrasylAge>();
         return thisAge.Count() > 0
             ? new DateTime(thisAge.First().StartDate.Ticks + hybrasyltime.TerranTicks)
             : new DateTime(World.StartDate.Ticks + hybrasyltime.TerranTicks);

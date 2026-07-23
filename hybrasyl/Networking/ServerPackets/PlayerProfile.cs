@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,18 +31,16 @@ internal class PlayerProfile
         OpCode = OpCodes.SelfProfile;
     }
 
-    internal User Player { get; set; }
+    internal required User Player { get; set; }
     internal byte NationFlag { get; set; }
-    internal string GuildRank { get; set; }
-    internal string CurrentTitle { get; set; }
-    internal UserGroup Group { get; set; }
-    internal bool IsGrouped { get; set; }
+    internal string GuildRank { get; set; } = string.Empty;
+    internal string CurrentTitle { get; set; } = string.Empty;
+    internal UserGroup? Group { get; set; }
     internal bool CanGroup { get; set; }
-    internal GroupRecruit GroupRecruit { get; set; }
+    internal GroupRecruit? GroupRecruit { get; set; }
     internal byte Class { get; set; }
-    internal string ClassName { get; set; }
     internal ushort PlayerDisplay { get; set; }
-    internal string GuildName { get; set; }
+    internal string GuildName { get; set; } = string.Empty;
 
     internal ServerPacket Packet()
     {
@@ -50,16 +48,16 @@ internal class PlayerProfile
         packet.WriteByte(NationFlag);
         packet.WriteString8(GuildRank);
         packet.WriteString8(CurrentTitle);
-        if (!IsGrouped)
+        if (Group is not { } group)
         {
             packet.WriteString8("Adventuring Alone");
         }
         else
         {
             var ret = "Group members\n";
-            foreach (var member in Group.Members)
-                ret += member == Group.Founder ? $"* {member.Name}\n" : $"  {member.Name}\n";
-            ret += $"Total {Group.Members.Count}";
+            foreach (var member in group.Members)
+                ret += member == group.Founder ? $"* {member.Name}\n" : $"  {member.Name}\n";
+            ret += $"Total {group.Members.Count}";
 
             packet.WriteString8(ret);
         }
@@ -77,7 +75,7 @@ internal class PlayerProfile
         {
             packet.WriteByte((byte) mark.Icon);
             packet.WriteByte((byte) mark.Color);
-            packet.WriteString8(mark.Prefix);
+            packet.WriteString8(mark.Prefix ?? string.Empty);
             packet.WriteString8(mark.ToString());
         }
 

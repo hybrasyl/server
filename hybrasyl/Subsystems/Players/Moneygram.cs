@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -28,6 +28,6 @@ public class Moneygram
         Amount = amount;
     }
 
-    public string Sender { get; set; }
+    public string Sender { get; set; } = string.Empty;
     public uint Amount { get; set; }
 }

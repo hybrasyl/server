@@ -251,18 +251,21 @@ internal class Monolith
                         baseMob.LootableXp = Convert.ToUInt32((Math.Pow(baseMob.Stats.Level, 3) * 250 -
                                                                Math.Pow(baseMob.Stats.Level - 1, 3) * 250) * 0.007);
                     // Is this a strong or weak mob?
-                    if (spawn.Base.StrongChance > 0 || spawn.Base.WeakChance > 0)
+                    // spawn.Base is optional (a spawn need not override its creature base); guard against
+                    // a null base rather than dereferencing it (see the spawn.Base?.Level check above).
+                    var spawnBase = spawn.Base;
+                    if (spawnBase != null && (spawnBase.StrongChance > 0 || spawnBase.WeakChance > 0))
                     {
                         // TODO: potentially refactor with xml control. This defaults to 3-15%
                         // modifications randomly
                         var modifier = Math.Min(.03, Random.Shared.NextDouble() * .15);
                         var mobtype = Random.Shared.NextDouble() * 100;
 
-                        if (mobtype <= spawn.Base.StrongChance + spawn.Base.WeakChance)
+                        if (mobtype <= spawnBase.StrongChance + spawnBase.WeakChance)
                         {
-                            if (spawn.Base.StrongChance >= spawn.Base.WeakChance)
+                            if (spawnBase.StrongChance >= spawnBase.WeakChance)
                             {
-                                if (mobtype <= spawn.Base.WeakChance)
+                                if (mobtype <= spawnBase.WeakChance)
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
                                     GameLog.SpawnDebug("Mob is weak: modifier {Modifier}", modifier);
@@ -275,7 +278,7 @@ internal class Monolith
                             }
                             else
                             {
-                                if (mobtype <= spawn.Base.StrongChance)
+                                if (mobtype <= spawnBase.StrongChance)
                                 {
                                     baseMob.ApplyModifier(modifier);
                                     GameLog.SpawnDebug("Mob is strong: modifier {Modifier}", modifier);

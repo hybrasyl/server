@@ -31,10 +31,7 @@ using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using HybrasylGrpc;
 using System.Text.Json.Nodes;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
 using Serilog;
-using Serilog.Core;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -57,25 +54,16 @@ namespace Hybrasyl;
 public static class Game
 {
     public static readonly object SyncObj = new();
-    public static IPAddress RedirectTarget;
+
+    // Set only when an external redirect address is configured
+    public static IPAddress? RedirectTarget;
 
     public static ManualResetEvent allDone = new(false);
     private static long Active;
 
-    private static Monolith _monolith;
-    private static MonolithControl _monolithControl;
-
-    private static Thread _lobbyThread;
-    private static Thread _loginThread;
-    private static Thread _worldThread;
-    private static Thread _spawnThread;
-    private static Thread _controlThread;
-
     private static readonly Dictionary<Guid, Server> Servers = new();
 
-    private static Grpc.Core.Server GrpcServer;
-
-    public static LoggingLevelSwitch LevelSwitch;
+    private static Grpc.Core.Server? GrpcServer;
 
     private static readonly CancellationTokenSource CancellationTokenSource = new();
 
@@ -83,37 +71,63 @@ public static class Game
     public static bool ShutdownComplete;
 
     public static readonly ActivitySource ActivitySource = new("erisco.hybrasyl.server");
-    public static TracerProvider TracerProvider;
 
-    public static Lobby Lobby { get; set; }
-    public static Servers.Login Login { get; set; }
-    public static World World { get; set; }
-    public static byte[] ServerTable { get; private set; }
+    // Startup singletons: temporarily absent during lifecycle, required thereafter.
+    // Nullable backing + fail-fast accessor so a pre-init read is a clear error, not an NRE.
+    private static Lobby? _lobby;
+    private static Servers.Login? _login;
+    private static World? _world;
+    private static ServerConfig? _activeConfiguration;
+
+    public static Lobby Lobby
+    {
+        get => _lobby ?? throw new InvalidOperationException("Game has not been initialized");
+        set => _lobby = value;
+    }
+
+    public static Servers.Login Login
+    {
+        get => _login ?? throw new InvalidOperationException("Game has not been initialized");
+        set => _login = value;
+    }
+
+    public static World World
+    {
+        get => _world ?? throw new InvalidOperationException("Game has not been initialized");
+        set => _world = value;
+    }
+
+    public static AssemblyInfo Assemblyinfo { get; } = new(typeof(Game).Assembly);
+
+    public static ServerConfig ActiveConfiguration
+    {
+        get => _activeConfiguration ?? throw new InvalidOperationException("Game has not been initialized");
+        set => _activeConfiguration = value;
+    }
+
+    public static byte[] ServerTable { get; private set; } = null!;
     public static uint ServerTableCrc { get; private set; }
-    public static byte[] Notification { get; set; }
+    public static byte[] Notification { get; set; } = [];
     public static uint NotificationCrc { get; set; }
-    public static byte[] Collisions { get; set; }
-
-    public static AssemblyInfo Assemblyinfo { get; set; }
+    public static byte[] Collisions { get; set; } = null!;
 
     public static DateTime StartDate { get; set; }
     public static string CommitLog { get; private set; } = "There was an error fetching commit log information from GitHub. Sorry.";
+    public static string WorldDataDirectory { get; set; } = string.Empty;
+    public static string DataDirectory { get; set; } = string.Empty;
+    public static string LogDirectory { get; set; } = string.Empty;
+    public static string ActiveConfigurationName { get; set; } = string.Empty;
 
-    public static ServerConfig ActiveConfiguration { get; set; }
-    public static string WorldDataDirectory { get; set; }
-    public static string DataDirectory { get; set; }
-    public static string LogDirectory { get; set; }
-    public static string ActiveConfigurationName { get; set; }
-
-    public static T GetServerByGuid<T>(Guid g) where T : Server
+    public static T? GetServerByGuid<T>(Guid g) where T : Server
     {
         if (Servers.TryGetValue(g, out var server))
             return (T)server;
         return null;
     }
 
+    // A default server of each type exists once startup completes; callers deref directly.
     public static T GetDefaultServer<T>() where T : Server =>
-        Servers.Values.FirstOrDefault(predicate: x => x is T && x.Default) as T;
+        (Servers.Values.FirstOrDefault(predicate: x => x is T && x.Default) as T)!;
 
     public static Guid GetDefaultServerGuid<T>() where T : Server =>
         Servers.FirstOrDefault(predicate: x => x.Value is T && x.Value.Default).Value?.Guid ?? Guid.Empty;
@@ -144,7 +158,7 @@ public static class Game
 
     public static void ReportException(Exception e) { }
 
-    public static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+    public static void CurrentDomain_ProcessExit(object? sender, EventArgs e)
     {
         Shutdown();
     }
@@ -209,7 +223,7 @@ public static class Game
 
         var logdirOption = new Option<string>("--logDir", "-l")
         {
-            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("HYB_LOG_DIR"),
+            DefaultValueFactory = _ => Environment.GetEnvironmentVariable("HYB_LOG_DIR") ?? string.Empty,
             HelpName = "DIRPATH",
             Description = @"[$HYB_LOG_DIR] The directory for log output from the server. If undefined, logs are send to stdout."
         };
@@ -315,7 +329,6 @@ public static class Game
 
     public static void StartServer(StartupConfig startupConfig)
     {
-        Assemblyinfo = new AssemblyInfo(Assembly.GetEntryAssembly());
         Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
 
         // Initialize OTel
@@ -325,10 +338,10 @@ public static class Game
 
         // Gather our directories from env vars / command line switches
 
-        DataDirectory = startupConfig.DataDir;
-        WorldDataDirectory = startupConfig.WorldDataDir;
-        LogDirectory = startupConfig.LogDir;
-        ActiveConfigurationName = startupConfig.ConfigName;
+        DataDirectory = startupConfig.DataDir ?? string.Empty;
+        WorldDataDirectory = startupConfig.WorldDataDir ?? string.Empty;
+        LogDirectory = startupConfig.LogDir ?? string.Empty;
+        ActiveConfigurationName = startupConfig.ConfigName ?? string.Empty;
 
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
@@ -383,7 +396,7 @@ public static class Game
             return;
         }
 
-        ServerConfig activeConfiguration = null;
+        ServerConfig activeConfiguration = null!;
 
         if (!string.IsNullOrEmpty(startupConfig.ConfigFile))
         {
@@ -507,18 +520,9 @@ public static class Game
         // Configure logging 
         GameLog.LogInit(LogDirectory, activeConfiguration.Logging);
 
-        // Configure OTel forwarder, if set
-
+        // TODO: OTel telemetry export not yet implemented (ApiEndpoints.TelemetryEndpoint)
         if (activeConfiguration.ApiEndpoints?.TelemetryEndpoint != null)
-        {
-            // TODO : actually implement this
-            var providerBuilder = Sdk.CreateTracerProviderBuilder()
-                .AddSource("erisco.hybrasyl.server")
-                .AddConsoleExporter().AddOtlpExporter(configure: opt =>
-                {
-                    opt.Endpoint = new Uri(activeConfiguration.ApiEndpoints.TelemetryEndpoint.Url);
-                });
-        }
+            Log.Warning("TelemetryEndpoint is configured, but telemetry export is not yet implemented");
 
         // We don't want any of NCalc's garbage 
         Trace.Listeners.RemoveAt(0);
@@ -568,7 +572,7 @@ public static class Game
             else
                 // We can have a hostname here to support ease of running in Docker; try to naively resolve it
                 RedirectTarget = Dns.GetHostAddresses(activeConfiguration.Network.Lobby.ExternalAddress)
-                    .FirstOrDefault();
+                    .FirstOrDefault()!;
         }
 
         var lobbyIp = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);
@@ -612,8 +616,8 @@ public static class Game
         Login.StopToken = CancellationTokenSource.Token;
         World.StopToken = CancellationTokenSource.Token;
 
-        _monolith = new Monolith();
-        _monolithControl = new MonolithControl();
+        var monolith = new Monolith();
+        var monolithControl = new MonolithControl();
 
         if (!World.Init())
         {
@@ -691,22 +695,22 @@ public static class Game
         ToggleActive();
         StartDate = DateTime.Now;
 
-        _lobbyThread = new Thread(Lobby.StartListening);
-        _loginThread = new Thread(Login.StartListening);
-        _worldThread = new Thread(World.StartListening);
-        _spawnThread = new Thread(_monolith.Start);
-        _controlThread = new Thread(_monolithControl.Start);
+        var lobbyThread = new Thread(Lobby.StartListening);
+        var loginThread = new Thread(Login.StartListening);
+        var worldThread = new Thread(World.StartListening);
+        var spawnThread = new Thread(monolith.Start);
+        var controlThread = new Thread(monolithControl.Start);
 
-        _lobbyThread.Start();
-        _loginThread.Start();
-        _worldThread.Start();
-        _controlThread.Start();
+        lobbyThread.Start();
+        loginThread.Start();
+        worldThread.Start();
+        controlThread.Start();
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         while (!World.WorldState.Ready)
             Thread.Sleep(1000);
 
-        _spawnThread.Start();
+        spawnThread.Start();
         Log.Information("All servers started");
         Task.Run(CheckVersion).GetAwaiter();
         Task.Run(GetCommitLog).GetAwaiter();
@@ -729,7 +733,7 @@ public static class Game
                 var certPath = Path.Join(DataDirectory, activeConfiguration.Network.Grpc.ServerCertificateFile);
                 var keyPath = Path.Join(DataDirectory, activeConfiguration.Network.Grpc.ServerKeyFile);
 
-                SslServerCredentials credentials;
+                SslServerCredentials? credentials;
                 // Load credentials
                 try
                 {
@@ -816,7 +820,7 @@ public static class Game
         }
 
         Shutdown();
-        GrpcServer.ShutdownAsync().Wait();
+        GrpcServer?.ShutdownAsync().Wait();
     }
 
     private static async void CheckVersion()
@@ -835,14 +839,28 @@ public static class Game
 
             var lR = await releaseResponse.Content.ReadAsStringAsync();
             var latestRelease = JsonNode.Parse(lR);
-            var latestTag = latestRelease["tag_name"].GetValue<string>();
-            var latestReleaseDate = DateTime.Parse(latestRelease["published_at"].GetValue<string>());
+            var latestTag = latestRelease?["tag_name"]?.GetValue<string>();
+            var publishedAt = latestRelease?["published_at"]?.GetValue<string>();
+            if (latestTag is null || publishedAt is null)
+            {
+                GameLog.Warning("Version check: unexpected response from GitHub releases API, skipping");
+                return;
+            }
+
+            var latestReleaseDate = DateTime.Parse(publishedAt);
 
             using var theirHashResponse =
                 await client.GetAsync($"https://api.github.com/repos/hybrasyl/server/git/refs/tags/{latestTag}");
 
-            var theirHash = JsonNode.Parse(await theirHashResponse.Content.ReadAsStringAsync())["object"]["sha"]
-                .GetValue<string>().ToLower()[..8];
+            var sha = JsonNode.Parse(await theirHashResponse.Content.ReadAsStringAsync())?["object"]?["sha"]?
+                .GetValue<string>();
+            if (sha is null)
+            {
+                GameLog.Warning("Version check: unexpected response from GitHub refs API, skipping");
+                return;
+            }
+
+            var theirHash = sha.ToLower()[..8];
 
             if (theirHash != Assemblyinfo.GitHash[..8])
             {
@@ -883,7 +901,13 @@ public static class Game
             var jsonobj = JsonNode.Parse(data);
 
             if (res.StatusCode == System.Net.HttpStatusCode.OK)
-                CommitLog = jsonobj["commit"]["message"].GetValue<string>();
+            {
+                var commitMessage = jsonobj?["commit"]?["message"]?.GetValue<string>();
+                if (commitMessage != null)
+                    CommitLog = commitMessage;
+                else
+                    GameLog.Warning("Commit log fetch: unexpected response from GitHub commits API");
+            }
         }
         catch (Exception e)
         {
@@ -895,7 +919,10 @@ public static class Game
     public static void LoadCollisions()
     {
         var assembly = Assembly.GetExecutingAssembly();
-        var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat");
+        // An empty collision table would be dangerously wrong; fail loudly instead
+        var sotp = assembly.GetManifestResourceStream("Hybrasyl.Resources.sotp.dat")
+                   ?? throw new InvalidOperationException(
+                       "Embedded resource Hybrasyl.Resources.sotp.dat is missing; cannot load collision data");
         using (var ms = new MemoryStream())
         {
             sotp.CopyTo(ms);

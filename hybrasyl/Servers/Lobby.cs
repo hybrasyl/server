@@ -42,12 +42,20 @@ public class Lobby : Server
 
     private void PacketHandler_0x00_ClientVersion(IClient client, ClientPacket packet)
     {
+        // Lobby clients get their key in the Client constructor; a null here is a server bug.
+        if (client.EncryptionKey is not { } key)
+        {
+            GameLog.Error("Lobby: cid {ConnectionId} has no encryption key, disconnecting", client.ConnectionId);
+            client.Disconnect();
+            return;
+        }
+
         var x00 = new ServerPacket(0x00);
         x00.WriteByte(0x00);
         x00.WriteUInt32(Game.ServerTableCrc);
         x00.WriteByte(client.EncryptionSeed);
-        x00.WriteByte((byte)client.EncryptionKey.Length);
-        x00.Write(client.EncryptionKey);
+        x00.WriteByte((byte)key.Length);
+        x00.Write(key);
         client.Enqueue(x00);
     }
 
@@ -65,9 +73,16 @@ public class Lobby : Server
         }
         else
         {
+            // Lobby clients get their key in the Client constructor; a null here is a server bug.
+            if (client.EncryptionKey is not { } key)
+            {
+                GameLog.Error("Lobby: cid {ConnectionId} has no encryption key, disconnecting", client.ConnectionId);
+                client.Disconnect();
+                return;
+            }
+
             var server = packet.ReadByte();
-            var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed,
-                client.EncryptionKey);
+            var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed, key);
             client.Redirect(redirect);
         }
     }

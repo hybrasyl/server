@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,9 +32,9 @@ internal class PlayerShop
 
     public uint ShopId { get; set; }
     public uint ShopGold { get; set; }
-    public string ShopName { get; set; }
+    public string ShopName { get; set; } = string.Empty;
     public bool NameOnly { get; set; }
-    public (uint id, ItemObject item, ushort count, uint price)[] ShopItems { get; set; }
+    public required (uint id, ItemObject item, ushort count, uint price)[] ShopItems { get; set; }
 
     public ServerPacket Packet()
     {

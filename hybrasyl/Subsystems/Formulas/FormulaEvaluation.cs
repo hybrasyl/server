@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -24,15 +24,16 @@ namespace Hybrasyl.Subsystems.Formulas;
 
 public class FormulaEvaluation
 {
-    public Creature Source { get; set; } = null;
-    public Creature Target { get; set; } = null;
-    public StatInfo OriginalCaster { get; set; } = null;
-    public Castable Castable { get; set; } = null;
-    public MapObject Map { get; set; } = null;
-    public Monster Spawn { get; set; } = null;
-    public User User { get; set; } = null;
-    public double? Damage { get; set; } = null;
-    public Spawn XmlSpawn { get; set; } = null;
-    public SpawnGroup SpawnGroup { get; set; } = null;
-    public ItemObject ItemObject { get; set; } = null;
+    // All inputs are optional; a given evaluation supplies only the subset a formula needs.
+    public Creature? Source { get; set; }
+    public Creature? Target { get; set; }
+    public StatInfo? OriginalCaster { get; set; }
+    public Castable? Castable { get; set; }
+    public MapObject? Map { get; set; }
+    public Monster? Spawn { get; set; }
+    public User? User { get; set; }
+    public double? Damage { get; set; }
+    public Spawn? XmlSpawn { get; set; }
+    public SpawnGroup? SpawnGroup { get; set; }
+    public ItemObject? ItemObject { get; set; }
 }

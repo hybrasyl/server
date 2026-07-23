@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -67,9 +67,15 @@ public static class GameLog
 
     public static HybrasylLogger GetLogger(LogType type)
     {
-        if (!Loggers.ContainsKey(LogType.General))
-            Loggers.Add(LogType.General, new HybrasylLogger { Logger = new LoggerConfiguration().CreateLogger() });
-        return Loggers.TryGetValue(type, out var ret) ? ret : Loggers[LogType.General];
+        if (Loggers.TryGetValue(type, out var ret)) return ret;
+        // Emergency fallback: a sinkless General logger, created only when actually needed
+        if (!Loggers.TryGetValue(LogType.General, out var general))
+        {
+            general = new HybrasylLogger { Logger = new LoggerConfiguration().CreateLogger() };
+            Loggers.Add(LogType.General, general);
+        }
+
+        return general;
     }
 
     public static void SetGlobalLevel(LogLevel level)
@@ -173,7 +179,7 @@ public static class GameLog
     }
 
     public static void Log(LogEventLevel level = LogEventLevel.Information, LogType logType = LogType.General,
-        string messageTemplate = "", params object[] propertyValues)
+        string messageTemplate = "", params object?[] propertyValues)
     {
         var logger = GetLogger(logType).Logger;
 
@@ -202,7 +208,7 @@ public static class GameLog
     }
 
     public static void LogWithException(Exception ex, LogEventLevel level = LogEventLevel.Error,
-        LogType logType = LogType.General, string messageTemplate = "", params object[] propertyValues)
+        LogType logType = LogType.General, string messageTemplate = "", params object?[] propertyValues)
     {
         var logger = GetLogger(logType).Logger;
 
@@ -233,294 +239,294 @@ public static class GameLog
     // Provide easy to use shims here which are drop in replacements for log4net usage
 
     // Base "general" logs
-    public static void Error(Exception ex, string messageTemplate = "", params object[] propertyValues)
+    public static void Error(Exception ex, string messageTemplate = "", params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Error, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Info(Exception ex, string messageTemplate = "", params object[] propertyValues)
+    public static void Info(Exception ex, string messageTemplate = "", params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Information, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Warning(Exception ex, string messageTemplate = "", params object[] propertyValues)
+    public static void Warning(Exception ex, string messageTemplate = "", params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Warning, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Debug(Exception ex, string messageTemplate = "", params object[] propertyValues)
+    public static void Debug(Exception ex, string messageTemplate = "", params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Debug, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Error(string messageTemplate = "", params object[] propertyValues)
+    public static void Error(string messageTemplate = "", params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Info(string messageTemplate = "", params object[] propertyValues)
+    public static void Info(string messageTemplate = "", params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Warning(string messageTemplate = "", params object[] propertyValues)
+    public static void Warning(string messageTemplate = "", params object?[] propertyValues)
     {
         Log(LogEventLevel.Warning, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Debug(string messageTemplate = "", params object[] propertyValues)
+    public static void Debug(string messageTemplate = "", params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void Fatal(string messageTemplate = "", params object[] propertyValues)
+    public static void Fatal(string messageTemplate = "", params object?[] propertyValues)
     {
         Log(LogEventLevel.Fatal, LogType.General, messageTemplate, propertyValues);
     }
 
     // log4net shims which need to be refactored
-    public static void ErrorFormat(string messageTemplate, params object[] propertyValues)
+    public static void ErrorFormat(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void InfoFormat(string messageTemplate, params object[] propertyValues)
+    public static void InfoFormat(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void WarningFormat(string messageTemplate, params object[] propertyValues)
+    public static void WarningFormat(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Warning, LogType.General, messageTemplate, propertyValues);
     }
 
-    public static void DebugFormat(string messageTemplate, params object[] propertyValues)
+    public static void DebugFormat(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.General, messageTemplate, propertyValues);
     }
 
     // User activity logs
-    public static void UserActivityError(string messageTemplate, params object[] propertyValues)
+    public static void UserActivityError(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityInfo(string messageTemplate, params object[] propertyValues)
+    public static void UserActivityInfo(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityWarning(string messageTemplate, params object[] propertyValues)
+    public static void UserActivityWarning(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Warning, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityDebug(string messageTemplate, params object[] propertyValues)
+    public static void UserActivityDebug(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityFatal(string messageTemplate, params object[] propertyValues)
+    public static void UserActivityFatal(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Fatal, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityError(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void UserActivityError(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Error, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityInfo(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void UserActivityInfo(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Information, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityWarning(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void UserActivityWarning(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Warning, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityDebug(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void UserActivityDebug(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Debug, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
-    public static void UserActivityFatal(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void UserActivityFatal(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Fatal, LogType.UserActivity, messageTemplate, propertyValues);
     }
 
     // GM activity logs 
-    public static void GmActivityError(string messageTemplate, params object[] propertyValues)
+    public static void GmActivityError(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityInfo(string messageTemplate, params object[] propertyValues)
+    public static void GmActivityInfo(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityWarning(string messageTemplate, params object[] propertyValues)
+    public static void GmActivityWarning(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Warning, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityDebug(string messageTemplate, params object[] propertyValues)
+    public static void GmActivityDebug(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityFatal(string messageTemplate, params object[] propertyValues)
+    public static void GmActivityFatal(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Fatal, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityError(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void GmActivityError(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Error, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityInfo(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void GmActivityInfo(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Information, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityWarning(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void GmActivityWarning(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Warning, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityDebug(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void GmActivityDebug(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Debug, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
-    public static void GmActivityFatal(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void GmActivityFatal(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Fatal, LogType.GmActivity, messageTemplate, propertyValues);
     }
 
     // Scripting activity logs
-    public static void ScriptingError(string messageTemplate, params object[] propertyValues)
+    public static void ScriptingError(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingInfo(string messageTemplate, params object[] propertyValues)
+    public static void ScriptingInfo(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingWarning(string messageTemplate, params object[] propertyValues)
+    public static void ScriptingWarning(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Warning, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingDebug(string messageTemplate, params object[] propertyValues)
+    public static void ScriptingDebug(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingFatal(string messageTemplate, params object[] propertyValues)
+    public static void ScriptingFatal(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Fatal, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingError(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void ScriptingError(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Error, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingInfo(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void ScriptingInfo(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Information, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingWarning(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void ScriptingWarning(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Warning, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingDebug(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void ScriptingDebug(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Debug, LogType.Scripting, messageTemplate, propertyValues);
     }
 
-    public static void ScriptingFatal(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void ScriptingFatal(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Fatal, LogType.Scripting, messageTemplate, propertyValues);
     }
 
     // Spawn activity logs
-    public static void SpawnError(string messageTemplate, params object[] propertyValues)
+    public static void SpawnError(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnInfo(string messageTemplate, params object[] propertyValues)
+    public static void SpawnInfo(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnWarning(string messageTemplate, params object[] propertyValues)
+    public static void SpawnWarning(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Warning, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnDebug(string messageTemplate, params object[] propertyValues)
+    public static void SpawnDebug(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnFatal(string messageTemplate, params object[] propertyValues)
+    public static void SpawnFatal(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Fatal, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnError(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void SpawnError(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Error, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnInfo(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void SpawnInfo(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Information, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnWarning(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void SpawnWarning(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Warning, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnDebug(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void SpawnDebug(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Debug, LogType.Spawn, messageTemplate, propertyValues);
     }
 
-    public static void SpawnFatal(Exception ex, string messageTemplate, params object[] propertyValues)
+    public static void SpawnFatal(Exception ex, string messageTemplate, params object?[] propertyValues)
     {
         LogWithException(ex, LogEventLevel.Fatal, LogType.Spawn, messageTemplate, propertyValues);
     }
 
     // Packet log
-    public static void PacketInfo(string messageTemplate, params object[] propertyValues)
+    public static void PacketInfo(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.Packet, messageTemplate, propertyValues);
     }
 
     // XML data load notices (errors / etc)
-    public static void DataLogInfo(string messageTemplate, params object[] propertyValues)
+    public static void DataLogInfo(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Information, LogType.WorldData, messageTemplate, propertyValues);
     }
 
-    public static void DataLogError(string messageTemplate, params object[] propertyValues)
+    public static void DataLogError(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Error, LogType.WorldData, messageTemplate, propertyValues);
     }
 
-    public static void DataLogDebug(string messageTemplate, params object[] propertyValues)
+    public static void DataLogDebug(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.WorldData, messageTemplate, propertyValues);
     }

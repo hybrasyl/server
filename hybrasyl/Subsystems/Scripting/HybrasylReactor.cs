@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -26,8 +26,9 @@ namespace Hybrasyl.Subsystems.Scripting;
 public class HybrasylReactor : HybrasylWorldObject
 {
     public HybrasylReactor(Reactor obj) : base(obj) { }
-    internal Reactor Reactor => WorldObject as Reactor;
-    public HybrasylUser Origin => Reactor.Origin is User u ? new HybrasylUser(u) : null;
+    // This wrapper is only ever constructed around a Reactor.
+    internal Reactor Reactor => (WorldObject as Reactor)!;
+    public HybrasylUser? Origin => Reactor.Origin is User u ? new HybrasylUser(u) : null;
 
     public bool Blocking => Reactor.Blocking;
 

@@ -69,7 +69,7 @@ public class Server
 
     public int Port { get; }
     public bool Default { get; set; }
-    public ISocketProxy Listener { get; private set; }
+    public ISocketProxy? Listener { get; private set; }
     public Dictionary<byte, WorldPacketHandler> WorldPacketHandlers { get; } = new();
     public Dictionary<byte, IPacketThrottle> Throttles { get; }
 
@@ -145,7 +145,8 @@ public class Server
         ISocketProxy clientSocket;
         try
         {
-            clientSocket = (ISocketProxy)ar.AsyncState;
+            // AsyncState is the listener socket we passed to BeginAccept; never null here.
+            clientSocket = (ISocketProxy)ar.AsyncState!;
             handler = clientSocket.EndAccept(ar);
         }
         catch (ObjectDisposedException e)
@@ -155,6 +156,7 @@ public class Server
         }
 
         var client = ClientFactory.CreateClient(_clientType, handler, this);
+
         Clients.TryAdd(handler.Handle, client);
         GlobalConnectionManifest.RegisterClient(client);
 
@@ -196,7 +198,8 @@ public class Server
 
     public void ReadCallback(IAsyncResult ar)
     {
-        var state = (IClientState)ar.AsyncState;
+        // AsyncState is the IClientState we passed to BeginReceive; never null here.
+        var state = (IClientState)ar.AsyncState!;
 
         GameLog.Debug(
             "SocketConnected: {SocketConnected}, IAsyncResult: Completed: {Completed}, CompletedSynchronously: {CompletedSynchronously}, queue size: {QueueSize}", state.WorkSocket.Connected, ar.IsCompleted, ar.CompletedSynchronously, state.Buffer.Length);

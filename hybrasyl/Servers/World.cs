@@ -72,7 +72,8 @@ public class World : Server
     public static BlockingCollection<HybrasylMessage> MessageQueue = new();
     public static BlockingCollection<HybrasylMessage> ControlMessageQueue = new();
 
-    private static Lazy<ConnectionMultiplexer> _lazyConnector;
+    // Set by the Redis-backed ctor; the test ctor never touches the datastore.
+    private static Lazy<ConnectionMultiplexer> _lazyConnector = null!;
 
     public static ChatCommandHandler CommandHandler = new();
 
@@ -82,7 +83,7 @@ public class World : Server
     private readonly Dictionary<MessageType, List<IMessageHandler>> MessagePlugins = new();
 
     public HashSet<Creature> ActiveStatuses = new();
-    private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers;
+    private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers = new();
 
     public World(IPAddress bindAddress, int port, bool isDefault = false) : base(bindAddress, port, isDefault)
     {
@@ -125,10 +126,11 @@ public class World : Server
     public Dictionary<uint, WorldObject> Objects { get; set; } = new();
 
     public Dictionary<string, string> Portraits { get; set; } = new();
-    public string Locale { get; set; }
+    public string Locale { get; set; } = string.Empty;
     public Localization Localizations => WorldData.Get<Localization>(Locale);
     public WorldStateStore WorldState { set; get; } = new();
-    public IWorldDataManager WorldData { get; set; }
+    // Set by the Redis-backed ctor before any world data is accessed.
+    public IWorldDataManager WorldData { get; set; } = null!;
 
     public Nation DefaultNation
     {
@@ -143,10 +145,8 @@ public class World : Server
 
     public ScriptProcessor ScriptProcessor { get; set; }
 
-    private Thread ConsumerThread { get; set; }
-    private Thread ControlConsumerThread { get; set; }
-
-    public Login Login { get; }
+    private Thread? ConsumerThread { get; set; }
+    private Thread? ControlConsumerThread { get; set; }
 
     public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
@@ -261,10 +261,15 @@ public class World : Server
                     continue;
                 }
 
-                if (type.GetInterface(typeof(IMessageHandler).FullName) != null)
+                if (type.GetInterface(typeof(IMessageHandler).FullName!) != null)
                     try
                     {
-                        var pluginInstance = Activator.CreateInstance(type) as IMessageHandler;
+                        if (Activator.CreateInstance(type) is not IMessageHandler pluginInstance)
+                        {
+                            GameLog.Error("LoadPlugins: plugin {plugin} could not be instantiated", type.FullName);
+                            continue;
+                        }
+
                         pluginInstance.Initialize(config);
                         pluginInstance.SetTargets(plugin.Targets);
                         MessagePlugins[plugin.Type].Add(pluginInstance);
@@ -413,10 +418,10 @@ public class World : Server
                 if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
                 var desc = "";
-                if (item.Properties.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
+                if (item.Properties!.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
                     desc = defaultDesc;
                 else
-                    desc = item.Properties.Vendor?.Description;
+                    desc = item.Properties.Vendor?.Description ?? "";
 
                 iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
             }
@@ -433,22 +438,22 @@ public class World : Server
         {
             var sclass = new Metafile("SClass" + i);
 
-            List<Castable> skills = null;
-            List<Castable> spells = null;
+            List<Castable> skills;
+            List<Castable> spells;
             var @class = (Class)i;
 
             skills = WorldData.Values<Castable>().Where(predicate: x => x.IsSkill && x.Class.Contains(@class)).OrderBy(
                     keySelector: x =>
                         x.Requirements.FirstOrDefault(predicate: y => y.Class.Contains(@class)) == null
                             ? 1
-                            : x.Requirements.FirstOrDefault(predicate: y => y.Class.Contains(@class)).Level?.Min ?? 1)
+                            : x.Requirements.FirstOrDefault(predicate: y => y.Class.Contains(@class))!.Level?.Min ?? 1)
                 .ThenBy(keySelector: x => x.Name)
                 .ToList();
             spells = WorldData.Values<Castable>().Where(predicate: x => x.IsSpell && x.Class.Contains(@class)).OrderBy(
                     keySelector: x =>
                         x.Requirements.FirstOrDefault(predicate: y => y.Class.Contains(@class)) == null
                             ? 1
-                            : x.Requirements.FirstOrDefault(predicate: y => y.Class.Contains(@class)).Level?.Min ?? 1)
+                            : x.Requirements.FirstOrDefault(predicate: y => y.Class.Contains(@class))!.Level?.Min ?? 1)
                 .ThenBy(keySelector: x => x.Name)
                 .ToList();
 
@@ -468,9 +473,9 @@ public class World : Server
                     continue;
                 var desc = "";
                 if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
-                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class)).Value;
+                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
                 else if (skill.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
-                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant)).Value;
+                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
 
                 if (desc == null) desc = "";
 
@@ -478,7 +483,7 @@ public class World : Server
                 if (requirements == null)
                     requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
 
-                List<LearnPrerequisite> prereqs = null;
+                List<LearnPrerequisite>? prereqs = null;
                 if (requirements != null)
                     prereqs = requirements.Prerequisites.Prerequisite;
                 else
@@ -553,9 +558,9 @@ public class World : Server
                     continue;
                 var desc = "";
                 if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
-                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class)).Value;
+                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
                 else if (spell.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
-                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant)).Value;
+                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
 
                 if (desc == null) desc = "";
 
@@ -563,7 +568,7 @@ public class World : Server
                 if (requirements == null)
                     requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
 
-                List<LearnPrerequisite> prereqs = null;
+                List<LearnPrerequisite>? prereqs = null;
                 if (requirements != null)
                     prereqs = requirements.Prerequisites.Prerequisite;
                 else
@@ -697,7 +702,7 @@ public class World : Server
         #endregion
     }
 
-    public IMessageHandler ResolveMessagingPlugin(MessageType type, Message message)
+    public IMessageHandler? ResolveMessagingPlugin(MessageType type, Message message)
     {
         // Do we have a plugin that would handle this message?
         if (MessagePlugins.TryGetValue(type, out var pluginList))
@@ -738,7 +743,8 @@ public class World : Server
                redis.KeyDelete(user.StorageKey);
     }
 
-    public void EnqueueProc(Proc p, Castable castable, Guid source, Guid target) =>
+    public void EnqueueProc(Proc p, Castable? castable, Guid source, Guid target) =>
+        // Item-procs carry no castable (ItemObject.Invoke passes null)
         ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.ProcessProc, p, castable, source, target));
 
     public void EnqueueGuidStatUpdate(Guid g, StatInfo si, ICombatEvent e) =>
@@ -815,7 +821,7 @@ public class World : Server
 
         if (obj is ItemObject i)
         {
-            Script itemscript;
+            Script? itemscript;
             if (Game.World.ScriptProcessor.TryGetScript(i.Name, out itemscript))
             {
                 var clone = itemscript;
@@ -851,7 +857,7 @@ public class World : Server
         obj.Id = 0;
     }
 
-    public ItemObject CreateItem(string id, int quantity = 1)
+    public ItemObject? CreateItem(string id, int quantity = 1)
     {
         var xmlitem = WorldData.FindItem(id).ToList();
         if (xmlitem.Count == 0) return null;
@@ -1344,8 +1350,8 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.MonolithControl)]
     private void ControlMessage_MonolithControl(HybrasylControlMessage message)
     {
-        var monster = (Monster)message.Arguments[0];
-        var map = (MapObject)message.Arguments[1];
+        var monster = message.GetOptionalArgument<Monster>(0);
+        var map = message.GetOptionalArgument<MapObject>(1);
 
         if (monster == null || map == null) return;
         // Don't handle control messages for dead/removed mobs, or mobs that cannot move or attack
@@ -1361,19 +1367,19 @@ public class World : Server
     private void ControlMessage_CleanupUser(HybrasylControlMessage message)
     {
         // clean up after a broken connection
-        var cleanupType = (CleanupType)message.Arguments[0];
+        var cleanupType = message.GetArgument<CleanupType>(0);
         dynamic searchKey;
         User cleanup;
         if (cleanupType == CleanupType.ByConnectionId)
         {
-            searchKey = (long)message.Arguments[1];
+            searchKey = message.GetArgument<long>(1);
             // Already cleaned up, ignore
             if (!TryGetActiveUserById(searchKey, out cleanup))
                 return;
         }
         else
         {
-            searchKey = (string)message.Arguments[1];
+            searchKey = message.GetArgument<string>(1);
             // Already cleaned up, ignore
             if (!TryGetActiveUser(searchKey, out cleanup))
                 return;
@@ -1425,7 +1431,7 @@ public class World : Server
         // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
         // Regen = regen * 0.0015 (so 100 regen = 15%)
         User user;
-        var connectionId = (long)message.Arguments[0];
+        var connectionId = message.GetArgument<long>(0);
         if (!TryGetActiveUserById(connectionId, out user)) return;
         if (user.Condition.Comatose || !user.Condition.Alive) return;
         uint hpRegen = 0;
@@ -1484,7 +1490,7 @@ public class World : Server
     {
         // save a user
         User user;
-        var connectionId = (long)message.Arguments[0];
+        var connectionId = message.GetArgument<long>(0);
         if (TryGetActiveUserById(connectionId, out user))
         {
             GameLog.DebugFormat("Saving user {0}", user.Name);
@@ -1501,8 +1507,8 @@ public class World : Server
     private void ControlMessage_ShutdownServer(HybrasylControlMessage message)
     {
         // Initiate an orderly shutdown
-        var userName = (string)message.Arguments[0];
-        var delay = (int)message.Arguments[1];
+        var userName = message.GetArgument<string>(0);
+        var delay = message.GetArgument<int>(1);
 
         if (delay == 0)
         {
@@ -1535,7 +1541,7 @@ public class World : Server
     private void ControlMessage_LogoffUser(HybrasylControlMessage message)
     {
         // Log off the specified user
-        var userName = (string)message.Arguments[0];
+        var userName = message.GetArgument<string>(0);
         GameLog.WarningFormat("{0}: forcing logoff", userName);
         User user;
         if (TryGetActiveUser(userName, out user)) user.Logoff(true);
@@ -1545,7 +1551,7 @@ public class World : Server
     private void ControlMessage_MailNotifyUser(HybrasylControlMessage message)
     {
         // Set unread mail flag and if the user is online, send them an UpdateAttributes packet
-        var userName = (string)message.Arguments[0];
+        var userName = message.GetArgument<string>(0);
         GameLog.DebugFormat("mail: attempting to notify {0} of new mail", userName);
         User user;
         if (TryGetActiveUser(userName, out user))
@@ -1562,7 +1568,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.StatusTick)]
     private void ControlMessage_StatusTick(HybrasylControlMessage message)
     {
-        var objectId = (uint)message.Arguments[0];
+        var objectId = message.GetArgument<uint>(0);
         if (Objects.TryGetValue(objectId, out var wobj))
         {
             if (wobj is Creature creature)
@@ -1575,7 +1581,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.TriggerRefresh)]
     private void ControlMessage_TriggerRefresh(HybrasylControlMessage message)
     {
-        var connectionId = (long)message.Arguments[0];
+        var connectionId = message.GetArgument<long>(0);
         if (TryGetActiveUserById(connectionId, out var user))
             user.Refresh();
     }
@@ -1583,7 +1589,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.DialogRequest)]
     private void ControlMessage_DialogRequest(HybrasylControlMessage message)
     {
-        var asyncDialogId = (uint)message.Arguments[0];
+        var asyncDialogId = message.GetArgument<uint>(0);
         if (WorldState.TryGetValue(asyncDialogId, out AsyncDialogSession ads))
             ads.ShowTo();
     }
@@ -1591,7 +1597,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.HandleDeath)]
     private void ControlMessage_HandleDeath(HybrasylControlMessage message)
     {
-        var creature = (Creature)message.Arguments[0];
+        var creature = message.GetArgument<Creature>(0);
         if (creature is User u) u.OnDeath();
         if (creature is Monster ms && !ms.DeathProcessed) ms.OnDeath();
     }
@@ -1599,7 +1605,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.GlobalMessage)]
     private void ControlMessage_GlobalMessage(HybrasylControlMessage message)
     {
-        var msg = (string)message.Arguments[0];
+        var msg = message.GetArgument<string>(0);
         foreach (var user in ActiveUsers)
             // TODO: make less teeth-grindingly dumb
             try
@@ -1620,8 +1626,8 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.ModifyStats)]
     private void ControlMessage_ModifyStats(HybrasylControlMessage message)
     {
-        var guid = (Guid)message.Arguments[0];
-        var statinfo = (StatInfo)message.Arguments[1];
+        var guid = message.GetArgument<Guid>(0);
+        var statinfo = message.GetArgument<StatInfo>(1);
         if (!WorldState.TryGetWorldObject(guid, out Creature obj)) return;
         obj.Stats.Apply(statinfo);
         if (obj is User u)
@@ -1631,10 +1637,10 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.ProcessProc)]
     private void ControlMessage_ProcessProc(HybrasylControlMessage message)
     {
-        var proc = (Proc)message.Arguments[0];
-        var castable = (Castable)message.Arguments[1];
-        var sourceGuid = (Guid)message.Arguments[2];
-        var targetGuid = (Guid)message.Arguments[3];
+        var proc = message.GetArgument<Proc>(0);
+        var castable = message.GetOptionalArgument<Castable>(1); // null for item procs
+        var sourceGuid = message.GetArgument<Guid>(2);
+        var targetGuid = message.GetArgument<Guid>(3);
 
         var source = WorldState.GetWorldObject<Creature>(sourceGuid);
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
@@ -1653,7 +1659,9 @@ public class World : Server
                 var result = script.ExecuteFunction("OnProc", env);
                 if (result.Result != ScriptResult.Success)
                     GameLog.ScriptingError(
-                        "{Source}: proc for {Castable}, script {Script}: {Error}", source.Name, castable.Name, script.Name, result.Error);
+                        "{Source}: proc for {Castable}, script {Script}: {Error}", source.Name,
+                        castable?.Name ?? (string.IsNullOrEmpty(proc.Castable) ? "item proc" : proc.Castable),
+                        script.Name, result.Error);
             }
             else
             {
@@ -1676,7 +1684,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.UpdateUser)]
     private void ControlMessage_UpdateUser(HybrasylControlMessage message)
     {
-        var targetGuid = (Guid)message.Arguments[0];
+        var targetGuid = message.GetArgument<Guid>(0);
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not User user) return;
@@ -1688,7 +1696,7 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.DisplayCreature)]
     private void ControlMessage_DisplayCreature(HybrasylControlMessage message)
     {
-        var targetGuid = (Guid)message.Arguments[0];
+        var targetGuid = message.GetArgument<Guid>(0);
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
 
         if (target is not Creature creature) return;
@@ -1710,8 +1718,8 @@ public class World : Server
     [HybrasylMessageHandler(ControlOpcode.CombatLog)]
     private void ControlMessage_CombatLog(HybrasylControlMessage message)
     {
-        var targetGuid = (Guid)message.Arguments[0];
-        var logEvent = (ICombatEvent)message.Arguments[1];
+        var targetGuid = message.GetArgument<Guid>(0);
+        var logEvent = message.GetArgument<ICombatEvent>(1);
         var target = WorldState.GetWorldObject<Creature>(targetGuid);
         if (target is not User user) return;
         user.SendCombatLogMessage(logEvent);
@@ -1810,9 +1818,9 @@ public class World : Server
         {
             // Remove the item from the map
             if (pickupObject is Gold)
-                user.Map.RemoveGold(pickupObject as Gold);
+                user.Map.RemoveGold((Gold)pickupObject);
             else
-                user.Map.Remove(pickupObject as ItemObject);
+                user.Map.Remove((ItemObject)pickupObject);
             // If the reactor handles the pickup, we do nothing
             foreach (var reactor in reactors.Values.Where(predicate: reactor => reactor.OnTakeCapable))
             {
@@ -1924,22 +1932,23 @@ public class World : Server
         // Does the player actually have an item in the slot? Does the count in the packet exceed the
         // count in the player's inventory?  Are they trying to drop the item on something that
         // is impassable (i.e. a wall)?
-        if (user.Inventory[slot] == null)
+        var invItem = user.Inventory[slot];
+        if (invItem == null)
         {
             GameLog.Error("Drop: Slot {slot} is null", slot);
             return;
         }
 
-        if (count > user.Inventory[slot].Count ||
+        if (count > invItem.Count ||
             user.Map.IsWall(x, y) || !user.Map.IsValidPoint(x, y))
         {
             GameLog.ErrorFormat(
                 "Drop: count {1} exceeds count {2}, or {3},{4} is a wall, or {3},{4} is out of bounds",
-                slot, count, user.Inventory[slot].Count, x, y);
+                slot, count, invItem.Count, x, y);
             return;
         }
 
-        var toDrop = user.Inventory[slot];
+        var toDrop = invItem;
 
         if (toDrop.Stackable && count < toDrop.Count)
         {
@@ -1951,7 +1960,7 @@ public class World : Server
         }
         else
         {
-            if (user.Inventory[slot].Bound)
+            if (invItem.Bound)
             {
                 user.SendSystemMessage("You cannot drop this.");
                 return;
@@ -2060,7 +2069,7 @@ public class World : Server
 
             user.UpdateLogoffTime();
             user.Map.Remove(user);
-            if (user.Grouped) user.Group.Remove(user);
+            if (user.Group is { } group) group.Remove(user);
             Remove(user);
             user.AuthInfo.CurrentState = UserState.Disconnected;
             user.Save(true);
@@ -2321,7 +2330,7 @@ public class World : Server
                     return;
                 }
 
-                Script script;
+                Script? script;
                 var env = ScriptEnvironment.CreateWithTargetAndSource(user, user);
 
                 if (!ScriptProcessor.TryGetScript($"{user.Name}-repl.lua", out script) ||
@@ -2351,7 +2360,7 @@ public class World : Server
                     case "end":
                         {
                             user.DisplayOutgoingWhisper("$", "Executing adhoc script");
-                            var ret = script.ExecuteExpression(user.AdHocScript, env);
+                            var ret = script.ExecuteExpression(user.AdHocScript ?? string.Empty, env);
                             user.AdHocScript = null;
                             if (ret.Result != ScriptResult.Success)
                             {
@@ -2404,7 +2413,7 @@ public class World : Server
     {
         // TODO: future expansion
         var settingNumber = packet.ReadByte();
-        var user = obj as User;
+        var user = (User)obj;
         // Only seven of these are usable by the client (1-6, and 8), 
         // the seventh one is sent to keep the ordering consistent but seemingly does nothing
         var settings = new List<byte> { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -2478,7 +2487,7 @@ public class World : Server
                     return;
                 }
 
-                item.Invoke(user);
+                item!.Invoke(user); // non-null (guarded above); the item?. on EquipmentSlot re-flagged it
                 if (item.Consumable && item.Count == 0)
                     user.RemoveItem(slot);
                 else
@@ -2534,7 +2543,7 @@ public class World : Server
                                 // Right arm slot is in use; replace LArm with item
                                 var olditem = user.Equipment[(byte)ItemSlots.LArm];
                                 user.RemoveEquipment((byte)ItemSlots.LArm);
-                                user.AddItem(olditem, slot);
+                                user.AddItem(olditem!, slot); // slot occupancy checked above
                                 user.AddEquipment(item, (byte)ItemSlots.LArm);
                             }
                         }
@@ -2560,7 +2569,7 @@ public class World : Server
                                 // Right ring slot is in use; replace LHand with item
                                 var olditem = user.Equipment[(byte)ItemSlots.LHand];
                                 user.RemoveEquipment((byte)ItemSlots.LHand);
-                                user.AddItem(olditem, slot);
+                                user.AddItem(olditem!, slot); // slot occupancy checked above
                                 user.AddEquipment(item, (byte)ItemSlots.LHand);
                             }
                         }
@@ -2763,10 +2772,10 @@ public class World : Server
 
                 // Remove the user from the group. Kinda logically weird beside all of this other stuff
                 // so it may be worth restructuring but it should be accurate as-is.
-                if (partner.Grouped && user.Grouped && partner.Group == user.Group)
+                if (user.Group is { } sharedGroup && partner.Group == sharedGroup)
                 {
                     GameLog.DebugFormat("{0} leaving group.", user.Name);
-                    user.Group.Remove(partner);
+                    sharedGroup.Remove(partner);
                     return;
                 }
 
@@ -2854,7 +2863,7 @@ public class World : Server
 
         // If the user is in a group, they must leave (in particular going from true to false,
         // but in no case should you be able to hold a group across this transition).
-        if (user.Grouped) user.Group.Remove(user);
+        if (user.Group is { } group) group.Remove(user);
 
         if (user.GroupRecruit != null)
         {
@@ -2886,7 +2895,7 @@ public class World : Server
             return;
         }
 
-        WorldObject target;
+        WorldObject? target;
         if (!user.World.Objects.TryGetValue(targetId, out target))
             return;
 
@@ -2938,7 +2947,7 @@ public class World : Server
         // If the object is a creature or an NPC, simply give them the item, otherwise,
         // initiate an exchange
 
-        WorldObject target;
+        WorldObject? target;
         if (!user.World.Objects.TryGetValue(targetId, out target))
             return;
 
@@ -2959,7 +2968,7 @@ public class World : Server
                 // Initiate exchange and put item in it
                 var exchange = new Exchange(user, playerTarget);
                 exchange.StartExchange();
-                if (user.Inventory[itemSlot] != null && user.Inventory[itemSlot].Count > 1)
+                if (user.Inventory[itemSlot] is { Count: > 1 })
                     user.SendExchangeQuantityPrompt(itemSlot);
                 else
                     exchange.AddItem(user, itemSlot, quantity);
@@ -3176,12 +3185,12 @@ public class World : Server
             objectType, objectId, pursuitId);
 
         // Sanity checks
-        WorldObject wobj;
+        WorldObject? wobj;
 
         if (Game.World.Objects.TryGetValue(objectId, out wobj) && wobj is IPursuitable ip)
         {
             // Are we handling a global sequence?
-            DialogSequence pursuit;
+            DialogSequence? pursuit;
 
             if (pursuitId < Game.ActiveConfiguration.Constants.DialogSequenceShared)
             {
@@ -3204,7 +3213,7 @@ public class World : Server
 
                 var menuItem = (MerchantMenuItem)pursuitId;
                 var merchant = (Merchant)wobj;
-                MerchantMenuHandler handler;
+                MerchantMenuHandler? handler;
 
                 if (!merchantMenuHandlers.TryGetValue(menuItem, out handler))
                 {
@@ -3268,10 +3277,10 @@ public class World : Server
             user.DialogState.CurrentPursuitId,
             user.DialogState.CurrentPursuitIndex);
 
-        DialogInvocation invocation = null;
-        WorldObject wobj = null;
-        IInteractable clickTarget;
-        AsyncDialogSession session = null;
+        DialogInvocation? invocation = null;
+        WorldObject? wobj = null;
+        IInteractable? clickTarget;
+        AsyncDialogSession? session = null;
 
         // Determine what is clicking / being clicked / etc
         if (objectType == DialogObjectType.CastableObject &&
@@ -3282,16 +3291,18 @@ public class World : Server
         }
         // Is this an async dialog session (either one in progress, or one starting)
         else if (objectType == DialogObjectType.Asynchronous &&
-                 Game.World.WorldState.TryGetValue(objectID, out session))
+                 Game.World.WorldState.TryGetValue(objectID, out AsyncDialogSession asyncSession))
         {
-            clickTarget = session;
+            session = asyncSession;
+            clickTarget = asyncSession;
             GameLog.Error("Clicktarget set yo, clicktarget is {ClickTarget}", clickTarget);
-            invocation = new DialogInvocation(session, session.Target, session.Source);
+            invocation = new DialogInvocation(asyncSession, asyncSession.Target, asyncSession.Source);
         }
         else if (user.World.Objects.TryGetValue(objectID, out wobj))
         {
             clickTarget = wobj as IInteractable;
-            invocation = new DialogInvocation(clickTarget, user, user);
+            if (clickTarget != null)
+                invocation = new DialogInvocation(clickTarget, user, user);
         }
         else
         {
@@ -3299,7 +3310,7 @@ public class World : Server
         }
 
         // Bogus ID
-        if (clickTarget == null)
+        if (clickTarget == null || invocation == null)
             return;
 
         GameLog.Error(
@@ -3337,7 +3348,7 @@ public class World : Server
 
             if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
             {
-                user.DialogState.ActiveDialog.ShowTo(invocation);
+                user.DialogState.ActiveDialog?.ShowTo(invocation);
                 return;
             }
         }
@@ -3404,7 +3415,7 @@ public class World : Server
         // Otherwise, either close the dialog or go to the main menu (main menu by 
         // default).
 
-        if (user.DialogState.ActiveDialogSequence.Dialogs.Count == pursuitIndex)
+        if (user.DialogState.ActiveDialogSequence!.Dialogs.Count == pursuitIndex) // active dialog (checked above) implies active sequence
         {
             switch (user.DialogState.ActiveDialog)
             {
@@ -3555,7 +3566,7 @@ public class World : Server
                         var type = clickTarget.GetType();
                         var methodInfo = type.GetMethod("OnClick");
                         var associate = clickTarget as VisibleObject;
-                        if (associate.Map == user.Map)
+                        if (associate != null && associate.Map == user.Map)
                         {
                             // Certain NPCs can be "spoken to" even when dead
                             if (user.LastAssociate is Merchant && !user.Condition.Alive && !user.LastAssociate.AllowDead)
@@ -3564,7 +3575,7 @@ public class World : Server
                                 return;
                             }
 
-                            methodInfo.Invoke(clickTarget, new[] { user });
+                            methodInfo?.Invoke(clickTarget, new[] { user });
                         }
                         else
                         {
@@ -3705,7 +3716,7 @@ public class World : Server
                     // Starting trade
                     var x0PlayerId = packet.ReadInt32();
 
-                    WorldObject target;
+                    WorldObject? target;
                     if (Objects.TryGetValue((uint)x0PlayerId, out target))
                         if (target is User playerTarget)
                         {
@@ -3729,11 +3740,12 @@ public class World : Server
                     // keep track of the participants on both sides
                     var x1playerId = packet.ReadInt32();
                     var x1ItemSlot = packet.ReadByte();
-                    if (user.Inventory[x1ItemSlot] != null && user.Inventory[x1ItemSlot].Count > 1)
+                    if (user.Inventory[x1ItemSlot] is { Count: > 1 })
                         // Send quantity request
                         user.SendExchangeQuantityPrompt(x1ItemSlot);
                     else
-                        user.ActiveExchange.AddItem(user, x1ItemSlot);
+                        // ActiveExchange non-null for tradeStage != 0 (guarded above)
+                        user.ActiveExchange!.AddItem(user, x1ItemSlot);
                 }
                 break;
 
@@ -3742,26 +3754,26 @@ public class World : Server
                 var x2PlayerId = packet.ReadInt32();
                 var x2ItemSlot = packet.ReadByte();
                 var x2ItemQuantity = packet.ReadByte();
-                user.ActiveExchange.AddItem(user, x2ItemSlot, x2ItemQuantity);
+                user.ActiveExchange!.AddItem(user, x2ItemSlot, x2ItemQuantity);
                 break;
 
             case 0x03:
                 // Add gold to trade
                 var x3PlayerId = packet.ReadInt32();
                 var x3GoldQuantity = packet.ReadUInt32();
-                user.ActiveExchange.AddGold(user, x3GoldQuantity);
+                user.ActiveExchange!.AddGold(user, x3GoldQuantity);
                 break;
 
             case 0x04:
                 // Cancel trade
                 GameLog.Debug("Cancelling trade");
-                user.ActiveExchange.CancelExchange(user);
+                user.ActiveExchange!.CancelExchange(user);
                 break;
 
             case 0x05:
                 // Confirm trade
                 GameLog.Debug("Confirming trade");
-                user.ActiveExchange.ConfirmExchange(user);
+                user.ActiveExchange!.ConfirmExchange(user);
                 break;
 
             default:
@@ -3943,8 +3955,15 @@ public class World : Server
 
     private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
     {
-        var skillName = packet.ReadString8(); //skill name
-        var skill = WorldData.GetByIndex<Castable>(skillName);
+        var skillName = packet.ReadString8();
+        // The name comes straight from the packet; only a real skill may enter the flow
+        if (!WorldData.TryGetValueByIndex(skillName, out Castable skill) || !skill.IsSkill)
+        {
+            GameLog.UserActivityWarning("{Name}: LearnSkill: {Skill} is not a learnable skill, ignoring",
+                user.Name, skillName);
+            return;
+        }
+
         user.ShowLearnSkill(merchant, skill);
     }
 
@@ -3971,7 +3990,14 @@ public class World : Server
     private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
     {
         var spellName = packet.ReadString8();
-        var spell = WorldData.GetByIndex<Castable>(spellName);
+        // The name comes straight from the packet; only a real spell may enter the flow
+        if (!WorldData.TryGetValueByIndex(spellName, out Castable spell) || !spell.IsSpell)
+        {
+            GameLog.UserActivityWarning("{Name}: LearnSpell: {Spell} is not a learnable spell, ignoring",
+                user.Name, spellName);
+            return;
+        }
+
         user.ShowLearnSpell(merchant, spell);
     }
 
@@ -4067,6 +4093,7 @@ public class World : Server
 
     private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
     {
+        if (user.PendingWithdrawItem == null) return;
         var quantity = Convert.ToUInt32(packet.ReadString8());
         user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
     }

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,11 +31,11 @@ internal class ExchangeControl
     internal byte Action;
     internal uint Gold;
     internal byte ItemColor;
-    internal string ItemName;
+    internal string ItemName = string.Empty;
     internal byte ItemSlot;
     internal ushort ItemSprite;
     internal uint RequestorId;
-    internal string RequestorName;
+    internal string RequestorName = string.Empty;
     internal bool Side;
 
     internal ServerPacket Packet()

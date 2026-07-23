@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Hybrasyl.Interfaces;
 
 namespace Hybrasyl;
@@ -27,6 +28,7 @@ public class GuidReference : IStateStorable
 
     public GuidReference() { }
 
+    [SetsRequiredMembers]
     public GuidReference(string name)
     {
         UserName = name;
@@ -34,7 +36,9 @@ public class GuidReference : IStateStorable
 
     public string PrimaryKey => UserGuid.ToString();
 
-    public string UserName { get; set; }
+    // A stored reference without a UserName is garbage; STJ throwing on it is the
+    // corrupt-blob-fails-loudly policy, not a hazard
+    public required string UserName { get; set; }
 
     public Guid UserGuid { get; set; }
 

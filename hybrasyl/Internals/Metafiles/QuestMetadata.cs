@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -28,12 +28,12 @@ public class QuestMetadata
 {
     public SortedSet<Class> AllowedClasses;
     public int Circle = 0;
-    public string Id;
-    public string Prerequisite; // who knows
-    public string Result;
-    public string Reward;
-    public string Summary;
-    public string Title;
+    public string Id = string.Empty;
+    public string Prerequisite = string.Empty;
+    public string Result = string.Empty;
+    public string Reward = string.Empty;
+    public string Summary = string.Empty;
+    public string Title = string.Empty;
 
     // Client expects a string like "123", "12345" etc
 

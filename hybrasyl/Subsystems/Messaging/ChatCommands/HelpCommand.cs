@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -43,12 +43,12 @@ internal class HelpCommand : ChatCommand
                          .Where(predicate: type => type.IsSubclassOf(typeof(ChatCommand))))
             {
                 var command =
-                    (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    (string) x.GetField("Command", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
                 var argtext = (string) x.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
-                var priv = (bool) x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    !.GetValue(null)!;
+                var priv = (bool) x.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
                 var helptext =
-                    (string) x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    (string) x.GetField("HelpText", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
                 if (priv && !user.AuthInfo.IsPrivileged) continue;
                 helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
             }
@@ -58,13 +58,13 @@ internal class HelpCommand : ChatCommand
             if (World.CommandHandler.TryGetHandler(args[0], out var handler))
             {
                 var command = (string) handler.GetField("Command", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
+                    !.GetValue(null)!;
                 var argtext = (string) handler.GetField("ArgumentText", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
+                    !.GetValue(null)!;
                 var priv = (bool) handler.GetField("Privileged", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
+                    !.GetValue(null)!;
                 var helptext = (string) handler.GetField("HelpText", BindingFlags.Public | BindingFlags.Static)
-                    .GetValue(null);
+                    !.GetValue(null)!;
                 if (priv && !user.AuthInfo.IsPrivileged) return Fail("Access denied");
                 helpString = $"{helpString}/{command} - {argtext}\n  {helptext}\n\n";
             }

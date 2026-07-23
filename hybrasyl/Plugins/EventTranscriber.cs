@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,7 +32,8 @@ namespace Hybrasyl.Plugins
         /// </summary>
         public class EventTranscriber : MessagePlugin, IProcessingMessageHandler
         {
-            private DiscordWebhookClient client;
+            // Optional: set only when WebhookUrl is configured; disk transcription works without it
+            private DiscordWebhookClient? client;
             private string OutputDir = string.Empty;
             private string WebhookUrl = string.Empty;
 
@@ -78,7 +79,7 @@ namespace Hybrasyl.Plugins
                 else
                     text = $"{text}\n\n{inbound.Text}";
 
-                Task.Run(function: () => client.SendMessageAsync(text));
+                Task.Run(function: () => client?.SendMessageAsync(text));
                 Task.Run(action: () => SaveToDisk(inbound.Sender, id, text));
                 resp.Success = true;
                 resp.PluginResponse = $"Thank you for your bug submission (BUG-{id}). It has been received.";

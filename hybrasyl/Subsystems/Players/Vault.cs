@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -72,7 +72,8 @@ public class Vault : IStateStorable
 
     public string StorageKey => string.Concat(GetType(), ':', OwnerGuid);
 
-    [Persist] public Dictionary<string, uint> Items { get; private set; } //item name, quantity
+    [Persist] public Dictionary<string, uint> Items { get; private set; } =
+        new(StringComparer.OrdinalIgnoreCase); //item name, quantity
 
     public void Clear()
     {

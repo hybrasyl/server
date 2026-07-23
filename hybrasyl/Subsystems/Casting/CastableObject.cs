@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -31,8 +31,9 @@ namespace Hybrasyl.Casting;
 public class CastableObject : IInteractable, IStateStorable
 {
     public Guid Guid { get; set; }
-    public Castable Template { get; set; }
-    public HybrasylInteractable ScriptedDialogs { get; set; }
+    // Set at construction (World castable-object load); dereferenced unconditionally below.
+    public Castable Template { get; set; } = null!;
+    public HybrasylInteractable ScriptedDialogs { get; set; } = null!;
     public uint Id { get; set; }
 
     public ushort Sprite
@@ -45,7 +46,8 @@ public class CastableObject : IInteractable, IStateStorable
     public string Name => Template.Name;
     public string DisplayName => Template.Name;
     public bool AllowDead => false;
-    public Script Script { get; set; }
+    // Set at construction (a CastableObject is only created once its script resolves).
+    public Script Script { get; set; } = null!;
 
     public List<DialogSequence> DialogSequences
     {

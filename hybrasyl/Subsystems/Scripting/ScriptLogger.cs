@@ -1,4 +1,5 @@
-﻿using Hybrasyl.Internals.Logging;
+
+using Hybrasyl.Internals.Logging;
 using MoonSharp.Interpreter;
 
 namespace Hybrasyl.Subsystems.Scripting;

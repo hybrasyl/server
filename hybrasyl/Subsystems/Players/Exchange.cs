@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -110,6 +110,11 @@ public class Exchange
 
         // OK - we have room, now what?
         var theItem = giver.Inventory[slot];
+
+        // Exchange packet handlers (World.cs case 0x01 else-branch, case 0x02) can call
+        // AddItem for an empty slot; theItem would be null and NRE below. Guard and no-op.
+        if (theItem == null)
+            return false;
 
         // Further checks!
         // Is the ItemObject exchangeable?

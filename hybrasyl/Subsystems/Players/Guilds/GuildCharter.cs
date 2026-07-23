@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -35,7 +35,7 @@ public class GuildCharter
 
     [Persist] public Guid Guid { get; set; } = Guid.NewGuid();
 
-    [Persist] public string GuildName { get; set; }
+    [Persist] public string GuildName { get; set; } = string.Empty;
 
     [Persist] public Guid LeaderGuid { get; set; }
 

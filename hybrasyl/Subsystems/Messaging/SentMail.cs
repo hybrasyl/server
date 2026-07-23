@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -33,11 +33,12 @@ public class SentMail : MessageStore
 
     [Persist] public DateTime LastMailMessageSent { get; set; }
 
-    [Persist] public string LastMailRecipient { get; set; }
+    // Persisted (STJ): initialize non-null; a stored record overwrites, an absent field keeps the default.
+    [Persist] public string LastMailRecipient { get; set; } = string.Empty;
 
     [Persist] public DateTime LastBoardMessageSent { get; set; }
 
-    [Persist] public string LastBoardRecipient { get; set; }
+    [Persist] public string LastBoardRecipient { get; set; } = string.Empty;
 
     public bool HasUnreadMessages => false;
 

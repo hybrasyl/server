@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -112,18 +112,21 @@ public class WorldStateStore
     /// <typeparam name="T">The type to be returned</typeparam>
     /// <param name="key">The key for the object</param>
     /// <returns></returns>
+    // Returns default! when the key is absent despite the non-null signature. Callers must
+    // guard with ContainsKey/TryGetValue before dereferencing; an honest T? signature is
+    // deferred pending a caller audit.
     public T Get<T>(dynamic key) where T : IStateStorable
     {
         if (_dataStore.ContainsKey(typeof(T))) return (T)_dataStore[typeof(T)][Sanitize(key)];
-        return default;
+        return default!;
     }
 
     public T GetWorldObject<T>(Guid guid) where T : WorldObject, IStateStorable =>
-        _indexByGuid.ContainsKey(guid) ? (T)_indexByGuid[guid] : null;
+        _indexByGuid.ContainsKey(guid) ? (T)_indexByGuid[guid] : null!;
 
     public bool TryGetWorldObject<T>(Guid guid, out T obj) where T : WorldObject, IStateStorable
     {
-        obj = null;
+        obj = null!;
         if (!_indexByGuid.ContainsKey(guid)) return false;
         obj = (T)_indexByGuid[guid];
         return true;
@@ -152,7 +155,7 @@ public class WorldStateStore
     public T GetByIndex<T>(dynamic key) where T : IStateStorable
     {
         if (_index.ContainsKey(typeof(T))) return (T)_index[typeof(T)][Sanitize(key)];
-        return default;
+        return default!;
     }
 
     /// <summary>
@@ -164,7 +167,7 @@ public class WorldStateStore
     /// <returns>True or false depending on whether or not item was found</returns>
     public bool TryGetValue<T>(dynamic key, out T tresult) where T : IStateStorable
     {
-        tresult = default;
+        tresult = default!;
         var sub = GetSubStore<T>();
         if (!sub.ContainsKey(Sanitize(key))) return false;
         tresult = (T)sub[Sanitize(key)];
@@ -180,7 +183,7 @@ public class WorldStateStore
     /// <returns>True or false depending on whether or not item was found</returns>
     public bool TryGetValueByIndex<T>(dynamic key, out T tresult) where T : IStateStorable
     {
-        tresult = default;
+        tresult = default!;
         var sub = GetSubIndex<T>();
         if (!sub.ContainsKey(Sanitize(key)))
             //GameLog.Error($"TryGetValueByIndex: type {typeof(T)}: key {key.ToString().Normalize()} not found");
@@ -284,7 +287,7 @@ public class WorldStateStore
 
     public bool TryGetSocialEvent(User name, out SocialEvent socialEvent)
     {
-        socialEvent = null;
+        socialEvent = null!;
         if (TryGetValue(name, out socialEvent))
             return true;
         if (TryGetValueByIndex(name.Map.Id, out socialEvent))
@@ -294,7 +297,7 @@ public class WorldStateStore
 
     public bool TryGetAuthInfo(string name, out AuthInfo info)
     {
-        info = null;
+        info = null!;
         var guid = GetGuidByName(name);
 
         if (guid == Guid.Empty) return false;
@@ -320,18 +323,17 @@ public class WorldStateStore
             throw new ArgumentException($"Type {type} is not a Guid referenced Redis type");
 
         // Check for existence of object locally first
-        if (TryGetValue(guid, out T obj))
-            return obj;
+        if (TryGetValue(guid, out T existing))
+            return existing;
 
         // Check for existence of object in Redis
         var storageKey = $"{type.FullName}:{guid}";
-        if (Redis.KeyExists(storageKey))
-            obj = Redis.Get<T>(storageKey);
+        var obj = Redis.KeyExists(storageKey) ? Redis.Get<T>(storageKey) : default;
 
         // Fall back to creating it if needed
         if (obj == null)
         {
-            obj = (T)Activator.CreateInstance(typeof(T), guid);
+            obj = (T)Activator.CreateInstance(typeof(T), guid)!;
             Redis.Set(storageKey, obj);
         }
 
@@ -352,7 +354,8 @@ public class WorldStateStore
         // Check redis first, then fall back to creation
         if (Redis.KeyExists(Board.GetStorageKey(name)))
         {
-            newBoard = Redis.Get<Board>(Board.GetStorageKey(name));
+            // KeyExists-guarded; Get throws on corrupt data, so a present key yields a board.
+            newBoard = Redis.Get<Board>(Board.GetStorageKey(name))!;
             GameLog.DataLogInfo("Board: loaded {Name}", name);
             newBoard.Id = newBoardId;
         }
@@ -367,13 +370,15 @@ public class WorldStateStore
         return Get<Board>(name);
     }
 
+    // Returns null! when the user is unknown despite the non-null signature; callers deref
+    // directly. An honest T? signature is deferred with the other store getters.
     public GuidReference GetGuidReference(string name)
     {
         if (TryGetValueByIndex(name, out GuidReference reference))
             return reference;
         if (TryGetUser(name, out var userobj))
             return GetGuidReference(userobj);
-        return null;
+        return null!;
     }
 
     public GuidReference GetGuidReference(User userObj)
@@ -393,12 +398,13 @@ public class WorldStateStore
 
     public bool TryGetUser(string name, out User userobj)
     {
-        userobj = null;
+        userobj = null!;
         try
         {
-            userobj = Redis.Get<User>(User.GetStorageKey(name));
-            if (userobj != null)
+            var loaded = Redis.Get<User>(User.GetStorageKey(name));
+            if (loaded != null)
             {
+                userobj = loaded;
                 // Ensure our guid reference is created when we deserialize a user (if it doesn't already exist)
                 GetGuidReference(userobj);
                 return true;

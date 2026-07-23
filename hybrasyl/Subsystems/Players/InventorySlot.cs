@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -20,9 +20,9 @@ namespace Hybrasyl.Subsystems.Players;
 
 public class InventorySlot
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public int Count { get; set; }
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
     public double Durability { get; set; }
-    public string Guid { get; set; }
+    public string Guid { get; set; } = string.Empty;
 }

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -20,8 +20,8 @@ namespace Hybrasyl.Plugins;
 
 public class MessagePluginResponse : IMessagePluginResponse
 {
-    public Message Message { get; set; }
+    public Message? Message { get; set; }
     public bool Success { get; set; }
-    public string PluginResponse { get; set; }
+    public string? PluginResponse { get; set; }
     public bool Transformed => Message != null;
 }

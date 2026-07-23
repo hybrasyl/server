@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -35,7 +35,9 @@ public sealed class SocketProxy(Socket toProxy) : ISocketProxy
         new SocketProxy(new Socket(addressFamily, socketType, protocolType));
 
     public static ISocketProxy CreateFromAsyncResult(IAsyncResult asyncResult) =>
-        (SocketProxy)asyncResult.AsyncState;
+        // AsyncState carries the originating socket per the BeginAccept(callback, socket)
+        // contract; a null/foreign state is a programming error the cast surfaces anyway.
+        (SocketProxy)asyncResult.AsyncState!;
 
     public IAsyncResult BeginSend(byte[] buffer, int offset, int size, SocketFlags socketFlags, AsyncCallback callback,
         object state) => toProxy.BeginSend(buffer, offset, size, socketFlags, callback, state);

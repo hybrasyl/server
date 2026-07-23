@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -75,7 +75,7 @@ internal class QuadTreeObject<T> where T : IQuadStorable //, IComparable<QuadTre
     /// <summary>
     ///     The QuadTreeNode that owns this object
     /// </summary>
-    internal QuadTreeNode<T> Owner { get; set; }
+    internal QuadTreeNode<T>? Owner { get; set; }
 
 
     //public int CompareTo(QuadTreeObject<T> other)
@@ -348,33 +348,33 @@ public class QuadTreeNode<T> where T : IQuadStorable
     /// <summary>
     ///     The top left child for this QuadTree
     /// </summary>
-    public QuadTreeNode<T> TopLeftChild { get; private set; }
+    public QuadTreeNode<T>? TopLeftChild { get; private set; }
 
     /// <summary>
     ///     The top right child for this QuadTree
     /// </summary>
-    public QuadTreeNode<T> TopRightChild { get; private set; }
+    public QuadTreeNode<T>? TopRightChild { get; private set; }
 
     /// <summary>
     ///     The bottom left child for this QuadTree
     /// </summary>
-    public QuadTreeNode<T> BottomLeftChild { get; private set; }
+    public QuadTreeNode<T>? BottomLeftChild { get; private set; }
 
     /// <summary>
     ///     The bottom right child for this QuadTree
     /// </summary>
-    public QuadTreeNode<T> BottomRightChild { get; private set; }
+    public QuadTreeNode<T>? BottomRightChild { get; private set; }
 
     /// <summary>
     ///     This QuadTree's parent
     /// </summary>
-    public QuadTreeNode<T> Parent { get; }
+    public QuadTreeNode<T>? Parent { get; }
 
     /// <summary>
     ///     The objects contained in this QuadTree at it's level (ie, excludes children)
     /// </summary>
     //public List<T> Objects { get { return m_objects; } }
-    internal List<QuadTreeObject<T>> Objects { get; private set; }
+    internal List<QuadTreeObject<T>>? Objects { get; private set; }
 
     /// <summary>
     ///     How many total objects are contained within this QuadTree (ie, includes children)
@@ -480,9 +480,9 @@ public class QuadTreeNode<T> where T : IQuadStorable
         if (TopLeftChild != null)
         {
             count += TopLeftChild.ObjectCount();
-            count += TopRightChild.ObjectCount();
-            count += BottomLeftChild.ObjectCount();
-            count += BottomRightChild.ObjectCount();
+            count += TopRightChild!.ObjectCount();
+            count += BottomLeftChild!.ObjectCount();
+            count += BottomRightChild!.ObjectCount();
         }
 
         return count;
@@ -508,7 +508,8 @@ public class QuadTreeNode<T> where T : IQuadStorable
         // If they're completely contained by the quad, bump objects down
         lock (lockObject)
         {
-            for (var i = 0; i < Objects.Count; i++)
+            // Objects is non-null here: Subdivide runs only after Insert has populated it.
+            for (var i = 0; i < Objects!.Count; i++)
             {
                 var destTree = GetDestinationTree(Objects[i]);
 
@@ -534,13 +535,13 @@ public class QuadTreeNode<T> where T : IQuadStorable
         // If a child can't contain an object, it will live in this Quad
         var destTree = this;
 
-        if (TopLeftChild.QuadRect.Contains(item.Data.Rect))
+        if (TopLeftChild!.QuadRect.Contains(item.Data.Rect))
             destTree = TopLeftChild;
-        else if (TopRightChild.QuadRect.Contains(item.Data.Rect))
+        else if (TopRightChild!.QuadRect.Contains(item.Data.Rect))
             destTree = TopRightChild;
-        else if (BottomLeftChild.QuadRect.Contains(item.Data.Rect))
+        else if (BottomLeftChild!.QuadRect.Contains(item.Data.Rect))
             destTree = BottomLeftChild;
-        else if (BottomRightChild.QuadRect.Contains(item.Data.Rect)) destTree = BottomRightChild;
+        else if (BottomRightChild!.QuadRect.Contains(item.Data.Rect)) destTree = BottomRightChild;
 
         return destTree;
     }
@@ -565,7 +566,7 @@ public class QuadTreeNode<T> where T : IQuadStorable
                     dest.Insert(item);
 
                     // Clean up ourselves
-                    formerOwner.CleanUpwards();
+                    formerOwner?.CleanUpwards();
                 }
             }
         }
@@ -583,9 +584,9 @@ public class QuadTreeNode<T> where T : IQuadStorable
         {
             // If all the children are empty leaves, delete all the children
             if (TopLeftChild.IsEmptyLeaf &&
-                TopRightChild.IsEmptyLeaf &&
-                BottomLeftChild.IsEmptyLeaf &&
-                BottomRightChild.IsEmptyLeaf)
+                TopRightChild!.IsEmptyLeaf &&
+                BottomLeftChild!.IsEmptyLeaf &&
+                BottomRightChild!.IsEmptyLeaf)
             {
                 lock (lockObject)
                 {
@@ -619,9 +620,9 @@ public class QuadTreeNode<T> where T : IQuadStorable
             lock (lockObject)
             {
                 TopLeftChild.Clear();
-                TopRightChild.Clear();
-                BottomLeftChild.Clear();
-                BottomRightChild.Clear();
+                TopRightChild!.Clear();
+                BottomLeftChild!.Clear();
+                BottomRightChild!.Clear();
             }
 
         // Clear any objects at this level
@@ -775,9 +776,9 @@ public class QuadTreeNode<T> where T : IQuadStorable
         if (TopLeftChild != null)
         {
             TopLeftChild.GetAllObjects(ref results);
-            TopRightChild.GetAllObjects(ref results);
-            BottomLeftChild.GetAllObjects(ref results);
-            BottomRightChild.GetAllObjects(ref results);
+            TopRightChild!.GetAllObjects(ref results);
+            BottomLeftChild!.GetAllObjects(ref results);
+            BottomRightChild!.GetAllObjects(ref results);
         }
     }
 

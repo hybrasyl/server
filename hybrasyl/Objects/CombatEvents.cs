@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -26,9 +26,9 @@ namespace Hybrasyl.Objects;
 
 public interface ICombatEvent
 {
-    public Creature Source { get; set; }
-    public Creature Target { get; set; }
-    public Castable SourceCastable { get; set; }
+    public Creature? Source { get; set; }
+    public Creature? Target { get; set; }
+    public Castable? SourceCastable { get; set; }
     public CombatLogEventType EventType { get; }
     public string SourceName { get; }
     public string TargetName { get; }
@@ -37,9 +37,9 @@ public interface ICombatEvent
 
 public record CombatEvent : ICombatEvent
 {
-    public Creature Source { get; set; }
-    public Creature Target { get; set; }
-    public Castable SourceCastable { get; set; }
+    public Creature? Source { get; set; }
+    public Creature? Target { get; set; }
+    public Castable? SourceCastable { get; set; }
     public virtual CombatLogEventType EventType { get; set; }
     public string SourceName => Source?.Name ?? "unknown";
     public string TargetName => Target?.Name ?? "unknown";
@@ -154,7 +154,7 @@ public record DamageEvent : StatChangeEvent
 [MoonSharpUserData]
 public record NoLootEvent : CombatEvent
 {
-    public string Reason { get; set; }
+    public string Reason { get; set; } = string.Empty;
     public override CombatLogEventType EventType => CombatLogEventType.Loot;
     public override string ToString() => $"[LOOT DENIED]: {Target}: {Reason}";
 }
@@ -183,7 +183,7 @@ public record StatusEvent : CombatEvent
 {
     public bool Applied { get; set; } = true;
     public bool Success { get; set; } = false;
-    public string StatusName { get; set; }
+    public string StatusName { get; set; } = string.Empty;
     public string RemoverName { get; set; } = string.Empty;
 
     public double RemovalRoll { get; set; } = 0.0;

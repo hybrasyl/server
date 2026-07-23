@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -17,10 +17,11 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Hybrasyl.Internals;
 
-public class MultiIndexDictionary<TKey1, TKey2, TValue>
+public class MultiIndexDictionary<TKey1, TKey2, TValue> where TKey1 : notnull where TKey2 : notnull
 {
     private Dictionary<TKey1, KeyValuePair<TKey2, TValue>> _dict1 = new();
     private Dictionary<TKey2, KeyValuePair<TKey1, TValue>> _dict2 = new();
@@ -64,18 +65,18 @@ public class MultiIndexDictionary<TKey1, TKey2, TValue>
 
     }
 
-    public bool TryGetValue(TKey1 k1, out TValue value)
+    public bool TryGetValue(TKey1 k1, [MaybeNullWhen(false)] out TValue value)
     {
-        value = default;
+        value = default!;
         if (!_dict1.TryGetValue(k1, out var kvp)) return false;
         value = kvp.Value;
         return true;
 
     }
 
-    public bool TryGetValue(TKey2 k2, out TValue value)
+    public bool TryGetValue(TKey2 k2, [MaybeNullWhen(false)] out TValue value)
     {
-        value = default;
+        value = default!;
         if (!_dict2.TryGetValue(k2, out var kvp)) return false;
         value = kvp.Value;
         return true;

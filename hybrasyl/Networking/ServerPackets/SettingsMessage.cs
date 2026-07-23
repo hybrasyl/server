@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,7 +25,7 @@ internal class SettingsMessage
     private readonly byte OpCode = OpCodes.SystemMessage;
     internal byte Type = 0x07;
     internal byte Number { get; set; }
-    internal string DisplayString { get; set; }
+    internal string DisplayString { get; set; } = string.Empty;
 
     internal ServerPacket Packet()
     {

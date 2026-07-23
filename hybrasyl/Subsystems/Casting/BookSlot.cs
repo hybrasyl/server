@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -23,7 +23,9 @@ namespace Hybrasyl.Casting;
 
 public class BookSlot
 {
-    public Castable Castable { get; set; }
+    // Always set at slot creation (object initializer). Part of the persisted book graph
+    // ([Persist] Skill/SpellBook on User), so not `required`; invariant: non-null for any live slot.
+    public Castable Castable { get; set; } = null!;
     public uint UseCount { get; set; }
     public uint MasteryLevel { get; set; }
     public DateTime LastCast { get; set; }

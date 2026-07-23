@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -211,7 +211,8 @@ public static class LootBox
         do
         {
             // Get a random item from the list
-            var item = Extensions.EnumerableExtension.PickRandom(list.Item.Where(predicate: i => !i.Always));
+            // PickRandom without nullifempty calls Single(), which throws on an empty source rather than returning null.
+            var item = Extensions.EnumerableExtension.PickRandom(list.Item.Where(predicate: i => !i.Always))!;
             // As soon as we get an item from our table, we've "rolled"; we'll add another roll below if needed
             rolls--;
             totalRolls++;
@@ -247,9 +248,10 @@ public static class LootBox
                 if (lootitem.Variants.Any())
                 {
                     // Determine overlap between available variants and specified variants
-                    var lootedVariant = Extensions.EnumerableExtension.PickRandom(lootitem.Variants);
+                    // PickRandom without nullifempty throws on empty rather than returning null; never null here.
+                    var lootedVariant = Extensions.EnumerableExtension.PickRandom(lootitem.Variants)!;
                     if (xmlItem.Variants?.TryGetValue(lootedVariant, out var variantItems) ?? false)
-                        itemList.Add(Game.World.CreateItem(Extensions.EnumerableExtension.PickRandom(variantItems).Id));
+                        itemList.Add(Game.World.CreateItem(Extensions.EnumerableExtension.PickRandom(variantItems)!));
                     else
                         GameLog.SpawnError(
                             "Loot: variant group {Variant} specified for {Item} but that item does not have the specified variant",
@@ -257,7 +259,7 @@ public static class LootBox
                 }
                 else
                 {
-                    itemList.Add(Game.World.CreateItem(xmlItem.Id));
+                    itemList.Add(Game.World.CreateItem(xmlItem));
                 }
             }
             else

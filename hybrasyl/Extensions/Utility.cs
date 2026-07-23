@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -49,7 +49,7 @@ namespace Hybrasyl.Extensions
 
     public static class EnumerableExtension
     {
-        public static T PickRandom<T>(this IEnumerable<T> source, bool nullifempty = false)
+        public static T? PickRandom<T>(this IEnumerable<T> source, bool nullifempty = false)
         {
             if (nullifempty && source.Count() == 0) return default;
             return source.PickRandom(1).Single();
@@ -98,7 +98,7 @@ namespace Hybrasyl.Extensions
 
             public string Copyright
             {
-                get { return GetAttributeValue<AssemblyCopyrightAttribute>(resolveFunc: a => a.Copyright); }
+                get { return GetAttributeValue<AssemblyCopyrightAttribute>(resolveFunc: a => a.Copyright) ?? string.Empty; }
             }
 
             public string GitHash
@@ -112,8 +112,8 @@ namespace Hybrasyl.Extensions
                 }
             }
 
-            protected string GetAttributeValue<TAttr>(Func<TAttr,
-                string> resolveFunc, string defaultResult = null) where TAttr : Attribute
+            protected string? GetAttributeValue<TAttr>(Func<TAttr,
+                string> resolveFunc, string? defaultResult = null) where TAttr : Attribute
             {
                 var attributes = Assembly.GetCustomAttributes(typeof(TAttr), false);
                 if (attributes.Length > 0)

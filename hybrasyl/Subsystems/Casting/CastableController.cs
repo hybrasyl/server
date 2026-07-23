@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -22,6 +22,7 @@ using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Hybrasyl.Casting;
@@ -37,7 +38,7 @@ public class CastableController : IEnumerable<Rotation>
         MonsterGuid = id;
     }
 
-    public BookSlot LastCastableUsed { get; set; }
+    public BookSlot? LastCastableUsed { get; set; }
     public Dictionary<string, BookSlot> Castables { get; set; } = new();
 
     public Guid MonsterGuid { get; set; }
@@ -55,7 +56,8 @@ public class CastableController : IEnumerable<Rotation>
 
     public bool ContainsCastable(string castable) => Castables.ContainsKey(castable);
 
-    public bool TryGetCastable(string castable, out BookSlot slot) => Castables.TryGetValue(castable, out slot);
+    public bool TryGetCastable(string castable, [MaybeNullWhen(false)] out BookSlot slot) =>
+        Castables.TryGetValue(castable, out slot);
 
     /// <summary>
     ///     Given an already specified behaviorset for the monster, learn all the castables possible at
@@ -187,7 +189,7 @@ public class CastableController : IEnumerable<Rotation>
     ///     A RotationEntry structure indicating the rotation and castable to be used next (along with targeting), or
     ///     null, if no castable is to be used.
     /// </returns>
-    public RotationEntry GetNextCastable(RotationType? type = null)
+    public RotationEntry? GetNextCastable(RotationType? type = null)
     {
         // Evaluate all UseOnce castables to see if one has triggered. If it has, return that immediately
         // If no UseOnce triggered, order rotations by priority(SecondsSinceLastUse - Interval) and select top rotation. 
@@ -222,7 +224,8 @@ public class CastableController : IEnumerable<Rotation>
             return null;
         }
 
-        if (rotation.CurrentCastable == null)
+        var currentCastable = rotation.CurrentCastable;
+        if (currentCastable == null)
         {
             GameLog.SpawnError("{Monster}: processing rotation but no castables defined (CurrentCastable null)", MonsterObj.Name);
             return null;
@@ -247,13 +250,13 @@ public class CastableController : IEnumerable<Rotation>
         }
 
         // Monsters have to be active longer than the casting time of a castable in order to use it, exception is assail rotations
-        if (type == RotationType.Assail) return rotation.CurrentCastable;
-        return MonsterObj.ActiveSeconds > rotation.CurrentCastable.CastingTime ? rotation.CurrentCastable : null;
+        if (type == RotationType.Assail) return currentCastable;
+        return MonsterObj.ActiveSeconds > currentCastable.CastingTime ? currentCastable : null;
     }
 
     public bool CanCast(string castable) => Castables.ContainsKey(castable);
 
-    public Rotation GetNextRotation()
+    public Rotation? GetNextRotation()
     {
         return Rotations.Count == 0
             ? null
@@ -261,10 +264,10 @@ public class CastableController : IEnumerable<Rotation>
                 .OrderByDescending(keySelector: x => x.Priority).FirstOrDefault();
     }
 
-    public Rotation GetAssailRotation()
+    public Rotation? GetAssailRotation()
     {
         return Rotations.Values.FirstOrDefault(predicate: x => x.Type == RotationType.Assail);
     }
 
-    public RotationEntry GetNextAssail() => GetNextCastable(RotationType.Assail);
+    public RotationEntry? GetNextAssail() => GetNextCastable(RotationType.Assail);
 }

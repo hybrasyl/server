@@ -83,7 +83,7 @@ public class MapObject : IStateStorable
     public MapFlags Flags { get; set;}
     public byte Music { get; set; }
     public World World { get; set; }
-    public byte[] RawData { get; set; }
+    public byte[] RawData { get; set; } = [];
     public ushort Checksum { get; set; }
     public bool DynamicLighting { get; set;}
 
@@ -93,8 +93,8 @@ public class MapObject : IStateStorable
     public bool AllowCasting { get; set; }
     public bool AllowSpeaking { get; set; }
 
-    public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; }
-    public string Message { get; set; }
+    public Dictionary<Tuple<byte, byte>, Warp> Warps { get; set; } = new();
+    public string? Message { get; set; }
 
     public QuadTree<VisibleObject> EntityTree { get; set; }
 
@@ -129,11 +129,11 @@ public class MapObject : IStateStorable
         }
     }
 
-    public Dictionary<string, User> Users { get; private set; }
+    public Dictionary<string, User> Users { get; private set; } = new();
 
-    public Dictionary<(byte X, byte Y), Door> Doors { get; set; }
-    public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; }
-    public Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>> Reactors { get; set; }
+    public Dictionary<(byte X, byte Y), Door> Doors { get; set; } = new();
+    public Dictionary<(byte X, byte Y), Signpost> Signposts { get; set; } = new();
+    public Dictionary<(byte X, byte Y), Dictionary<Guid, Reactor>> Reactors { get; set; } = new();
 
     public SpawnGroup SpawnDirectives { get; set; }
 
@@ -196,7 +196,7 @@ public class MapObject : IStateStorable
 
     public void Init()
     {
-        RawData = new byte[0];
+        RawData = [];
         Objects = new HashSet<VisibleObject>();
         Users = new Dictionary<string, User>();
         Warps = new Dictionary<Tuple<byte, byte>, Warp>();
@@ -350,7 +350,7 @@ public class MapObject : IStateStorable
         }
     }
 
-    private static DoorSpriteInfo LookupDoorSprite(ushort lfg, ushort rfg)
+    private static DoorSpriteInfo? LookupDoorSprite(ushort lfg, ushort rfg)
     {
         if (Sprites.SpriteInfo.TryGetValue(lfg, out var linfo))
             return linfo;
@@ -710,7 +710,7 @@ public class MapObject : IStateStorable
             obj.AoiDeparture(target);
         }
 
-        obj.Map = null;
+        obj.Map = null!; // clearing the runtime back-reference on removal (Map is typed non-null)
     }
 
 
@@ -793,12 +793,11 @@ public class MapObject : IStateStorable
     public void NotifyNearbyAoiEntry(VisibleObject objectToAdd)
     {
         foreach (var obj in EntityTree.GetObjects(objectToAdd.GetViewport()))
-            if (obj is User)
+            if (obj is User user)
             {
                 GameLog.DebugFormat("Notifying {0} of object {1} at {2},{3} with sprite {4}", obj.Name,
                     objectToAdd.Name,
                     objectToAdd.X, objectToAdd.Y, objectToAdd.Sprite);
-                var user = obj as User;
                 user.AoiEntry(objectToAdd);
             }
     }
@@ -806,9 +805,8 @@ public class MapObject : IStateStorable
     public void NotifyNearbyAoiDeparture(VisibleObject objectToRemove)
     {
         foreach (var obj in EntityTree.GetObjects(objectToRemove.GetViewport()))
-            if (obj is User)
+            if (obj is User user)
             {
-                var user = obj as User;
                 user.AoiDeparture(objectToRemove);
             }
     }

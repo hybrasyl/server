@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -42,7 +42,7 @@ public class Warp
     public MapObject SourceMap { get; set; }
     public byte X { get; set; }
     public byte Y { get; set; }
-    public string DestinationMapName { get; set; }
+    public string DestinationMapName { get; set; } = string.Empty;
     public WarpType WarpType { get; set; }
     public byte DestinationX { get; set; }
     public byte DestinationY { get; set; }

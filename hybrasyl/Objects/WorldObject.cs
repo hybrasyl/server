@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -36,9 +36,9 @@ public class WorldObject : IQuadStorable, IWorldObject
     public virtual byte X { get; set; }
     public virtual byte Y { get; set; }
 
-    public virtual Script Script { get; set; }
+    public virtual Script? Script { get; set; }
 
-    public ScriptExecutionResult LastExecutionResult { get; set; }
+    public ScriptExecutionResult? LastExecutionResult { get; set; }
 
     public ushort DialogSprite { get; set; }
 
@@ -54,7 +54,7 @@ public class WorldObject : IQuadStorable, IWorldObject
     public uint Id { get; set; }
     [Persist(Order = 0)] public Guid Guid { get; set; } = Guid.NewGuid();
 
-    [Persist(Order = 0)] public virtual string Name { get; set; }
+    [Persist(Order = 0)] public virtual string Name { get; set; } = string.Empty;
 
     public Guid ServerGuid { get; set; } = Guid.Empty;
     public World World => Game.GetServerByGuid<World>(ServerGuid) ?? Game.GetDefaultServer<World>();

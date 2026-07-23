@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -113,7 +113,7 @@ internal class DisplayUser
 
     #region Appearance
 
-    internal string Name { get; set; }
+    internal string Name { get; set; } = string.Empty;
     internal Gender Gender { get; set; }
     internal ushort Helmet { get; set; }
     internal byte BodySpriteOffset { get; set; }
@@ -137,7 +137,7 @@ internal class DisplayUser
     internal byte FaceShape { get; set; }
     internal LanternSize LanternSize { get; set; }
     internal NameDisplayStyle NameStyle { get; set; }
-    internal string GroupName { get; set; }
+    internal string GroupName { get; set; } = string.Empty;
     internal bool DisplayAsMonster { get; set; }
     internal ushort MonsterSprite { get; set; }
 

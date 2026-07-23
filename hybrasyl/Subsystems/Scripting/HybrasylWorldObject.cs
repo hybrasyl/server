@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -37,7 +37,8 @@ public class HybrasylWorldObject : IScriptable
         WorldObject = obj;
     }
 
-    public WorldObject Obj => WorldObject as WorldObject;
+    // The wrapped IWorldObject is always a concrete WorldObject in practice.
+    public WorldObject Obj => (WorldObject as WorldObject)!;
 
     public virtual bool IsPlayer => false;
 
@@ -170,7 +171,7 @@ public class HybrasylWorldObject : IScriptable
         if (Obj is not IEphemeral ephemeral) return;
         ephemeral.SetEphemeral(key, value);
         GameLog.ScriptingDebug("{Function}: {Name}, stored key {Key} with value {Value}",
-            MethodBase.GetCurrentMethod().Name, Obj.Name, key, value);
+            MethodBase.GetCurrentMethod()!.Name, Obj.Name, key, value);
     }
 
     /// <summary>
@@ -194,7 +195,7 @@ public class HybrasylWorldObject : IScriptable
         if (Obj is not IEphemeral ephemeral) return;
         ephemeral.SetEphemeral($"{user.ToLower()}:{key}", value);
         GameLog.ScriptingDebug("{Function}: {Name}, stored scoped key {Key} with value {Value} for {user}",
-            MethodBase.GetCurrentMethod().Name, Obj.Name, key, value, user);
+            MethodBase.GetCurrentMethod()!.Name, Obj.Name, key, value, user);
     }
 
     /// <summary>
@@ -227,7 +228,7 @@ public class HybrasylWorldObject : IScriptable
         }
 
         if (Obj is not IEphemeral ephemeral) return DynValue.Nil;
-        return ephemeral.TryGetEphemeral(key, out var value) ? value : DynValue.Nil;
+        return ephemeral.TryGetEphemeral(key, out var value) ? value ?? DynValue.Nil : DynValue.Nil;
     }
 
     /// <summary>
@@ -246,7 +247,7 @@ public class HybrasylWorldObject : IScriptable
         }
 
         if (Obj is not IEphemeral ephemeral) return DynValue.Nil;
-        return ephemeral.TryGetEphemeral($"{user.ToLower()}:{key}", out var value) ? value : DynValue.Nil;
+        return ephemeral.TryGetEphemeral($"{user.ToLower()}:{key}", out var value) ? value ?? DynValue.Nil : DynValue.Nil;
     }
 
     /// <summary>
@@ -314,10 +315,14 @@ public class HybrasylWorldObject : IScriptable
     public bool RequestDialog(string targetUser, string sourceGuid, string sequenceName, string originGuid,
         bool requireLocal = true)
     {
-        IInteractable originInteractable = null;
+        IInteractable? originInteractable = null;
 
-        WorldObject originObj = null;
-        CastableObject originCastable = null;
+        // Declared non-nullable so the generic TryGet* infers T within its non-null
+        // constraint (a nullable-typed out arg would violate where T : WorldObject).
+        // The null-checks below still handle the not-found case; null! bridges
+        // definite-assignment for the short-circuited second lookup.
+        WorldObject originObj = null!;
+        CastableObject originCastable = null!;
         if (string.IsNullOrEmpty(sequenceName) || string.IsNullOrEmpty(targetUser))
         {
             GameLog.ScriptingError(
@@ -363,7 +368,13 @@ public class HybrasylWorldObject : IScriptable
             return false;
         }
 
-        var session = new AsyncDialogSession(sequenceName, originInteractable, worldObj as IVisible, user);
+        if (worldObj is not IVisible visibleSource)
+        {
+            GameLog.ScriptingError("RequestDialog: source guid {SourceGuid} is not a visible object", sourceGuid);
+            return false;
+        }
+
+        var session = new AsyncDialogSession(sequenceName, originInteractable, visibleSource, user);
         return Game.World.TryAsyncDialog(session);
     }
 
@@ -373,9 +384,8 @@ public class HybrasylWorldObject : IScriptable
     /// <param name="message">The text to be spoken</param>
     public void Say(string message)
     {
-        if (Obj is VisibleObject)
+        if (Obj is VisibleObject creature)
         {
-            var creature = Obj as VisibleObject;
             creature.Say(message);
         }
         else
@@ -390,9 +400,8 @@ public class HybrasylWorldObject : IScriptable
     /// <param name="user">User object that will receive the update.</param>
     public void ShowTo(HybrasylUser user)
     {
-        if (Obj is Monster)
+        if (Obj is Monster monster)
         {
-            var monster = Obj as Monster;
             monster.ShowTo(user.User);
         }
         else

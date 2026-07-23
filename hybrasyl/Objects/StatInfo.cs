@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -1496,10 +1496,10 @@ public class StatInfo
         ? BaseDefensiveElement
         : DefensiveElementOverride;
 
-    public string OffensiveElementStr => Enum.GetName(typeof(ElementType), OffensiveElement);
-    public string DefensiveElementStr => Enum.GetName(typeof(ElementType), DefensiveElement);
-    public string OffensiveElementOverrideStr => Enum.GetName(typeof(ElementType), OffensiveElementOverride);
-    public string DefensiveElementOverrideStr => Enum.GetName(typeof(ElementType), DefensiveElementOverride);
+    public string OffensiveElementStr => Enum.GetName(typeof(ElementType), OffensiveElement)!;
+    public string DefensiveElementStr => Enum.GetName(typeof(ElementType), DefensiveElement)!;
+    public string OffensiveElementOverrideStr => Enum.GetName(typeof(ElementType), OffensiveElementOverride)!;
+    public string DefensiveElementOverrideStr => Enum.GetName(typeof(ElementType), DefensiveElementOverride)!;
 
     [FormulaVariable]
     public uint MaximumHp =>
@@ -1713,7 +1713,7 @@ public class StatInfo
     ///     Boolean indicating whether or not to apply the attributes in the passed object as bonuses or a
     ///     base attribute change
     /// </param>
-    public void Apply(StatInfo si1, bool experience = false)
+    public void Apply(StatInfo? si1, bool experience = false)
     {
         if (si1 == null || si1.Empty) return;
         // Always apply current hp/mp/gold changes
@@ -1805,7 +1805,7 @@ public class StatInfo
     ///     Boolean indicating whether or not to remove the attributes in the passed object as bonuses or a
     ///     base attribute change
     /// </param>
-    public void Remove(StatInfo si1, bool experience = false)
+    public void Remove(StatInfo? si1, bool experience = false)
     {
         if (si1 == null || si1.Empty) return;
 

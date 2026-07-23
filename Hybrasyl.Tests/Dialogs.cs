@@ -25,7 +25,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class Dialogs
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public Dialogs(HybrasylFixture fixture)
     {

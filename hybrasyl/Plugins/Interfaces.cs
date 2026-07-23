@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Plugins;
@@ -24,12 +25,12 @@ namespace Hybrasyl.Plugins;
 public interface IPluginResponse
 {
     public bool Success { get; set; }
-    public string PluginResponse { get; set; }
+    public string? PluginResponse { get; set; }
 }
 
 public interface IMessagePluginResponse : IPluginResponse
 {
-    public Message Message { get; set; }
+    public Message? Message { get; set; }
     public bool Transformed { get; }
 }
 
@@ -37,7 +38,7 @@ public interface IHandlerConfiguration
 {
     public void LoadXmlConfig(List<PluginConfig> config);
     public bool StoreValue(string key, string value);
-    public bool TryGetValue(string key, out string value);
+    public bool TryGetValue(string key, [MaybeNullWhen(false)] out string value);
 }
 
 /// <summary>

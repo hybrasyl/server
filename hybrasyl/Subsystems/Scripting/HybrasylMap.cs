@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -40,8 +40,8 @@ public class HybrasylMap
 
     public void DropItem(HybrasylWorldObject obj, int x, int y)
     {
-        if (obj.Obj is ItemObject)
-            Map.Insert(obj.Obj as ItemObject, (byte) x, (byte) y);
+        if (obj.Obj is ItemObject item)
+            Map.Insert(item, (byte) x, (byte) y);
     }
 
     /// <summary>
@@ -58,10 +58,11 @@ public class HybrasylMap
     /// <param name="x">X coordinate on map</param>
     /// <param name="y">Y coordinate on map</param>
     /// <returns></returns>
-    public HybrasylUser GetPlayerAt(byte x, byte y)
+    public HybrasylUser? GetPlayerAt(byte x, byte y)
     {
-        var target = Map.GetCreatures(x, y).FirstOrDefault(predicate: u => u is User);
-        return target != null ? new HybrasylUser(target as User) : null;
+        return Map.GetCreatures(x, y).FirstOrDefault(predicate: u => u is User) is User user
+            ? new HybrasylUser(user)
+            : null;
     }
 
     /// <summary>
@@ -70,9 +71,10 @@ public class HybrasylMap
     /// <param name="x">X coordinate on map</param>
     /// <param name="y">Y coordinate on map</param>
     /// <returns></returns>
-    public HybrasylMonster GetMonsterAt(byte x, byte y)
+    public HybrasylMonster? GetMonsterAt(byte x, byte y)
     {
-        var target = Map.GetCreatures(x, y).FirstOrDefault(predicate: m => m is Monster);
-        return target != null ? new HybrasylMonster(target as Monster) : null;
+        return Map.GetCreatures(x, y).FirstOrDefault(predicate: m => m is Monster) is Monster monster
+            ? new HybrasylMonster(monster)
+            : null;
     }
 }

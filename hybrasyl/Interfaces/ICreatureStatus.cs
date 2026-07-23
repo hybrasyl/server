@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -30,7 +30,7 @@ public interface ICreatureStatus
     string Name { get; }
     Guid Guid { get; }
     List<string> Category { get; }
-    string ActionProhibitedMessage { get; }
+    string? ActionProhibitedMessage { get; }
     double Duration { get; }
     double Tick { get; }
     DateTime Start { get; }
@@ -40,7 +40,7 @@ public interface ICreatureStatus
 
     StatusSnapshot Snapshot { get; }
     Creature Target { get; }
-    Creature Source { get; }
+    Creature? Source { get; }
     bool Expired { get; }
     double Intensity { get; set; }
     double Elapsed { get; }
@@ -48,11 +48,11 @@ public interface ICreatureStatus
     double ElapsedSinceTick { get; }
     List<string> UseCastRestrictions { get; }
     List<string> ReceiveCastRestrictions { get; }
-    Conditions ConditionChanges { get; }
-    SimpleStatusEffect OnStartEffect { get; }
-    SimpleStatusEffect OnTickEffect { get; }
-    SimpleStatusEffect OnRemoveEffect { get; }
-    SimpleStatusEffect OnExpireEffect { get; }
+    Conditions? ConditionChanges { get; }
+    SimpleStatusEffect? OnStartEffect { get; }
+    SimpleStatusEffect? OnTickEffect { get; }
+    SimpleStatusEffect? OnRemoveEffect { get; }
+    SimpleStatusEffect? OnExpireEffect { get; }
     Guid OriginSnapshotId { get; }
 
     void OnStart(bool displaySfx = true);

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -37,7 +37,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
 
     public Guid OriginSnapshotId { get; set; }
 
-    public CreatureSnapshot OriginSnapshot
+    public CreatureSnapshot? OriginSnapshot
     {
         get
         {
@@ -46,7 +46,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         }
     }
 
-    public string Description;
+    public string? Description;
     public string ScriptName;
     public string DisplayName { get; } = string.Empty;
 
@@ -67,8 +67,8 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         Init();
     }
 
-    public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature caster = null,
-        string description = null)
+    public Reactor(byte x, byte y, MapObject map, CastableReactor reactor, Creature? caster = null,
+        string? description = null)
     {
         X = x;
         Y = y;
@@ -94,10 +94,11 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
     public DateTime CreatedAt { get; set; }
     public DateTime Expiration { get; set; }
     private int ExpirationSeconds { get; set; }
-    public VisibleObject Origin { get; set; }
+    public VisibleObject? Origin { get; set; }
     public Guid CreatedBy { get; set; }
-    public bool OnDropCapable => Ready && !Expired && Script.HasFunction("OnDrop");
-    public bool OnTakeCapable => Ready && !Expired && Script.HasFunction("OnTake");
+    // Script is null for scriptless reactors (empty ScriptName), which are still Ready
+    public bool OnDropCapable => Ready && !Expired && (Script?.HasFunction("OnDrop") ?? false);
+    public bool OnTakeCapable => Ready && !Expired && (Script?.HasFunction("OnTake") ?? false);
 
     public bool Ready { get; set; } = false;
 
@@ -196,7 +197,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
             return;
         }
 
-        if (Script.HasFunction("OnSpawn"))
+        if (myScript.HasFunction("OnSpawn"))
         {
             //Reset all dialog state before re-running OnSpawn so the script re-registering its
             //sequences doesn't trip "Dialog sequence X is being overwritten" warnings. Just clearing
@@ -205,7 +206,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
             //ISpawnable, then MapObject.InsertReactor calls it a second time), and ScriptProcessor.ReloadScript
             //also re-fires OnSpawn — both paths land here.
             (this as IPursuitable).ResetPursuits();
-            var ret = Script.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
+            var ret = myScript.ExecuteFunction("OnSpawn", ScriptEnvironment.Create(("origin", this), ("source", this)));
             if (ret.Result == ScriptResult.Success)
                 Ready = true;
         }
@@ -227,7 +228,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         }
 
         if (!Ready) return;
-        var wef = Script.ExecuteFunction("OnEntry", GetBaseEnvironment(obj));
+        Script?.ExecuteFunction("OnEntry", GetBaseEnvironment(obj));
     }
 
     public override void AoiEntry(VisibleObject obj)
@@ -237,14 +238,14 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (!Ready) return;
         if (obj is User user)
             ShowTo(user);
-        Script.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
+        Script?.ExecuteFunction("AoiEntry", GetBaseEnvironment(obj));
     }
 
     public void OnLeave(VisibleObject obj)
     {
         if (Expired) return;
-        if (Ready && Script.HasFunction("OnLeave"))
-            Script.ExecuteFunction("OnLeave", GetBaseEnvironment(obj));
+        if (Ready && Script is { } script && script.HasFunction("OnLeave"))
+            script.ExecuteFunction("OnLeave", GetBaseEnvironment(obj));
         if (obj is User user)
             user.LastAssociate = null;
     }
@@ -254,7 +255,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (Expired) return;
         base.AoiDeparture(obj);
         if (!Ready) return;
-        Script.ExecuteFunction("AoiDeparture", GetBaseEnvironment(obj));
+        Script?.ExecuteFunction("AoiDeparture", GetBaseEnvironment(obj));
         if (obj is User u)
         {
             var removePacket = new ServerPacket(0x0E);
@@ -269,14 +270,14 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (!Ready) return;
         var env = GetBaseEnvironment(obj);
         env.Add("item", dropped);
-        Script.ExecuteFunction("OnDrop", env);
+        Script?.ExecuteFunction("OnDrop", env);
     }
 
     public void OnMove(VisibleObject obj)
     {
         if (Expired) return;
         if (!Ready) return;
-        Script.ExecuteFunction("OnMove", GetBaseEnvironment(obj));
+        Script?.ExecuteFunction("OnMove", GetBaseEnvironment(obj));
     }
 
     public void OnTake(VisibleObject obj, VisibleObject taken)
@@ -285,6 +286,6 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (!Ready) return;
         var env = GetBaseEnvironment(obj);
         env.Add("item", taken);
-        Script.ExecuteFunction("OnTake", env);
+        Script?.ExecuteFunction("OnTake", env);
     }
 }

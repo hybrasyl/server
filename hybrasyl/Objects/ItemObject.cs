@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -33,7 +33,7 @@ namespace Hybrasyl.Objects;
 
 public class ItemObject : VisibleObject, IInteractable
 {
-    private Item _template;
+    private Item? _template;
 
     public ItemObject(string id, Guid containingWorld = default, Guid guid = default)
     {
@@ -69,7 +69,8 @@ public class ItemObject : VisibleObject, IInteractable
 
     public string TemplateId { get; private set; }
 
-    public StatInfo Stats { get; private set; }
+    // Computed lazily by EvalFormula (only when the template has stat modifiers); null otherwise.
+    public StatInfo? Stats { get; private set; }
 
     public Item Template
     {
@@ -88,7 +89,7 @@ public class ItemObject : VisibleObject, IInteractable
     {
         get
         {
-            if ((Template?.Properties?.Equipment?.Slot ?? Xml.Objects.EquipmentSlot.None) !=
+            if ((Template.Properties.Equipment?.Slot ?? Xml.Objects.EquipmentSlot.None) !=
                 Xml.Objects.EquipmentSlot.None)
                 return ItemObjectType.Equipment;
             if (Template.Properties.Flags.HasFlag(ItemFlags.Consumable) || Template.Use != null)
@@ -111,7 +112,7 @@ public class ItemObject : VisibleObject, IInteractable
 
     public List<CastModifier> CastModifiers => Template.Properties.CastModifiers;
 
-    public uint MaximumDurability => Template.Properties?.Physical?.Durability > uint.MaxValue
+    public uint MaximumDurability => Template.Properties.Physical.Durability > uint.MaxValue
         ? uint.MaxValue
         : Convert.ToUInt32(Template.Properties.Physical.Durability);
 
@@ -225,7 +226,7 @@ public class ItemObject : VisibleObject, IInteractable
         set => throw new NotImplementedException();
     }
 
-    public virtual Script Script
+    public virtual Script? Script
     {
         get => Game.World.ScriptProcessor.TryGetScript(Use.Script, out var script) ? script : null;
         set => throw new NotImplementedException();

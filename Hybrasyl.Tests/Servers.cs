@@ -23,7 +23,7 @@ namespace Hybrasyl.Tests;
 [Collection("Hybrasyl")]
 public class Servers
 {
-    private static HybrasylFixture Fixture;
+    private static HybrasylFixture Fixture = null!;
 
     public Servers(HybrasylFixture fixture)
     {

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -37,10 +37,11 @@ public class Board : MessageStore
         InitializeStorage();
     }
 
-    [Persist] public HashSet<string> ModeratorList { get; private set; }
-    [Persist] public HashSet<string> ReaderList { get; private set; }
-    [Persist] public HashSet<string> WriterList { get; private set; }
-    [Persist] public HashSet<string> BlockList { get; private set; }
+    // Persisted (STJ): initialize non-null (also set in InitializeStorage); a stored record overwrites.
+    [Persist] public HashSet<string> ModeratorList { get; private set; } = new();
+    [Persist] public HashSet<string> ReaderList { get; private set; } = new();
+    [Persist] public HashSet<string> WriterList { get; private set; } = new();
+    [Persist] public HashSet<string> BlockList { get; private set; } = new();
 
     private void InitializeStorage()
     {

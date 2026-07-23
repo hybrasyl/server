@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -79,10 +79,9 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
 
     public ThrottleResult ProcessThrottle(Client client, ClientPacket packet)
     {
-        ThrottleInfo info;
         var result = ThrottleResult.Error;
 
-        if (!client.ThrottleState.TryGetValue(packet.Opcode, out info))
+        if (!client.ThrottleState.TryGetValue(packet.Opcode, out var info))
         {
             client.ThrottleState[packet.Opcode] = new ThrottleInfo();
             info = client.ThrottleState[packet.Opcode];

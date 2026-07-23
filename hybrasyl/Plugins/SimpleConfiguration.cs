@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Xml.Objects;
 
@@ -25,8 +26,8 @@ namespace Hybrasyl.Plugins;
 
 internal class SimpleConfiguration : IHandlerConfiguration
 {
-    private Dictionary<string, string> Config;
-    private object Lock;
+    private Dictionary<string, string> Config = new();
+    private object Lock = new();
 
     public SimpleConfiguration()
     {
@@ -70,9 +71,9 @@ internal class SimpleConfiguration : IHandlerConfiguration
         return false;
     }
 
-    public bool TryGetValue(string key, out string val)
+    public bool TryGetValue(string key, [MaybeNullWhen(false)] out string val)
     {
-        val = null;
+        val = null!;
         if (Config.TryGetValue(key, out var v))
         {
             val = v;

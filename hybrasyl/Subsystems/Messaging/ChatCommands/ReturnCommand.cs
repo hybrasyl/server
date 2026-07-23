@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -35,7 +35,10 @@ internal class ReturnCommand : ChatCommand
             return Success("Be more careful next time.");
         }
 
-        user.Teleport(user.Location.DeathMap.Id, user.Location.DeathMapX, user.Location.DeathMapY);
+        if (user.Location.DeathMap is not { } deathMap)
+            return Fail("You have not died. Congratulations?");
+
+        user.Teleport(deathMap.Id, user.Location.DeathMapX, user.Location.DeathMapY);
         return Success("Recalled.");
     }
 }

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,7 +25,7 @@ namespace Hybrasyl.Extensions;
 
 public static class StackExchangeRedisExtensions
 {
-    public static T Get<T>(this IDatabase cache, string key)
+    public static T? Get<T>(this IDatabase cache, string key)
     {
         // Fetched outside the wrap: a Redis connectivity failure is not data corruption
         var data = cache.StringGet(key);
@@ -43,7 +43,7 @@ public static class StackExchangeRedisExtensions
         }
     }
 
-    public static object Get(this IDatabase cache, string key) => RedisJsonSerializer.Deserialize<object>(cache.StringGet(key));
+    public static object? Get(this IDatabase cache, string key) => RedisJsonSerializer.Deserialize<object>(cache.StringGet(key));
 
     public static void Set(this IDatabase cache, string key, object value)
     {

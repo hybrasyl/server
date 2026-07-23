@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -34,20 +34,21 @@ public class HybrasylMonster : HybrasylWorldObject
         Map = new HybrasylMap(monster.Map);
     }
 
-    internal Monster Monster => WorldObject as Monster;
+    // This wrapper is only ever constructed around a Monster.
+    internal Monster Monster => (WorldObject as Monster)!;
 
     public Direction Direction => Monster.Direction;
     internal HybrasylWorld World { get; set; }
     internal HybrasylMap Map { get; set; }
 
     public ThreatInfo ThreatInfo => Monster.ThreatInfo;
-    public WorldObject Target => Monster.ActiveTarget;
+    public WorldObject? Target => Monster.ActiveTarget;
     public bool AbsoluteImmortal => Monster.AbsoluteImmortal;
     public bool PhysicalImmortal => Monster.PhysicalImmortal;
     public bool MagicalImmortal => Monster.MagicalImmortal;
 
-    public WorldObject FirstHitter => Monster.FirstHitter;
-    public WorldObject LastHitter => Monster.LastHitter;
+    public WorldObject? FirstHitter => Monster.FirstHitter;
+    public WorldObject? LastHitter => Monster.LastHitter;
     public string LastHitTime => Monster.LastHitTime.ToString(CultureInfo.CurrentCulture);
 
     /// <summary>

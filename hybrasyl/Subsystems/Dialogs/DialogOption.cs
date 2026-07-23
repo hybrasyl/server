@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -20,9 +20,9 @@ namespace Hybrasyl.Subsystems.Dialogs;
 
 public class DialogOption
 {
-    public string OptionText { get; set; } = null;
-    public string CallbackFunction { get; set; } = null;
-    public string CheckExpression { get; set; } = null;
-    public JumpDialog JumpDialog { get; set; } = null;
-    public DialogSequence OverrideSequence { get; set; } = null;
+    public string? OptionText { get; set; }
+    public string? CallbackFunction { get; set; }
+    public string? CheckExpression { get; set; }
+    public JumpDialog? JumpDialog { get; set; }
+    public DialogSequence? OverrideSequence { get; set; }
 }

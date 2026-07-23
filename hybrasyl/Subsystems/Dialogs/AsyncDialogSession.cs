@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -75,7 +75,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
                                  && !Target.Condition.InExchange
                                  && !Target.Condition.Flags.HasFlag(PlayerFlags.InBoard)
                                  && !(Target.DialogState?.InDialog ?? false)
-                                 && Target.ActiveDialogSession == null) || Target.ActiveDialogSession.Guid == Guid;
+                                 && Target.ActiveDialogSession == null) || Target.ActiveDialogSession?.Guid == Guid;
 
     private bool sourceReady
     {
@@ -86,7 +86,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
                         && !user.Condition.Casting
                         && !user.Condition.InExchange
                         && !user.Condition.Flags.HasFlag(PlayerFlags.InBoard)
-                        && user.ActiveDialogSession == null) || user.ActiveDialogSession.Guid == Guid;
+                        && user.ActiveDialogSession == null) || user.ActiveDialogSession?.Guid == Guid;
             return true;
         }
     }
@@ -94,7 +94,7 @@ public class AsyncDialogSession : IInteractable, IStateStorable
     public string Name => Origin.Name;
     public string DisplayName => Origin.DisplayName;
     public uint Id { get; set; }
-    public Script Script => Origin.Script;
+    public Script Script => Origin.Script!;
     public bool AllowDead => Origin.AllowDead;
 
     public ushort Sprite

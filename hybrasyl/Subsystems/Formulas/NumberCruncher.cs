@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -43,7 +43,8 @@ internal static class NumberCruncher
         return Random.Shared.Next((int) sq.Min, (int) (sq.Max + 1));
     }
 
-    private static double _evalFormula(string formula, ItemObject item, Creature source)
+    // item is null for stat-bonus formulas (CalculateStatBonus passes no item).
+    private static double _evalFormula(string formula, ItemObject? item, Creature source)
     {
         if (string.IsNullOrEmpty(formula)) return 0.0;
 
@@ -57,12 +58,13 @@ internal static class NumberCruncher
             Game.ReportException(e);
             GameLog.Error(e,
                 "NumberCruncher formula error: item {Item}, source {Source}: {Formula}",
-                item.Name, source?.Name ?? "no source", formula);
+                item?.Name ?? "no item", source?.Name ?? "no source", formula);
             return 0;
         }
     }
 
-    private static double _evalFormula(string formula, Castable castable, Creature target, Creature source)
+    // castable/target/source can all be null here (status ticks, stat modifiers, sourceless casts).
+    private static double _evalFormula(string formula, Castable? castable, Creature? target, Creature? source)
     {
         if (string.IsNullOrEmpty(formula)) return 0.0;
 
@@ -76,7 +78,7 @@ internal static class NumberCruncher
             Game.ReportException(e);
             GameLog.Error(e,
                 "NumberCruncher formula error: castable {Castable}, target {Target}, source {Source}: {Formula}",
-                castable.Name, target.Name, source?.Name ?? "no source", formula);
+                castable?.Name ?? "no castable", target?.Name ?? "no target", source?.Name ?? "no source", formula);
             return 0;
         }
     }
@@ -88,7 +90,7 @@ internal static class NumberCruncher
     /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
     /// <param name="source">The source of the castable (i.e. the caster)</param>
     /// <returns></returns>
-    public static DamageOutput CalculateDamage(Castable castable, Creature target, Creature source = null)
+    public static DamageOutput CalculateDamage(Castable castable, Creature target, Creature? source = null)
     {
         // Defaults
         double dmg = 1;
@@ -129,7 +131,7 @@ internal static class NumberCruncher
     /// <param name="target">The target of the castable (i.e. the spell/skill target)</param>
     /// <param name="source">The source of the castable (i.e. the caster), optional parameter</param>
     /// <returns></returns>
-    public static double CalculateHeal(Castable castable, Creature target, Creature source = null)
+    public static double CalculateHeal(Castable castable, Creature target, Creature? source = null)
     {
         double heal = 0;
         if (castable.Effects?.Heal == null) return heal;
@@ -231,7 +233,7 @@ internal static class NumberCruncher
     /// <param name="target">The target, if applicable, for the castable</param>
     /// <param name="source">The source (caster) for the castable</param>
     /// <returns></returns>
-    public static CastCost CalculateCastCost(Castable castable, Creature target, Creature source)
+    public static CastCost CalculateCastCost(Castable castable, Creature? target, Creature source)
     {
         if (castable == null) return new CastCost { Mp = 0 };
         var cost = new CastCost();
@@ -333,7 +335,7 @@ internal static class NumberCruncher
         return modifiers;
     }
 
-    public static StatInfo CalculateItemModifiers(ItemObject item, Creature source, StatModifiers effect = null)
+    public static StatInfo CalculateItemModifiers(ItemObject item, Creature source, StatModifiers? effect = null)
     {
         if (effect == null)
             effect = item.Template.Properties.StatModifiers;
@@ -421,7 +423,7 @@ internal static class NumberCruncher
     }
 
     public static StatInfo CalculateStatusModifiers(Castable castable, double intensity, StatModifiers effect,
-        Creature source, Creature target = null)
+        Creature source, Creature? target = null)
     {
         if (effect is null) return new StatInfo();
         var modifiers = new StatInfo

@@ -33,6 +33,7 @@ using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -79,15 +80,17 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     [Persist] public Equipment Equipment { get; protected set; }
 
     public DateTime LastHitTime { get; private set; }
-    public Creature FirstHitter { get; internal set; }
+    // Not persisted; set during combat. Null until first hit.
+    public Creature? FirstHitter { get; internal set; }
 
-    public Creature LastHitter
+    public Creature? LastHitter
     {
         get => Game.World.WorldState.TryGetWorldObject<Creature>(_mLastHitter, out var o) ? o : null;
         set => _mLastHitter = value?.Guid ?? Guid.Empty;
     }
 
-    public Creature LastTarget { get; set; }
+    // Not persisted; set during combat/casting. Null until first target.
+    public Creature? LastTarget { get; set; }
 
     public bool AbsoluteImmortal { get; set; }
     public bool PhysicalImmortal { get; set; }
@@ -201,9 +204,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             (byte)Math.Clamp(b, byte.MinValue, byte.MaxValue));
     }
 
-    public Creature GetDirectionalTarget(Direction direction)
+    public Creature? GetDirectionalTarget(Direction direction)
     {
-        VisibleObject obj;
+        VisibleObject? obj;
 
         switch (direction)
         {
@@ -289,7 +292,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         return ret;
     }
 
-    public void ProcessProcs(ProcEventType type, Castable castable, Creature target)
+    public void ProcessProcs(ProcEventType type, Castable castable, Creature? target)
     {
         if (castable.Effects?.Procs != null)
             foreach (var proc in castable.Effects.Procs.Where(predicate: proc =>
@@ -297,7 +300,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 // Proc fires
                 Game.World.EnqueueProc(proc, castable, Guid, target?.Guid ?? Guid.Empty);
 
-        if (!castable.IsAssail || Equipment?.Weapon?.Procs == null)
+        if (!castable.IsAssail || Equipment.Weapon?.Procs == null)
             return;
 
         foreach (var proc in Equipment.Weapon.Procs.Where(predicate: proc => Random.Shared.NextDouble() <= proc.Chance))
@@ -305,7 +308,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     }
 
 
-    public virtual List<Creature> GetTargets(Castable castable, Creature target = null)
+    public virtual List<Creature> GetTargets(Castable castable, Creature? target = null)
     {
         IEnumerable<Creature> actualTargets = new List<Creature>();
         var intents = castable.Intents;
@@ -325,8 +328,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 // Otherwise, no target.
                 if (intent.UseType == SpellUseType.Target)
                 {
-                    // Exact clicked target
-                    possibleTargets.Add(target);
+                    if (target != null) possibleTargets.Add(target);
                     //GameLog.UserActivityInfo("GetTarget: exact clicked target");
                 }
                 else if (intent.UseType == SpellUseType.NoTarget)
@@ -355,7 +357,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             //GameLog.UserActivityInfo($"GetTarget: origin is {this.Name} at {this.X}, {this.Y}");
             else
                 //GameLog.UserActivityInfo($"GetTarget: origin is {target.Name} at {target.X}, {target.Y}");
-                origin = target;
+                origin = target!;
 
             // Handle shapes
             foreach (var cross in intent.Cross)
@@ -402,7 +404,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 else
                 {
                     //GameLog.UserActivityInfo($"GetTarget: tile, intent {tile.Direction}, direction {origin.GetIntentDirection(tile.Direction)}, origin {origin.Name}");
-                    possibleTargets.Add(origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction)));
+                    var dirTarget = origin.GetDirectionalTarget(origin.GetIntentDirection(tile.Direction));
+                    if (dirTarget != null) possibleTargets.Add(dirTarget);
                 }
 
             foreach (var tile in intent.Cone)
@@ -505,7 +508,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         return finalTargets.DistinctBy(keySelector: x => x.Guid).ToList();
     }
 
-    public virtual bool UseCastable(Castable castableXml, Creature target = null)
+    public virtual bool UseCastable(Castable castableXml, Creature? target = null)
     {
         if (this is User)
             GameLog.UserActivityInfo(
@@ -555,7 +558,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
         if (castableXml.IsAssail)
         {
-            if (Equipment?.Weapon?.AssailSound != null)
+            if (Equipment.Weapon?.AssailSound != null)
                 PlaySound(Equipment.Weapon.AssailSound);
             else if (this is Monster m && m.AssailSound != 0)
                 PlaySound(m.AssailSound);
@@ -597,7 +600,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 // DoStuff();
                 continue;
 
-            foreach (var reactor in castableXml.Effects?.Reactors)
+            // Reactors may be null in the Xml model; treat absent as no reactors.
+            foreach (var reactor in castableXml.Effects?.Reactors ?? [])
             {
                 if (X + reactor.RelativeX < byte.MinValue || X + reactor.RelativeX > byte.MaxValue ||
                     Y + reactor.RelativeY < byte.MinValue || Y + reactor.RelativeY > byte.MaxValue)
@@ -627,8 +631,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 {
                     ElementType.RandomTemuair => (ElementType)Random.Shared.Next(1, 7),
                     ElementType.RandomExpanded => (ElementType)Random.Shared.Next(1, 10),
-                    ElementType.Belt => Equipment?.Belt?.Element ?? ElementType.None,
-                    ElementType.Necklace => Equipment?.Necklace?.Element ?? ElementType.None,
+                    ElementType.Belt => Equipment.Belt?.Element ?? ElementType.None,
+                    ElementType.Necklace => Equipment.Necklace?.Element ?? ElementType.None,
                     ElementType.None => ElementType.None,
                     ElementType.Current => Stats.OffensiveElementOverride != ElementType.None
                         ? Stats.OffensiveElementOverride
@@ -650,9 +654,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     u.SendSystemMessage($"{Name} attacks you with {castableXml.Name}.");
 
                 if (this is User)
-                    if (Equipment.Weapon is { Undamageable: false })
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
-                                                            (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
+                    if (Equipment.Weapon is { Undamageable: false } weapon)
+                        weapon.Durability -= 1 / (weapon.MaximumDurability *
+                                                  (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
 
                 if (tar.Stats.Hp <= 0) deadMobs.Add(tar);
             }
@@ -668,9 +672,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     GameLog.UserActivityInfo(
                         "UseCastable: {Name} casting {Castable} - target: {Target} healing: {Healing}",
                         Name, castableXml.Name, tar.Name, healOutput);
-                    if (Equipment.Weapon is { Undamageable: false })
-                        Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
-                                                            (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
+                    if (Equipment.Weapon is { Undamageable: false } weapon)
+                        weapon.Durability -= 1 / (weapon.MaximumDurability *
+                                                  (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
                 }
             }
 
@@ -700,8 +704,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
                     // Check immunities
                     var apply = true;
-                    CreatureImmunity immunity = null;
-                    if (tar is Monster m &&
+                    CreatureImmunity? immunity = null;
+                    if (tar is Monster { BehaviorSet: not null } m &&
                         (m.BehaviorSet.ImmuneToCastableCategories(castableXml.CategoryList, out immunity) ||
                          m.BehaviorSet.ImmuneToStatusCategories(castableXml.CategoryList, out immunity) ||
                          m.BehaviorSet.ImmuneToStatus(applyStatus, out immunity) ||
@@ -784,7 +788,6 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             var departingViewport = Rectangle.Empty;
             var commonViewport = Rectangle.Empty;
             var halfViewport = Game.ActiveConfiguration.Constants.ViewportSize / 2;
-            Warp targetWarp;
 
             switch (direction)
             {
@@ -829,7 +832,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     break;
             }
 
-            var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out targetWarp);
+            Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
 
             // Now that we know where we are going, perform some sanity checks.
             // Is the player trying to walk into a wall, or off the map?
@@ -859,7 +862,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             }
 
             // Is this user entering a forbidden (by level or otherwise) warp?
-            if (isWarp)
+            if (targetWarp is not null)
             {
                 if (targetWarp.MinimumLevel > Stats.Level)
                 {
@@ -899,9 +902,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             // Objects in the departing viewport receive a "remove object" (0x0E) packet
 
             foreach (var obj in Map.EntityTree.GetObjects(commonViewport))
-                if (obj != this && obj is User)
+                if (obj != this && obj is User user)
                 {
-                    var user = obj as User;
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                     var x0C = new ServerPacket(0x0C);
                     x0C.WriteUInt32(Id);
@@ -942,18 +944,16 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
         foreach (var obj in Map.EntityTree.GetObjects(GetViewport()))
         {
-            if (obj is User)
+            if (obj is User targetUser)
             {
-                var user = obj as User;
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
                 x11.WriteByte((byte)direction);
-                user.Enqueue(x11);
+                targetUser.Enqueue(x11);
             }
 
-            if (obj is Monster)
+            if (obj is Monster mob)
             {
-                var mob = obj as Monster;
                 var x11 = new ServerPacket(0x11);
                 x11.WriteUInt32(Id);
                 x11.WriteByte((byte)direction);
@@ -967,14 +967,14 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
     public virtual void Motion(byte motion, short speed)
     {
-        foreach (var obj in Map?.EntityTree?.GetObjects(GetViewport()))
+        foreach (var obj in Map?.EntityTree?.GetObjects(GetViewport()) ?? Enumerable.Empty<VisibleObject>())
         {
             if (obj is not User user) continue;
             user.SendAnimation(Id, motion, speed);
         }
     }
 
-    public virtual void Heal(double heal, Creature source = null, Castable castable = null)
+    public virtual void Heal(double heal, Creature? source = null, Castable? castable = null)
     {
         if (Condition.IsHpIncreaseProhibited)
             return;
@@ -996,7 +996,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         SendDamageUpdate(this);
     }
 
-    public virtual void RegenerateMp(double mp, Creature regenerator = null)
+    public virtual void RegenerateMp(double mp, Creature? regenerator = null)
     {
         if (AbsoluteImmortal || Condition.IsMpIncreaseProhibited)
             return;
@@ -1009,7 +1009,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
     public virtual void Damage(double damage, ElementType element = ElementType.None,
         DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None,
-        Creature attacker = null, Castable castable = null, bool onDeath = true)
+        Creature? attacker = null, Castable? castable = null, bool onDeath = true)
     {
         if (this is Monster ms && !Condition.Alive) return;
         var damageEvent = new DamageEvent();
@@ -1045,7 +1045,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             if (FirstHitter == null || !World.UserConnected(FirstHitter.Name) ||
                 (DateTime.Now - LastHitTime).TotalSeconds > Game.ActiveConfiguration.Constants.MonsterTaggingTimeout)
                 FirstHitter = attacker;
-            if (attacker != FirstHitter && !((FirstHitter as User).Group?.Members.Contains(attacker) ?? false)) return;
+            if (attacker != FirstHitter && !((FirstHitter as User)?.Group?.Members.Contains(attacker) ?? false)) return;
         }
 
         LastHitTime = DateTime.Now;
@@ -1333,7 +1333,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
     public IReadOnlyDictionary<string, string> GetSessionCookies() => SessionCookies;
 
-    public string GetCookie(string cookieName, bool defaultNamespace = true)
+    public string? GetCookie(string cookieName, bool defaultNamespace = true)
     {
         if (defaultNamespace)
             return Cookies.TryGetValue($"default:{cookieName}", out var value) ? value : null;
@@ -1341,9 +1341,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             return Cookies.TryGetValue(cookieName, out var value) ? value : null;
     }
 
-    public string GetCookie(string ns, string cookieName) => GetCookie($"{ns.ToLower()}:{cookieName}", false);
+    public string? GetCookie(string ns, string cookieName) => GetCookie($"{ns.ToLower()}:{cookieName}", false);
 
-    public string GetSessionCookie(string cookieName, bool defaultNamespace = true)
+    public string? GetSessionCookie(string cookieName, bool defaultNamespace = true)
     {
         if (defaultNamespace)
             return SessionCookies.TryGetValue($"default:{cookieName}", out var value) ? value : null;
@@ -1351,7 +1351,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             return SessionCookies.TryGetValue(cookieName, out var value) ? value : null;
     }
 
-    public string GetSessionCookie(string ns, string cookieName) =>
+    public string? GetSessionCookie(string ns, string cookieName) =>
         GetSessionCookie($"{ns.ToLower()}:{cookieName}", false);
 
     public bool HasCookie(string cookieName, bool defaultNamespace = true) => 
@@ -1441,7 +1441,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 status.OnEnd();
         }
 
-        if (this is User) (this as User).SendStatusUpdate(status, true);
+        if (this is User user) user.SendStatusUpdate(status, true);
         if (this is Monster)
             Game.World.RemoveStatusCheck(this);
     }
@@ -1453,9 +1453,9 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     /// <param name="onEnd">Whether or not to run the onEnd effect for the status.</param>
     /// <param name="remover">The creature removing the status (can be used in formulas for removal chance)</param>
     /// <returns>true or false depending on whether removal was  successful or not</returns>
-    public bool RemoveStatus(ushort icon, bool onEnd = true, Creature remover = null)
+    public bool RemoveStatus(ushort icon, bool onEnd = true, Creature? remover = null)
     {
-        ICreatureStatus status;
+        ICreatureStatus? status;
         if (!CurrentStatuses.TryGetValue(icon, out status)) return false;
         var statusEvent = new StatusEvent
         {
@@ -1520,7 +1520,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         return true;
     }
 
-    public bool TryGetStatus(string name, out ICreatureStatus status)
+    public bool TryGetStatus(string name, [MaybeNullWhen(false)] out ICreatureStatus status)
     {
         status = CurrentStatuses.Values.FirstOrDefault(predicate: s => s.Name == name);
         return status != null;
@@ -1552,9 +1552,12 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             if (kvp.Value.Expired)
             {
                 var removed = RemoveStatus(kvp.Key);
-                if (removed && kvp.Value.Name.ToLower() == "coma")
-                    // Coma removal from expiration means: dead
-                    (this as User).OnDeath();
+                if (removed && (kvp.Value.ConditionChanges?.Set.HasFlag(CreatureCondition.Coma) ?? false))
+                    // A coma status expiring means: dead — the "skulled" revive window
+                    // closed. Exactly one production status sets the Coma condition,
+                    // by design. Defensive ?.: coma is User-only; a Monster with a
+                    // coma status is a no-op here.
+                    (this as User)?.OnDeath();
 
                 GameLog.DebugFormat("Status {Status} has expired: removal was {Removed}", kvp.Value.Name, removed);
             }
@@ -1562,7 +1565,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)
             {
                 kvp.Value.OnTick();
-                if (this is User) (this as User).SendStatusUpdate(kvp.Value);
+                if (this is User user) user.SendStatusUpdate(kvp.Value);
             }
         }
     }

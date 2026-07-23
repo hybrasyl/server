@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -40,7 +40,9 @@ public interface IClient : IDisposable
     public string RemoteAddress { get; }
 
     public byte EncryptionSeed { get; set; }
-    public byte[] EncryptionKey { get; set; }
+
+    // Null until the lobby handshake (lobby client ctor) or a confirmed redirect supplies it.
+    public byte[]? EncryptionKey { get; set; }
 
     public string NewCharacterName { get; set; }
     public string NewCharacterPassword { get; set; }

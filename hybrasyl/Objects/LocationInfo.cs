@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -25,8 +25,11 @@ namespace Hybrasyl.Objects;
 [Persistable]
 public class LocationInfo : IEquatable<LocationInfo>
 {
-    private MapObject _map { get; set; }
-    private MapObject _deathmap { get; set; }
+    // Runtime back-references resolved from MapId/DeathMapId via WorldState; only the ids are
+    // persisted. Map is typed non-null to match the existing VisibleObject.Map contract the
+    // codebase relies on; null! until the map is assigned/resolved.
+    private MapObject _map { get; set; } = null!;
+    private MapObject? _deathmap { get; set; }
 
     public MapObject Map
     {
@@ -39,14 +42,14 @@ public class LocationInfo : IEquatable<LocationInfo>
         }
     }
 
-    public MapObject DeathMap
+    public MapObject? DeathMap
     {
         get => _deathmap;
         set
         {
             _deathmap = value;
             if (value != null)
-                _deathmapId = _deathmap.Id;
+                _deathmapId = value.Id;
         }
     }
 
@@ -90,10 +93,10 @@ public class LocationInfo : IEquatable<LocationInfo>
 
     [Persist] public byte DeathMapY { get; set; }
 
-    public override bool Equals(object obj) => Equals(obj as LocationInfo);
+    public override bool Equals(object? obj) => Equals(obj as LocationInfo);
     public override int GetHashCode() => (X, Y, MapId).GetHashCode();
 
-    public bool Equals(LocationInfo locationInfo)
+    public bool Equals(LocationInfo? locationInfo)
     {
         if (locationInfo == null) return false;
         if (ReferenceEquals(locationInfo, this)) return true;
@@ -101,7 +104,7 @@ public class LocationInfo : IEquatable<LocationInfo>
         return X == locationInfo.X && Y == locationInfo.Y && MapId.Equals(locationInfo.MapId);
     }
 
-    public static bool operator ==(LocationInfo left, LocationInfo right)
+    public static bool operator ==(LocationInfo? left, LocationInfo? right)
     {
         if (left is null)
             return right is null;
@@ -109,5 +112,5 @@ public class LocationInfo : IEquatable<LocationInfo>
         return left.Equals(right);
     }
 
-    public static bool operator !=(LocationInfo left, LocationInfo right) => !(left == right);
+    public static bool operator !=(LocationInfo? left, LocationInfo? right) => !(left == right);
 }

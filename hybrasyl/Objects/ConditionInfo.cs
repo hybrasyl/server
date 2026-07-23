@@ -34,8 +34,10 @@ public class ConditionInfo
         Flags = flags;
     }
 
-    public Creature Creature { get; set; }
-    public User User => Creature as User;
+    // Runtime back-reference to the owning creature; wired up by the owner after
+    // construction/deserialization. Not [Persist]. Never null in practice.
+    public Creature Creature { get; set; } = null!;
+    public User? User => Creature as User;
 
     private CreatureCondition _Conditions { get; set; }
 

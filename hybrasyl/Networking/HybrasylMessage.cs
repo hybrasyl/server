@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -22,7 +22,7 @@ namespace Hybrasyl.Networking;
 
 public class HybrasylMessage
 {
-    public HybrasylMessage(string sender = "HybrasylMessage", params object[] parameters)
+    public HybrasylMessage(string sender = "HybrasylMessage", params object?[] parameters)
     {
         Ticks = DateTime.Now.Ticks;
         Sender = sender;
@@ -33,5 +33,12 @@ public class HybrasylMessage
 
     // Maybe this can be like, idk, function name or something? Thread context? Whatever?
     public string Sender { get; }
-    public object[] Arguments { get; }
+    public object?[] Arguments { get; }
+
+    public T GetArgument<T>(int index) => Arguments[index] is T value
+        ? value
+        : throw new InvalidOperationException(
+            $"{Sender}: argument {index} expected {typeof(T).Name}, got {Arguments[index]?.GetType().Name ?? "null"}");
+
+    public T? GetOptionalArgument<T>(int index) where T : class => Arguments[index] as T;
 }

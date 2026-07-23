@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -21,11 +21,12 @@ namespace Hybrasyl.Subsystems.Messaging;
 // A simple class used to pass around message information to packet structures
 public class MessageInfo
 {
-    public string Body;
+    // Transient DTO (not persisted); every construction site (Message.Info) sets these.
+    public required string Body;
     public byte Day;
     public bool Highlight;
     public short Id;
     public byte Month;
-    public string Sender;
-    public string Subject;
+    public required string Sender;
+    public required string Subject;
 }

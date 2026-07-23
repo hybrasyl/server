@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -30,7 +30,7 @@ internal class SystemMessage
     }
 
     internal byte Type { get; set; }
-    internal string Message { get; set; }
+    internal string Message { get; set; } = string.Empty;
 
     internal ServerPacket Packet()
     {

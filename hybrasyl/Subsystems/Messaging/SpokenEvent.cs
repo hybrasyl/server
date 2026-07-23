@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -23,7 +23,7 @@ using MoonSharp.Interpreter;
 namespace Hybrasyl.Subsystems.Messaging;
 
 [MoonSharpUserData]
-public record SpokenEvent(VisibleObject Speaker, string Message, string From = null, bool Shout = false)
+public record SpokenEvent(VisibleObject Speaker, string Message, string? From = null, bool Shout = false)
 {
     public string SanitizedMessage => Message.ToLower().Trim();
 

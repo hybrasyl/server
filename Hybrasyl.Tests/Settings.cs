@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -24,13 +24,14 @@ namespace Hybrasyl.Tests;
 
 public class Settings
 {
-    private static Settings _settings;
+    private static Settings? _settings;
     public PlatformSettings PlatformSettings;
 
     private Settings()
     {
         var json = File.ReadAllText("hybrasyltest-settings.json");
-        PlatformSettings = JsonSerializer.Deserialize<PlatformSettings>(json);
+        PlatformSettings = JsonSerializer.Deserialize<PlatformSettings>(json) ??
+                           throw new InvalidDataException("hybrasyltest-settings.json deserialized to null");
     }
 
     private static object _lock { get; } = new();
@@ -50,12 +51,12 @@ public class Settings
 
 public class PlatformSettings
 {
-    public Dictionary<string, DirectorySettings> Directories { get; init; }
+    public Dictionary<string, DirectorySettings> Directories { get; init; } = new();
 }
 
 public class DirectorySettings
 {
-    public string WorldDataDirectory { get; init; }
-    public string LogDirectory { get; init; }
-    public string DataDirectory { get; init; }
+    public string WorldDataDirectory { get; init; } = string.Empty;
+    public string LogDirectory { get; init; } = string.Empty;
+    public string DataDirectory { get; init; } = string.Empty;
 }

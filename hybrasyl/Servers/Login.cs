@@ -141,12 +141,20 @@ public class Login : Server
                 client.SendMessage("Welcome to Hybrasyl!", 3);
                 GameLog.DebugFormat("cid {0} ({1}): sending redirect to world", client.ConnectionId, name);
 
-                var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed,
-                    client.EncryptionKey);
+                if (client.EncryptionKey is not { } key)
+                {
+                    GameLog.Warning(
+                        "cid {ConnectionId} ({Name}): login succeeded but no encryption key negotiated, disconnecting",
+                        client.ConnectionId, name);
+                    client.Disconnect();
+                    return;
+                }
+
+                var redirect = new Redirect(client, this, Game.World, name, client.EncryptionSeed, key);
                 GameLog.InfoFormat("cid {0} ({1}): login successful, redirecting to world server",
                     client.ConnectionId, name);
                 login.LastLogin = DateTime.Now;
-                login.LastLoginFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastLoginFrom = client.RemoteAddress;
                 login.CurrentState = UserState.Redirect;
                 login.LastStateChange = login.LastLogin;
                 login.Save();
@@ -158,7 +166,7 @@ public class Login : Server
                 client.LoginMessage("Incorrect password", 3);
                 login.LastLoginFailure = DateTime.Now;
                 login.LoginFailureCount++;
-                login.LastLoginFailureFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastLoginFailureFrom = client.RemoteAddress;
                 login.CurrentState = UserState.Login;
                 login.LastStateChange = login.LastLoginFailure;
                 login.Save();
@@ -225,7 +233,7 @@ public class Login : Server
             newPlayer.AuthInfo.PasswordHash = client.NewCharacterPassword;
             newPlayer.AuthInfo.LastPasswordChange = DateTime.Now;
             newPlayer.AuthInfo.LastPasswordChangeFrom =
-                ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                client.RemoteAddress;
             newPlayer.AuthInfo.Save();
 
             var cache = World.DatastoreConnection.GetDatabase();
@@ -302,7 +310,7 @@ public class Login : Server
             {
                 login.PasswordHash = HashPassword(newPass);
                 login.LastPasswordChange = DateTime.Now;
-                login.LastPasswordChangeFrom = ((IPEndPoint)client.Socket.RemoteEndPoint).Address.ToString();
+                login.LastPasswordChangeFrom = client.RemoteAddress;
                 login.Save();
                 // Let the user know the good news.
                 client.LoginMessage("Your password has been changed successfully.", 0x0);

@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -48,10 +48,10 @@ public class Rotation : IList<RotationEntry>
     public bool Random => CastingSet.Random;
     public bool Active { get; set; } = true;
 
-    public RotationEntry LastCastable { get; set; }
+    public RotationEntry? LastCastable { get; set; }
 
-    public RotationEntry CurrentCastable => CurrentIndex < Castables.Count ? Castables[CurrentIndex] : null;
-    public RotationEntry NextCastable
+    public RotationEntry? CurrentCastable => CurrentIndex < Castables.Count ? Castables[CurrentIndex] : null;
+    public RotationEntry? NextCastable
     {
         get
         {
@@ -130,7 +130,9 @@ public class Rotation : IList<RotationEntry>
         LastCastable = CurrentCastable;
         if (Castables.Count > 1)
             CurrentIndex = CurrentIndex + 1 == Castables.Count ? 0 : CurrentIndex + 1;
-        CurrentCastable.LastUse = DateTime.Now;
+        // Null for an empty rotation; nothing to stamp
+        if (CurrentCastable is { } current)
+            current.LastUse = DateTime.Now;
         LastUse = DateTime.Now;
     }
 

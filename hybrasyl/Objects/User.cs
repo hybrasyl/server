@@ -50,7 +50,7 @@ namespace Hybrasyl.Objects;
 
 public class KillRecord
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
 }
 
@@ -59,7 +59,8 @@ public class User : Creature
 {
     private object _serializeLock = new();
 
-    private IClient Client;
+    // Runtime connection back-reference; null between connects/after disconnect. All uses guard.
+    private IClient? Client;
 
     [Persist] public uint LevelPoints;
 
@@ -103,9 +104,9 @@ public class User : Creature
 
     [Persist] public bool IsMaster { get; set; }
 
-    public string AdHocScript { get; set; }
-    public UserGroup Group { get; set; }
-    public GroupRecruit GroupRecruit { get; set; }
+    public string? AdHocScript { get; set; }
+    public UserGroup? Group { get; set; }
+    public GroupRecruit? GroupRecruit { get; set; }
 
     [Persist] private List<StatusSnapshot> Statuses { get; set; } = new();
 
@@ -184,25 +185,23 @@ public class User : Creature
     // Throttling checks for messaging
 
     public long LastSpoke { get; set; }
-    public string LastSaid { get; set; }
+    public string LastSaid { get; set; } = string.Empty;
     public int NumSaidRepeated { get; set; }
 
     // Throttling checks for messaging
     public DateTime LastBoardMessageSent { get; set; }
-    public string LastBoardMessageTarget { get; set; }
+    public string? LastBoardMessageTarget { get; set; }
     public DateTime LastMailboxMessageSent { get; set; }
-    public string LastMailboxRecipient { get; set; }
-    public Dictionary<string, bool> Flags { get; private set; }
+    public string? LastMailboxRecipient { get; set; }
+    public Dictionary<string, bool> Flags { get; private set; } = new();
 
     public bool CollisionsDisabled => Flags.ContainsKey("disablecollisions") ? Flags["disablecollisions"] : false;
-
-    private Queue<ServerPacket> LoginQueue { get; set; }
 
     public DateTime LastAttack { get; set; }
 
     public bool Grouped => Group != null;
 
-    [Persist] public Dictionary<byte, bool> ClientSettings { get; set; }
+    [Persist] public Dictionary<byte, bool> ClientSettings { get; set; } = new();
 
 
     [Persist] public bool IsMuted { get; set; }
@@ -256,7 +255,9 @@ public class User : Creature
 
     public void SetCitizenship()
     {
-        if (Citizenship != null)
+        // Null/empty = citizenship never chosen; a distinguishable state that must not
+        // be collapsed into the default nation on save
+        if (!string.IsNullOrEmpty(Citizenship))
         {
             Nation theNation;
             Nation = World.WorldData.TryGetValue(Citizenship, out theNation) ? theNation : World.DefaultNation;
@@ -349,9 +350,12 @@ public class User : Creature
         catch (ObjectDisposedException)
         {
             GameLog.Warning("User {user}: socket enqueue failed due to disconnect, removing", Name);
-            // Forcibly destroy client and remove user from world
-            PreviousConnectionId = Client.ConnectionId;
-            Client = null;
+            // Forcibly destroy client and remove user from world.
+            if (Client is { } client)
+            {
+                PreviousConnectionId = client.ConnectionId;
+                Client = null;
+            }
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser, CleanupType.ByName,
                 Name));
         }
@@ -500,8 +504,7 @@ public class User : Creature
         // First: break everything that is breakable in the inventory
         for (byte i = 1; i <= Inventory.Size; ++i)
         {
-            if (Inventory[i] == null) continue;
-            var item = Inventory[i];
+            if (Inventory[i] is not { } item) continue;
             if (item.Bound)
                 continue;
             RemoveItem(i);
@@ -617,12 +620,14 @@ public class User : Creature
             Teleport(Game.ActiveConfiguration.Handlers.Death.Map.Value,
                 Game.ActiveConfiguration.Handlers.Death.Map.X,
                 Game.ActiveConfiguration.Handlers.Death.Map.Y);
-            if (Location.Map.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
+            // Location.Map is non-null here: the player is on a map during death handling (and was
+            // just Teleported above).
+            if (Location.Map!.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
                 GameLog.UserActivityFatal("{Name}: died, but not on death map..?", Name);
         }
         else
         {
-            GameLog.Warning("Death handler not found: {Name} not removed from {Map}", Name, Location.Map.Name);
+            GameLog.Warning("Death handler not found: {Name} not removed from {Map}", Name, Location.Map!.Name);
         }
 
         if (Game.ActiveConfiguration.Handlers?.Death?.GroupNotify ?? true)
@@ -677,11 +682,10 @@ public class User : Creature
 
         UpdateAttributes(StatUpdateFlags.Full);
 
-        if (handler.LegendMark != null)
+        // Handlers?.Death is null when no Death config exists; then no legend mark is added on resurrect.
+        if (handler?.LegendMark != null)
         {
-            LegendMark deathMark;
-
-            if (Legend.TryGetMark(handler.LegendMark.Prefix, out deathMark) && handler.LegendMark.Increment)
+            if (Legend.TryGetMark(handler.LegendMark.Prefix, out var deathMark) && handler.LegendMark.Increment)
                 deathMark.AddQuantity(1);
             else
                 Legend.AddMark(LegendIcon.Community, LegendColor.Brown, handler.LegendMark.Value, DateTime.Now,
@@ -702,7 +706,7 @@ public class User : Creature
         LastSaid = string.Empty;
         LastSpoke = 0;
         NumSaidRepeated = 0;
-        PortraitData = new byte[0];
+        PortraitData = [];
         ProfileText = string.Empty;
         DialogState = new DialogState(this);
         ClientSettings = new Dictionary<byte, bool>();
@@ -744,9 +748,8 @@ public class User : Creature
         // Enable it automatically if necessary.
         Grouping = true;
 
-        if (!Grouped) Group = new UserGroup(this);
-
-        return Group.Add(invitee);
+        var group = Group ??= new UserGroup(this);
+        return group.Add(invitee);
     }
 
     /**
@@ -992,7 +995,7 @@ public class User : Creature
         {
             profilePacket.WriteByte((byte)mark.Icon);
             profilePacket.WriteByte((byte)mark.Color);
-            profilePacket.WriteString8(mark.Prefix);
+            profilePacket.WriteString8(mark.Prefix ?? string.Empty);
             profilePacket.WriteString8(mark.ToString());
         }
 
@@ -1120,12 +1123,12 @@ public class User : Creature
 
     public void DisplayIncomingWhisper(string charname, string message)
     {
-        Client.SendMessage($"{charname}\" {message}", 0x0);
+        Client?.SendMessage($"{charname}\" {message}", 0x0);
     }
 
     public void DisplayOutgoingWhisper(string charname, string message)
     {
-        Client.SendMessage($"{charname}> {message}", 0x0);
+        Client?.SendMessage($"{charname}> {message}", 0x0);
     }
 
     public bool CanTalkTo(User target, out string msg)
@@ -1164,7 +1167,7 @@ public class User : Creature
         }
         else
         {
-            Client.SendMessage(err, 0x0);
+            Client?.SendMessage(err, 0x0);
         }
     }
 
@@ -1182,9 +1185,9 @@ public class User : Creature
             var err = string.Empty;
             foreach (var member in Group.Members)
                 if (CanTalkTo(member, out err))
-                    member.Client.SendMessage($"[!{Name}] {message}", MessageTypes.GROUP);
+                    member.Client?.SendMessage($"[!{Name}] {message}", MessageTypes.GROUP);
                 else
-                    Client.SendMessage(err, 0x0);
+                    Client?.SendMessage(err, 0x0);
         }
     }
 
@@ -1226,7 +1229,12 @@ public class User : Creature
                 return;
             }
 
-        var bookSlot = SkillBook[slot];
+        if (SkillBook[slot] is not { } bookSlot)
+        {
+            GameLog.UserActivityWarning("{Name}: UseSkill: no skill in slot {Slot}, ignoring", Name, slot);
+            return;
+        }
+
         if (bookSlot.OnCooldown)
         {
             SendSystemMessage("You must wait longer to use that.");
@@ -1278,7 +1286,12 @@ public class User : Creature
             return;
         }
 
-        var bookSlot = SpellBook[slot];
+        if (SpellBook[slot] is not { } bookSlot)
+        {
+            GameLog.UserActivityWarning("{Name}: UseSpell: no spell in slot {Slot}, ignoring", Name, slot);
+            return;
+        }
+
         var targetCreature = Map.EntityTree.OfType<Creature>().SingleOrDefault(predicate: x => x.Id == target) ?? null;
 
         if (bookSlot.OnCooldown)
@@ -1323,7 +1336,7 @@ public class User : Creature
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
         if (bookSlot.Castable.Cooldown > 0)
-            Client.Enqueue(new Cooldown
+            Client?.Enqueue(new Cooldown
             {
                 Length = (uint)bookSlot.Castable.Cooldown,
                 Pane = 0,
@@ -1337,7 +1350,7 @@ public class User : Creature
     /// </summary>
     /// <param name="castable">The castable that is being cast.</param>
     /// <returns>True or false depending on success.</returns>
-    public bool ProcessCastingCost(Castable castable, Creature target, out string message)
+    public bool ProcessCastingCost(Castable castable, Creature? target, out string message)
     {
         var cost = NumberCruncher.CalculateCastCost(castable, target, this);
         var hasItemCost = true;
@@ -1451,7 +1464,7 @@ public class User : Creature
         }
     }
 
-    public void SendUpdateToUser(IClient client = null)
+    public void SendUpdateToUser(IClient? client = null)
     {
         var offset = Equipment.Armor?.BodyStyle ?? 0;
         if (!Condition.Alive)
@@ -1597,7 +1610,7 @@ public class User : Creature
     /// </summary>
     /// <param name="itemObject">The ItemObject we are sending to the user.</param>
     /// <param name="slot">The client's ItemObject slot.</param>
-    public void SendItemUpdate(ItemObject itemObject, int slot)
+    public void SendItemUpdate(ItemObject? itemObject, int slot)
     {
         if (itemObject == null)
         {
@@ -1620,7 +1633,7 @@ public class User : Creature
         Enqueue(x0F);
     }
 
-    public void SendSkillUpdate(BookSlot item, int slot)
+    public void SendSkillUpdate(BookSlot? item, int slot)
     {
         if (item == null)
         {
@@ -1664,7 +1677,7 @@ public class User : Creature
 
         if (slot == -1) return;
 
-        Client.Enqueue(new Cooldown
+        Client?.Enqueue(new Cooldown
         {
             Length = (uint)(clear ? 1 : item.Castable.Cooldown),
             Pane = 1,
@@ -1672,7 +1685,7 @@ public class User : Creature
         }.Packet());
     }
 
-    public void SendSpellUpdate(BookSlot item, int slot)
+    public void SendSpellUpdate(BookSlot? item, int slot)
     {
         if (item == null)
         {
@@ -1717,7 +1730,7 @@ public class User : Creature
             // TODO: potentially add additional equipment types. for now only weapons
             if (Equipment.Weapon?.CastModifiers != null)
             {
-                object modifier = null;
+                object? modifier = null;
                 foreach (var castmodifier in Equipment.Weapon.CastModifiers)
                     // Matches most to least specific, first match wins
                     if (!string.IsNullOrEmpty(castmodifier.Castable) &&
@@ -1847,7 +1860,7 @@ public class User : Creature
     public int GetCastableMaxLevel(Castable castable) => IsMaster ? 100 : castable.GetMaxLevelByClass(Class);
 
 
-    public User GetFacingUser()
+    public User? GetFacingUser()
     {
         List<VisibleObject> contents;
 
@@ -1870,7 +1883,7 @@ public class User : Creature
                 break;
         }
 
-        return (User)contents.FirstOrDefault(predicate: y => y is User);
+        return contents.FirstOrDefault(predicate: y => y is User) as User;
     }
 
     /// <summary>
@@ -1971,9 +1984,9 @@ public class User : Creature
                 break;
         }
 
-        var isWarp = Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
-        var isReactors = Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
-        var wasReactors = Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
+        Map.Warps.TryGetValue(new Tuple<byte, byte>((byte)newX, (byte)newY), out var targetWarp);
+        Map.Reactors.TryGetValue(((byte)newX, (byte)newY), out var newReactors);
+        Map.Reactors.TryGetValue(((byte)oldX, (byte)oldY), out var oldReactors);
 
         // Now that we know where we are going, perform some sanity checks.
         // Is the player trying to walk into a wall, or off the map?
@@ -2004,27 +2017,27 @@ public class User : Creature
         }
 
         // Is this user entering a forbidden (by level or otherwise) warp?
-        if (isWarp)
+        if (targetWarp is not null)
         {
             if (targetWarp.MinimumLevel > Stats.Level)
             {
-                Client.SendMessage("You're too afraid to even approach it!", 3);
+                Client?.SendMessage("You're too afraid to even approach it!", 3);
                 Refresh();
                 return false;
             }
 
             if (targetWarp.MaximumLevel < Stats.Level)
             {
-                Client.SendMessage("Your honor forbids you from entering.", 3);
+                Client?.SendMessage("Your honor forbids you from entering.", 3);
                 Refresh();
                 return false;
             }
         }
 
         // Is the user trying to move into a reactor tile with blocking (meaning the reactor can't be "walked" on)?
-        if (isReactors && newReactors.Values.Any(predicate: x => x.Blocking))
+        if (newReactors is not null && newReactors.Values.Any(predicate: x => x.Blocking))
         {
-            Client.SendMessage("Your path is blocked!", 3);
+            Client?.SendMessage("Your path is blocked!", 3);
             Refresh();
         }
 
@@ -2070,7 +2083,7 @@ public class User : Creature
         {
             if (obj != this && obj is User)
             {
-                var user = obj as User;
+                var user = (User)obj;
                 GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
                 var x0C = new ServerPacket(0x0C);
                 x0C.WriteUInt32(Id);
@@ -2084,7 +2097,7 @@ public class User : Creature
             // Reactors receive an OnMove event
             if (obj != this && obj is Reactor)
             {
-                var reactor = obj as Reactor;
+                var reactor = (Reactor)obj;
                 reactor.OnMove(this);
             }
         }
@@ -2101,14 +2114,14 @@ public class User : Creature
             AoiDeparture(obj);
         }
 
-        if (isWarp) return targetWarp.Use(this);
+        if (targetWarp is not null) return targetWarp.Use(this);
 
         // Handle stepping onto a reactor, leaving a reactor, or both
-        if (isReactors)
+        if (newReactors is not null)
             foreach (var reactor in newReactors.Values)
                 reactor.OnEntry(this);
 
-        if (wasReactors)
+        if (oldReactors is not null)
             foreach (var reactor in oldReactors.Values)
                 reactor.OnLeave(this);
 
@@ -2123,7 +2136,7 @@ public class User : Creature
     {
         if (Gold + amount > Game.ActiveConfiguration.Constants.PlayerMaxGold)
         {
-            Client.SendMessage("You cannot carry any more gold.", 3);
+            Client?.SendMessage("You cannot carry any more gold.", 3);
             return false;
         }
 
@@ -2305,7 +2318,7 @@ public class User : Creature
                 foreach (var i in slots)
                     if (quantity > 0)
                     {
-                        var slot = Inventory[i];
+                        var slot = Inventory[i]!;
                         if (slot.Count < slot.MaximumStack)
                         {
                             var diff = slot.MaximumStack - slot.Count;
@@ -2329,7 +2342,7 @@ public class User : Creature
                 if (quantity > 0)
                     do
                     {
-                        var item = World.CreateItem(xmlItem.Id);
+                        var item = World.CreateItem(xmlItem);
                         if (quantity > item.MaximumStack)
                         {
                             item.Count = item.MaximumStack;
@@ -2348,7 +2361,7 @@ public class User : Creature
             {
                 do
                 {
-                    var item = World.CreateItem(xmlItem.Id);
+                    var item = World.CreateItem(xmlItem);
                     if (quantity > item.MaximumStack)
                     {
                         item.Count = item.MaximumStack;
@@ -2373,7 +2386,7 @@ public class User : Creature
         {
             do
             {
-                var item = World.CreateItem(xmlItem.Id);
+                var item = World.CreateItem(xmlItem);
                 World.Insert(item);
                 AddItem(item, updateWeight);
                 quantity -= 1;
@@ -2408,23 +2421,24 @@ public class User : Creature
             foreach (var i in slots)
                 if (remaining > 0)
                 {
-                    if (Inventory[i].Stackable)
+                    if (Inventory[i] is not { } item) continue;
+                    if (item.Stackable)
                     {
-                        if (Inventory[i].Count <= remaining)
+                        if (item.Count <= remaining)
                         {
                             GameLog.Info(
                                 "RemoveItem {Item}, quantity {Quantity}: removing stack from slot {Slot} with {Count}",
-                                itemName, quantity, i, Inventory[i].Count);
-                            remaining -= Inventory[i].Count;
+                                itemName, quantity, i, item.Count);
+                            remaining -= item.Count;
                             Inventory.Remove(i);
                             slotsToClear.Add(i);
                         }
-                        else if (Inventory[i].Count > remaining)
+                        else if (item.Count > remaining)
                         {
                             GameLog.Info(
                                 "RemoveItem {Item}, quantity {Quantity}: removing quantity from stack, slot {Slot} with amount {Count}",
-                                itemName, quantity, i, Inventory[i].Count);
-                            Inventory[i].Count -= remaining;
+                                itemName, quantity, i, item.Count);
+                            item.Count -= remaining;
                             remaining = 0;
                             slotsToUpdate.Add(i);
                         }
@@ -2433,7 +2447,7 @@ public class User : Creature
                     {
                         GameLog.Info(
                             "RemoveItem {Item}, quantity {Quantity}: removing nonstackable item from slot {Slot} with amount {Count}",
-                            itemName, quantity, i, Inventory[i].Count);
+                            itemName, quantity, i, item.Count);
                         Inventory.Remove(i);
                         remaining--;
                         slotsToClear.Add(i);
@@ -2526,7 +2540,8 @@ public class User : Creature
         if (Equipment.Remove(slot))
         {
             SendRefreshEquipmentSlot(slot);
-            SendSystemMessage($"Unequipped {item.Name}");
+            // Equipment.Remove(slot) returned true, so the slot was occupied and item is non-null.
+            SendSystemMessage($"Unequipped {item!.Name}");
             RemoveBonuses(item);
             // TODO: target this recalculation, this is a mildly expensive operation
             if (item.CastModifiers != null)
@@ -2612,7 +2627,7 @@ public class User : Creature
         }
     }
 
-    public override void RegenerateMp(double mp, Creature regenerator = null)
+    public override void RegenerateMp(double mp, Creature? regenerator = null)
     {
         base.RegenerateMp(mp, regenerator);
         UpdateAttributes(StatUpdateFlags.Current);
@@ -2629,8 +2644,8 @@ public class User : Creature
     }
 
     public override void Damage(double damage, ElementType element = ElementType.None,
-        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature attacker = null,
-        Castable castable = null, bool onDeath = true)
+        DamageType damageType = DamageType.Direct, DamageFlags damageFlags = DamageFlags.None, Creature? attacker = null,
+        Castable? castable = null, bool onDeath = true)
     {
         if (Condition.Comatose || !Condition.Alive) return;
         base.Damage(damage, element, damageType, damageFlags, attacker, castable,
@@ -2664,7 +2679,7 @@ public class User : Creature
         UpdateAttributes(StatUpdateFlags.Current);
     }
 
-    public override void Heal(double heal, Creature source = null, Castable castable = null)
+    public override void Heal(double heal, Creature? source = null, Castable? castable = null)
     {
         base.Heal(heal, source, castable);
         if (Condition.IsHpIncreaseProhibited)
@@ -2859,7 +2874,7 @@ public class User : Creature
         return false;
     }
 
-    public bool UseCastable(Castable castableXml, Creature target = null, bool castCost = true,
+    public bool UseCastable(Castable castableXml, Creature? target = null, bool castCost = true,
         bool evalRestrictions = true)
     {
         if (castableXml.Intents[0].UseType == SpellUseType.Prompt)
@@ -2900,7 +2915,7 @@ public class User : Creature
         return base.UseCastable(castableXml, target);
     }
 
-    public void AssailAttack(Direction direction, Creature target = null)
+    public void AssailAttack(Direction direction, Creature? target = null)
     {
         target ??= GetDirectionalTarget(direction);
         var animation = false;
@@ -2954,8 +2969,8 @@ public class User : Creature
         var sb = new StringBuilder();
 
         // Only build this string if the user's in a group. Otherwise an empty
-        // string should be sent.
-        if (!Grouped) return sb.ToString();
+        // string should be sent. Snapshot: the group can be disbanded cross-thread.
+        if (Group is not { } group) return sb.ToString();
         sb.Append("Group members");
         sb.Append((char)0x0A);
 
@@ -2965,7 +2980,7 @@ public class User : Creature
         sb.Append("  " + Name);
         sb.Append((char)0x0A);
 
-        foreach (var member in Group.Members)
+        foreach (var member in group.Members)
             if (member.Name != Name)
             {
                 sb.Append("  " + member.Name);
@@ -2989,11 +3004,9 @@ public class User : Creature
             GuildRank = GetGuildInfo().GuildRank,
             CurrentTitle = Title,
             Group = Group,
-            IsGrouped = Grouped,
             CanGroup = Grouping,
             GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
             Class = (byte)Class,
-            ClassName = IsMaster ? "Master" : Game.ActiveConfiguration.GetClassName((byte)Class).Capitalize(),
             GuildName = GetGuildInfo().GuildName,
             PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
         };
@@ -3301,14 +3314,23 @@ public class User : Creature
             Options = options
         };
 
-        PendingLearnableCastable = castable;
+        PendingLearnable = new PendingLearnable(castable, merchant.Id, IsSkillFlow: true);
 
         Enqueue(packet.Packet());
     }
 
     public void ShowLearnSkillAgree(Merchant merchant)
     {
-        var castable = PendingLearnableCastable;
+        // Established by the preceding learn-skill step at this merchant; anything else
+        // (absent, spell flow, different merchant) is a crafted or out-of-order packet.
+        if (PendingLearnable is not { IsSkillFlow: true } pending || pending.MerchantId != merchant.Id)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowLearnSkillAgree: no pending skill for merchant {Merchant}, ignoring",
+                Name, merchant.Name);
+            return;
+        }
+
+        var castable = pending.Castable;
         //now check requirements.
         var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
 
@@ -3416,7 +3438,25 @@ public class User : Creature
 
     public void ShowLearnSkillAccept(Merchant merchant)
     {
-        var castable = PendingLearnableCastable;
+        // Established by the preceding learn-skill step at this merchant; anything else
+        // (absent, spell flow, different merchant) is a crafted or out-of-order packet.
+        if (PendingLearnable is not { IsSkillFlow: true } pending || pending.MerchantId != merchant.Id)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowLearnSkillAccept: no pending skill for merchant {Merchant}, ignoring",
+                Name, merchant.Name);
+            return;
+        }
+
+        // Consume before any side effects: a replayed accept must restart the dialog
+        PendingLearnable = null;
+        var castable = pending.Castable;
+
+        if (SkillBook.Contains(castable.Id))
+        {
+            GameLog.UserActivityWarning("{Name}: ShowLearnSkillAccept: already knows {Castable}, ignoring", Name,
+                castable.Name);
+            return;
+        }
         var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
 
         var prompt = string.Empty;
@@ -3463,7 +3503,7 @@ public class User : Creature
 
     public void ShowLearnSkillDisagree(Merchant merchant)
     {
-        PendingLearnableCastable = null;
+        PendingLearnable = null;
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3573,14 +3613,23 @@ public class User : Creature
             Options = options
         };
 
-        PendingLearnableCastable = castable;
+        PendingLearnable = new PendingLearnable(castable, merchant.Id, IsSkillFlow: false);
 
         Enqueue(packet.Packet());
     }
 
     public void ShowLearnSpellAgree(Merchant merchant)
     {
-        var castable = PendingLearnableCastable;
+        // Established by the preceding learn-spell step at this merchant; anything else
+        // (absent, skill flow, different merchant) is a crafted or out-of-order packet.
+        if (PendingLearnable is not { IsSkillFlow: false } pending || pending.MerchantId != merchant.Id)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowLearnSpellAgree: no pending spell for merchant {Merchant}, ignoring",
+                Name, merchant.Name);
+            return;
+        }
+
+        var castable = pending.Castable;
         //now check requirements.
         var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
         var options = new MerchantOptions();
@@ -3693,7 +3742,25 @@ public class User : Creature
 
     public void ShowLearnSpellAccept(Merchant merchant)
     {
-        var castable = PendingLearnableCastable;
+        // Established by the preceding learn-spell step at this merchant; anything else
+        // (absent, skill flow, different merchant) is a crafted or out-of-order packet.
+        if (PendingLearnable is not { IsSkillFlow: false } pending || pending.MerchantId != merchant.Id)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowLearnSpellAccept: no pending spell for merchant {Merchant}, ignoring",
+                Name, merchant.Name);
+            return;
+        }
+
+        // Consume before any side effects: a replayed accept must restart the dialog
+        PendingLearnable = null;
+        var castable = pending.Castable;
+
+        if (SpellBook.Contains(castable.Id))
+        {
+            GameLog.UserActivityWarning("{Name}: ShowLearnSpellAccept: already knows {Castable}, ignoring", Name,
+                castable.Name);
+            return;
+        }
         var classReq = castable.Requirements.First(predicate: x => x.Class.Contains(Class) || Class == Class.Peasant);
         var prompt = string.Empty;
         var options = new MerchantOptions
@@ -3741,7 +3808,7 @@ public class User : Creature
 
     public void ShowLearnSpellDisagree(Merchant merchant)
     {
-        PendingLearnableCastable = null;
+        PendingLearnable = null;
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
@@ -3840,9 +3907,17 @@ public class User : Creature
 
     public void ShowBuyItem(Merchant merchant, uint quantity = 1)
     {
+        // Set by the preceding buy dialog step; absent only via crafted or
+        // out-of-order merchant packets, so log and ignore.
+        if (PendingBuyableItem is not { Length: > 0 } pendingBuyable ||
+            !Game.World.WorldData.TryGetValueByIndex(pendingBuyable, out Item item))
+        {
+            GameLog.UserActivityWarning("{Name}: ShowBuyItem: no pending buyable item, ignoring", Name);
+            return;
+        }
+
         var prompt = string.Empty;
-        var item = Game.World.WorldData.GetByIndex<Item>(PendingBuyableItem);
-        var itemObj = Game.World.CreateItem(item.Id);
+        var itemObj = Game.World.CreateItem(item);
         var reqGold = itemObj.Value * quantity;
         var options = new MerchantOptions
         {
@@ -3852,7 +3927,7 @@ public class User : Creature
         if (MaximumWeight < CurrentWeight + item.Properties.Physical.Weight)
             prompt = merchant.GetLocalString("buy_failure_weight");
 
-        if (quantity > merchant.GetOnHand(PendingBuyableItem))
+        if (quantity > merchant.GetOnHand(pendingBuyable))
             prompt = merchant.GetLocalString("buy_failure_quantity");
         if (Gold < reqGold) prompt = merchant.GetLocalString("buy_failure_gold");
 
@@ -3864,12 +3939,12 @@ public class User : Creature
             {
                 if (itemObj.Stackable)
                 {
-                    merchant.ReduceInventory(PendingBuyableItem, quantity);
+                    merchant.ReduceInventory(pendingBuyable, quantity);
                     AddItem(itemObj.Name, (ushort)quantity);
                 }
                 else
                 {
-                    merchant.ReduceInventory(PendingBuyableItem, quantity);
+                    merchant.ReduceInventory(pendingBuyable, quantity);
                     AddItem(itemObj);
                 }
             }
@@ -3877,12 +3952,12 @@ public class User : Creature
             {
                 if (itemObj.Stackable)
                 {
-                    merchant.ReduceInventory(PendingBuyableItem, quantity);
+                    merchant.ReduceInventory(pendingBuyable, quantity);
                     AddItem(itemObj.Name, (ushort)quantity);
                 }
                 else
                 {
-                    merchant.ReduceInventory(PendingBuyableItem, quantity);
+                    merchant.ReduceInventory(pendingBuyable, quantity);
                     AddItem(itemObj);
                 }
             }
@@ -3920,8 +3995,8 @@ public class User : Creature
 
         for (byte i = 1; i <= Inventory.Size; i++)
         {
-            if (Inventory[i] == null) continue;
-            if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+            if (Inventory[i] is not { } item) continue;
+            if (item.Exchangeable && item.Durability == item.MaximumDurability)
             {
                 inventoryItems.InventorySlots.Add(i);
                 itemsCount++;
@@ -3947,7 +4022,12 @@ public class User : Creature
 
     public void ShowSellQuantity(Merchant merchant, byte slot)
     {
-        var item = Inventory[slot];
+        if (Inventory[slot] is not { } item)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowSellQuantity: no item in slot {Slot}, ignoring", Name, slot);
+            return;
+        }
+
         PendingSellableSlot = slot;
         if (item.Stackable)
         {
@@ -3980,9 +4060,14 @@ public class User : Creature
 
     public void ShowSellConfirm(Merchant merchant, byte slot, uint quantity = 1)
     {
+        if (Inventory[slot] is not { } item)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowSellConfirm: no item in slot {Slot}, ignoring", Name, slot);
+            return;
+        }
+
         PendingSellableSlot = slot;
         PendingSellableQuantity = quantity;
-        var item = Inventory[slot];
         var offer = (uint)(Math.Round(item.Value * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage, 0) *
                             quantity);
         PendingMerchantOffer = offer;
@@ -4125,8 +4210,8 @@ public class User : Creature
 
         for (byte i = 1; i <= Inventory.Size; i++)
         {
-            if (Inventory[i] == null) continue;
-            if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+            if (Inventory[i] is not { } item) continue;
+            if (item.Exchangeable && item.Durability == item.MaximumDurability)
             {
                 userItems.InventorySlots.Add(i);
                 itemsCount++;
@@ -4215,7 +4300,14 @@ public class User : Creature
 
     public void ShowMerchantSendParcelAccept(Merchant merchant, string recipient)
     {
-        var itemObj = PendingSendableParcel;
+        // Set by the preceding parcel dialog step; absent only via crafted or
+        // out-of-order merchant packets, so log and ignore.
+        if (PendingSendableParcel is not { } itemObj)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowMerchantSendParcelAccept: no pending parcel, ignoring", Name);
+            return;
+        }
+
         var quantity = PendingSendableQuantity;
         PendingParcelRecipient = recipient;
         var prompt = string.Empty;
@@ -4434,8 +4526,8 @@ public class User : Creature
 
         for (byte i = 1; i <= Inventory.Size; i++)
         {
-            if (Inventory[i] == null) continue;
-            if (Inventory[i].Exchangeable && Inventory[i].Durability == Inventory[i].MaximumDurability)
+            if (Inventory[i] is not { } item) continue;
+            if (item.Exchangeable && item.Durability == item.MaximumDurability)
                 inventoryItems.InventorySlots.Add(i);
         }
 
@@ -4458,7 +4550,13 @@ public class User : Creature
 
     public void ShowDepositItemQuantity(Merchant merchant, byte slot)
     {
-        var item = Inventory[slot];
+        if (Inventory[slot] is not { } item)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowDepositItemQuantity: no item in slot {Slot}, ignoring", Name,
+                slot);
+            return;
+        }
+
         PendingDepositSlot = slot;
         if (item.Stackable && item.Count > 0)
         {
@@ -4492,9 +4590,13 @@ public class User : Creature
 
     public void DepositItemConfirm(Merchant merchant, byte slot, uint quantity = 1)
     {
-        var failure = false;
+        if (Inventory[slot] is not { } item)
+        {
+            GameLog.UserActivityWarning("{Name}: DepositItemConfirm: no item in slot {Slot}, ignoring", Name, slot);
+            return;
+        }
 
-        var item = Inventory[slot];
+        var failure = false;
 
         if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
 
@@ -4539,7 +4641,7 @@ public class User : Creature
             prompt = merchant.GetLocalString("deposit_item_success", ("$ITEM", item.Name),
                 ("$QUANTITY", quantity.ToString()), ("$COINS", fee.ToString()), ("$REF", coins));
             Vault.AddItem(item.Name, (ushort)quantity);
-            if (Inventory[slot].Stackable && Inventory[slot].Count > quantity)
+            if (item.Stackable && item.Count > quantity)
                 RemoveItem(item.Name, (ushort)quantity);
             else
                 RemoveItem(slot);
@@ -4587,8 +4689,8 @@ public class User : Creature
         inventoryItems.Id = (ushort)MerchantMenuItem.RepairItem;
         for (byte i = 1; i <= Inventory.Size; i++)
         {
-            if (Inventory[i] == null) continue;
-            if (Inventory[i].Durability != Inventory[i].MaximumDurability) inventoryItems.InventorySlots.Add(i);
+            if (Inventory[i] is not { } item) continue;
+            if (item.Durability != item.MaximumDurability) inventoryItems.InventorySlots.Add(i);
         }
 
         if (inventoryItems.InventorySlots.Count > 0)
@@ -4633,8 +4735,13 @@ public class User : Creature
 
     public void ShowRepairItem(Merchant merchant, byte slot)
     {
+        if (Inventory[slot] is not { } item)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowRepairItem: no item in slot {Slot}, ignoring", Name, slot);
+            return;
+        }
+
         var prompt = string.Empty;
-        var item = Inventory[slot];
 
         PendingRepairSlot = slot;
 
@@ -4684,6 +4791,16 @@ public class User : Creature
 
     public void ShowRepairItemAccept(Merchant merchant)
     {
+        // PendingRepairSlot is 0 when no repair is pending (its reset value); the slot may also
+        // have been emptied since ShowRepairItem was displayed. Both are only reachable via
+        // crafted or out-of-order packets, so log and ignore.
+        if (PendingRepairSlot == 0 || Inventory[PendingRepairSlot] is not { } item)
+        {
+            GameLog.UserActivityWarning("{Name}: ShowRepairItemAccept: no pending repair item in slot {Slot}, ignoring",
+                Name, PendingRepairSlot);
+            return;
+        }
+
         if (Gold < PendingRepairCost)
         {
             var options = new MerchantOptions
@@ -4710,7 +4827,7 @@ public class User : Creature
         else
         {
             RemoveGold(PendingRepairCost);
-            Inventory[PendingRepairSlot].Durability = Inventory[PendingRepairSlot].MaximumDurability;
+            item.Durability = item.MaximumDurability;
             PendingRepairSlot = 0;
             PendingRepairCost = 0;
             (merchant as IPursuitable).DisplayPursuits(this);
@@ -4724,10 +4841,9 @@ public class User : Creature
 
         for (byte i = 1; i <= Inventory.Size; i++)
         {
-            if (Inventory[i] == null) continue;
-            if (Inventory[i].Durability != Inventory[i].MaximumDurability)
+            if (Inventory[i] is not { } item) continue;
+            if (item.Durability != item.MaximumDurability)
             {
-                var item = Inventory[i];
                 PendingRepairCost +=
                     (uint)Math.Ceiling(item.Value - item.Durability / item.MaximumDurability * item.Value);
                 repairableCount++;
@@ -4736,10 +4852,9 @@ public class User : Creature
 
         for (byte i = 1; i <= Equipment.Size; i++)
         {
-            if (Equipment[i] == null) continue;
-            if (Equipment[i].Durability != Equipment[i].MaximumDurability)
+            if (Equipment[i] is not { } item) continue;
+            if (item.Durability != item.MaximumDurability)
             {
-                var item = Equipment[i];
                 PendingRepairCost +=
                     (uint)Math.Ceiling(item.Value - item.Durability / item.MaximumDurability * item.Value);
                 repairableCount++;
@@ -4839,22 +4954,22 @@ public class User : Creature
             PendingRepairCost = 0;
             for (byte i = 1; i <= Inventory.Size; i++)
             {
-                if (Inventory[i] == null) continue;
-                if (Inventory[i].Durability != Inventory[i].MaximumDurability)
+                if (Inventory[i] is not { } item) continue;
+                if (item.Durability != item.MaximumDurability)
                 {
-                    Inventory[i].Durability = Inventory[i].MaximumDurability;
-                    SendItemUpdate(Inventory[i], i);
+                    item.Durability = item.MaximumDurability;
+                    SendItemUpdate(item, i);
                 }
             }
 
             for (byte i = 1; i <= Equipment.Size; i++)
             {
-                if (Equipment[i] == null) continue;
-                if (Equipment[i].Durability != Equipment[i].MaximumDurability)
+                if (Equipment[i] is not { } item) continue;
+                if (item.Durability != item.MaximumDurability)
                 {
-                    Equipment[i].Durability = Equipment[i].MaximumDurability;
+                    item.Durability = item.MaximumDurability;
                     //SendItemUpdate(Equipment[i], i);
-                    AddEquipment(Equipment[i], i);
+                    AddEquipment(item, i);
                 }
             }
 
@@ -4980,7 +5095,10 @@ public class User : Creature
                     var maxQuantity = 0;
                     var existingStacks = Inventory.GetSlotsByName(item);
                     foreach (var slot in existingStacks)
-                        maxQuantity += Inventory[slot].MaximumStack - Inventory[slot].Count;
+                    {
+                        if (Inventory[slot] is not { } stack) continue;
+                        maxQuantity += stack.MaximumStack - stack.Count;
+                    }
                     maxQuantity +=
                         (Inventory.EmptySlots - 2) * worldItem.MaximumStack; //account for slot 0 and gold slot
 
@@ -5014,7 +5132,7 @@ public class User : Creature
             }
             else
             {
-                var itemObj = World.CreateItem(worldItem.Id);
+                var itemObj = World.CreateItem(worldItem);
                 Vault.RemoveItem(item);
                 AddItem(itemObj);
             }
@@ -5075,17 +5193,21 @@ public class User : Creature
 
     public void SendRedirect(World world, Login login, string name, bool logoff = true, int transmitDelay = 1200)
     {
-        Client.Redirect(
-            new Redirect(Client, world, Game.Login, name, Client.EncryptionSeed, Client.EncryptionKey), logoff,
+        if (Client is not { EncryptionKey: { } encryptionKey } client)
+        {
+            GameLog.Warning("User {user}: redirect requested but client is gone or has no key, ignoring", Name);
+            return;
+        }
+
+        client.Redirect(
+            new Redirect(client, world, Game.Login, name, client.EncryptionSeed, encryptionKey), logoff,
             transmitDelay);
     }
 
-    public bool IsHeartbeatValid(byte a, byte b) => Client.IsHeartbeatValid(a, b);
+    public bool IsHeartbeatValid(byte a, byte b) => Client?.IsHeartbeatValid(a, b) ?? false;
 
     public bool IsHeartbeatValid(int localTickCount, int clientTickCount) =>
-        Client.IsHeartbeatValid(localTickCount, clientTickCount);
-
-    public bool IsHeartbeatExpired() => Client.IsHeartbeatExpired();
+        Client?.IsHeartbeatValid(localTickCount, clientTickCount) ?? false;
 
     public void Logoff(bool disconnect = false)
     {
@@ -5093,15 +5215,18 @@ public class User : Creature
         Save(true);
         if (!disconnect)
         {
-            var redirect = new Redirect(Client, Game.World, Game.Login, "socket", Client.EncryptionSeed,
-                Client.EncryptionKey);
-            Client.Redirect(redirect, true);
+            if (Client is { EncryptionKey: { } encryptionKey } client)
+            {
+                var redirect = new Redirect(client, Game.World, Game.Login, "socket", client.EncryptionSeed,
+                    encryptionKey);
+                client.Redirect(redirect, true);
+            }
         }
         else
         {
             try
             {
-                Client.Disconnect();
+                Client?.Disconnect();
             }
             catch (Exception)
             {
@@ -5113,9 +5238,15 @@ public class User : Creature
 
     public void SetEncryptionParameters(byte[] key, byte seed, string name)
     {
-        Client.EncryptionKey = key;
-        Client.EncryptionSeed = seed;
-        Client.GenerateKeyTable(name);
+        if (Client is not { } client)
+        {
+            GameLog.Warning("User {user}: encryption parameter update requested but client is gone, ignoring", Name);
+            return;
+        }
+
+        client.EncryptionKey = key;
+        client.EncryptionSeed = seed;
+        client.GenerateKeyTable(name);
     }
 
     /// <summary>
@@ -5215,16 +5346,16 @@ public class User : Creature
 
     public void SendInventorySlot(byte slot)
     {
-        if (Inventory[slot] == null) return;
+        if (Inventory[slot] is not { } item) return;
         var x0F = new ServerPacket(0x0F);
         x0F.WriteByte(slot);
-        x0F.WriteUInt16((ushort)(Inventory[slot].Sprite + 0x8000));
-        x0F.WriteByte(Inventory[slot].Color);
-        x0F.WriteString8(Inventory[slot].Name);
-        x0F.WriteInt32(Inventory[slot].Count);
-        x0F.WriteBoolean(Inventory[slot].Stackable);
-        x0F.WriteUInt32(Inventory[slot].MaximumDurability);
-        x0F.WriteUInt32(Inventory[slot].DisplayDurability);
+        x0F.WriteUInt16((ushort)(item.Sprite + 0x8000));
+        x0F.WriteByte(item.Color);
+        x0F.WriteString8(item.Name);
+        x0F.WriteInt32(item.Count);
+        x0F.WriteBoolean(item.Stackable);
+        x0F.WriteUInt32(item.MaximumDurability);
+        x0F.WriteUInt32(item.DisplayDurability);
         Enqueue(x0F);
     }
 
@@ -5232,17 +5363,17 @@ public class User : Creature
     {
         for (byte i = 1; i < Inventory.Size; i++)
         {
-            if (Inventory[i] == null) continue;
-            if (Inventory[i].Id == 0) Game.World.Insert(Inventory[i]);
+            if (Inventory[i] is not { } item) continue;
+            if (item.Id == 0) Game.World.Insert(item);
             var x0F = new ServerPacket(0x0F);
             x0F.WriteByte(i);
-            x0F.WriteUInt16((ushort)(Inventory[i].Sprite + 0x8000));
-            x0F.WriteByte(Inventory[i].Color);
-            x0F.WriteString8(Inventory[i].Name);
-            x0F.WriteInt32(Inventory[i].Count);
-            x0F.WriteBoolean(Inventory[i].Stackable);
-            x0F.WriteUInt32(Inventory[i].MaximumDurability);
-            x0F.WriteUInt32(Inventory[i].DisplayDurability);
+            x0F.WriteUInt16((ushort)(item.Sprite + 0x8000));
+            x0F.WriteByte(item.Color);
+            x0F.WriteString8(item.Name);
+            x0F.WriteInt32(item.Count);
+            x0F.WriteBoolean(item.Stackable);
+            x0F.WriteUInt32(item.MaximumDurability);
+            x0F.WriteUInt32(item.DisplayDurability);
             Enqueue(x0F);
         }
     }
@@ -5250,22 +5381,22 @@ public class User : Creature
     public void SendEquipment()
     {
         for (byte i = 1; i < Equipment.Size; i++)
-            if (Equipment[i] != null)
-                SendEquipItem(Equipment[i], i);
+            if (Equipment[i] is { } item)
+                SendEquipItem(item, i);
     }
 
     public void SendSkills()
     {
         for (byte i = 0; i < SkillBook.Size; i++)
-            if (SkillBook[i]?.Castable != null)
-                SendSkillUpdate(SkillBook[i], i);
+            if (SkillBook[i] is { Castable: not null } bookSlot)
+                SendSkillUpdate(bookSlot, i);
     }
 
     public void SendSpells()
     {
         for (byte i = 0; i < SpellBook.Size; i++)
-            if (SpellBook[i]?.Castable != null)
-                SendSpellUpdate(SpellBook[i], i);
+            if (SpellBook[i] is { Castable: not null } bookSlot)
+                SendSpellUpdate(bookSlot, i);
     }
 
     public void ReapplyStatuses()
@@ -5302,7 +5433,7 @@ public class User : Creature
         CombatEvents.Push(e);
         if (GetCookie("combatlog") != "on") return;
 
-        foreach (var line in e.ToString().Split("\n"))
+        foreach (var line in (e.ToString() ?? string.Empty).Split("\n"))
             Client?.SendMessage(line, (byte)MessageType.Group);
     }
 
@@ -5344,37 +5475,37 @@ public class User : Creature
     // Some structs helping us to define various metadata
     public AuthInfo AuthInfo => Game.World.WorldState.GetOrCreateByGuid<AuthInfo>(Guid, Name);
 
-    [Persist] public SkillBook SkillBook { get; private set; }
+    [Persist] public SkillBook SkillBook { get; private set; } = new();
 
-    [Persist] public SpellBook SpellBook { get; private set; }
+    [Persist] public SpellBook SpellBook { get; private set; } = new();
 
     [Persist] public bool Grouping { get; set; }
 
     public UserStatus GroupStatus { get; set; }
 
-    [Persist] public byte[] PortraitData { get; set; }
+    [Persist] public byte[] PortraitData { get; set; } = [];
 
-    [Persist] public string ProfileText { get; set; }
+    [Persist] public string ProfileText { get; set; } = string.Empty;
 
-    public Castable PendingLearnableCastable { get; private set; }
-    public ItemObject PendingSendableParcel { get; private set; }
+    public PendingLearnable? PendingLearnable { get; private set; }
+    public ItemObject? PendingSendableParcel { get; private set; }
     public uint PendingSendableQuantity { get; private set; }
-    public string PendingParcelRecipient { get; private set; }
-    public string PendingBuyableItem { get; private set; }
+    public string? PendingParcelRecipient { get; private set; }
+    public string? PendingBuyableItem { get; private set; }
     public int PendingBuyableQuantity { get; private set; }
     public byte PendingSellableSlot { get; private set; }
     public uint PendingSellableQuantity { get; private set; }
     public uint PendingMerchantOffer { get; private set; }
     public byte PendingDepositSlot { get; private set; }
-    public string PendingWithdrawItem { get; private set; }
+    public string? PendingWithdrawItem { get; private set; }
     public byte PendingRepairSlot { get; private set; }
     public uint PendingRepairCost { get; private set; }
 
-    [Persist] public List<KillRecord> RecentKills { get; private set; }
+    [Persist] public List<KillRecord> RecentKills { get; private set; } = new();
 
     public Stack<ICombatEvent> CombatEvents { get; } = new(50);
 
-    public List<SpokenEvent> MessagesReceived { get; private set; }
+    public List<SpokenEvent> MessagesReceived { get; private set; } = new();
 
     [Persist] public Guid GuildGuid { get; set; } = Guid.Empty;
 
@@ -5384,7 +5515,7 @@ public class User : Creature
     public List<string> ReceiveCastRestrictions => CurrentStatuses
         .SelectMany(selector: e => e.Value.ReceiveCastRestrictions).ToList();
 
-    private Nation _nation;
+    private Nation? _nation;
 
     public Nation Nation
     {
@@ -5396,25 +5527,29 @@ public class User : Creature
         }
     }
 
-    [Persist] private string Citizenship { get; set; }
+    // Null/empty = never chose citizenship; distinguishable from any nation on save
+    [Persist] private string? Citizenship { get; set; }
 
     public string NationName => Nation != null ? Nation.Name : string.Empty;
 
-    [Persist] public Legend Legend;
-    [Persist] public string Title;
+    [Persist] public Legend Legend = new();
+    [Persist] public string Title = string.Empty;
 
-    public AsyncDialogSession ActiveDialogSession { get; set; }
-    public DialogState DialogState { get; set; }
+    public AsyncDialogSession? ActiveDialogSession { get; set; }
+
+    // Always assigned in _initializeUser (runtime state, not persisted); constructor initializer
+    // can't reference 'this', so the invariant is upheld by the ctor rather than an inline default.
+    public DialogState DialogState { get; set; } = null!;
 
     // Used by reactors and certain other objects to set an associate, so that functions called
     // from Lua later know who to "consult" for dialogs / etc.
-    public IInteractable LastAssociate { get; set; }
+    public IInteractable? LastAssociate { get; set; }
 
-    public Exchange ActiveExchange { get; set; }
+    public Exchange? ActiveExchange { get; set; }
 
     public bool IsAvailableForExchange => Condition.NoFlags;
 
-    public ManufactureState ManufactureState { get; set; }
+    public ManufactureState? ManufactureState { get; set; }
 
     #endregion
 }

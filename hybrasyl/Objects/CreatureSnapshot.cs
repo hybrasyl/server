@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -33,5 +33,5 @@ public record CreatureSnapshot : IStateStorable
 
     public bool IsPlayer => GetUserObject() != null;
 
-    public User GetUserObject() => Game.World.WorldState.TryGetWorldObject(CreatureGuid, out User user) ? user : null;
+    public User? GetUserObject() => Game.World.WorldState.TryGetWorldObject(CreatureGuid, out User user) ? user : null;
 }

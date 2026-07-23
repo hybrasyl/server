@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -39,9 +39,10 @@ public class Script(string path, ScriptProcessor processor)
     public string FileName => Path.GetFileName(FullPath);
     public string Locator { get; set; } = string.Empty;
     public ScriptProcessor Processor { get; set; } = processor;
-    public MoonSharp.Interpreter.Script Compiled { get; private set; }
+    // Set by NewMoonsharpScript() during Run()/Reload(), always called before the script is used.
+    public MoonSharp.Interpreter.Script Compiled { get; private set; } = null!;
     public bool Disabled { get; set; }
-    public ScriptExecutionResult LoadExecutionResult { get; set; }
+    public ScriptExecutionResult? LoadExecutionResult { get; set; }
     public Guid Guid { get; set; } =  Guid.Empty;
 
     private readonly object _lock = new();
@@ -219,7 +220,7 @@ public class Script(string path, ScriptProcessor processor)
         }
     }
 
-    public void ProcessEnvironment(ScriptEnvironment env)
+    public void ProcessEnvironment(ScriptEnvironment? env)
     {
         if (env is null) return;
         foreach (var (key, value) in env.Variables)
@@ -227,7 +228,8 @@ public class Script(string path, ScriptProcessor processor)
             DynValue udv = GetUserDataValue(value);
             Compiled.Globals.Set(key, udv);
             if (udv.Type == DataType.UserData)
-                GameLog.ScriptingDebug("{Key}: {OriginalType} originally, {WrappedType} wrapped", key, value.GetType(), udv.UserData.Object.GetType());
+                // UserData-typed DynValue always wraps a non-null Object.
+                GameLog.ScriptingDebug("{Key}: {OriginalType} originally, {WrappedType} wrapped", key, value?.GetType(), udv.UserData.Object!.GetType());
         }
     }
 
@@ -239,7 +241,7 @@ public class Script(string path, ScriptProcessor processor)
     /// <param name="invoker">The invoker (caller).</param>
     /// <param name="source">Optionally, the source of the script call, invocation or dialog</param>
     /// <returns></returns>
-    public ScriptExecutionResult ExecuteExpression(string expr, ScriptEnvironment environment = null)
+    public ScriptExecutionResult ExecuteExpression(string expr, ScriptEnvironment? environment = null)
     {
         lock (_lock)
         {
@@ -253,7 +255,10 @@ public class Script(string path, ScriptProcessor processor)
             };
 
             if (Disabled)
+            {
+                result.Error = ScriptExecutionError.ScriptDisabled;
                 return result;
+            }
 
             try
             {
@@ -275,7 +280,7 @@ public class Script(string path, ScriptProcessor processor)
         }
     }
 
-    public ScriptExecutionResult ExecuteFunction(string functionName, ScriptEnvironment environment = null)
+    public ScriptExecutionResult ExecuteFunction(string functionName, ScriptEnvironment? environment = null)
     {
         lock (_lock)
         {
@@ -290,6 +295,7 @@ public class Script(string path, ScriptProcessor processor)
 
             if (Disabled)
             {
+                result.Error = ScriptExecutionError.ScriptDisabled;
                 return result;
             }
 
@@ -298,6 +304,7 @@ public class Script(string path, ScriptProcessor processor)
                 if (!HasFunction(functionName))
                 {
                     result.Result = ScriptResult.FunctionMissing;
+                    result.Error = ScriptExecutionError.MissingFunction(functionName);
                 }
                 else
                 {

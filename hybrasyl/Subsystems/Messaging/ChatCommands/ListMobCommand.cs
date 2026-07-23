@@ -1,4 +1,4 @@
-﻿// This file is part of Project Hybrasyl.
+// This file is part of Project Hybrasyl.
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the Affero General Public License as published by
@@ -32,9 +32,10 @@ internal class ListMobCommand : ChatCommand
     public new static ChatCommandResult Run(User user, params string[] args)
     {
         string moblist = string.Empty;
-        foreach (var mob in user.Map.Objects.Where(predicate: x => x is Monster).Select(selector: y => y as Monster).OrderBy(z=> z.Name))
+        foreach (var mob in user.Map.Objects.OfType<Monster>().OrderBy(z => z.Name))
         {
-            var mobdetails = $"{mob.Name}@({mob.X},{mob.Y}) Spawned at ({mob.SpawnPoint.X},{mob.SpawnPoint.Y})";
+            // SpawnPoint is null for mobs without a spawn origin (e.g. GM-summoned).
+            var mobdetails = $"{mob.Name}@({mob.X},{mob.Y}) Spawned at ({mob.SpawnPoint?.X},{mob.SpawnPoint?.Y})";
             mobdetails += $"\n-->ID {mob.Id} {mob.Stats}";
             moblist += $"{mobdetails}\n";
         }
