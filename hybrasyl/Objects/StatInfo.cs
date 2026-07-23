@@ -1458,14 +1458,14 @@ public class StatInfo
         {
             lock (_lock)
             {
-                return _defensiveElementOverride;
+                return _offensiveElementOverride;
             }
         }
         set
         {
             lock (_lock)
             {
-                _defensiveElementOverride = value;
+                _offensiveElementOverride = value;
             }
         }
     }
@@ -1476,14 +1476,14 @@ public class StatInfo
         {
             lock (_lock)
             {
-                return _offensiveElementOverride;
+                return _defensiveElementOverride;
             }
         }
         set
         {
             lock (_lock)
             {
-                _offensiveElementOverride = value;
+                _defensiveElementOverride = value;
             }
         }
     }
