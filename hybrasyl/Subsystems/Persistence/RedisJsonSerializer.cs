@@ -116,13 +116,15 @@ internal sealed class WirePlan
                 $"{type.Name}: [Persist] member names collide case-insensitively ({string.Join("; ", collisions)}); " +
                 "deserialization matches names case-insensitively, so these are ambiguous on the wire");
 
+        // Serialize-only types (e.g. Monster) legitimately lack a parameterless ctor;
+        // the plan must still build, so only the deserialize side may throw
         var ctor = type.GetConstructor(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null, Type.EmptyTypes, modifiers: null);
-        if (ctor is null)
-            throw new InvalidOperationException(
-                $"{type} is [Persistable] but has no parameterless constructor for deserialization");
-        var createInstance = Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
+        var createInstance = ctor is null
+            ? () => throw new InvalidOperationException(
+                $"{type} is [Persistable] but has no parameterless constructor for deserialization")
+            : Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
 
         return new WirePlan(members, createInstance);
     }

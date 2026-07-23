@@ -17,8 +17,11 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Attributes;
+using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Persistence;
 using System;
+using System.Linq;
+using System.Reflection;
 using Xunit;
 
 namespace Hybrasyl.Tests;
@@ -42,5 +45,28 @@ public class WirePlanTests
         var ex = Assert.Throws<InvalidOperationException>(() => WirePlan.For(typeof(CaseCollidingWireType)));
         Assert.Contains("Value", ex.Message);
         Assert.Contains(nameof(CaseCollidingWireType), ex.Message);
+    }
+
+    [Fact]
+    public void PlansBuildAndMaterializeForAllPersistedRootTypes()
+    {
+        // Every [RedisType] root must have a working plan AND be deserializable
+        var roots = typeof(RedisJsonSerializer).Assembly.GetTypes()
+            .Where(predicate: t => t.GetCustomAttribute<RedisType>() is not null)
+            .ToList();
+        Assert.NotEmpty(roots);
+        foreach (var root in roots)
+            Assert.NotNull(WirePlan.For(root).CreateInstance());
+    }
+
+    [Fact]
+    public void SerializeOnlyTypesWithoutParameterlessCtorStillGetPlans()
+    {
+        // Monster is [Persistable] via Creature but has no parameterless ctor and no
+        // deserialize path; the plan must build (serialize side), and only the
+        // deserialize side may throw
+        var plan = WirePlan.For(typeof(Monster));
+        Assert.NotEmpty(plan.Members);
+        Assert.Throws<InvalidOperationException>(() => plan.CreateInstance());
     }
 }
