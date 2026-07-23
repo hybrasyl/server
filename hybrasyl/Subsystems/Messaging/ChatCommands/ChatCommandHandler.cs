@@ -73,11 +73,11 @@ public class ChatCommandHandler
             }
             catch (Exception e)
             {
-                GameLog.Warning($"Command module {x.Name}: could not be loaded - {e}");
+                GameLog.Warning(e, "Command module {Module}: could not be loaded", x.Name);
                 err++;
             }
 
-        GameLog.Info($"Commands: {numCommands} ({err} error(s))");
+        GameLog.Info("Commands: {CommandCount} ({ErrorCount} error(s))", numCommands, err);
     }
 
     public void IsHandler(string command)
@@ -110,7 +110,7 @@ public class ChatCommandHandler
             if (priv && !user.AuthInfo.IsPrivileged)
             {
                 user.SendSystemMessage("Failed: Access denied (command is privileged)");
-                GameLog.UserActivityError($"{user.Name}: denied attempt to use privileged command {command}");
+                GameLog.UserActivityError("{User}: denied attempt to use privileged command {Command}", user.Name, command);
                 return;
             }
 
@@ -134,11 +134,11 @@ public class ChatCommandHandler
             if (user.AuthInfo.IsPrivileged)
             {
                 var type = priv ? "privileged" : "unprivileged";
-                GameLog.Warning($"{user.Name}: executing {type} command {command} {args}");
+                GameLog.Warning("{User}: executing {CommandType} command {Command} {Args}", user.Name, type, command, args);
             }
             else
             {
-                GameLog.Info($"{user.Name}: executing command {command} {args}");
+                GameLog.Info("{User}: executing command {Command} {Args}", user.Name, command, args);
             }
 
 

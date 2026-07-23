@@ -50,7 +50,8 @@ public class SocialEvent : IStateStorable
         StartX = origin.X;
         StartY = origin.Y;
         Type = type;
-        GameLog.UserActivityInfo($"Event beginning: {origin}, type {type} ({subtype}) at {origin.Map.Name}");
+        GameLog.UserActivityInfo("Event beginning: {Origin}, type {Type} ({Subtype}) at {Map}", origin, type, subtype,
+            origin.Map.Name);
         // Lastly, we need to be able to talk
         Speakers = new List<string> { origin.Name };
     }
@@ -61,6 +62,7 @@ public class SocialEvent : IStateStorable
     {
         EndTime = DateTime.Now;
         GameLog.UserActivityInfo(
-            $"Event ending: {Origin}, type {Type} ({Subtype}), elapsed time {(DateTime.Now - StartTime).TotalSeconds}s");
+            "Event ending: {Origin}, type {Type} ({Subtype}), elapsed time {ElapsedSeconds}s", Origin, Type, Subtype,
+            (DateTime.Now - StartTime).TotalSeconds);
     }
 }

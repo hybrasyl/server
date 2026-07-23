@@ -114,7 +114,7 @@ public class TestClient : AbstractClient, IClient
         GameLog.InfoFormat("Processing redirect");
         GlobalConnectionManifest.RegisterRedirect(this, redirect);
         GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
-        GameLog.Info($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
+        GameLog.Info("Redirect EncryptionKey is {EncryptionKey}", Encoding.ASCII.GetString(redirect.EncryptionKey));
         if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
         redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
     }

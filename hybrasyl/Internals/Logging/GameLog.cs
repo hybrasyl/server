@@ -44,7 +44,7 @@ public static class GameLog
         if (Loggers.TryGetValue(logType, out var logger))
         {
             logger.Level.MinimumLevel = LogEventLevel.Warning;
-            logger.Logger.Warning($"Level set to {level}");
+            logger.Logger.Warning("Level set to {Level}", level);
             logger.Level.MinimumLevel = level;
         }
     }
@@ -77,7 +77,7 @@ public static class GameLog
         foreach (var logger in Loggers.Values)
         {
             logger.Level.MinimumLevel = LogEventLevel.Warning;
-            logger.Logger.Warning($"Level set to {level}");
+            logger.Logger.Warning("Level set to {Level}", level);
             logger.Level.MinimumLevel = ConvertLevel(level);
         }
     }
@@ -140,7 +140,7 @@ public static class GameLog
                     DefaultLevel = ConvertLevel(config.Level),
                     Path = $"{Path.Combine(dataDirectory, path)}"
                 });
-                Serilog.Log.Information($"Logger: added {config.Type} -> {path}");
+                Serilog.Log.Information("Logger: added {LogType} -> {LogPath}", config.Type, path);
             }
 
             // Ensure there is always a general logger and that it is "attached" to Serilog

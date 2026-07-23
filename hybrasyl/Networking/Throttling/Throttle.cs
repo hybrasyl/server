@@ -58,22 +58,22 @@ public abstract class Throttle : IThrottle
 
     public void OnThrottleStart(IThrottleTrigger trigger)
     {
-        GameLog.Debug($"Client {trigger.Id}: throttled");
+        GameLog.Debug("Client {ClientId}: throttled", trigger.Id);
     }
 
     public void OnThrottleStop(IThrottleTrigger trigger)
     {
-        GameLog.Debug($"Client {trigger.Id}: throttle expired");
+        GameLog.Debug("Client {ClientId}: throttle expired", trigger.Id);
     }
 
     public void OnSquelchStart(IThrottleTrigger trigger)
     {
-        GameLog.Debug($"Client {trigger.Id}: squelched");
+        GameLog.Debug("Client {ClientId}: squelched", trigger.Id);
     }
 
     public void OnSquelchStop(IThrottleTrigger trigger)
     {
-        GameLog.Debug($"Client {trigger.Id}: squelch expired");
+        GameLog.Debug("Client {ClientId}: squelch expired", trigger.Id);
     }
 
     public void OnDisconnectThreshold(IThrottleTrigger trigger) { }

@@ -212,7 +212,7 @@ public class Script(string path, ScriptProcessor processor)
                 result.Error = HumanizeException(ex);
                 result.Result = ScriptResult.Failure;
                 LoadExecutionResult = result;
-                GameLog.ScriptingError($"Run: Error executing script {FileName}: {result.Error.HumanizedError}");
+                GameLog.ScriptingError("Run: Error executing script {FileName}: {Error}", FileName, result.Error.HumanizedError);
                 Disabled = true;
                 return result;
             }
@@ -227,7 +227,7 @@ public class Script(string path, ScriptProcessor processor)
             DynValue udv = GetUserDataValue(value);
             Compiled.Globals.Set(key, udv);
             if (udv.Type == DataType.UserData)
-                GameLog.ScriptingDebug($"{key}: {value.GetType()} originally, {udv.UserData.Object.GetType()} wrapped");
+                GameLog.ScriptingDebug("{Key}: {OriginalType} originally, {WrappedType} wrapped", key, value.GetType(), udv.UserData.Object.GetType());
         }
     }
 
@@ -267,7 +267,8 @@ public class Script(string path, ScriptProcessor processor)
                 Game.ReportException(ex);
                 result.Error = HumanizeException(ex);
                 GameLog.ScriptingError(
-                    $"ExecuteExpression: Error executing expression {expr} in {FileName}: Variables: {environment}\n{result.Error}");
+                    "ExecuteExpression: Error executing expression {Expression} in {FileName}: Variables: {Environment}\n{Error}",
+                    expr, FileName, environment, result.Error);
             }
 
             return result;
@@ -311,7 +312,8 @@ public class Script(string path, ScriptProcessor processor)
                 result.Error = HumanizeException(ex);
                 result.Result = ScriptResult.Failure;
                 GameLog.ScriptingError(
-                    $"ExecuteFunction: Error executing expression {functionName} in {FileName}: Variables: {environment}\n{result.Error}");
+                    "ExecuteFunction: Error executing expression {FunctionName} in {FileName}: Variables: {Environment}\n{Error}",
+                    functionName, FileName, environment, result.Error);
             }
 
             return result;

@@ -172,8 +172,9 @@ public class DialogState
                                              c.Map.Id != User.Map.Id || !InDialog))
                 {
                     Log.Error(
-                        $"{User.Name}: Failed dialog sanity check: target {c.Name}, current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
-                        $"target map {c.Map.Id}, user map {User.Map.Id}, indialog {InDialog}");
+                        "{User}: Failed dialog sanity check: target {Target}, current pursuit {CurrentPursuitId}, pursuit {PursuitId}, index {Index}, " +
+                        "target map {TargetMapId}, user map {UserMapId}, indialog {InDialog}",
+                        User.Name, c.Name, CurrentPursuitId, pursuitId, newIndex, c.Map.Id, User.Map.Id, InDialog);
                     return false;
                 }
 
@@ -185,8 +186,9 @@ public class DialogState
                     if (!User.Inventory.Contains(io))
                     {
                         Log.Error(
-                            $"{User.Name}: Failed dialog sanity check: item {io.Name} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {pursuitId}, index {newIndex}, " +
-                            $"user map {User.Map.Id}, indialog {InDialog}");
+                            "{User}: Failed dialog sanity check: item {Item} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {PursuitId}, index {Index}, " +
+                            "user map {UserMapId}, indialog {InDialog}",
+                            User.Name, io.Name, CurrentPursuitId, pursuitId, newIndex, User.Map.Id, InDialog);
                         return false;
                     }
             }

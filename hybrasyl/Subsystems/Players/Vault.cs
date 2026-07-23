@@ -83,11 +83,12 @@ public class Vault : IStateStorable
         {
             CurrentGold += gold;
 
-            GameLog.Info($"{gold} gold added to vault {OwnerGuid}");
+            GameLog.Info("{Gold} gold added to vault {OwnerGuid}", gold, OwnerGuid);
             return true;
         }
 
-        GameLog.Info($"Attempt to add {gold} gold to vault {OwnerGuid}, but only {RemainingGold} available");
+        GameLog.Info("Attempt to add {Gold} gold to vault {OwnerGuid}, but only {RemainingGold} available", gold,
+            OwnerGuid, RemainingGold);
         return false;
     }
 
@@ -96,11 +97,12 @@ public class Vault : IStateStorable
         if (gold <= CurrentGold)
         {
             CurrentGold -= gold;
-            GameLog.Info($"{gold} gold removed from vault {OwnerGuid}");
+            GameLog.Info("{Gold} gold removed from vault {OwnerGuid}", gold, OwnerGuid);
             return true;
         }
 
-        GameLog.Info($"Attempt to remove {gold} gold from vault {OwnerGuid}, but only {CurrentGold} available");
+        GameLog.Info("Attempt to remove {Gold} gold from vault {OwnerGuid}, but only {CurrentGold} available", gold,
+            OwnerGuid, CurrentGold);
         return false;
     }
 
@@ -111,18 +113,21 @@ public class Vault : IStateStorable
             if (Items.ContainsKey(itemName))
             {
                 Items[itemName] += quantity;
-                GameLog.Info($"{itemName} [{quantity}] added to existing item in vault {OwnerGuid}");
+                GameLog.Info("{Item} [{Quantity}] added to existing item in vault {OwnerGuid}", itemName, quantity,
+                    OwnerGuid);
             }
             else
             {
                 Items.Add(itemName, quantity);
-                GameLog.Info($"{itemName} [{quantity}] added as new item in vault {OwnerGuid}");
+                GameLog.Info("{Item} [{Quantity}] added as new item in vault {OwnerGuid}", itemName, quantity,
+                    OwnerGuid);
             }
 
             return true;
         }
 
-        GameLog.Info($"Attempt to add {itemName} [{quantity}] to vault {OwnerGuid}, but user doesn't have it?");
+        GameLog.Info("Attempt to add {Item} [{Quantity}] to vault {OwnerGuid}, but user doesn't have it?", itemName,
+            quantity, OwnerGuid);
         return false;
     }
 
@@ -133,12 +138,13 @@ public class Vault : IStateStorable
             if (Items[itemName] > quantity)
             {
                 Items[itemName] -= quantity;
-                GameLog.Info($"{itemName} [{quantity}] removed from existing item in vault {OwnerGuid}");
+                GameLog.Info("{Item} [{Quantity}] removed from existing item in vault {OwnerGuid}", itemName, quantity,
+                    OwnerGuid);
             }
             else
             {
                 Items.Remove(itemName);
-                GameLog.Info($"{itemName} removed from vault {OwnerGuid}");
+                GameLog.Info("{Item} removed from vault {OwnerGuid}", itemName, OwnerGuid);
             }
 
             return true;

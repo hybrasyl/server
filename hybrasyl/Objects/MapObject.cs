@@ -248,7 +248,7 @@ public class MapObject : IStateStorable
         {
             if (!Game.World.WorldData.TryGetValue(npcElement.Name, out Npc npcTemplate))
             {
-                GameLog.Error($"map {Name}: NPC {npcElement.Name} is missing, will not be loaded");
+                GameLog.Error("map {Name}: NPC {Npc} is missing, will not be loaded", Name, npcElement.Name);
                 continue;
             }
 
@@ -269,7 +269,7 @@ public class MapObject : IStateStorable
         {
             var reactor = new Reactor(reactorElement, this);
             InsertReactor(reactor);
-            GameLog.Debug($"{reactor.Id} placed in {reactor.Map.Name}, description was {reactor.Description}");
+            GameLog.Debug("{ReactorId} placed in {Map}, description was {Description}", reactor.Id, reactor.Map.Name, reactor.Description);
         }
 
         foreach (var sign in newMap.Signs)
@@ -336,7 +336,7 @@ public class MapObject : IStateStorable
         World.Insert(post);
         Insert(post, post.X, post.Y);
         Signposts[(post.X, post.Y)] = post;
-        GameLog.DataLogDebug($"Inserted signpost {post.Map.Name}@{post.X},{post.Y}");
+        GameLog.DataLogDebug("Inserted signpost {Map}@{X},{Y}", post.Map.Name, post.X, post.Y);
     }
 
     private void InsertDoorGroup(DoorGroup group)
@@ -555,7 +555,7 @@ public class MapObject : IStateStorable
 
         var scan = ScanForDoorGroups(lfgs, rfgs, X, Y);
         foreach (var w in scan.Warnings)
-            GameLog.Warning($"{Name}: {w}");
+            GameLog.Warning("{Name}: {Warning}", Name, w);
 
         foreach (var group in scan.Groups)
         {

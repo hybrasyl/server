@@ -100,7 +100,7 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
             info.LastReceived = rightnow;
             info.TotalReceived++;
             GameLog.Debug(
-                $"Begin: PA: {info.PreviousAccepted} LA: {info.LastAccepted} AInterval is {acceptedInterval.TotalMilliseconds} TInterval {transmitInterval.TotalMilliseconds}");
+                "Begin: PA: {PreviousAccepted} LA: {LastAccepted} AInterval is {AcceptedIntervalMs} TInterval {TransmitIntervalMs}", info.PreviousAccepted, info.LastAccepted, acceptedInterval.TotalMilliseconds, transmitInterval.TotalMilliseconds);
 
             if (info.Throttled)
             {
@@ -134,7 +134,7 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
                 if (acceptedInterval.TotalMilliseconds <= Interval && info.LastAccepted != DateTime.MinValue)
                 {
                     GameLog.Debug(
-                        $"TInterval {transmitInterval}, AInterval {acceptedInterval} - maximum is {Interval}, throttled");
+                        "TInterval {TransmitInterval}, AInterval {AcceptedInterval} - maximum is {MaximumInterval}, throttled", transmitInterval, acceptedInterval, Interval);
                     info.Throttled = true;
                     OnThrottleStart(new ClientTrigger(client));
                     result = ThrottleResult.Throttled;
@@ -145,7 +145,7 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
                     info.LastAccepted = rightnow;
                     info.TotalAccepted++;
                     result = ThrottleResult.OK;
-                    GameLog.Debug($"Packet accepted, PA: {info.PreviousAccepted} LA: {info.LastAccepted}");
+                    GameLog.Debug("Packet accepted, PA: {PreviousAccepted} LA: {LastAccepted}", info.PreviousAccepted, info.LastAccepted);
                 }
             }
         }
@@ -161,7 +161,7 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
     {
         trigger.Client.SendMessage("You have been automatically disconnected due to server abuse. Goodbye!",
             MessageTypes.SYSTEM_WITH_OVERHEAD);
-        GameLog.Warning($"Client {trigger.Id}: disconnected due to packet spam");
+        GameLog.Warning("Client {ClientId}: disconnected due to packet spam", trigger.Id);
         trigger.Client.Disconnect();
     }
 }

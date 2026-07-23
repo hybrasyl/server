@@ -204,19 +204,19 @@ public static class HybrasylUtility
     {
         if (!Game.World.WorldData.TryGetValue<Creature>(creatureName, out var creature))
         {
-            GameLog.ScriptingError($"CreateMonster: Creature {creatureName} does not exist");
+            GameLog.ScriptingError("CreateMonster: Creature {CreatureName} does not exist", creatureName);
             return;
         }
 
         if (!Game.World.WorldData.TryGetValue<CreatureBehaviorSet>(behaviorSet, out var cbs))
         {
-            GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
+            GameLog.ScriptingError("CreateMonster: Behavior set {BehaviorSet} does not exist", behaviorSet);
             return;
         }
 
         if (!Game.World.WorldState.TryGetValue<MapObject>(mapId, out var map))
         {
-            GameLog.ScriptingError($"CreateMonster: Behavior set {behaviorSet} does not exist");
+            GameLog.ScriptingError("CreateMonster: Behavior set {BehaviorSet} does not exist", behaviorSet);
             return;
         }
 

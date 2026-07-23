@@ -34,35 +34,35 @@ internal class StuckCommand : ChatCommand
 
     public new static ChatCommandResult Run(User user, params string[] args)
     {
-        GameLog.UserActivityInfo($"/stuck: {user.Name}: {args[0]}");
+        GameLog.UserActivityInfo("/stuck: {User}: {Reason}", user.Name, args[0]);
         if (user.Location.Map == null)
         {
-            GameLog.UserActivityError($"/stuck: {user.Name} is not on a map...?");
+            GameLog.UserActivityError("/stuck: {User} is not on a map...?", user.Name);
         }
         else
         {
             GameLog.UserActivityWarning(
-                $"/stuck: {user.Name}, current location ({user.Location.X},{user.Location.Y})@{user.Location.Map.Name}");
+                "/stuck: {User}, current location ({X},{Y})@{Map}", user.Name, user.Location.X, user.Location.Y, user.Location.Map.Name);
             // Run some various checks for debugging purposes
             if (!user.Location.Map.Users.ContainsKey(user.Name))
                 GameLog.UserActivityFatal(
-                    $"/stuck: {user.Name} is on map {user.Location.Map.Name} but not in user cache");
+                    "/stuck: {User} is on map {Map} but not in user cache", user.Name, user.Location.Map.Name);
             if (!user.Location.Map.Objects.Contains(user))
                 GameLog.UserActivityFatal(
-                    $"/stuck: {user.Name} is on map {user.Location.Map.Name} but not in object cache");
+                    "/stuck: {User} is on map {Map} but not in object cache", user.Name, user.Location.Map.Name);
             if (!user.Location.Map.EntityTree.Contains(user))
                 GameLog.UserActivityFatal(
-                    $"/stuck: {user.Name} is on map {user.Location.Map.Name} but not in quadtree");
+                    "/stuck: {User} is on map {Map} but not in quadtree", user.Name, user.Location.Map.Name);
             if (user.Location.X > user.Location.Map.X || user.Location.Y > user.Location.Map.Y)
-                GameLog.UserActivityFatal($"/stuck: {user.Name} out of bounds");
+                GameLog.UserActivityFatal("/stuck: {User} out of bounds", user.Name);
             // Gather nearby objects
             foreach (var obj in user.Location.Map.EntityTree.GetObjects(new Rectangle(user.Location.X, user.Location.Y,
                          1, 1)))
                 GameLog.UserActivityInfo(
-                    $"/stuck: {user.Name}: coords {user.Location.X},{user.Location.Y}: Quadtree rectangle contains {obj.Type} ({obj.Name})");
+                    "/stuck: {User}: coords {X},{Y}: Quadtree rectangle contains {ObjectType} ({ObjectName})", user.Name, user.Location.X, user.Location.Y, obj.Type, obj.Name);
             if (user.DialogState.InDialog)
                 GameLog.UserActivityInfo(
-                    $"/stuck: {user.Name}: in dialog, with {user.DialogState.Associate?.Name ?? "unknown"}");
+                    "/stuck: {User}: in dialog, with {Associate}", user.Name, user.DialogState.Associate?.Name ?? "unknown");
         }
 
         if (user.Nation == null)

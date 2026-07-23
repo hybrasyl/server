@@ -45,7 +45,7 @@ public abstract class AbstractClientState
         {
             var frame = new StackFrame(1);
             GameLog.Debug(
-                $"Receive lock acquired by: {frame.GetMethod()?.Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+                "Receive lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Thread.CurrentThread.ManagedThreadId);
             return _receiveLock;
         }
     }
@@ -56,7 +56,7 @@ public abstract class AbstractClientState
         {
             var frame = new StackFrame(1);
             GameLog.Debug(
-                $"Send lock acquired by: {frame.GetMethod()?.Name} on thread {Thread.CurrentThread.ManagedThreadId}");
+                "Send lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Thread.CurrentThread.ManagedThreadId);
             return _sendLock;
         }
     }

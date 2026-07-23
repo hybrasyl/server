@@ -613,14 +613,15 @@ public class HybrasylUser : HybrasylWorldObject
         if (string.IsNullOrEmpty(cookieName) || value is null)
         {
             GameLog.ScriptingError(
-                $"SetSessionCookie: {User.Name} - session cookie name (first argument) or value (second) was null or empty");
+                "SetSessionCookie: {User} - session cookie name (first argument) or value (second) was null or empty",
+                User.Name);
             return;
         }
 
         try
         {
             User.SetSessionCookie(cookieName, value.ToString());
-            GameLog.DebugFormat($"SetSessionCookies: {User.Name} - set default:{cookieName} to {value.ToString()}");
+            GameLog.DebugFormat("SetSessionCookies: {User} - set default:{CookieName} to {Value}", User.Name, cookieName, value.ToString());
         }
         catch (Exception e)
         {
@@ -644,20 +645,20 @@ public class HybrasylUser : HybrasylWorldObject
         if (string.IsNullOrEmpty(cookieName) || string.IsNullOrEmpty(ns) || value is null)
         {
             GameLog.ScriptingError(
-                $"SetSessionCookie: {User.Name} - one or more values was null");
+                "SetSessionCookie: {User} - one or more values was null", User.Name);
             return;
         }
 
         try
         {
             User.SetSessionCookie(ns, cookieName, value.ToString());
-            GameLog.DebugFormat($"SetSessionCookies: {User.Name} - set {ns}:{cookieName} to {value}");
+            GameLog.DebugFormat("SetSessionCookies: {User} - set {Namespace}:{CookieName} to {Value}", User.Name, ns, cookieName, value);
         }
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.ScriptingError(
-                $"SetSessionCookie: {User.Name}: value (second argument) could not be converted to string? {e}");
+            GameLog.ScriptingError(e,
+                "SetSessionCookie: {User}: value (second argument) could not be converted to string?", User.Name);
         }
 
     }
@@ -669,20 +670,21 @@ public class HybrasylUser : HybrasylWorldObject
         if (string.IsNullOrEmpty(cookieName) || value is null)
         {
             GameLog.ScriptingError(
-                $"SetCookie: {User.Name} - session cookie name (first argument) or value (second) was null or empty");
+                "SetCookie: {User} - session cookie name (first argument) or value (second) was null or empty",
+                User.Name);
             return;
         }
 
         try
         {
             User.SetCookie(cookieName, value.ToString());
-            GameLog.DebugFormat($"SetCookie: {User.Name}: set default:{cookieName} to {value.ToString()}");
+            GameLog.DebugFormat("SetCookie: {User}: set default:{CookieName} to {Value}", User.Name, cookieName, value.ToString());
         }
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.ScriptingError(
-                $"SetCookie: {User.Name} - value (second argument) could not be converted to string? {e}");
+            GameLog.ScriptingError(e,
+                "SetCookie: {User} - value (second argument) could not be converted to string?", User.Name);
         }
     }
 
@@ -699,20 +701,21 @@ public class HybrasylUser : HybrasylWorldObject
         if (string.IsNullOrEmpty(cookieName) || value is null)
         {
             GameLog.ScriptingError(
-                $"SetCookie: {User.Name} - session cookie name (first argument) or value (second) was null or empty");
+                "SetCookie: {User} - session cookie name (first argument) or value (second) was null or empty",
+                User.Name);
             return;
         }
 
         try
         {
             User.SetCookie(ns, cookieName, value.ToString());
-            GameLog.DebugFormat($"SetCookie: {User.Name}: set default:{cookieName} to {value.ToString()}");
+            GameLog.DebugFormat("SetCookie: {User}: set default:{CookieName} to {Value}", User.Name, cookieName, value.ToString());
         }
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.ScriptingError(
-                $"SetCookie: {User.Name} - value (second argument) could not be converted to string? {e}");
+            GameLog.ScriptingError(e,
+                "SetCookie: {User} - value (second argument) could not be converted to string?", User.Name);
         }
 
     }

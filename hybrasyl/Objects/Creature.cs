@@ -263,7 +263,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 break;
         }
 
-        GameLog.UserActivityInfo($"GetDirectionalTargets: {rect.X}, {rect.Y} {rect.Height}, {rect.Width}");
+        GameLog.UserActivityInfo("GetDirectionalTargets: {X}, {Y} {Height}, {Width}", rect.X, rect.Y, rect.Height, rect.Width);
         ret.AddRange(Map.EntityTree.GetObjects(rect)
             .OfType<Creature>().OrderBy(keySelector: x => x.Distance(this)));
         return ret;
@@ -334,7 +334,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 }
                 else if (intent.UseType != SpellUseType.NoTarget)
                 {
-                    GameLog.UserActivityWarning($"Unhandled intent type {intent.UseType}, ignoring");
+                    GameLog.UserActivityWarning("Unhandled intent type {UseType}, ignoring", intent.UseType);
                 }
             }
 
@@ -485,10 +485,12 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             if (intent.Flags.Contains(IntentFlags.Self))
             {
                 GameLog.UserActivityInfo(
-                    $"Trying to remove self: my id is {Id} and actualtargets contains {string.Join(',', actualTargets.Select(selector: e => e.Id).ToList())}");
+                    "Trying to remove self: my id is {Id} and actualtargets contains {ActualTargets}",
+                    Id, string.Join(',', actualTargets.Select(selector: e => e.Id).ToList()));
                 finalTargets.AddRange(actualTargets.Where(predicate: e => e.Id == Id));
                 GameLog.UserActivityInfo(
-                    $"did it happen :o -  my id is {Id} and actualtargets contains {string.Join(',', actualTargets.Select(selector: e => e.Id).ToList())}");
+                    "did it happen :o -  my id is {Id} and actualtargets contains {ActualTargets}",
+                    Id, string.Join(',', actualTargets.Select(selector: e => e.Id).ToList()));
             }
         }
 
@@ -500,7 +502,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
     {
         if (this is User)
             GameLog.UserActivityInfo(
-                $"UseCastable: {Name} begin casting {castableXml.Name} on target: {target?.Name ?? "no target"} CastingAllowed: {Condition.CastingAllowed}");
+                "UseCastable: {Name} begin casting {Castable} on target: {Target} CastingAllowed: {CastingAllowed}",
+                Name, castableXml.Name, target?.Name ?? "no target", Condition.CastingAllowed);
 
         var damage = castableXml.Effects.Damage;
         var targets = new List<Creature>();
@@ -510,7 +513,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
         // If no targets and is not an assail, do nothing
         if (!targets.Any() && castableXml.IsAssail == false && string.IsNullOrEmpty(castableXml.Script))
         {
-            GameLog.UserActivityInfo($"UseCastable: {Name}: no targets and not assail");
+            GameLog.UserActivityInfo("UseCastable: {Name}: no targets and not assail", Name);
             return false;
         }
 
@@ -527,7 +530,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                     foreach (var user in tar.viewportUsers.ToList())
                     {
                         GameLog.UserActivityInfo(
-                            $"UseCastable: Sending {user.Name} effect for {Name}: {castableXml.Effects.Animations.OnCast.Target.Id}");
+                            "UseCastable: Sending {User} effect for {Name}: {EffectId}",
+                            user.Name, Name, castableXml.Effects.Animations.OnCast.Target.Id);
                         user.SendEffect(tar.Id, castableXml.Effects.Animations.OnCast.Target.Id,
                             castableXml.Effects.Animations.OnCast.Target.Speed);
                     }
@@ -535,7 +539,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             if (castableXml.Effects?.Animations?.OnCast?.SpellEffect != null)
             {
                 GameLog.UserActivityInfo(
-                    $"UseCastable: Sending spelleffect for {Name}: {castableXml.Effects.Animations.OnCast.SpellEffect.Id}");
+                    "UseCastable: Sending spelleffect for {Name}: {SpellEffectId}",
+                    Name, castableXml.Effects.Animations.OnCast.SpellEffect.Id);
                 Effect(castableXml.Effects.Animations.OnCast.SpellEffect.Id,
                     castableXml.Effects.Animations.OnCast.SpellEffect.Speed);
             }
@@ -555,7 +560,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             PlaySound(castableXml.Effects.Sound.Id);
         }
 
-        GameLog.UserActivityInfo($"UseCastable: {Name} casting {castableXml.Name}, {targets.Count} targets");
+        GameLog.UserActivityInfo("UseCastable: {Name} casting {Castable}, {TargetCount} targets", Name, castableXml.Name, targets.Count);
 
         if (!string.IsNullOrEmpty(castableXml.Script))
         {
@@ -570,7 +575,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             }
 
             GameLog.UserActivityError(
-                $"UseCastable: {Name} casting {castableXml.Name}: castable script {castableXml.Script} missing");
+                "UseCastable: {Name} casting {Castable}: castable script {Script} missing",
+                Name, castableXml.Name, castableXml.Script);
             return false;
         }
 
@@ -624,7 +630,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 };
 
                 GameLog.UserActivityInfo(
-                    $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} damage: {damageOutput}, element {attackElement}");
+                    "UseCastable: {Name} casting {Castable} - target: {Target} damage: {Damage}, element {Element}",
+                    Name, castableXml.Name, tar.Name, damageOutput, attackElement);
 
                 tar.Damage(damageOutput.Amount, attackElement, damageOutput.Type, damageOutput.Flags, this, castableXml,
                     false);
@@ -652,7 +659,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 if (this is User)
                 {
                     GameLog.UserActivityInfo(
-                        $"UseCastable: {Name} casting {castableXml.Name} - target: {tar.Name} healing: {healOutput}");
+                        "UseCastable: {Name} casting {Castable} - target: {Target} healing: {Healing}",
+                        Name, castableXml.Name, tar.Name, healOutput);
                     if (Equipment.Weapon is { Undamageable: false })
                         Equipment.Weapon.Durability -= 1 / (Equipment.Weapon.MaximumDurability *
                                                             (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
@@ -667,7 +675,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                     var duration = status.Duration == 0 ? applyStatus.Duration : status.Duration;
                     var tick = status.Tick == 0 ? applyStatus.Tick : status.Tick;
                     GameLog.UserActivityInfo(
-                        $"UseCastable: {Name} casting {castableXml.Name} - applying status {status.Value} - duration {duration}");
+                        "UseCastable: {Name} casting {Castable} - applying status {Status} - duration {Duration}",
+                        Name, castableXml.Name, status.Value, duration);
                     if (!tar.CurrentStatuses.IsEmpty)
                     {
                         var overlap =
@@ -702,7 +711,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 else
                 {
                     GameLog.UserActivityError(
-                        $"UseCastable: {Name} casting {castableXml.Name} - failed to add status {status.Value}, does not exist!");
+                        "UseCastable: {Name} casting {Castable} - failed to add status {Status}, does not exist!",
+                        Name, castableXml.Name, status.Value);
                 }
 
             foreach (var status in castableXml.RemoveStatuses)
@@ -715,20 +725,23 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                         if (toRemove == null) break;
                         tar.RemoveStatus(toRemove.Icon, remover: this);
                         GameLog.UserActivityInfo(
-                            $"UseCastable: {Name} casting {castableXml.Name} - removing status category {status.Value}");
+                            "UseCastable: {Name} casting {Castable} - removing status category {StatusCategory}",
+                            Name, castableXml.Name, status.Value);
                     }
                 }
                 else if (World.WorldData.TryGetValue<Status>(status.Value, out var applyStatus))
                 {
                     GameLog.UserActivityError(
-                        $"UseCastable: {Name} casting {castableXml.Name} - removing status {status}");
+                        "UseCastable: {Name} casting {Castable} - removing status {Status}",
+                        Name, castableXml.Name, status);
                     tar.RemoveStatus(applyStatus.Icon, remover: this);
 
                 }
                 else
                 {
                     GameLog.UserActivityError(
-                        $"UseCastable: {Name} casting {castableXml.Name} - failed to remove status {status}, does not exist!");
+                        "UseCastable: {Name} casting {Castable} - failed to remove status {Status}, does not exist!",
+                        Name, castableXml.Name, status);
                 }
 
             LastTarget = tar;
@@ -744,11 +757,11 @@ public class Creature : VisibleObject, IStatSnapshotProvider
     public void SendCastLine(ServerPacket packet)
     {
         GameLog.DebugFormat("SendCastLine");
-        GameLog.DebugFormat($"SendCastLine byte format is: {BitConverter.ToString(packet.ToArray())}");
+        GameLog.DebugFormat("SendCastLine byte format is: {PacketBytes}", BitConverter.ToString(packet.ToArray()));
         foreach (var user in Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
             var nPacket = packet.Clone();
-            GameLog.DebugFormat($"SendCastLine to {user.Name}");
+            GameLog.DebugFormat("SendCastLine to {User}", user.Name);
             user.Enqueue(nPacket);
         }
     }
@@ -1475,7 +1488,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                 // Snapshot missing (status applied without a source, or snapshot
                 // evicted). Skip the chance roll and proceed with removal.
                 GameLog.Warning(
-                    $"RemoveStatus: no origin snapshot for {status.Name} on {Name} (id={status.OriginSnapshotId}); skipping chance roll");
+                    "RemoveStatus: no origin snapshot for {Status} on {Name} (id={OriginSnapshotId}); skipping chance roll",
+                    status.Name, Name, status.OriginSnapshotId);
             }
         }
 
@@ -1515,7 +1529,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
             foreach (var status in CurrentStatuses.Values) _removeStatus(status, false);
 
             CurrentStatuses.Clear();
-            GameLog.Debug($"Current status count is {CurrentStatuses.Count}");
+            GameLog.Debug("Current status count is {StatusCount}", CurrentStatuses.Count);
         }
     }
 
@@ -1535,7 +1549,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider
                     // Coma removal from expiration means: dead
                     (this as User).OnDeath();
 
-                GameLog.DebugFormat($"Status {kvp.Value.Name} has expired: removal was {removed}");
+                GameLog.DebugFormat("Status {Status} has expired: removal was {Removed}", kvp.Value.Name, removed);
             }
 
             if (kvp.Value.ElapsedSinceTick >= kvp.Value.Tick)

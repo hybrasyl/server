@@ -105,7 +105,7 @@ internal static class FormulaParser
         }
         catch (Exception ex)
         {
-            GameLog.SpawnError($"Eval error: expression {expression} - {ex}");
+            GameLog.SpawnError(ex, "Eval error: expression {Expression}", expression);
             return 0.0;
         }
     }

@@ -212,7 +212,7 @@ public class VisibleObject : WorldObject, IVisible
     {
         if (string.IsNullOrEmpty(name) || !World.WorldState.TryGetValueByIndex(name, out MapObject targetMap))
         {
-            GameLog.Warning($"Teleport to nonexistent map {name}");
+            GameLog.Warning("Teleport to nonexistent map {Map}", name);
             return;
         }
 

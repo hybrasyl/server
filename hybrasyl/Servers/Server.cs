@@ -58,10 +58,10 @@ public class Server
         Throttles = new Dictionary<byte, IPacketThrottle>();
         ExpectedConnections = new ConcurrentDictionary<uint, Redirect>();
         for (byte i = 0; i < 255; ++i)
-            WorldPacketHandlers[i] = (c, p) => GameLog.Warning($"{GetType().Name}: Unhandled opcode 0x{p.Opcode:X2}");
+            WorldPacketHandlers[i] = (c, p) => GameLog.Warning("{ServerType}: Unhandled opcode 0x{Opcode:X2}", GetType().Name, p.Opcode);
         foreach (var opcode in Enum.GetValues<ControlOpcode>())
             ControlMessageHandlers[opcode] = p =>
-                GameLog.Warning($"{GetType().Name}: Unhandled control message type {opcode}");
+                GameLog.Warning("{ServerType}: Unhandled control message type {ControlOpcode}", GetType().Name, opcode);
         Default = isDefault;
         Task.Run(ProcessOutbound);
         Game.RegisterServer(this);
@@ -150,7 +150,7 @@ public class Server
         }
         catch (ObjectDisposedException e)
         {
-            GameLog.Error($"Disposed socket {e.Message}");
+            GameLog.Error(e, "Disposed socket");
             return;
         }
 
@@ -199,7 +199,7 @@ public class Server
         var state = (IClientState)ar.AsyncState;
 
         GameLog.Debug(
-            $"SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}, queue size: {state.Buffer.Length}");
+            "SocketConnected: {SocketConnected}, IAsyncResult: Completed: {Completed}, CompletedSynchronously: {CompletedSynchronously}, queue size: {QueueSize}", state.WorkSocket.Connected, ar.IsCompleted, ar.CompletedSynchronously, state.Buffer.Length);
         GameLog.Debug("Running read callback");
 
         if (!GlobalConnectionManifest.ConnectedClients.TryGetValue(state.Id, out var client))
@@ -225,7 +225,7 @@ public class Server
             var bytesRead = state.WorkSocket.EndReceive(ar, out var errorCode);
             if (bytesRead == 0 || errorCode != SocketError.Success)
             {
-                GameLog.Error($"bytesRead: {bytesRead}, errorCode: {errorCode}");
+                GameLog.Error("bytesRead: {BytesRead}, errorCode: {ErrorCode}", bytesRead, errorCode);
                 client.Disconnect();
             }
 
@@ -233,7 +233,7 @@ public class Server
         }
         catch (Exception e)
         {
-            GameLog.Fatal($"EndReceive Error:  {e.Message}");
+            GameLog.Fatal("EndReceive Error:  {Exception}", e);
             Game.ReportException(e);
             client.Disconnect();
         }

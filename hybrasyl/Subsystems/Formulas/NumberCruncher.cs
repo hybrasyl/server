@@ -55,8 +55,9 @@ internal static class NumberCruncher
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.Error(
-                $"NumberCruncher formula error: item {item.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
+            GameLog.Error(e,
+                "NumberCruncher formula error: item {Item}, source {Source}: {Formula}",
+                item.Name, source?.Name ?? "no source", formula);
             return 0;
         }
     }
@@ -73,8 +74,9 @@ internal static class NumberCruncher
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.Error(
-                $"NumberCruncher formula error: castable {castable.Name}, target {target.Name}, source {source?.Name ?? "no source"}: {formula}, error: {e}");
+            GameLog.Error(e,
+                "NumberCruncher formula error: castable {Castable}, target {Target}, source {Source}: {Formula}",
+                castable.Name, target.Name, source?.Name ?? "no source", formula);
             return 0;
         }
     }

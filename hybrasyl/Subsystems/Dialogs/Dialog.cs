@@ -182,7 +182,7 @@ public class Dialog
         dialogPacket.WriteUInt32(invocation.Origin.Id);
         dialogPacket.WriteByte(0); // Unknown value
         GameLog.Debug("Sprite is {Sprite}", sprite);
-        GameLog.Debug($"Object type is {objType}");
+        GameLog.Debug("Object type is {ObjectType}", objType);
         dialogPacket.WriteUInt16(sprite);
         dialogPacket.WriteByte(color);
         dialogPacket.WriteByte(0); // Unknown value

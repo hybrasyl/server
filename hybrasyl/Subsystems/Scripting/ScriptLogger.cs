@@ -11,7 +11,7 @@ public class ScriptLogger(string name)
 {
     public string ScriptName { get; set; } = name;
 
-    public void Info(string message) => GameLog.ScriptingInfo($"script log: {ScriptName}: {message}");
+    public void Info(string message) => GameLog.ScriptingInfo("script log: {ScriptName}: {Message}", ScriptName, message);
 
-    public void Error(string message) => GameLog.ScriptingError($"script log: {ScriptName}: {message}");
+    public void Error(string message) => GameLog.ScriptingError("script log: {ScriptName}: {Message}", ScriptName, message);
 }

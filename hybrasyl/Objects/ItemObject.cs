@@ -425,7 +425,7 @@ public class ItemObject : VisibleObject, IInteractable
             return;
         }
 
-        GameLog.InfoFormat($"User {trigger.Name}: used item {Name}");
+        GameLog.InfoFormat("User {User}: used item {Item}", trigger.Name, Name);
 
         if (Consumable && Template.Properties.StatModifiers != null)
         {
@@ -472,7 +472,8 @@ public class ItemObject : VisibleObject, IInteractable
                     else
                     {
                         GameLog.UserActivityInfo(
-                            $"Invoke: {trigger.Name} using {Name} - applying status {add.Value} - duration {duration}");
+                            "Invoke: {User} using {Item} - applying status {Status} - duration {Duration}",
+                            trigger.Name, Name, add.Value, duration);
                         trigger.ApplyStatus(new CreatureStatus(applyStatus, trigger, null, trigger, duration, tick,
                             add.Intensity));
                     }
@@ -480,20 +481,23 @@ public class ItemObject : VisibleObject, IInteractable
                 else
                 {
                     GameLog.UserActivityError(
-                        $"Invoke: {trigger.Name} using {Name} - failed to add status {add.Value}, does not exist!");
+                        "Invoke: {User} using {Item} - failed to add status {Status}, does not exist!",
+                        trigger.Name, Name, add.Value);
                 }
 
             foreach (var remove in Use.Statuses.Remove)
                 if (World.WorldData.TryGetValue<Status>(remove.Value.ToLower(), out var applyStatus))
                 {
                     GameLog.UserActivityError(
-                        $"Invoke: {trigger.Name} using {Name} - removing status {remove}");
+                        "Invoke: {User} using {Item} - removing status {Status}",
+                        trigger.Name, Name, remove);
                     trigger.RemoveStatus(applyStatus.Icon);
                 }
                 else
                 {
                     GameLog.UserActivityError(
-                        $"Invoke: {trigger.Name} using {Name} - failed to remove status {remove}, does not exist!");
+                        "Invoke: {User} using {Item} - failed to remove status {Status}, does not exist!",
+                        trigger.Name, Name, remove);
                 }
         }
 

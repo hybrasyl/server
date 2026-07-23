@@ -66,7 +66,7 @@ public class Client : AbstractClient, IClient
                     Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
                     ((IPEndPoint)socket.RemoteEndPoint).Address)
                 : Encoding.ASCII.GetBytes("UrkcnItnI");
-            GameLog.InfoFormat($"EncryptionKey is {Encoding.ASCII.GetString(EncryptionKey)}");
+            GameLog.InfoFormat("EncryptionKey is {EncryptionKey}", Encoding.ASCII.GetString(EncryptionKey));
 
             var valid = Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint != null
                 ? GlobalConnectionManifest.ValidateEncryptionKey(
@@ -346,7 +346,7 @@ public class Client : AbstractClient, IClient
         catch (Exception e)
         {
             Game.ReportException(e);
-            GameLog.Error($"HALP: {e}");
+            GameLog.Error(e, "HALP");
         }
     }
 
@@ -375,7 +375,7 @@ public class Client : AbstractClient, IClient
                         }
                         else if (Server is Login)
                         {
-                            GameLog.Debug($"Login: 0x{packet.Opcode:X2}");
+                            GameLog.Debug("Login: 0x{Opcode:X2}", packet.Opcode);
                             var handler = (Server as Login).PacketHandlers[packet.Opcode];
                             handler.Invoke(this, packet);
                             GameLog.DebugFormat("Login packet done");
@@ -385,7 +385,7 @@ public class Client : AbstractClient, IClient
                         {
                             UpdateLastReceived(packet.Opcode != 0x45 &&
                                                packet.Opcode != 0x75);
-                            GameLog.Debug($"Queuing: 0x{packet.Opcode:X2}");
+                            GameLog.Debug("Queuing: 0x{Opcode:X2}", packet.Opcode);
                             //packet.DumpPacket();
                             // Check for throttling
                             var throttleResult = Server.PacketThrottleCheck(this, packet);
@@ -418,7 +418,7 @@ public class Client : AbstractClient, IClient
         var state = (ClientState)ar.AsyncState;
         IClient client;
         GameLog.DebugFormat(
-            $"EndSend: SocketConnected: {state.WorkSocket.Connected}, IAsyncResult: Completed: {ar.IsCompleted}, CompletedSynchronously: {ar.CompletedSynchronously}");
+            "EndSend: SocketConnected: {SocketConnected}, IAsyncResult: Completed: {Completed}, CompletedSynchronously: {CompletedSynchronously}", state.WorkSocket.Connected, ar.IsCompleted, ar.CompletedSynchronously);
 
         try
         {
@@ -441,7 +441,7 @@ public class Client : AbstractClient, IClient
         catch (SocketException e)
         {
             Game.ReportException(e);
-            GameLog.Error($"Error Code: {e.ErrorCode}, {e.Message}");
+            GameLog.Error(e, "Error Code: {ErrorCode}", e.ErrorCode);
             state.WorkSocket.Close();
         }
         catch (ObjectDisposedException)
@@ -486,7 +486,7 @@ public class Client : AbstractClient, IClient
         GameLog.InfoFormat("Processing redirect");
         GlobalConnectionManifest.RegisterRedirect(this, redirect);
         GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
-        GameLog.Info($"Redirect EncryptionKey is {Encoding.ASCII.GetString(redirect.EncryptionKey)}");
+        GameLog.Info("Redirect EncryptionKey is {EncryptionKey}", Encoding.ASCII.GetString(redirect.EncryptionKey));
         if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
         redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 

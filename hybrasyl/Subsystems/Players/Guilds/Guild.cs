@@ -49,20 +49,20 @@ public class Guild : IStateStorable
             new() { Guid = Guid.NewGuid(), Name = "Member", Level = 3 },
             new() { Guid = Guid.NewGuid(), Name = "Initiate", Level = 4 }
         };
-        GameLog.Info($"Guild {name}: Added default ranks");
-        GameLog.Info($"Guild {name}: Created guild board");
+        GameLog.Info("Guild {Guild}: Added default ranks", name);
+        GameLog.Info("Guild {Guild}: Created guild board", name);
 
         var leaderGuid = Ranks.First(predicate: x => x.Level == 0).Guid;
         var founderGuid = Ranks.First(predicate: x => x.Level == 2).Guid;
 
         var leaderName = Game.World.WorldState.GetNameByGuid(leader);
         Members.Add(leader, new GuildMember { Name = leaderName, RankGuid = leaderGuid });
-        GameLog.Info($"Guild {name}: Adding leader {leaderName}");
+        GameLog.Info("Guild {Guild}: Adding leader {Leader}", name, leaderName);
         foreach (var founder in founders)
         {
             var founderName = Game.World.WorldState.GetNameByGuid(founder);
             Members.Add(founder, new GuildMember { Name = founderName, RankGuid = founderGuid });
-            GameLog.Info($"Guild {name}: Adding founder {founderName}");
+            GameLog.Info("Guild {Guild}: Adding founder {Founder}", name, founderName);
         }
     }
 
@@ -85,15 +85,16 @@ public class Guild : IStateStorable
     {
         if (user.GuildGuid != Guid.Empty)
         {
-            GameLog.Info($"Guild {Name}: Attempt to add {user.Name} to guild, but user is already in another guild.");
+            GameLog.Info("Guild {Guild}: Attempt to add {User} to guild, but user is already in another guild.", Name,
+                user.Name);
             return;
         }
 
         var lowestRank = Ranks.Aggregate(func: (r1, r2) => r1.Level > r2.Level ? r1 : r2);
-        GameLog.Info($"Guild {Name}: Lowest guild rank identified as {lowestRank.Name}");
+        GameLog.Info("Guild {Guild}: Lowest guild rank identified as {Rank}", Name, lowestRank.Name);
         Members.Add(user.Guid, new GuildMember { Name = user.Name, RankGuid = lowestRank.Guid });
         user.GuildGuid = Guid;
-        GameLog.Info($"Guild {Name}: Adding new member {user.Name} to rank {lowestRank.Name}");
+        GameLog.Info("Guild {Guild}: Adding new member {User} to rank {Rank}", Name, user.Name, lowestRank.Name);
     }
 
     public void RemoveMember(User user)
@@ -101,13 +102,13 @@ public class Guild : IStateStorable
         var (guid, membership) = Members.Single(predicate: x => x.Value.Name == user.Name);
         if (membership.RankGuid == LeaderRank.Guid)
         {
-            GameLog.Info($"Guild {Name}: Sorry, the guild leader can't be removed.");
+            GameLog.Info("Guild {Guild}: Sorry, the guild leader can't be removed.", Name);
             return;
         }
 
         Members.Remove(guid);
         user.GuildGuid = Guid.Empty;
-        GameLog.Info($"Guild {Name}: Removing member {user.Name}");
+        GameLog.Info("Guild {Guild}: Removing member {User}", Name, user.Name);
     }
 
     public void PromoteMember(string name)
@@ -118,7 +119,7 @@ public class Guild : IStateStorable
 
         if (newRank == null || newRank.Level <= 0) return;
         membership.RankGuid = newRank.Guid;
-        GameLog.Info($"Guild {Name}: Promoting {membership.Name} to rank {newRank.Name}");
+        GameLog.Info("Guild {Guild}: Promoting {Member} to rank {Rank}", Name, membership.Name, newRank.Name);
     }
 
     public void DemoteMember(string name)
@@ -131,12 +132,12 @@ public class Guild : IStateStorable
         {
             if (currentRank.Level == 0)
             {
-                GameLog.Info($"Guild {Name}: Sorry, the guild leader cannot be demoted.");
+                GameLog.Info("Guild {Guild}: Sorry, the guild leader cannot be demoted.", Name);
                 return;
             }
 
             member.Value.RankGuid = newRank.Guid;
-            GameLog.Info($"Guild {Name}: Demoting {member.Value.Name} to rank {newRank.Name}");
+            GameLog.Info("Guild {Guild}: Demoting {Member} to rank {Rank}", Name, member.Value.Name, newRank.Name);
         }
     }
 
@@ -147,7 +148,7 @@ public class Guild : IStateStorable
         if (rank != null)
         {
             rank.Name = newTitle;
-            GameLog.Info($"Guild {Name}: Renaming rank {oldTitle} to rank {newTitle}");
+            GameLog.Info("Guild {Guild}: Renaming rank {OldTitle} to rank {NewTitle}", Name, oldTitle, newTitle);
         }
     }
 
@@ -160,7 +161,7 @@ public class Guild : IStateStorable
         var rank = new GuildRank { Guid = Guid.NewGuid(), Name = title, Level = lowestRank.Level + 1 };
 
         Ranks.Add(rank);
-        GameLog.Info($"Guild {Name}: New rank {rank.Name} added as level {rank.Level}");
+        GameLog.Info("Guild {Guild}: New rank {Rank} added as level {Level}", Name, rank.Name, rank.Level);
     }
 
     public void RemoveRank() //only remove the lowest tier rank and move all members in rank up one level.
@@ -176,12 +177,13 @@ public class Guild : IStateStorable
             {
                 member.Value.RankGuid = nextRank.Guid;
                 GameLog.Info(
-                    $"Guild {Name}: Member {member.Value.Name} moved to rank {nextRank.Name} due to rank deletion");
+                    "Guild {Guild}: Member {Member} moved to rank {Rank} due to rank deletion", Name,
+                    member.Value.Name, nextRank.Name);
             }
 
             //remove lowest rank here to avoid missing members
             Ranks.Remove(lowestRank);
-            GameLog.Info($"Guild {Name}: Deleted rank {lowestRank.Name}");
+            GameLog.Info("Guild {Guild}: Deleted rank {Rank}", Name, lowestRank.Name);
         }
     }
 

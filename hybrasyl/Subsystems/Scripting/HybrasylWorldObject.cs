@@ -327,20 +327,20 @@ public class HybrasylWorldObject : IScriptable
 
         if (!System.Guid.TryParse(sourceGuid, out var source) || !System.Guid.TryParse(originGuid, out var origin))
         {
-            GameLog.ScriptingError($"RequestDialog: source or origin guid {sourceGuid} / {originGuid} is invalid");
+            GameLog.ScriptingError("RequestDialog: source or origin guid {SourceGuid} / {OriginGuid} is invalid", sourceGuid, originGuid);
             return false;
         }
 
         if (!Game.World.TryGetActiveUser(targetUser, out var user))
         {
-            GameLog.ScriptingWarning($"RequestDialog: {targetUser} is not online");
+            GameLog.ScriptingWarning("RequestDialog: {TargetUser} is not online", targetUser);
             return false;
         }
 
         if (!Game.World.WorldState.TryGetWorldObject(origin, out originObj) &&
             !Game.World.WorldState.TryGetValueByIndex(origin, out originCastable))
         {
-            GameLog.ScriptingWarning($"RequestDialog: {originGuid} not found");
+            GameLog.ScriptingWarning("RequestDialog: {OriginGuid} not found", originGuid);
             return false;
         }
 
@@ -353,13 +353,13 @@ public class HybrasylWorldObject : IScriptable
         if (!originInteractable.SequenceIndex.ContainsKey(sequenceName) &&
             !Game.World.GlobalSequences.ContainsKey(sequenceName))
         {
-            GameLog.ScriptingError($"RequestDialog: {targetUser} - sequence {sequenceName} was not found");
+            GameLog.ScriptingError("RequestDialog: {TargetUser} - sequence {SequenceName} was not found", targetUser, sequenceName);
             return false;
         }
 
         if (!Game.World.WorldState.TryGetWorldObject(source, out WorldObject worldObj))
         {
-            GameLog.ScriptingError($"RequestDialog: source guid {sourceGuid} could not be found");
+            GameLog.ScriptingError("RequestDialog: source guid {SourceGuid} could not be found", sourceGuid);
             return false;
         }
 

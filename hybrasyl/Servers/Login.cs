@@ -249,7 +249,7 @@ public class Login : Server
 
         if (!ExpectedConnections.TryGetValue(id, out var redirect))
         {
-            GameLog.Warning($"Login: client join with unknown redirect ID {id} from {name}");
+            GameLog.Warning("Login: client join with unknown redirect ID {RedirectId} from {Name}", id, name);
             client.Disconnect();
             return;
         }

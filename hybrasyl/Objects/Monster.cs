@@ -163,7 +163,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             if (World.WorldData.TryGetValue<CreatureBehaviorSet>(creature.BehaviorSet, out var behaviorSet))
                 BehaviorSet = behaviorSet;
             else
-                GameLog.SpawnError($"{Name}: behavior set {creature.BehaviorSet} could not be found");
+                GameLog.SpawnError("{Name}: behavior set {BehaviorSet} could not be found", Name, creature.BehaviorSet);
         }
 
         Stats.BaseInt = 3;
@@ -322,24 +322,24 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         // also don't handle monster -> monster combat cases yet
         if (Hostility?.Players == null || hostile is not User user)
         {
-            GameLog.SpawnDebug($"Monster {Name}: hostility null or non-user");
+            GameLog.SpawnDebug("Monster {Name}: hostility null or non-user", Name);
             return false;
         }
         // If the creature in question has hit us previously, obviously we don't like it
 
         if (!string.IsNullOrEmpty(Hostility.Players.ExceptCookie))
         {
-            GameLog.SpawnDebug($"Monster {Name}: except cookie");
+            GameLog.SpawnDebug("Monster {Name}: except cookie", Name);
             return !user.HasCookie(Hostility.Players.ExceptCookie);
         }
 
         if (!string.IsNullOrEmpty(Hostility.Players.OnlyCookie))
         {
-            GameLog.SpawnDebug($"Monster {Name}: only cookie");
+            GameLog.SpawnDebug("Monster {Name}: only cookie", Name);
             return user.HasCookie(Hostility.Players.OnlyCookie);
         }
 
-        GameLog.SpawnDebug($"Monster {Name}: hostile towards {user.Name}");
+        GameLog.SpawnDebug("Monster {Name}: hostile towards {User}", Name, user.Name);
         return true;
     }
 
@@ -788,7 +788,8 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             if (!(X == CurrentPath.X && Y == CurrentPath.Y) || X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y)
             {
                 GameLog.Info(
-                    $"AStar: path not clear at either {CurrentPath.X}, {CurrentPath.Y} or {CurrentPath.Parent.X}, {CurrentPath.Parent.Y}");
+                    "AStar: path not clear at either {X}, {Y} or {ParentX}, {ParentY}",
+                    CurrentPath.X, CurrentPath.Y, CurrentPath.Parent.X, CurrentPath.Parent.Y);
                 return false;
             }
 
@@ -797,7 +798,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
     public Tile AStarPathFind(int x1, int y1, int x2, int y2)
     {
-        GameLog.Info($"AStarPath: from {x1},{y1} to {x2},{y2}");
+        GameLog.Info("AStarPath: from {FromX},{FromY} to {ToX},{ToY}", x1, y1, x2, y2);
         Tile current = null;
         var start = new Tile { X = x1, Y = y1 };
         var end = new Tile { X = x2, Y = y2 };
@@ -819,7 +820,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             if (closedList.FirstOrDefault(predicate: l => l.X == end.X && l.Y == end.Y) != null)
             {
                 // We have arrived
-                GameLog.Info($"Closed list contains end tile {end.X}, {end.Y}");
+                GameLog.Info("Closed list contains end tile {X}, {Y}", end.X, end.Y);
                 break;
             }
 
@@ -966,7 +967,7 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             
             Direction dir;
 
-            GameLog.SpawnDebug($"ActionQueue: {action}");
+            GameLog.SpawnDebug("ActionQueue: {Action}", action);
             switch (action)
             {
                 case MobAction.Waiting:
@@ -1108,7 +1109,8 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
                         {
                             if (X != CurrentPath.X || Y != CurrentPath.Y)
                                 GameLog.SpawnError(
-                                    $"Walk: followed astar path but not on path (at {X},{Y} path is {CurrentPath.X}, {CurrentPath.Y}");
+                                    "Walk: followed astar path but not on path (at {X},{Y} path is {PathX}, {PathY}",
+                                    X, Y, CurrentPath.X, CurrentPath.Y);
                             // We've moved; update our path
                             CurrentPath = CurrentPath.Parent;
                         }

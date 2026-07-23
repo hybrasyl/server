@@ -153,7 +153,7 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
                 // pursuit on the main menu that is sent to the user
                 if (!ret.Return.CastToBool())
                 {
-                    GameLog.ScriptingDebug($"{pursuit.MenuCheckExpression} evaluated to {ret}");
+                    GameLog.ScriptingDebug("{Expression} evaluated to {Result}", pursuit.MenuCheckExpression, ret);
                     continue;
                 }
             }

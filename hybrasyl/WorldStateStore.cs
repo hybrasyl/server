@@ -353,14 +353,14 @@ public class WorldStateStore
         if (Redis.KeyExists(Board.GetStorageKey(name)))
         {
             newBoard = Redis.Get<Board>(Board.GetStorageKey(name));
-            GameLog.DataLogInfo($"Board: loaded {name}");
+            GameLog.DataLogInfo("Board: loaded {Name}", name);
             newBoard.Id = newBoardId;
         }
         else
         {
             newBoard = new Board(name) { Id = newBoardId };
             newBoard.Save();
-            GameLog.DataLogInfo($"Board: Creating {name}");
+            GameLog.DataLogInfo("Board: Creating {Name}", name);
         }
 
         SetWithIndex(name, newBoard, newBoard.Id);

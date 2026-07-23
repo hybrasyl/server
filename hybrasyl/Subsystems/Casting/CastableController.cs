@@ -115,11 +115,11 @@ public class CastableController : IEnumerable<Rotation>
             }
             else
             {
-                GameLog.SpawnError($"{MonsterObj.Name}: Castable {castable} defined, but does not exist");
+                GameLog.SpawnError("{Monster}: Castable {Castable} defined, but does not exist", MonsterObj.Name, castable);
             }
 
         foreach (var kvp in Castables)
-            GameLog.SpawnInfo($"{MonsterObj.Name}: CastableController: learned {kvp.Key}");
+            GameLog.SpawnInfo("{Monster}: CastableController: learned {Castable}", MonsterObj.Name, kvp.Key);
     }
 
 
@@ -154,7 +154,7 @@ public class CastableController : IEnumerable<Rotation>
                 }
                 else
                 {
-                    GameLog.SpawnError($"{MonsterObj.Name}: processing rotation: missing castable {entry.Value}");
+                    GameLog.SpawnError("{Monster}: processing rotation: missing castable {Castable}", MonsterObj.Name, entry.Value);
                 }
 
             // Now add categories
@@ -175,7 +175,7 @@ public class CastableController : IEnumerable<Rotation>
             }
 
             Rotations[set] = newRotation;
-            GameLog.SpawnInfo($"{MonsterObj.Name} Rotation resolved to: {Rotations[set]}");
+            GameLog.SpawnInfo("{Monster} Rotation resolved to: {Rotation}", MonsterObj.Name, Rotations[set]);
             newRotation.Active = true;
         }
     }
@@ -197,7 +197,7 @@ public class CastableController : IEnumerable<Rotation>
 
         if (Rotations.Count == 0 || Castables.Count == 0)
         {
-            GameLog.SpawnDebug($"{DebugLogHeader}: no rotations exist, or no castables known");
+            GameLog.SpawnDebug("{Header}: no rotations exist, or no castables known", DebugLogHeader);
             return null;
         }
 
@@ -208,7 +208,7 @@ public class CastableController : IEnumerable<Rotation>
 
         foreach (var x in rotations)
         {
-            GameLog.Error($"{x.SecondsSinceLastUse} {x.Interval} {x.SecondsSinceLastUse > x.Interval}");
+            GameLog.Error("{SecondsSinceLastUse} {Interval} {IntervalElapsed}", x.SecondsSinceLastUse, x.Interval, x.SecondsSinceLastUse > x.Interval);
         }
 
         if (type != null)
@@ -218,13 +218,13 @@ public class CastableController : IEnumerable<Rotation>
 
         if (rotation == null)
         {
-            GameLog.SpawnDebug($"{DebugLogHeader}: no active rotations or not enough time elapsed since last use");
+            GameLog.SpawnDebug("{Header}: no active rotations or not enough time elapsed since last use", DebugLogHeader);
             return null;
         }
 
         if (rotation.CurrentCastable == null)
         {
-            GameLog.SpawnError($"{MonsterObj.Name}: processing rotation but no castables defined (CurrentCastable null)");
+            GameLog.SpawnError("{Monster}: processing rotation but no castables defined (CurrentCastable null)", MonsterObj.Name);
             return null;
         }
 
@@ -240,7 +240,8 @@ public class CastableController : IEnumerable<Rotation>
             if (threshold.UseOnce && !threshold.ThresholdTriggered) continue;
 
             GameLog.SpawnDebug(
-                $"{DebugLogHeader}: one-time threshold triggered: {threshold.Name}, {threshold.Threshold}%, priority {threshold.CurrentPriority}");
+                "{Header}: one-time threshold triggered: {Name}, {Threshold}%, priority {Priority}",
+                DebugLogHeader, threshold.Name, threshold.Threshold, threshold.CurrentPriority);
             threshold.ThresholdTriggered = true;
             return threshold;
         }

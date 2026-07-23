@@ -192,7 +192,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         }
         else
         {
-            GameLog.Error($"{Map}: reactor at {X},{Y}: reactor script {ScriptName} not found!");
+            GameLog.Error("{Map}: reactor at {X},{Y}: reactor script {Script} not found!", Map, X, Y, ScriptName);
             return;
         }
 

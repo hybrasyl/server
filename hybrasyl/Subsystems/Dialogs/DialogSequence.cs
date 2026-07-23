@@ -47,7 +47,7 @@ public class DialogSequence(string sequenceName, bool closeOnEnd = false)
             {
                 if (Game.World.ScriptProcessor.TryGetScript(ScriptName, out var _script)) return _script;
 
-                GameLog.Error($"DialogSequence {Name}: script associate {ScriptName} is missing");
+                GameLog.Error("DialogSequence {Name}: script associate {ScriptName} is missing", Name, ScriptName);
                 return null;
             }
 

@@ -51,7 +51,7 @@ public class ClientState(ISocketProxy incoming) : IClientState
         {
             var frame = new StackFrame(1);
             GameLog.Debug(
-                $"Receive lock acquired by: {frame.GetMethod()?.Name} on thread {Environment.CurrentManagedThreadId}");
+                "Receive lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Environment.CurrentManagedThreadId);
             return _recvlock;
         }
     }
@@ -62,7 +62,7 @@ public class ClientState(ISocketProxy incoming) : IClientState
         {
             var frame = new StackFrame(1);
             GameLog.Debug(
-                $"Send lock acquired by: {frame.GetMethod()?.Name} on thread {Environment.CurrentManagedThreadId}");
+                "Send lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Environment.CurrentManagedThreadId);
             return _sendlock;
         }
     }

@@ -74,23 +74,23 @@ public class ScriptProcessor(World world)
                 RegisterScript(script);
                 if (path.StartsWith("common") || path.StartsWith("startup"))
                 {
-                    GameLog.ScriptingInfo($"{nameof(CompileScripts)}: Loading & executing script {path}");
+                    GameLog.ScriptingInfo("{Method}: Loading & executing script {Path}", nameof(CompileScripts), path);
                     script.Run();
                 }
                 else
-                    GameLog.ScriptingInfo($"{nameof(CompileScripts)}: Loading {path}");
+                    GameLog.ScriptingInfo("{Method}: Loading {Path}", nameof(CompileScripts), path);
                 numFiles++;
             }
             catch (Exception e)
             {
-                GameLog.ScriptingError($"{nameof(CompileScripts)}: {scriptName}: Registration failed: {e}");
+                GameLog.ScriptingError(e, "{Method}: {ScriptName}: Registration failed", nameof(CompileScripts), scriptName);
                 numErrors++;
             }
         }
 
-        GameLog.Info($"{nameof(CompileScripts)}: loaded {numFiles} scripts");
+        GameLog.Info("{Method}: loaded {NumFiles} scripts", nameof(CompileScripts), numFiles);
         if (numErrors > 0)
-            GameLog.Error($"{nameof(CompileScripts)}: {numErrors} scripts had errors - check scripting log");
+            GameLog.Error("{Method}: {NumErrors} scripts had errors - check scripting log", nameof(CompileScripts), numErrors);
     }
 
     private string GenerateLocator(string path)
@@ -146,7 +146,7 @@ public class ScriptProcessor(World world)
     {
         if (!_scripts.TryGetValue(guid, out var script))
         {
-            GameLog.ScriptingError($"{nameof(ReloadScript)}: reload failed, guid {guid} not found");
+            GameLog.ScriptingError("{Method}: reload failed, guid {Guid} not found", nameof(ReloadScript), guid);
             return;
         }
 
@@ -160,7 +160,7 @@ public class ScriptProcessor(World world)
             if (!World.WorldState.TryGetWorldObject(attachment, out WorldObject obj) ||
                 obj is not ISpawnable spawnable) continue;
             spawnable.OnSpawn();
-            GameLog.ScriptingInfo($"{nameof(ReloadScript)}: type {spawnable.GetType()} ({spawnable.Name}): triggering OnSpawn due to script reload");
+            GameLog.ScriptingInfo("{Method}: type {Type} ({Name}): triggering OnSpawn due to script reload", nameof(ReloadScript), spawnable.GetType(), spawnable.Name);
         }
     }
 

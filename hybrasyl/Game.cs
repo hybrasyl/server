@@ -332,13 +332,13 @@ public static class Game
 
         // Set our exit handler
         AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-        Log.Information($"Data directory: {DataDirectory}");
-        Log.Information($"World directory: {WorldDataDirectory}");
-        Log.Information($"Log directory: {LogDirectory}");
+        Log.Information("Data directory: {DataDirectory}", DataDirectory);
+        Log.Information("World directory: {WorldDataDirectory}", WorldDataDirectory);
+        Log.Information("Log directory: {LogDirectory}", LogDirectory);
 
         if (!string.IsNullOrEmpty(LogDirectory) && !Path.Exists(LogDirectory))
         {
-            Log.Fatal($"The specified log directory {LogDirectory} does not exist or cannot be accessed.");
+            Log.Fatal("The specified log directory {LogDirectory} does not exist or cannot be accessed.", LogDirectory);
             Log.Fatal(
                 "If this configuration option is set, Hybrasyl cannot start without this path being usable.");
             Thread.Sleep(10000);
@@ -364,7 +364,7 @@ public static class Game
         catch (FileNotFoundException)
         {
             activity?.SetStatus(ActivityStatusCode.Error);
-            Log.Fatal($"An XML directory (world data) was not found at {manager.RootPath}.");
+            Log.Fatal("An XML directory (world data) was not found at {RootPath}.", manager.RootPath);
             Log.Fatal("This may be the first time you've run the server. If so, please take a look");
             Log.Fatal("at the server documentation at github.com/hybrasyl/server.");
             Log.Fatal("It is recommended you look at the example config.xml in the community database");
@@ -377,7 +377,7 @@ public static class Game
         catch (Exception ex)
         {
             activity?.SetStatus(ActivityStatusCode.Error);
-            Log.Fatal($"World data could not be loaded: {ex}");
+            Log.Fatal(ex, "World data could not be loaded");
             Log.Fatal(
                 "Hybrasyl cannot start without a working world data directory, so it will automatically close in 10 seconds.");
             return;
@@ -398,8 +398,8 @@ public static class Game
                 }
                 else
                 {
-                    Log.Fatal($"A config file path of {startupConfig.ConfigFile} was specified, but this file could not be processed:");
-                    Log.Fatal($"Exception occurred: {e}");
+                    Log.Fatal("A config file path of {ConfigFile} was specified, but this file could not be processed:", startupConfig.ConfigFile);
+                    Log.Fatal(e, "Exception occurred");
                     Thread.Sleep(10000);
                     return;
                 }
@@ -407,7 +407,7 @@ public static class Game
             else
             {
                 Log.Fatal(
-                    $"A config file path of {startupConfig.ConfigFile} was specified but this file either does not exist or cannot be read.");
+                    "A config file path of {ConfigFile} was specified but this file either does not exist or cannot be read.", startupConfig.ConfigFile);
                 Thread.Sleep(10000);
                 return;
             }
@@ -427,11 +427,11 @@ public static class Game
             {
                 Log.Fatal("Using world repository for configuration.");
                 Log.Fatal(
-                    $"Expected to find config in: {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs.");
+                    "Expected to find config in: {RootPath}{DirectorySeparator}serverconfigs.", manager.RootPath, Path.DirectorySeparatorChar);
             }
             else
                 Log.Fatal(
-                    $"A config file of {startupConfig.ConfigFile} was specified but could not be found or was not accessible.");
+                    "A config file of {ConfigFile} was specified but could not be found or was not accessible.", startupConfig.ConfigFile);
 
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration file, so it will automatically close in 10 seconds.");
@@ -448,11 +448,11 @@ public static class Game
             Log.Fatal("We also recommend you look at the example config.xml in the community database");
             Log.Fatal("which can be found at github.com/hybrasyl/ceridwen .");
             Log.Fatal(
-                $"We are currently looking in:\n{manager.RootPath}{Path.DirectorySeparatorChar}localizations for a config file.");
+                "We are currently looking in:\n{RootPath}{DirectorySeparator}localizations for a config file.", manager.RootPath, Path.DirectorySeparatorChar);
             if (loadResult.ErrorCount > 0)
                 Log.Fatal("Errors were encountered processing localizations:");
 
-            foreach (var error in loadResult.Errors) Log.Fatal($"{error.Key}: {error.Value}");
+            foreach (var error in loadResult.Errors) Log.Fatal("{ErrorKey}: {ErrorValue}", error.Key, error.Value);
 
             activity?.SetStatus(ActivityStatusCode.Error);
             Log.Fatal(
@@ -466,9 +466,9 @@ public static class Game
             activity?.SetStatus(ActivityStatusCode.Error);
 
             Log.Fatal(
-                $"A server configuration name of {ActiveConfigurationName} was specified but there are no configurations with that name.");
+                "A server configuration name of {ConfigurationName} was specified but there are no configurations with that name.", ActiveConfigurationName);
             Log.Fatal(
-                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}serverconfigs: {string.Join(" ", manager.Values<ServerConfig>().Select(selector: x => x.Name))}");
+                "Active configurations that were found in {RootPath}{DirectorySeparator}serverconfigs: {ConfigurationNames}", manager.RootPath, Path.DirectorySeparatorChar, string.Join(" ", manager.Values<ServerConfig>().Select(selector: x => x.Name)));
             Log.Fatal(
                 "Hybrasyl cannot start without a server configuration, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -486,11 +486,11 @@ public static class Game
         if (!manager.TryGetValue(activeConfiguration.Locale, out Localization locale))
         {
             Log.Fatal(
-                $"You specified a locale of {activeConfiguration.Locale}, but there are no locales with that name.");
+                "You specified a locale of {Locale}, but there are no locales with that name.", activeConfiguration.Locale);
             Log.Fatal(
-                $"Make sure a localization configuration exists in {manager.RootPath}{Path.DirectorySeparatorChar}localizations and that it matches what is defined in the server configuration.");
+                "Make sure a localization configuration exists in {RootPath}{DirectorySeparator}localizations and that it matches what is defined in the server configuration.", manager.RootPath, Path.DirectorySeparatorChar);
             Log.Fatal(
-                $"Active configurations that were found in {manager.RootPath}{Path.DirectorySeparatorChar}localizations: {string.Join(" ", manager.Values<Localization>().Select(selector: x => x.Locale))}");
+                "Active configurations that were found in {RootPath}{DirectorySeparator}localizations: {Locales}", manager.RootPath, Path.DirectorySeparatorChar, string.Join(" ", manager.Values<Localization>().Select(selector: x => x.Locale)));
             Log.Fatal(
                 "Hybrasyl cannot start without a properly set locale, so it will automatically close in 10 seconds.");
             Thread.Sleep(10000);
@@ -498,7 +498,7 @@ public static class Game
             return;
         }
 
-        Log.Information($"Configuration file: {activeConfiguration.Filename} ({activeConfiguration.Name}) loaded");
+        Log.Information("Configuration file: {Filename} ({ConfigurationName}) loaded", activeConfiguration.Filename, activeConfiguration.Name);
         activeConfiguration.Init();
         activeConfiguration.Constants ??= new ServerConstants();
         // Set our active configuration to the one we just loaded
@@ -524,7 +524,7 @@ public static class Game
         Trace.Listeners.RemoveAt(0);
 
         Log.Information("Hybrasyl: server start");
-        Log.Information($"Hybrasyl {Assemblyinfo.Version} (commit {Assemblyinfo.GitHash}) starting.");
+        Log.Information("Hybrasyl {Version} (commit {GitHash}) starting.", Assemblyinfo.Version, Assemblyinfo.GitHash);
         Log.Information("{Copyright} - this program is licensed under the GNU AGPL, version 3.",
             Assemblyinfo.Copyright);
 
@@ -556,12 +556,12 @@ public static class Game
                 try
                 {
                     RedirectTarget = IPAddress.Parse(addr);
-                    Log.Information($"Set external address for redirects to {RedirectTarget}");
+                    Log.Information("Set external address for redirects to {RedirectTarget}", RedirectTarget);
                 }
                 catch (Exception ex)
                 {
                     Log.Fatal(
-                        $"External address set to {activeConfiguration.Network.Login.ExternalAddress}, but {svcName} value {addr} could not be parsed!");
+                        "External address set to {ExternalAddress}, but {ServiceName} value {Address} could not be parsed!", activeConfiguration.Network.Login.ExternalAddress, svcName, addr);
                 }
             }
             else
@@ -585,14 +585,14 @@ public static class Game
             redisConnection.Port = startupConfig.RedisPort;
             redisConnection.Database = startupConfig.RedisDb;
             redisConnection.Password = startupConfig.RedisPassword;
-            Log.Information($"Using datastore settings from command line args / env vars");
+            Log.Information("Using datastore settings from command line args / env vars");
         }
         else if (activeConfiguration.DataStore != null) {
             redisConnection.Host = activeConfiguration.DataStore.Host;
             redisConnection.Port = activeConfiguration.DataStore.Port;
             redisConnection.Database = activeConfiguration.DataStore.Database;
             redisConnection.Password = activeConfiguration.DataStore.Password;
-            Log.Information($"Using datastore settings from {activeConfiguration.Filename}");
+            Log.Information("Using datastore settings from {Filename}", activeConfiguration.Filename);
         }
         else
         {
@@ -602,7 +602,7 @@ public static class Game
             return;
         }
 
-        Log.Information($"Datastore: {redisConnection.Host}:{redisConnection.Port}/{redisConnection.Database}");
+        Log.Information("Datastore: {Host}:{Port}/{Database}", redisConnection.Host, redisConnection.Port, redisConnection.Database);
 
         World = new World(worldIp, activeConfiguration.Network.World.Port, redisConnection,
             manager, activeConfiguration.Locale, true);
@@ -766,7 +766,7 @@ public static class Game
                                 activeConfiguration.Network.Grpc.Port, credentials)
                         }
                     };
-                    Log.Information($"GRPC: SSL server initialized ({activeConfiguration.Network.Grpc.BindAddress}:{activeConfiguration.Network.Grpc.Port})");
+                    Log.Information("GRPC: SSL server initialized ({BindAddress}:{Port})", activeConfiguration.Network.Grpc.BindAddress, activeConfiguration.Network.Grpc.Port);
                 }
             }
             else
@@ -783,7 +783,7 @@ public static class Game
                             ServerCredentials.Insecure)
                     }
                 };
-                Log.Information($"GRPC: server initialized - INSECURE - DEV ONLY ({activeConfiguration.Network.Grpc.BindAddress}:{activeConfiguration.Network.Grpc.Port})");
+                Log.Information("GRPC: server initialized - INSECURE - DEV ONLY ({BindAddress}:{Port})", activeConfiguration.Network.Grpc.BindAddress, activeConfiguration.Network.Grpc.Port);
             }
         }
         else // grpc disabled
@@ -846,8 +846,8 @@ public static class Game
             if (theirHash != Assemblyinfo.GitHash[..8])
             {
                 GameLog.Warning("This version of Hybrasyl may be out of date!");
-                GameLog.Warning($"Latest release: {latestTag} - {theirHash}, released {latestReleaseDate} - ours is {Assemblyinfo.GitHash[..8]}");
-                GameLog.Warning($"You can download the newest version at https://github.com/hybrasyl/server/releases/tag/{latestTag}.");
+                GameLog.Warning("Latest release: {LatestTag} - {TheirHash}, released {LatestReleaseDate} - ours is {OurHash}", latestTag, theirHash, latestReleaseDate, Assemblyinfo.GitHash[..8]);
+                GameLog.Warning("You can download the newest version at https://github.com/hybrasyl/server/releases/tag/{LatestTag}.", latestTag);
             }
             else
             {

@@ -110,7 +110,7 @@ public class World : Server
             datastoreConfig.Password = redis.Password;
 
         GameLog.Info(
-            $@"Using redis connection: {redis.Host}:{redis.Port}/{redis.Database} {(string.IsNullOrWhiteSpace(redis.Password) ? "(no password)" : "(password set)")}");
+            "Using redis connection: {Host}:{Port}/{Database} {PasswordStatus}", redis.Host, redis.Port, redis.Database, string.IsNullOrWhiteSpace(redis.Password) ? "(no password)" : "(password set)");
 
         _lazyConnector =
             new Lazy<ConnectionMultiplexer>(valueFactory: () => ConnectionMultiplexer.Connect(datastoreConfig));
@@ -225,7 +225,7 @@ public class World : Server
         if (GlobalSequences.Count > Game.ActiveConfiguration.Constants.DialogSequenceShared)
         {
             GameLog.Error(
-                $"Maximum number of global sequences exceeded - registation request for {sequence.Name} ignored!");
+                "Maximum number of global sequences exceeded - registation request for {SequenceName} ignored!", sequence.Name);
             return;
         }
 
@@ -301,7 +301,7 @@ public class World : Server
         {
             GameLog.Error("Not enough XML data to start the server! I need one each of:");
             GameLog.Error(
-                $"Maps: {WorldData.Count<Map>()} Nations: {WorldData.Count<Nation>()} ElementTables: {WorldData.Count<ElementTable>()} ServerConfigs: {WorldData.Count<ServerConfig>()}");
+                "Maps: {MapCount} Nations: {NationCount} ElementTables: {ElementTableCount} ServerConfigs: {ServerConfigCount}", WorldData.Count<Map>(), WorldData.Count<Nation>(), WorldData.Count<ElementTable>(), WorldData.Count<ServerConfig>());
             return false;
         }
 
@@ -844,7 +844,7 @@ public class World : Server
                 ActiveStatuses.Remove(creature);
         }
 
-        GameLog.Info($"Object {obj.Name}: {obj.Id} removed");
+        GameLog.Info("Object {Name}: {Id} removed", obj.Name, obj.Id);
         obj.ServerGuid = Guid.Empty;
         WorldState.RemoveWorldObject<WorldObject>(obj.Guid);
         obj.Id = 0;
@@ -888,7 +888,7 @@ public class World : Server
             {
                 Game.ReportException(e);
                 if (!MessageQueue.IsCompleted)
-                    GameLog.Error($"QUEUE CONSUMER: EXCEPTION RAISED: {e}", e);
+                    GameLog.Error(e, "QUEUE CONSUMER: EXCEPTION RAISED");
                 continue;
             }
 
@@ -1090,7 +1090,7 @@ public class World : Server
 
                 if (intervalField == null)
                 {
-                    GameLog.ErrorFormat($"Job class {jobClass} has no Interval defined! Job will not be scheduled.");
+                    GameLog.ErrorFormat("Job class {JobClass} has no Interval defined! Job will not be scheduled.", jobClass);
                     continue;
                 }
 
@@ -1098,7 +1098,7 @@ public class World : Server
 
                 if (interval == null)
                 {
-                    GameLog.ErrorFormat($"Job class {jobClass} Interval is null! Job will not be scheduled.");
+                    GameLog.ErrorFormat("Job class {JobClass} Interval is null! Job will not be scheduled.", jobClass);
                     continue;
                 }
 
@@ -1110,7 +1110,7 @@ public class World : Server
             }
             else
             {
-                GameLog.ErrorFormat($"Job class {jobClass} has no Execute method! Job will not be scheduled.");
+                GameLog.ErrorFormat("Job class {JobClass} has no Execute method! Job will not be scheduled.", jobClass);
             }
         }
     }
@@ -1460,7 +1460,7 @@ public class World : Server
         {
             user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
             GameLog.UserActivityInfo(
-                $"User {user.Name}: regen HP {hpRegen}, regen bonus {user.Stats.Regen}%");
+                "User {User}: regen HP {HpRegen}, regen bonus {RegenBonus}%", user.Name, hpRegen, user.Stats.Regen);
         }
         else
             user.SendSystemMessage("You cannot regenerate health at this time.");
@@ -1469,7 +1469,7 @@ public class World : Server
         {
             user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
             GameLog.UserActivityInfo(
-                $"User {user.Name}: regen MP {mpRegen},regen bonus {user.Stats.Regen}%");
+                "User {User}: regen MP {MpRegen},regen bonus {RegenBonus}%", user.Name, mpRegen, user.Stats.Regen);
 
         }
         else 
@@ -1568,7 +1568,7 @@ public class World : Server
             if (wobj is Creature creature)
                 creature.ProcessStatusTicks();
             else
-                GameLog.Error($"Status tick on non-creature? {wobj.Name}");
+                GameLog.Error("Status tick on non-creature? {Name}", wobj.Name);
         }
     }
 
@@ -1653,11 +1653,11 @@ public class World : Server
                 var result = script.ExecuteFunction("OnProc", env);
                 if (result.Result != ScriptResult.Success)
                     GameLog.ScriptingError(
-                        $"{source.Name}: proc for {castable.Name}, script {script.Name}: {result.Error}");
+                        "{Source}: proc for {Castable}, script {Script}: {Error}", source.Name, castable.Name, script.Name, result.Error);
             }
             else
             {
-                GameLog.Error($"Proc: references {script} but does not exist");
+                GameLog.Error("Proc: references {Script} but does not exist", script);
             }
         }
 
@@ -1669,7 +1669,7 @@ public class World : Server
         }
         else
         {
-            GameLog.Error($"{source.Name}: proc references {proc.Castable}, but does not exist");
+            GameLog.Error("{Source}: proc references {Castable}, but does not exist", source.Name, proc.Castable);
         }
     }
 
@@ -2002,7 +2002,7 @@ public class World : Server
                 argString = prefixRemoved.Remove(prefixRemoved.IndexOf(cmd), cmd.Length).Trim();
             else
                 argString = string.Empty;
-            GameLog.Info($"{cmd}: {argString}");
+            GameLog.Info("{Command}: {Arguments}", cmd, argString);
             CommandHandler.Handle(user, cmd, argString);
         }
         else
@@ -2074,7 +2074,7 @@ public class World : Server
             //        request.End();
             //}
 
-            GameLog.InfoFormat($"{user.Name} leaving world");
+            GameLog.InfoFormat("{User} leaving world", user.Name);
         }
     }
 
@@ -2184,14 +2184,14 @@ public class World : Server
                     // Teleport user to the center of the first known map and hope for the best
                     loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
                     GameLog.Error(
-                        $"{loginUser.Name} first login: map {startmap.Value} not found, using first available map {targetmap.Name}. Safety not guaranteed.");
+                        "{User} first login: map {StartMap} not found, using first available map {TargetMap}. Safety not guaranteed.", loginUser.Name, startmap.Value, targetmap.Name);
                 }
             }
             else
             {
                 loginUser.Teleport(targetmap.Id, (byte)(targetmap.X / 2), (byte)(targetmap.Y / 2));
                 GameLog.Error(
-                    $"{loginUser.Name} first login: start map config missing, using first available map {targetmap.Name}. Safety not guaranteed.");
+                    "{User} first login: start map config missing, using first available map {TargetMap}. Safety not guaranteed.", loginUser.Name, targetmap.Name);
             }
         }
         else if (loginUser.Nation.SpawnPoints.Count != 0 &&
@@ -2214,7 +2214,7 @@ public class World : Server
         }
 
         GameLog.InfoFormat("cid {0}: {1} entering world", connectionId, loginUser.Name);
-        GameLog.InfoFormat($"{loginUser.SinceLastLoginstring}");
+        GameLog.InfoFormat("{SinceLastLogin}", loginUser.SinceLastLoginstring);
         // If the user's never logged off before (new character), don't display this message.
         if (loginUser.AuthInfo.LastLogoff != default)
             loginUser.SendSystemMessage($"It has been {loginUser.SinceLastLoginstring} since your last login.");
@@ -3261,7 +3261,7 @@ public class World : Server
         var pursuitID = packet.ReadUInt16();
         var pursuitIndex = packet.ReadUInt16();
         GameLog.DebugFormat(
-            $"0x3A   user: {user.Name} objectType {objectType} objectID {objectID} pursuitID {pursuitID} pursuitIndex {pursuitIndex}");
+            "0x3A   user: {User} objectType {ObjectType} objectID {ObjectId} pursuitID {PursuitId} pursuitIndex {PursuitIndex}", user.Name, objectType, objectID, pursuitID, pursuitIndex);
 
         GameLog.DebugFormat("0x3A   DialogState: previous {prev}, current {cur}, pursuitIndex {pidx}",
             user.DialogState.PreviousPursuitId?.ToString() ?? "null",
@@ -3285,7 +3285,7 @@ public class World : Server
                  Game.World.WorldState.TryGetValue(objectID, out session))
         {
             clickTarget = session;
-            GameLog.Error($"Clicktarget set yo, clicktarget is {clickTarget}");
+            GameLog.Error("Clicktarget set yo, clicktarget is {ClickTarget}", clickTarget);
             invocation = new DialogInvocation(session, session.Target, session.Source);
         }
         else if (user.World.Objects.TryGetValue(objectID, out wobj))
@@ -3303,7 +3303,7 @@ public class World : Server
             return;
 
         GameLog.Error(
-            $"0x3a: {user.Name}: Source - {invocation.Source.Name} Origin - {invocation.Origin.Name} Target - {invocation.Target.Name}");
+            "0x3a: {User}: Source - {Source} Origin - {Origin} Target - {Target}", user.Name, invocation.Source.Name, invocation.Origin.Name, invocation.Target.Name);
 
         if (objectType == DialogObjectType.Asynchronous)
         {
@@ -3324,7 +3324,7 @@ public class World : Server
         if (pursuitIndex > user.DialogState.CurrentPursuitIndex + 1 ||
             pursuitIndex < user.DialogState.CurrentPursuitIndex - 1)
         {
-            GameLog.ErrorFormat($"{user.Name}: Dialog index is outside of acceptable limits (next/prev)");
+            GameLog.ErrorFormat("{User}: Dialog index is outside of acceptable limits (next/prev)", user.Name);
             return;
         }
 
@@ -3569,7 +3569,7 @@ public class World : Server
                         else
                         {
                             GameLog.Warning(
-                                $"User {user.Name}: Click packet for object not on current map: {entityId} {clickTarget.Id} {user.Map.Name}");
+                                "User {User}: Click packet for object not on current map: {EntityId} {ClickTargetId} {MapName}", user.Name, entityId, clickTarget.Id, user.Map.Name);
                         }
                     }
 
@@ -3854,7 +3854,7 @@ public class World : Server
             foreach (var metafile in WorldState.Values<CompiledMetafile>())
             {
                 x6F.WriteString8(metafile.Name);
-                GameLog.Info($"Responding 6F: adding {metafile.Name}, checksum {metafile.Checksum}");
+                GameLog.Info("Responding 6F: adding {Name}, checksum {Checksum}", metafile.Name, metafile.Checksum);
                 x6F.WriteUInt32(metafile.Checksum);
             }
 
@@ -3865,7 +3865,7 @@ public class World : Server
             var name = packet.ReadString8();
             if (!WorldState.ContainsKey<CompiledMetafile>(name)) return;
             var file = WorldState.Get<CompiledMetafile>(name);
-            GameLog.Info($"Responding 6f notall: sending {file.Name}, checksum {file.Checksum}");
+            GameLog.Info("Responding 6f notall: sending {Name}, checksum {Checksum}", file.Name, file.Checksum);
             var x6F = new ServerPacket(0x6F);
             x6F.WriteBoolean(all);
             x6F.WriteString8(file.Name);

@@ -68,7 +68,7 @@ public class InventoryConverter : JsonConverter
                 }
                 else
                 {
-                    GameLog.Error($"Inventory deserializer error: item {slot.Id} not found in index, skipping");
+                    GameLog.Error("Inventory deserializer error: item {ItemId} not found in index, skipping", slot.Id);
                     equipment[i] = null;
                 }
             }

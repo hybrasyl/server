@@ -64,7 +64,7 @@ internal class Monolith
                         spawnlist.Add(importedSpawn);
                     }
                 else
-                    GameLog.SpawnWarning($"Map {map.Name}: spawn import {spawn.Import} not found");
+                    GameLog.SpawnWarning("Map {Map}: spawn import {Import} not found", map.Name, spawn.Import);
             }
             else // Direct reference to a creature spawn
             {
@@ -78,12 +78,13 @@ internal class Monolith
         map.SpawnDirectives.Status = new SpawnStatus();
         if (Spawns.ContainsKey(map.SpawnDirectives.Name))
         {
-            GameLog.Error($"Duplicate spawngroup (ignored): map {map.Name}, spawngroup {map.SpawnDirectives.Name}");
+            GameLog.Error("Duplicate spawngroup (ignored): map {Map}, spawngroup {Spawngroup}", map.Name,
+                map.SpawnDirectives.Name);
             return;
         }
 
         Spawns.TryAdd(map.SpawnDirectives.Name, map.SpawnDirectives);
-        GameLog.Debug($"Active spawn for {map.Name}: {map.SpawnDirectives.Name}");
+        GameLog.Debug("Active spawn for {Map}: {Spawngroup}", map.Name, map.SpawnDirectives.Name);
     }
 
     public void Start()
@@ -109,13 +110,13 @@ internal class Monolith
                 }
                 catch (Exception ex)
                 {
-                    GameLog.SpawnFatal($"Unhandled exception {ex} in spawn thread");
+                    GameLog.SpawnFatal(ex, "Unhandled exception in spawn thread");
                     spawngroup.Status.ErrorCount++;
                     spawngroup.Status.LastErrorTime = DateTime.Now;
                     spawngroup.Status.LastException = ex;
                     if (spawngroup.Status.ErrorCount > 5)
                     {
-                        GameLog.SpawnError($"Spawngroup {spawngroup.Name} disabled due to errors");
+                        GameLog.SpawnError("Spawngroup {Spawngroup} disabled due to errors", spawngroup.Name);
                         spawngroup.Disabled = true;
                     }
                 }
@@ -129,7 +130,8 @@ internal class Monolith
     {
         if (!Game.World.WorldState.TryGetValue(spawnGroup.MapId, out MapObject spawnmap))
         {
-            GameLog.SpawnWarning($"Spawngroup {spawnGroup.Name}: Map {spawnGroup.MapId} not found, disabling group");
+            GameLog.SpawnWarning("Spawngroup {Spawngroup}: Map {MapId} not found, disabling group", spawnGroup.Name,
+                spawnGroup.MapId);
             spawnGroup.Status.Disabled = true;
             return;
         }
@@ -138,21 +140,23 @@ internal class Monolith
         {
             spawn.Status ??= new SpawnStatus();
             if (spawnmap.SpawnDebug)
-                GameLog.SpawnInfo($"Spawngroup {spawnGroup.Name}: {spawn.Name} processing");
+                GameLog.SpawnInfo("Spawngroup {Spawngroup}: {Spawn} processing", spawnGroup.Name, spawn.Name);
 
             // If the map is disabled, or we don't have a spec for our spawning, or the individual spawn
             // previously had errors and was disabled - continue on
             if (spawnmap.SpawningDisabled || spawn.Status.Disabled)
             {
                 GameLog.SpawnWarning(
-                    $"Spawngroup {spawnGroup.Name}, map {spawnmap.Name}: spawn disabled or map spawning disabled");
+                    "Spawngroup {Spawngroup}, map {Map}: spawn disabled or map spawning disabled", spawnGroup.Name,
+                    spawnmap.Name);
                 continue;
             }
 
             if (spawn.Spec is null)
             {
                 GameLog.SpawnWarning(
-                    $"Spawngroup {spawnGroup.Name}, map {spawnmap.Name}: no spec defined for spawning");
+                    "Spawngroup {Spawngroup}, map {Map}: no spec defined for spawning", spawnGroup.Name,
+                    spawnmap.Name);
                 spawn.Status.Disabled = true;
                 continue;
             }
@@ -213,7 +217,8 @@ internal class Monolith
             if (currentCount >= maxcount)
             {
                 GameLog.SpawnDebug(
-                    $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - mob count is {currentCount}, maximum is {maxcount}");
+                    "Spawn: {Map}: not spawning {Spawn} - mob count is {CurrentCount}, maximum is {MaxCount}",
+                    spawnmap.Name, spawn.Name, currentCount, maxcount);
                 continue;
             }
 
@@ -221,7 +226,8 @@ internal class Monolith
             if (spawn.Status.LastSpawnSeconds < interval)
             {
                 GameLog.SpawnDebug(
-                    $"Spawn: {spawnmap.Name}: not spawning {spawn.Name} - last spawn was {spawn.Status.LastSpawnSeconds} ago, interval {interval}");
+                    "Spawn: {Map}: not spawning {Spawn} - last spawn was {LastSpawnSeconds} ago, interval {Interval}",
+                    spawnmap.Name, spawn.Name, spawn.Status.LastSpawnSeconds, interval);
                 continue;
             }
 
@@ -259,12 +265,12 @@ internal class Monolith
                                 if (mobtype <= spawn.Base.WeakChance)
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
-                                    GameLog.SpawnDebug($"Mob is weak: modifier {modifier}");
+                                    GameLog.SpawnDebug("Mob is weak: modifier {Modifier}", modifier);
                                 }
                                 else
                                 {
                                     baseMob.ApplyModifier(modifier);
-                                    GameLog.SpawnDebug($"Mob is strong: modifier {modifier}");
+                                    GameLog.SpawnDebug("Mob is strong: modifier {Modifier}", modifier);
                                 }
                             }
                             else
@@ -272,12 +278,12 @@ internal class Monolith
                                 if (mobtype <= spawn.Base.StrongChance)
                                 {
                                     baseMob.ApplyModifier(modifier);
-                                    GameLog.SpawnDebug($"Mob is strong: modifier {modifier}");
+                                    GameLog.SpawnDebug("Mob is strong: modifier {Modifier}", modifier);
                                 }
                                 else
                                 {
                                     baseMob.ApplyModifier(modifier * -1);
-                                    GameLog.SpawnDebug($"Mob is weak: modifier {modifier}");
+                                    GameLog.SpawnDebug("Mob is weak: modifier {Modifier}", modifier);
                                 }
                             }
                         }
@@ -302,7 +308,7 @@ internal class Monolith
                         var tile = spawnmap.FindEmptyTile();
                         if (tile == (-1, -1))
                         {
-                            GameLog.SpawnFatal($"{spawnmap.Name}: {spawn.Name} - no empty tiles, aborting");
+                            GameLog.SpawnFatal("{Map}: {Spawn} - no empty tiles, aborting", spawnmap.Name, spawn.Name);
                             return;
                         }
 
@@ -316,7 +322,9 @@ internal class Monolith
 
                     if (!spawnmap.IsValidPoint(baseMob.X, baseMob.Y))
                         GameLog.SpawnError(
-                            $"OOB spawn: {spawn.Name} placed at {baseMob.X},{baseMob.Y} on {spawnmap.Name} ({spawnmap.X}x{spawnmap.Y}) - source={(spawn.Coordinates.Count != 0 ? "xml" : "FindEmptyTile")}");
+                            "OOB spawn: {Spawn} placed at {X},{Y} on {Map} ({MapX}x{MapY}) - source={Source}",
+                            spawn.Name, baseMob.X, baseMob.Y, spawnmap.Name, spawnmap.X, spawnmap.Y,
+                            spawn.Coordinates.Count != 0 ? "xml" : "FindEmptyTile");
 
                     if (spawn.Hostility != null)
                         baseMob.Hostility = spawn.Hostility;
@@ -388,7 +396,8 @@ internal class Monolith
                 else
                 {
                     GameLog.SpawnWarning(
-                        $"Spawngroup {spawnGroup.Name}: map {spawnmap.Name} Spawn {spawn.Name} not found");
+                        "Spawngroup {Spawngroup}: map {Map} Spawn {Spawn} not found", spawnGroup.Name, spawnmap.Name,
+                        spawn.Name);
                 }
 
             spawn.Status.LastSpawnTime = DateTime.Now;

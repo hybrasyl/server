@@ -443,9 +443,11 @@ public class User : Creature
 
         statuspacket.BarColor = color;
         GameLog.DebugFormat(
-            $"{Name} - status update - sending Icon: {statuspacket.Icon}, Color: {statuspacket.BarColor}");
+            "{Name} - status update - sending Icon: {Icon}, Color: {BarColor}",
+            Name, statuspacket.Icon, statuspacket.BarColor);
         GameLog.DebugFormat(
-            $"{Name} - status: {status.Name}, expired: {status.Expired}, remaining: {remaining}, duration: {status.Duration}");
+            "{Name} - status: {Status}, expired: {Expired}, remaining: {Remaining}, duration: {Duration}",
+            Name, status.Name, status.Expired, remaining, status.Duration);
         Enqueue(statuspacket.Packet());
     }
 
@@ -483,7 +485,9 @@ public class User : Creature
         }
 
         GameLog.UserActivityInfo(
-            $"{Name}: died on {Location.Map?.Name ?? "unknown"} last hit by {LastHitter?.Name ?? "unknown"} on map {LastHitter?.Location?.Map?.Name ?? "unknown"}");
+            "{Name}: died on {Map} last hit by {LastHitter} on map {LastHitterMap}",
+            Name, Location.Map?.Name ?? "unknown", LastHitter?.Name ?? "unknown",
+            LastHitter?.Location?.Map?.Name ?? "unknown");
         var timeofdeath = DateTime.Now;
         var looters = Group?.Members.Select(selector: user => user.Name).ToList() ?? new List<string>();
 
@@ -615,11 +619,11 @@ public class User : Creature
                 Game.ActiveConfiguration.Handlers.Death.Map.X,
                 Game.ActiveConfiguration.Handlers.Death.Map.Y);
             if (Location.Map.Name != Game.ActiveConfiguration.Handlers.Death.Map.Value)
-                GameLog.UserActivityFatal($"{Name}: died, but not on death map..?");
+                GameLog.UserActivityFatal("{Name}: died, but not on death map..?", Name);
         }
         else
         {
-            GameLog.Warning($"Death handler not found: {Name} not removed from {Location.Map.Name}");
+            GameLog.Warning("Death handler not found: {Name} not removed from {Map}", Name, Location.Map.Name);
         }
 
         if (Game.ActiveConfiguration.Handlers?.Death?.GroupNotify ?? true)
@@ -878,7 +882,8 @@ public class User : Creature
                     Stats.BaseMp += bonusMpGain;
 
                     GameLog.UserActivityInfo(
-                        $"User {Name}: level increased to {Stats.Level}, CON {Stats.Con}, WIS {Stats.Wis}: HP {bonusHpGain} MP {bonusMpGain}");
+                        "User {Name}: level increased to {Level}, CON {Con}, WIS {Wis}: HP {BonusHp} MP {BonusMp}",
+                        Name, Stats.Level, Stats.Con, Stats.Wis, bonusHpGain, bonusMpGain);
                 }
             }
 
@@ -1455,7 +1460,7 @@ public class User : Creature
             offset += 0x40;
 
 
-        GameLog.Debug($"Offset is: {offset.ToString("X")}");
+        GameLog.Debug("Offset is: {Offset}", offset.ToString("X"));
         // Figure out what we're sending as the "helmet"
         var helmet = Equipment.Helmet?.DisplaySprite ?? HairStyle;
         helmet = Equipment.DisplayHelm?.DisplaySprite ?? helmet;
@@ -2408,7 +2413,8 @@ public class User : Creature
                         if (Inventory[i].Count <= remaining)
                         {
                             GameLog.Info(
-                                $"RemoveItem {itemName}, quantity {quantity}: removing stack from slot {i} with {Inventory[i].Count}");
+                                "RemoveItem {Item}, quantity {Quantity}: removing stack from slot {Slot} with {Count}",
+                                itemName, quantity, i, Inventory[i].Count);
                             remaining -= Inventory[i].Count;
                             Inventory.Remove(i);
                             slotsToClear.Add(i);
@@ -2416,7 +2422,8 @@ public class User : Creature
                         else if (Inventory[i].Count > remaining)
                         {
                             GameLog.Info(
-                                $"RemoveItem {itemName}, quantity {quantity}: removing quantity from stack, slot {i} with amount {Inventory[i].Count}");
+                                "RemoveItem {Item}, quantity {Quantity}: removing quantity from stack, slot {Slot} with amount {Count}",
+                                itemName, quantity, i, Inventory[i].Count);
                             Inventory[i].Count -= remaining;
                             remaining = 0;
                             slotsToUpdate.Add(i);
@@ -2425,7 +2432,8 @@ public class User : Creature
                     else
                     {
                         GameLog.Info(
-                            $"RemoveItem {itemName}, quantity {quantity}: removing nonstackable item from slot {i} with amount {Inventory[i].Count}");
+                            "RemoveItem {Item}, quantity {Quantity}: removing nonstackable item from slot {Slot} with amount {Count}",
+                            itemName, quantity, i, Inventory[i].Count);
                         Inventory.Remove(i);
                         remaining--;
                         slotsToClear.Add(i);
@@ -2433,7 +2441,7 @@ public class User : Creature
                 }
                 else
                 {
-                    GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: done, remaining {remaining}");
+                    GameLog.Info("RemoveItem {Item}, quantity {Quantity}: done, remaining {Remaining}", itemName, quantity, remaining);
                     break;
                 }
 
@@ -2449,7 +2457,7 @@ public class User : Creature
             return true;
         }
 
-        GameLog.Info($"RemoveItem {itemName}, quantity {quantity}: not found");
+        GameLog.Info("RemoveItem {Item}, quantity {Quantity}: not found", itemName, quantity);
         return false;
     }
 
