@@ -601,14 +601,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         if (targets.Count == 0)
             GameLog.UserActivityInfo("UseCastable: {Name} casting {Castable}: no targets", Name, castableXml.Name);
 
-        foreach (var tar in targets)
-        {
-            if (castableXml.Effects?.ScriptOverride == true)
-                // TODO: handle castables with scripting
-                // DoStuff();
-                continue;
-
-            // Reactors may be null in the Xml model; treat absent as no reactors.
+        // Reactor coordinates are caster-relative, so they are placed once per cast on the
+        // caster's map — not per target. Reactors may be null in the Xml model; treat absent
+        // as no reactors.
+        if (castableXml.Effects?.ScriptOverride != true && Location.Map is { } casterMap)
             foreach (var reactor in castableXml.Effects?.Reactors ?? [])
             {
                 if (X + reactor.RelativeX < byte.MinValue || X + reactor.RelativeX > byte.MaxValue ||
@@ -616,10 +612,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     continue;
                 var actualX = (byte)(X + reactor.RelativeX);
                 var actualY = (byte)(Y + reactor.RelativeY);
-                // Cast targets are selected from map entity trees and are always in-world
-                var targetMap = tar.Location.Map!;
                 var reactorObj =
-                    new Reactor(actualX, actualY, targetMap, reactor, this, $"{Name}'s {castableXml.Name}")
+                    new Reactor(actualX, actualY, casterMap, reactor, this, $"{Name}'s {castableXml.Name}")
                     {
                         Sprite = reactor.Sprite,
                         CreatedBy = Guid,
@@ -629,9 +623,16 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 // Don't insert a reactor with no uses into the world
                 if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
-                targetMap.InsertReactor(reactorObj);
+                casterMap.InsertReactor(reactorObj);
                 reactorObj.OnSpawn();
             }
+
+        foreach (var tar in targets)
+        {
+            if (castableXml.Effects?.ScriptOverride == true)
+                // TODO: handle castables with scripting
+                // DoStuff();
+                continue;
 
             if (castableXml.Effects?.Damage != null && !castableXml.Effects.Damage.IsEmpty)
             {
