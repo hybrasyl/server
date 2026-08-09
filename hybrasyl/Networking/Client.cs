@@ -16,10 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Crypto;
+using DALib.Networking.Wire;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.Throttling;
+using Hybrasyl.Networking.Wire;
 using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
@@ -93,7 +96,14 @@ public class Client : AbstractClient, IClient
 
     public long ConnectedSince { get; set; }
 
-    public byte ServerOrdinal { get; set; }
+    // DALib conversion (Phase 1): the stateless codec is shared process-wide; only the
+    // per-connection CryptoState carries key/seed/ordinal state. The codec scans DALib plus
+    // this assembly so Hybrasyl extension packet records register alongside retail ones.
+    internal static readonly PacketCodec Codec = new([typeof(Client).Assembly]);
+
+    public CryptoState Crypto { get; set; } = new();
+
+    public byte ServerOrdinal => Crypto.ServerOrdinal;
 
     public Dictionary<byte, ThrottleInfo> ThrottleState { get; set; } = new();
 
@@ -108,13 +118,28 @@ public class Client : AbstractClient, IClient
         ? ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString()
         : "unknown";
 
-    public byte EncryptionSeed { get; set; }
+    // DALib conversion (Phase 1): key/seed now live on Crypto; these are facades so the
+    // existing handshake/redirect call sites compile unchanged (retired in Phase 5).
+    public byte EncryptionSeed
+    {
+        get => Crypto.EncryptionSeed;
+        set => Crypto.EncryptionSeed = value;
+    }
 
     // Null until the lobby handshake (lobby client ctor) or a confirmed redirect supplies it.
-    public byte[]? EncryptionKey { get; set; }
+    public byte[]? EncryptionKey
+    {
+        get => Crypto.IsInitialized ? Crypto.EncryptionKey : null;
+        set => Crypto.EncryptionKey = value ?? [];
+    }
 
     public string NewCharacterName { get; set; } = string.Empty;
     public string NewCharacterPassword { get; set; } = string.Empty;
+
+    // DALib conversion (Phase 1): route the name-seeded 1024-byte key table build onto
+    // Crypto (called from User.SetEncryptionParameters at world join). Shadows the dormant
+    // AbstractClient version, which is removed with the rest of the legacy crypto in Phase 5.
+    public new void GenerateKeyTable(string seed) => Crypto.GenerateKeyTable(seed);
 
 
     /// <summary>
@@ -306,24 +331,23 @@ public class Client : AbstractClient, IClient
                     // If no packets, just call the whole thing off
                     if (packet == null) return;
 
-                    if (packet.ShouldEncrypt)
+                    // Normal-mode packets need the negotiated key; MD5Key tolerates the
+                    // zeroed pre-world table, None needs no key at all. Mirrors the legacy
+                    // drop-and-warn on a missing key (DALib divides by zero on an empty key).
+                    if (CryptoState.GetServerEncryptMethod(packet.Opcode) ==
+                        DALib.Networking.Crypto.EncryptMethod.Normal && !Crypto.IsInitialized)
                     {
-                        ++ServerOrdinal;
-                        packet.Ordinal = ServerOrdinal;
-                        packet.GenerateFooter();
-                        if (!packet.Encrypt(this))
-                        {
-                            GameLog.Warning(
-                                "cid {ConnectionId}: opcode 0x{Opcode:X2} requires encryption but no key is set, dropping packet",
-                                ConnectionId, packet.Opcode);
-                            continue;
-                        }
+                        GameLog.Warning(
+                            "cid {ConnectionId}: opcode 0x{Opcode:X2} requires the negotiated key but none is set, dropping packet",
+                            ConnectionId, packet.Opcode);
+                        continue;
                     }
 
                     if (packet.TransmitDelay > 0)
                         transmitDelay = packet.TransmitDelay;
-                    // Write packet to our memory stream
-                    buffer.Write(packet.ToArray());
+                    // Encode (framing + ordinal + encryption) through DALib's codec.
+                    var wire = Codec.EncodeServer(new RawBodyServerPacket(packet.Opcode, packet.BodyMemory), Crypto);
+                    buffer.Write(wire.Span);
                 }
             }
 
@@ -366,14 +390,23 @@ public class Client : AbstractClient, IClient
             {
                 while (ClientState.ReceiveBufferTake(out var packet))
                 {
-                    if (packet.ShouldEncrypt && !packet.Decrypt(this))
+                    var method = CryptoState.GetClientEncryptMethod(packet.Opcode);
+                    if (method != DALib.Networking.Crypto.EncryptMethod.None)
                     {
-                        GameLog.Warning(
-                            "cid {ConnectionId}: encrypted opcode 0x{Opcode:X2} received before key exchange, discarding",
-                            ConnectionId, packet.Opcode);
-                        continue;
+                        if (method == DALib.Networking.Crypto.EncryptMethod.Normal && !Crypto.IsInitialized)
+                        {
+                            GameLog.Warning(
+                                "cid {ConnectionId}: encrypted opcode 0x{Opcode:X2} received before key exchange, discarding",
+                                ConnectionId, packet.Opcode);
+                            continue;
+                        }
+
+                        // Decrypt via DALib; hand the plaintext body to the positional reader.
+                        packet.ReplaceData(Crypto.DecryptClient(packet.Opcode, packet.Ordinal, packet.PayloadData));
                     }
 
+                    // Dialog obfuscation stays on Hybrasyl's in-place transform until the
+                    // 0x39/0x3A handlers convert to DALib records (Phase 4).
                     if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
                         packet.DecryptDialog();
                     try

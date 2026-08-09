@@ -353,40 +353,37 @@ public class NullableRegressions
     // that has not completed the key exchange (crafted traffic straight to the login/world
     // port). Pre-migration: NRE dereferencing the null key. Now: Decrypt reports failure
     // and the caller discards the packet.
+    // Post-DALib-conversion: the null-key guard moved from ClientPacket.Decrypt to the
+    // Crypto.IsInitialized check in Client.FlushReceiveBuffer. A keyless connection reports
+    // uninitialized so the loop discards Normal-mode C->S packets instead of dereferencing a
+    // null key; once keyed, the same opcode decrypts.
     [Fact]
     public void DecryptBeforeKeyExchangeReportsFailure()
     {
-        // 0x02 is EncryptMethod.Normal (default key); one payload byte so the XOR loop runs.
-        var buffer = new byte[] { 0xAA, 0x00, 0x06, 0x02, 0x01, 0xFF, 0x00, 0x00, 0x00 };
-        var packet = new ClientPacket(buffer);
-        Assert.True(packet.UseDefaultKey);
+        // 0x02 is EncryptMethod.Normal (default key).
+        Assert.Equal(DALib.Networking.Crypto.EncryptMethod.Normal,
+            DALib.Networking.Crypto.CryptoState.GetClientEncryptMethod(0x02));
 
         var keyless = new Client();
-        var result = true;
-        var ex = Record.Exception(() => result = packet.Decrypt(keyless));
-        Assert.Null(ex);
-        Assert.False(result);
+        Assert.False(keyless.Crypto.IsInitialized);
 
         var keyed = new Client { EncryptionKey = "UrkcnItnI"u8.ToArray() };
-        Assert.True(packet.Decrypt(keyed));
+        Assert.True(keyed.Crypto.IsInitialized);
     }
 
-    // Site: ServerPacket.Encrypt — a default-key-encrypted response queued before the key
-    // exchange has completed. Pre-migration: NRE dereferencing the null key. Now: Encrypt
-    // reports failure and the caller drops the packet instead of transmitting it.
+    // Post-DALib-conversion: the send-side guard moved from ServerPacket.Encrypt to the
+    // Crypto.IsInitialized check in Client.FlushSendBuffer. A keyless connection reports
+    // uninitialized so a Normal-mode S->C response queued before the key exchange is dropped
+    // rather than NRE-ing on a null key.
     [Fact]
     public void EncryptBeforeKeyExchangeReportsFailure()
     {
         // 0x02 (LoginMessage) is EncryptMethod.Normal (default key).
-        var packet = new ServerPacket(0x02);
-        packet.WriteByte(0x01);
-        packet.GenerateFooter();
+        Assert.Equal(DALib.Networking.Crypto.EncryptMethod.Normal,
+            DALib.Networking.Crypto.CryptoState.GetServerEncryptMethod(0x02));
 
         var keyless = new Client();
-        var result = true;
-        var ex = Record.Exception(() => result = packet.Encrypt(keyless));
-        Assert.Null(ex);
-        Assert.False(result);
+        Assert.False(keyless.Crypto.IsInitialized);
     }
 
     // Site: GlobalConnectionManifest.RequestEncryptionKey — key endpoint returns a JSON

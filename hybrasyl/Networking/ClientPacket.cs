@@ -113,6 +113,16 @@ public class ClientPacket : Packet
         }
     }
 
+    // DALib conversion (Phase 1): the raw encrypted payload (wire bytes after the ordinal),
+    // and a hook to swap in the DALib-decrypted plaintext before handlers read positionally.
+    internal byte[] PayloadData => Data;
+
+    internal void ReplaceData(byte[] data)
+    {
+        Data = data;
+        _position = 0;
+    }
+
     public byte[] Read(int length)
     {
         if (_position + length > Data.Length)
@@ -258,28 +268,6 @@ public class ClientPacket : Packet
         for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
 
-    // Returns false when the packet needs the handshake-negotiated key and none exists yet
-    // (crafted traffic on a pre-handshake connection); the packet cannot be decrypted.
-    public bool Decrypt(Client client)
-    {
-        var length = Data.Length - 3;
-
-        var bRand = (ushort)(((Data[length + 2] << 8) | Data[length]) ^ 0x7470);
-        var sRand = (byte)(Data[length + 1] ^ 0x23);
-
-        var key = UseDefaultKey ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
-        if (key == null) return false;
-
-        for (var i = 0; i < length; i++)
-        {
-            Data[i] ^= key[i % key.Length];
-            Data[i] ^= SaltTable[client.EncryptionSeed][i / key.Length % SaltTable[client.EncryptionSeed].Length];
-            if (i / key.Length % SaltTable[client.EncryptionSeed].Length != Ordinal)
-                Data[i] ^= SaltTable[client.EncryptionSeed][Ordinal];
-        }
-
-        return true;
-    }
 
     public ClientPacket Clone()
     {

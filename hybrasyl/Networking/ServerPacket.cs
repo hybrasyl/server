@@ -72,6 +72,10 @@ public class ServerPacket : Packet
         }
     }
 
+    // DALib conversion (Phase 1): the plaintext body written by the Write* methods, handed
+    // to RawBodyServerPacket so FlushSendBuffer can encode through DALib's codec.
+    internal ReadOnlyMemory<byte> BodyMemory => Data;
+
     public void Write(byte[] buffer)
     {
         if (_position + buffer.Length > Data.Length) Array.Resize(ref Data, _position + buffer.Length);
@@ -163,67 +167,6 @@ public class ServerPacket : Packet
         Data[_position++] = (byte) buffer.Length;
         Array.Copy(buffer, 0, Data, _position, buffer.Length);
         _position += buffer.Length;
-    }
-
-    public void GenerateFooter()
-    {
-        var length = Data.Length;
-
-        if (UseDefaultKey)
-        {
-            Array.Resize(ref Data, length + 1);
-            Data[length++] = 0x00;
-        }
-        else
-        {
-            Array.Resize(ref Data, length + 2);
-            Data[length++] = 0x00;
-            Data[length++] = Opcode;
-        }
-
-        Array.Resize(ref Data, length + 3);
-    }
-
-    // Returns false when the packet needs the handshake-negotiated key and none exists yet;
-    // the packet cannot be encrypted and must not be transmitted.
-    public bool Encrypt(Client client)
-    {
-        var length = Data.Length - 3;
-
-        //var bRand = (ushort)(rand.Next() % 65277 + 256);
-        var bRand = (ushort) (Random.Shared.Next(65277) + 256);
-        //var sRand = (byte)(rand.Next() % 155 + 100);
-        var sRand = (byte) (Random.Shared.Next(155) + 100);
-
-        byte[]? key;
-        switch (EncryptMethod)
-        {
-            case EncryptMethod.Normal:
-                key = client.EncryptionKey;
-                break;
-            case EncryptMethod.MD5Key:
-                key = client.GenerateKey(bRand, sRand);
-                break;
-            default:
-                return true;
-        }
-
-        if (key == null) return false;
-
-        //var key = (UseDefaultKey) ? client.EncryptionKey : client.GenerateKey(bRand, sRand);
-
-        for (var i = 0; i < length; i++)
-        {
-            Data[i] ^= key[i % key.Length];
-            Data[i] ^= SaltTable[client.EncryptionSeed][i / key.Length % SaltTable[client.EncryptionSeed].Length];
-            if (i / key.Length % SaltTable[client.EncryptionSeed].Length != Ordinal)
-                Data[i] ^= SaltTable[client.EncryptionSeed][Ordinal];
-        }
-
-        Data[length] = (byte) ((bRand % 256) ^ 0x74);
-        Data[length + 1] = (byte) (sRand ^ 0x24);
-        Data[length + 2] = (byte) (((bRand >> 8) % 256) ^ 0x64);
-        return true;
     }
 
     public ServerPacket Clone()
