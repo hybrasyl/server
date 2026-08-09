@@ -24,7 +24,7 @@ using System.Text;
 using DALib.Networking.Packets.Server;
 using DALib.Networking.Wire;
 using Xunit;
-using LegacyServerPacket = Hybrasyl.Networking.ServerPacket;
+using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 
 namespace Hybrasyl.Tests.Wire;
 
@@ -245,13 +245,27 @@ public class P2TypedPackets
         Assert.Equal("Hybrasyl\0"u8.ToArray(), plain[8..]);
     }
 
+    /// <summary>
+    ///     The typed 0x03 parse accepts a well-formed body, integrity trailer and
+    ///     all — the trailer's CRC is validated, so a packet whose trailer is malformed throws.
+    /// </summary>
+    /// <remarks>
+    ///     <strong>This is a round-trip and cannot be more than that.</strong> It previously ran
+    ///     through the legacy <c>ClientPackets.Login</c> injector and was described as pinning
+    ///     "the bytes the client actually sends", but that injector built its body by calling
+    ///     DALib's own <c>LoginPacket.WriteBody</c> — so it was DALib agreeing with itself, and
+    ///     the wording overstated it. The injector is gone in P5b and the construction is now
+    ///     direct, which changes nothing about what is proven: this catches a parse that rejects
+    ///     its own encoder's output, and would not catch a shared misunderstanding of the trailer
+    ///     layout. Pinning that needs a capture, not a round-trip.
+    /// </remarks>
     [Fact]
-    public void LoginInjector_ParsesUnderStrictTrailerValidation()
+    public void Login_ParsesUnderStrictTrailerValidation()
     {
-        // The test injector builds its body via the DALib record; the typed 0x03 handler
-        // parse must accept it, integrity trailer and all.
-        var injected = (Hybrasyl.Networking.ClientPacket)new Hybrasyl.Networking.ClientPackets.Login("Kerden", "leethax6");
-        var parsed = DALib.Networking.Packets.Client.LoginPacket.Parse(injected.PayloadData);
+        var body = new DALib.Networking.Packets.Client.LoginPacket
+            { Name = "Kerden", Password = "leethax6" }.ToBody();
+
+        var parsed = DALib.Networking.Packets.Client.LoginPacket.Parse(body);
 
         Assert.Equal("Kerden", parsed.Name);
         Assert.Equal("leethax6", parsed.Password);

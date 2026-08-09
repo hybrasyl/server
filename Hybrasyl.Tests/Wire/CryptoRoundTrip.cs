@@ -19,7 +19,6 @@
 using System.Text;
 using DALib.Networking.Crypto;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.Wire;
 using Xunit;
 
 namespace Hybrasyl.Tests.Wire;
@@ -28,7 +27,7 @@ namespace Hybrasyl.Tests.Wire;
 ///     Crypto/wire round-trip coverage introduced with the DALib conversion (Phase 1).
 ///     Before this, the encrypted 0xAA-framed wire had zero test coverage. These tests pair
 ///     a server-role CryptoState (mirroring Client.Crypto) with a client-role one, encode an
-///     S->C packet through the real send path (Client.Codec + RawBodyServerPacket bridge), and
+///     S->C packet through the real send path (Client.Codec + RawBodyPacket bridge), and
 ///     confirm the client recovers the exact plaintext body — proving the DALib codec is a
 ///     drop-in for the hand-rolled crypto across all three encrypt methods.
 /// </summary>
@@ -66,7 +65,7 @@ public class CryptoRoundTrip
         var (server, client) = Paired();
         var body = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03 };
 
-        var wire = Client.Codec.EncodeServer(new RawBodyServerPacket(opcode, body), server);
+        var wire = Client.Codec.EncodeServer(new RawBodyPacket(opcode, body), server);
         var enc = Unframe(wire);
 
         Assert.Equal(opcode, enc[0]);
@@ -87,7 +86,7 @@ public class CryptoRoundTrip
         var (server, _) = Paired();
         var body = new byte[] { 0x11, 0x22, 0x33 };
 
-        var wire = Client.Codec.EncodeServer(new RawBodyServerPacket(opcode, body), server);
+        var wire = Client.Codec.EncodeServer(new RawBodyPacket(opcode, body), server);
         var enc = Unframe(wire);
 
         // None frames carry [opcode][body...] with no ordinal, no footer, no encryption.

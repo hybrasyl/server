@@ -21,7 +21,7 @@ using System.Linq;
 using DALib.Networking.Packets.Server;
 using DALib.Networking.Wire;
 using Xunit;
-using LegacyServerPacket = Hybrasyl.Networking.ServerPacket;
+using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 // The test project already has its own ProfilePacket / LegendMark; alias the DALib records.
 using DalibProfilePacket = DALib.Networking.Packets.Server.ProfilePacket;
 using DalibLegendMark = DALib.Networking.Packets.Server.LegendMark;

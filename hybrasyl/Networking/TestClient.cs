@@ -82,10 +82,8 @@ public class TestClient : AbstractClient, IClient
         ClientState.Dispose();
     }
 
-    public void Enqueue(ServerPacket packet, bool flush = false) => ClientState.SendBufferAdd(packet);
-
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0) =>
-        ClientState.SendBufferAdd(ServerPacket.FromDalib(packet, transmitDelay));
+        ClientState.SendBufferAdd(new OutboundPacket(packet, transmitDelay));
 
     // TestClient has no receive loop; queue without flushing.
     public void ReceiveFrame(InboundFrame frame) => ClientState.ReceiveBufferAdd(frame);
@@ -94,6 +92,11 @@ public class TestClient : AbstractClient, IClient
     // encode an inbound frame against. Tests that need to drive a handler invoke it directly.
     public void Enqueue(IClientPacket packet) =>
         throw new NotSupportedException("TestClient does not accept inbound packets; call the handler directly.");
+
+    // TestClient has no CryptoState — it captures outbound traffic and never encrypts. The
+    // name-seeded key table it used to inherit from AbstractClient was the legacy implementation,
+    // deleted in P5b; there is nothing for this to do.
+    public void GenerateKeyTable(string seed) { }
 
     public void FlushReceiveBuffer()
     {

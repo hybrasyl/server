@@ -21,7 +21,7 @@ using DALib.Enums;
 using DALib.Networking.Packets.Server;
 using DALib.Networking.Wire;
 using Xunit;
-using LegacyServerPacket = Hybrasyl.Networking.ServerPacket;
+using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 
 namespace Hybrasyl.Tests.Wire;
 

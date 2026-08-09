@@ -62,12 +62,10 @@ public interface IClient : IDisposable
     public bool IsIdle();
 
     public void Disconnect();
-    public byte[] GenerateKey(ushort bRand, byte sRand);
     public void FlushSendBuffer();
     public void FlushReceiveBuffer();
     public void SendCallback(IAsyncResult ar);
     public void GenerateKeyTable(string seed);
-    public void Enqueue(ServerPacket packet, bool flush = false);
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0);
     public void ReceiveFrame(InboundFrame frame);
     public void Enqueue(IClientPacket packet);

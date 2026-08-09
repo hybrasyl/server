@@ -24,7 +24,6 @@ using Hybrasyl.Internals.CommandLine;
 using Hybrasyl.Internals.Compression;
 using Hybrasyl.Internals.Crc;
 using Hybrasyl.Internals.Logging;
-using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Spawning;
 using Hybrasyl.Xml.Manager;

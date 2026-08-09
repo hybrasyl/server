@@ -347,27 +347,6 @@ public class User : Creature
         return ClientSettings[number];
     }
 
-    public void Enqueue(ServerPacket packet)
-    {
-        GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
-        try
-        {
-            Client?.Enqueue(packet);
-        }
-        catch (ObjectDisposedException)
-        {
-            GameLog.Warning("User {user}: socket enqueue failed due to disconnect, removing", Name);
-            // Forcibly destroy client and remove user from world.
-            if (Client is { } client)
-            {
-                PreviousConnectionId = client.ConnectionId;
-                Client = null;
-            }
-            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser, CleanupType.ByName,
-                Name));
-        }
-    }
-
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
     {
         GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
@@ -4051,23 +4030,15 @@ public class User : Creature
     public void ShowMerchantGoBack(Merchant merchant, string message,
         MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
     {
-        var x2F = new ServerPacket(0x2F);
-        x2F.WriteByte(0x00); // type!
-        x2F.WriteByte(0x01); // obj type
-        x2F.WriteUInt32(merchant.Id);
-        x2F.WriteByte(0x01); // ??
-        x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-        x2F.WriteByte(0x00); // color
-        x2F.WriteByte(0x01); // ??
-        x2F.WriteUInt16((ushort)(0x4000 + merchant.Sprite));
-        x2F.WriteByte(0x00); // color
-        x2F.WriteByte(0x00); // ??
-        x2F.WriteString8(merchant.Name);
-        x2F.WriteString16(message);
-        x2F.WriteByte(1);
-        x2F.WriteString8("Go back");
-        x2F.WriteUInt16((ushort)menuItem);
-        Enqueue(x2F);
+        // Straggler: this was the last hand-built ServerPacket on the send side, missed by P3d
+        // because it emits the options menu inline rather than through the helper. Same bytes —
+        // an options menu carrying a single "Go back" row.
+        var options = new MerchantOptions
+        {
+            Options = [new MerchantDialogOption { Id = (ushort)menuItem, Text = "Go back" }]
+        };
+
+        Enqueue(MerchantMenu(merchant, message, options));
     }
 
     public void ShowMerchantSendParcel(Merchant merchant)

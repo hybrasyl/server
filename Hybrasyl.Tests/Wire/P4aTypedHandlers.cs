@@ -98,19 +98,30 @@ public class P4aTypedHandlers
     [InlineData(1, ExitSignal.Request)]
     public void ClientExit_ParsesSignal(byte wire, ExitSignal expected)
     {
-        // Pinned through the legacy test injector: the bytes the client actually sends.
-        var injected = (Hybrasyl.Networking.ClientPacket) new Hybrasyl.Networking.ClientPackets.LeaveWorld(wire);
+        // Hand-written wire body: 0x0B carries the signal byte and nothing else. Previously
+        // taken from the legacy ClientPackets injector, which is gone in P5b — the injector
+        // also appended a 3-byte "hyb" footer of its own that retail never sends, so a literal
+        // derived from the layout is both independent and more faithful than it was.
+        byte[] body = [wire];
 
-        Assert.Equal(expected, ClientExitPacket.Parse(injected.PayloadData).Signal);
+        Assert.Equal(expected, ClientExitPacket.Parse(body).Signal);
     }
 
     [Fact]
-    public void ClientJoin_ParsesRedirectFieldsFromTheLegacyInjector()
+    public void ClientJoin_ParsesRedirectFields()
     {
-        var injected = (Hybrasyl.Networking.ClientPacket)
-            new Hybrasyl.Networking.ClientPackets.JoinWorld(0x0B, "NILCHIRSTNA", "Kerden", 0x12345678);
+        // [u8 seed][string8 key][string8 name][u32 BE redirectId], hand-assembled from the
+        // layout rather than produced by DALib's own writer, so a wrong understanding of the
+        // format fails here instead of agreeing with itself.
+        byte[] body =
+        [
+            0x0B,
+            0x0B, .."NILCHIRSTNA"u8,
+            0x06, .."Kerden"u8,
+            0x12, 0x34, 0x56, 0x78,
+        ];
 
-        var parsed = ClientJoinPacket.Parse(injected.PayloadData);
+        var parsed = ClientJoinPacket.Parse(body);
 
         Assert.Equal(0x0B, parsed.EncryptionSeed);
         Assert.Equal("NILCHIRSTNA"u8.ToArray(), parsed.EncryptionKey);

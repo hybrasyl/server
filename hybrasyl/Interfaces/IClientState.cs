@@ -37,9 +37,9 @@ public interface IClientState
     public bool SendBufferEmpty { get; }
     public IEnumerable<byte> ReceiveBufferTake(int range);
     public IEnumerable<byte> ReceiveBufferPop(int range);
-    public void SendBufferAdd(ServerPacket packet);
-    public bool SendBufferPeek([MaybeNullWhen(false)] out ServerPacket packet);
-    public bool SendBufferTake([MaybeNullWhen(false)] out ServerPacket packet);
+    public void SendBufferAdd(OutboundPacket packet);
+    public bool SendBufferPeek(out OutboundPacket packet);
+    public bool SendBufferTake(out OutboundPacket packet);
     public void ResetReceive();
     public void ResetSend();
     public void Dispose();

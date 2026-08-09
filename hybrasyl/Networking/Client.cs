@@ -23,7 +23,6 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.Throttling;
-using Hybrasyl.Networking.Wire;
 using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
@@ -145,7 +144,7 @@ public class Client : AbstractClient, IClient
     // DALib conversion (Phase 1): route the name-seeded 1024-byte key table build onto
     // Crypto (called from User.SetEncryptionParameters at world join). Shadows the dormant
     // AbstractClient version, which is removed with the rest of the legacy crypto in Phase 5.
-    public new void GenerateKeyTable(string seed) => Crypto.GenerateKeyTable(seed);
+    public void GenerateKeyTable(string seed) => Crypto.GenerateKeyTable(seed);
 
 
     /// <summary>
@@ -329,9 +328,6 @@ public class Client : AbstractClient, IClient
 
                 if (ClientState.SendBufferTake(out var packet))
                 {
-                    // If no packets, just call the whole thing off
-                    if (packet == null) return;
-
                     // Normal-mode packets need the negotiated key; MD5Key tolerates the
                     // zeroed pre-world table, None needs no key at all. Mirrors the legacy
                     // drop-and-warn on a missing key (DALib divides by zero on an empty key).
@@ -346,10 +342,7 @@ public class Client : AbstractClient, IClient
 
                     if (packet.TransmitDelay > 0)
                         transmitDelay = packet.TransmitDelay;
-                    // Converted sites carry a typed DALib record (retail-true bytes); unconverted
-                    // ones flow through the parity bridge. Either way the codec frames/encrypts.
-                    var record = packet.DalibPacket ?? new RawBodyServerPacket(packet.Opcode, packet.BodyMemory);
-                    var wire = Codec.EncodeServer(record, Crypto);
+                    var wire = Codec.EncodeServer(packet.Packet, Crypto);
                     buffer.Write(wire.Span);
                 }
             }
@@ -522,23 +515,20 @@ public class Client : AbstractClient, IClient
         state.SendComplete.Set();
     }
 
-    public void Enqueue(ServerPacket packet, bool flush = false)
+    // DALib conversion (Phase 2+): enqueue a typed DALib server packet. Encodes retail-true
+    // bytes directly through the codec (no parity bridge, no inner padding).
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
     {
-        GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
+        GameLog.DebugFormat("Enqueueing 0x{0:X2}", packet.Opcode);
         if (!Connected)
         {
             Disconnect();
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
 
-        ClientState.SendBufferAdd(packet);
+        ClientState.SendBufferAdd(new OutboundPacket(packet, transmitDelay));
         if (flush) FlushSendBuffer();
     }
-
-    // DALib conversion (Phase 2+): enqueue a typed DALib server packet. Encodes retail-true
-    // bytes directly through the codec (no parity bridge, no inner padding).
-    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
-        => Enqueue(ServerPacket.FromDalib(packet, transmitDelay), flush);
 
     // Injects a typed C→S packet as though it had arrived on the wire. Encodes a real frame
     // through the codec rather than handing the record straight to the queue, so the injected

@@ -37,7 +37,7 @@ public class ClientState(ISocketProxy incoming) : IClientState
 
     private readonly object _sendlock = new();
     private ConcurrentQueue<InboundFrame> _receiveBuffer = new();
-    private ConcurrentQueue<ServerPacket> _sendBuffer = new();
+    private ConcurrentQueue<OutboundPacket> _sendBuffer = new();
 
     public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; set; } = new(false);
@@ -90,14 +90,14 @@ public class ClientState(ISocketProxy incoming) : IClientState
         return ret;
     }
 
-    public void SendBufferAdd(ServerPacket packet)
+    public void SendBufferAdd(OutboundPacket packet)
     {
         _sendBuffer.Enqueue(packet);
     }
 
-    public bool SendBufferPeek([MaybeNullWhen(false)] out ServerPacket packet) => _sendBuffer.TryPeek(out packet);
+    public bool SendBufferPeek(out OutboundPacket packet) => _sendBuffer.TryPeek(out packet);
 
-    public bool SendBufferTake([MaybeNullWhen(false)] out ServerPacket packet) => _sendBuffer.TryDequeue(out packet);
+    public bool SendBufferTake(out OutboundPacket packet) => _sendBuffer.TryDequeue(out packet);
 
     public void ResetReceive()
     {
@@ -110,7 +110,7 @@ public class ClientState(ISocketProxy incoming) : IClientState
 
     public void ResetSend()
     {
-        _sendBuffer = new ConcurrentQueue<ServerPacket>();
+        _sendBuffer = new ConcurrentQueue<OutboundPacket>();
     }
 
     public void Dispose()

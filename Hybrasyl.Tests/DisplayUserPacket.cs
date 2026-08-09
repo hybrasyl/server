@@ -42,7 +42,7 @@ public class DisplayUserPacket(HybrasylFixture fixture)
         Assert.True(client.ClientState.SendBufferTake(out var packet));
         Assert.Equal(0x33, packet.Opcode);
 
-        var record = Assert.IsAssignableFrom<DALib.Networking.Wire.ServerPacket>(packet.DalibPacket);
+        var record = Assert.IsAssignableFrom<DALib.Networking.Wire.ServerPacket>(packet.Packet);
         var writer = new DALib.Networking.Wire.PacketWriter();
         record.WriteBody(writer);
         return writer.WrittenSpan.ToArray();

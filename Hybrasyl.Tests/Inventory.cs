@@ -18,7 +18,6 @@
 
 using Discord.Rest;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

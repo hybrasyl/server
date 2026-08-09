@@ -18,7 +18,6 @@
 
 using Hybrasyl.Interfaces;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Objects;
 using Hybrasyl.Xml.Objects;
 using System;

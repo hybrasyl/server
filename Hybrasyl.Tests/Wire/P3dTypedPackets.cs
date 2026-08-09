@@ -19,7 +19,8 @@
 using DALib.Networking.Packets.Server;
 using DALib.Networking.Wire;
 using Xunit;
-using LegacyServerPacket = Hybrasyl.Networking.ServerPacket;
+using MerchantMenuItem = Hybrasyl.Objects.MerchantMenuItem;
+using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 // The test project has its own DisplayUserPacket (the send-site regression), which shadows
 // DALib's from inside Hybrasyl.Tests.Wire.
 using DalibDisplayUserPacket = DALib.Networking.Packets.Server.DisplayUserPacket;
@@ -339,6 +340,30 @@ public class P3dTypedPackets
             Text = text,
             Menu = menu
         };
+
+    /// <summary>
+    ///     ShowMerchantGoBack emitted its options menu inline with a hand-built ServerPacket
+    ///     rather than through the MerchantMenu helper, so P3d's sweep missed it and it survived
+    ///     as the last positional send site on the branch. Pins that routing it through the
+    ///     helper in P5b changes nothing on the wire — it is a live path (every "go back" row in
+    ///     a merchant flow).
+    /// </summary>
+    [Fact]
+    public void MerchantGoBack_MatchesLegacyBody()
+    {
+        var legacy = new LegacyServerPacket(0x2F);
+        WriteMerchantPrefix(legacy, 0x00, "Anything else?");
+        legacy.WriteByte(1);
+        legacy.WriteString8("Go back");
+        legacy.WriteUInt16((ushort) MerchantMenuItem.MainMenu);
+
+        var typed = MerchantPacket(NpcMenuType.Options, "Anything else?", new OptionsMenu
+        {
+            Options = [new NpcMenuOption("Go back", (ushort) MerchantMenuItem.MainMenu)]
+        }).ToBody();
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
 
     [Fact]
     public void MerchantOptions_MatchesLegacyBody()
