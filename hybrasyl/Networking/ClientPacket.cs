@@ -136,8 +136,6 @@ public class ClientPacket : Packet
         return buffer;
     }
 
-    public byte[] ReadDialogHeader() => Read(6); // Read six bytes
-
     public byte ReadByte()
     {
         if (_position + 1 > Data.Length)
@@ -255,19 +253,6 @@ public class ClientPacket : Packet
         Data[3] ^= (byte)((y + 1) % 256);
         for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
     }
-
-    public void DecryptDialog()
-    {
-        var xPrime = (byte)(Data[0] - 0x2D);
-        var x = (byte)(Data[1] ^ xPrime);
-        var y = (byte)(x + 0x72);
-        var z = (byte)(x + 0x28);
-        Data[2] ^= y;
-        Data[3] ^= (byte)((y + 1) % 256);
-        var length = (Data[2] << 8) | Data[3];
-        for (var i = 0; i < length; i++) Data[4 + i] ^= (byte)((z + i) % 256);
-    }
-
 
     public ClientPacket Clone()
     {

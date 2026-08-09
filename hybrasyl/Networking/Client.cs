@@ -403,10 +403,23 @@ public class Client : AbstractClient, IClient
                         packet.ReplaceData(Crypto.DecryptClient(packet.Opcode, packet.Ordinal, packet.PayloadData));
                     }
 
-                    // Dialog obfuscation stays on Hybrasyl's in-place transform until the
-                    // 0x39/0x3A handlers convert to DALib records (Phase 4).
-                    if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
-                        packet.DecryptDialog();
+                    // Dialog obfuscation moves to DALib. Same unmasking as the
+                    // legacy in-place transform, but it validates the CRC-CCITT the legacy
+                    // path only unmasked and ignored, and returns the body with the 6-byte
+                    // header already stripped — so the 0x39/0x3A handlers no longer skip it.
+                    if (DALib.Networking.Crypto.DialogObfuscation.AppliesTo(packet.Opcode))
+                        try
+                        {
+                            packet.ReplaceData(
+                                DALib.Networking.Crypto.DialogObfuscation.Remove(packet.PayloadData));
+                        }
+                        catch (Exception e)
+                        {
+                            GameLog.Warning(e,
+                                "cid {ConnectionId}: malformed dialog response 0x{Opcode:X2}, discarding",
+                                ConnectionId, packet.Opcode);
+                            continue;
+                        }
                     try
                     {
                         if (Server is Lobby lobby)

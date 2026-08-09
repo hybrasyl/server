@@ -3291,9 +3291,8 @@ public class World : Server
     {
         var user = (User)obj;
 
-        // We just ignore the header, because, really, what exactly is a 16-bit encryption
-        // key plus CRC really doing for you
-        var header = packet.ReadDialogHeader();
+        // The 6-byte dialog header is gone by the time we get here — DALib's
+        // DialogObfuscation.Remove strips it, and validates the CRC the legacy path ignored.
         var objectType = packet.ReadByte();
         var objectId = packet.ReadUInt32();
         var pursuitId = packet.ReadUInt16();
@@ -3381,7 +3380,7 @@ public class World : Server
     {
         var user = (User)obj;
 
-        var header = packet.ReadDialogHeader();
+        // Header already stripped by DialogObfuscation.Remove.
         var objectType = (DialogObjectType)packet.ReadByte();
         var objectID = packet.ReadUInt32();
         var pursuitID = packet.ReadUInt16();
