@@ -99,21 +99,22 @@ public sealed class Merchant : Creature, IPursuitable, IEphemeral, ISpawnable
     public override void ShowTo(IVisible obj)
     {
         if (obj is not User user) return;
-        var npcPacket = new ServerPacket(0x07);
-        npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
-        npcPacket.WriteUInt16(X);
-        npcPacket.WriteUInt16(Y);
-        npcPacket.WriteUInt32(Id);
-        npcPacket.WriteUInt16((ushort) (Sprite + 0x4000));
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte((byte) Direction);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-        npcPacket.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
-        user.Enqueue(npcPacket);
+        user.Enqueue(new DALib.Networking.Packets.Server.DrawObjectsPacket
+        {
+            Objects =
+            [
+                new DALib.Networking.Packets.Server.CreatureWorldObject
+                {
+                    X = X,
+                    Y = Y,
+                    Id = Id,
+                    Sprite = (ushort)(Sprite + 0x4000),
+                    Direction = (byte)Direction,
+                    Type = DALib.Networking.Packets.Server.CreatureWorldObject.TypeNamed,
+                    Name = string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName
+                }
+            ]
+        });
     }
 
 

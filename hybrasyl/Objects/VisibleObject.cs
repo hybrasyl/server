@@ -243,13 +243,10 @@ public class VisibleObject : WorldObject, IVisible
 
     public virtual void PlaySound(byte Id)
     {
-        var soundPacket = new PlaySound { Sound = Id };
+        var soundPacket = new DALib.Networking.Packets.Server.PlaySoundPacket { Sound = Id };
 
         foreach (var user in viewportUsers)
-        {
-            var nPacket = soundPacket.Packet().Clone();
-            user.Enqueue(nPacket);
-        }
+            user.Enqueue(soundPacket);
     }
 
     public Direction GetIntentDirection(IntentDirection intentDirection)

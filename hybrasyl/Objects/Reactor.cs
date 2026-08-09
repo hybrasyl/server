@@ -116,28 +116,22 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (!VisibleTo(obj)) return;
         if (obj is not User user) return;
 
-        // TODO: improve, this isn't sufficient to work with Say/Shout currently
-        var p = new ServerPacket(0x07);
-        p.WriteUInt16(1);
-        p.WriteUInt16(X);
-        p.WriteUInt16(Y);
-        p.WriteUInt32(Id);
-        if (Sprite != 0)
-            p.WriteUInt16((ushort)(Sprite + 0x8000));
-        else
-            p.WriteUInt16(Sprite);
-
-        p.WriteByte(0); // random 1                                                                                                                                                                                                
-        p.WriteByte(0); // random 2                                                                                                                                                                                                
-        p.WriteByte(0); // random 3                                                                                                                                                                                                
-        p.WriteByte(0); // unknown a                                                                                                                                                                                               
-        p.WriteByte((byte)Direction);
-        p.WriteByte(0); // unknown b                                                                                                                                                                                               
-        p.WriteByte(0);
-        p.WriteByte(0); // unknown d                                                                                                                                                                                               
-        p.WriteByte((byte)MonsterType.Reactor);
-        p.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
-        user.Enqueue(p);
+        // Item-form emit: the client parses item-range sprites as a 13-byte ground
+        // object — exactly how trap sprites render today. The legacy creature-style tail
+        // (MonsterType.Reactor + name) was never consumed and is dropped.
+        user.Enqueue(new DALib.Networking.Packets.Server.DrawObjectsPacket
+        {
+            Objects =
+            [
+                new DALib.Networking.Packets.Server.ItemWorldObject
+                {
+                    X = X,
+                    Y = Y,
+                    Id = Id,
+                    Sprite = Sprite != 0 ? (ushort)(Sprite + 0x8000) : Sprite
+                }
+            ]
+        });
     }
 
     private void Init()
@@ -257,11 +251,7 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (!Ready) return;
         Script?.ExecuteFunction("AoiDeparture", GetBaseEnvironment(obj));
         if (obj is User u)
-        {
-            var removePacket = new ServerPacket(0x0E);
-            removePacket.WriteUInt32(Id);
-            u.Enqueue(removePacket);
-        }
+            u.Enqueue(new DALib.Networking.Packets.Server.RemoveObjectPacket { SourceId = Id });
     }
 
     public void OnDrop(VisibleObject obj, VisibleObject dropped)

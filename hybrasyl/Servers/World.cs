@@ -1808,16 +1808,16 @@ public class World : Server
 
         for (ushort row = 0; row < map.Y; ++row)
         {
-            var x3C = new ServerPacket(0x3C);
-            x3C.WriteUInt16(row);
-            for (var col = 0; col < map.X * 6; col += 2)
+            // Wire row data is byte-swapped per u16 pair relative to the .map file
+            var rowData = new byte[map.X * 6];
+            for (var col = 0; col < rowData.Length; col += 2)
             {
-                x3C.WriteByte(map.RawData[index + 1]);
-                x3C.WriteByte(map.RawData[index]);
+                rowData[col] = map.RawData[index + 1];
+                rowData[col + 1] = map.RawData[index];
                 index += 2;
             }
 
-            user.Enqueue(x3C);
+            user.Enqueue(new DALib.Networking.Packets.Server.MapDataPacket { RowIndex = row, RowData = rowData });
         }
     }
 
@@ -2123,10 +2123,8 @@ public class World : Server
 
         if (endSignal == 1)
         {
-            var x4C = new ServerPacket(0x4C);
-            x4C.WriteByte(0x01);
-            x4C.WriteUInt16(0x00);
-            user.Enqueue(x4C);
+            // Legacy u16 slack after the confirm bool dropped
+            user.Enqueue(new DALib.Networking.Packets.Server.ConfirmExitPacket { ExitConfirmed = true });
         }
         else
         {
@@ -3216,23 +3214,28 @@ public class World : Server
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var target = BitConverter.ToInt64(packet.Read(8), 0);
-        GameLog.DebugFormat("target bytes are: {0}, maybe", target);
+        // CFieldMap (retail): checksum, map_id, x, y — all u16 big-endian. The client copies
+        // these four words verbatim from the selected SFieldMap node. checksum has no server meaning;
+        // the destination must still be validated because the body can be forged.
+        packet.ReadUInt16();               // checksum (carried back, unused)
+        var mapId = packet.ReadUInt16();
+        var x = packet.ReadUInt16();
+        var y = packet.ReadUInt16();
 
-        if (user.IsAtWorldMap)
-        {
-            WorldMapPoint targetmap;
-            if (WorldData.TryGetValue(target, out targetmap))
-                user.Teleport(targetmap.DestinationMap, targetmap.DestinationX, targetmap.DestinationY);
-            else
-                GameLog.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",
-                    user.Name));
-        }
-        else
+        if (!user.IsAtWorldMap)
         {
             GameLog.ErrorFormat(string.Format("{0}: sent us an 0x3F outside of a map screen!",
                 user.Name));
+            return;
         }
+
+        if (!WorldState.ContainsKey<MapObject>(mapId))
+        {
+            GameLog.Warning("{User}: 0x3F worldmap click to unknown map_id {MapId}", user.Name, mapId);
+            return;
+        }
+
+        user.Teleport(mapId, (byte)x, (byte)y);
     }
 
     [PacketHandler(0x38)]
@@ -3873,11 +3876,13 @@ public class World : Server
         var user = (User)obj;
         var text = packet.ReadString8();
 
-        var x0D = new CastLine
-        { ChatType = 2, LineLength = (byte)text.Length, LineText = text, TargetId = user.Id };
-        var enqueue = x0D.Packet();
-
-        user.SendCastLine(enqueue);
+        // Chant echo (legacy CastLine builder's 3 trailing 0x00 dropped)
+        user.SendCastLine(new DALib.Networking.Packets.Server.PublicMessagePacket
+        {
+            Type = DALib.Networking.Packets.Server.PublicMessagePacket.TypeChant,
+            SourceId = user.Id,
+            Message = text
+        });
     }
 
     [PacketHandler(0x4F)]

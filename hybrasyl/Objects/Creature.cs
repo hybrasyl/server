@@ -776,16 +776,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         return true;
     }
 
-    public void SendCastLine(ServerPacket packet)
+    public void SendCastLine(DALib.Networking.Packets.Server.PublicMessagePacket packet)
     {
-        GameLog.DebugFormat("SendCastLine");
-        GameLog.DebugFormat("SendCastLine byte format is: {PacketBytes}", BitConverter.ToString(packet.ToArray()));
         if (Location.Map is not { } map) return;
         foreach (var user in map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = packet.Clone();
             GameLog.DebugFormat("SendCastLine to {User}", user.Name);
-            user.Enqueue(nPacket);
+            user.Enqueue(packet);
         }
     }
 
@@ -918,13 +915,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 if (obj != this && obj is User user)
                 {
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
-                    var x0C = new ServerPacket(0x0C);
-                    x0C.WriteUInt32(Id);
-                    x0C.WriteUInt16((byte)oldX);
-                    x0C.WriteUInt16((byte)oldY);
-                    x0C.WriteByte((byte)direction);
-                    x0C.WriteByte(0x00);
-                    user.Enqueue(x0C);
+                    user.Enqueue(new DALib.Networking.Packets.Server.CreatureWalkPacket
+                    {
+                        SourceId = Id,
+                        OldX = (byte)oldX,
+                        OldY = (byte)oldY,
+                        Direction = (DALib.Enums.Direction)(byte)direction
+                    });
                 }
 
             map.EntityTree.Move(this);
@@ -956,24 +953,20 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         Direction = direction;
         if (Location.Map is not { } map) return true;
 
+        var turn = new DALib.Networking.Packets.Server.CreatureTurnPacket
+        {
+            SourceId = Id,
+            Direction = (DALib.Enums.Direction)(byte)direction
+        };
+
         foreach (var obj in map.EntityTree.GetObjects(GetViewport()))
         {
             if (obj is User targetUser)
-            {
-                var x11 = new ServerPacket(0x11);
-                x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
-                targetUser.Enqueue(x11);
-            }
+                targetUser.Enqueue(turn);
 
             if (obj is Monster mob)
-            {
-                var x11 = new ServerPacket(0x11);
-                x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
                 foreach (var user in map.EntityTree.GetObjects(map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
-                    user.Enqueue(x11);
-            }
+                    user.Enqueue(turn);
         }
 
         return true;
@@ -1324,13 +1317,14 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     {
         if (Location.Map == null) return;
         var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
-        var healthbar = new HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
+        var healthbar = new DALib.Networking.Packets.Server.HealthBarPacket
+        {
+            SourceId = creature.Id,
+            HealthPercent = (byte)percent
+        };
 
         foreach (var user in Location.Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
-        {
-            var nPacket = healthbar.Packet().Clone();
-            user.Enqueue(nPacket);
-        }
+            user.Enqueue(healthbar);
     }
 
     public override void ShowTo(IVisible obj)

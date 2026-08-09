@@ -16,6 +16,7 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using Hybrasyl.Casting;
 using Hybrasyl.Extensions;
 using Hybrasyl.Extensions.Utility;
@@ -45,6 +46,8 @@ using System.Text;
 using Book = Hybrasyl.Casting.Book;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 using MessageType = Hybrasyl.Internals.Enums.MessageType;
+using SpellUseType = Hybrasyl.Xml.Objects.SpellUseType;
+using WireDoor = DALib.Networking.Packets.Server.Door;
 
 namespace Hybrasyl.Objects;
 
@@ -361,6 +364,27 @@ public class User : Creature
         }
     }
 
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
+    {
+        GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
+        try
+        {
+            Client?.Enqueue(packet, flush, transmitDelay);
+        }
+        catch (ObjectDisposedException)
+        {
+            GameLog.Warning("User {user}: socket enqueue failed due to disconnect, removing", Name);
+            // Forcibly destroy client and remove user from world.
+            if (Client is { } client)
+            {
+                PreviousConnectionId = client.ConnectionId;
+                Client = null;
+            }
+            World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser, CleanupType.ByName,
+                Name));
+        }
+    }
+
     public override void AoiEntry(VisibleObject obj)
     {
         GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
@@ -383,19 +407,14 @@ public class User : Creature
             return;
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
-        var removePacket = new ServerPacket(0x0E);
-        removePacket.WriteUInt32(obj.Id);
-        Enqueue(removePacket);
+        Enqueue(new RemoveObjectPacket { SourceId = obj.Id });
     }
 
     public void AoiDeparture(VisibleObject obj, int transmitDelay = 0)
     {
         base.AoiDeparture(obj);
         GameLog.Debug("Removing ItemObject with ID {Id}", obj.Id);
-        var removePacket = new ServerPacket(0x0E);
-        removePacket.TransmitDelay = transmitDelay;
-        removePacket.WriteUInt32(obj.Id);
-        Enqueue(removePacket);
+        Enqueue(new RemoveObjectPacket { SourceId = obj.Id }, transmitDelay: transmitDelay);
     }
 
     /// <summary>
@@ -426,9 +445,10 @@ public class User : Creature
     /// <param name="remove">Force removal of the status</param>
     public virtual void SendStatusUpdate(ICreatureStatus status, bool remove = false)
     {
-        var statuspacket = new StatusBar { Icon = status.Icon };
         var elapsed = DateTime.Now - status.Start;
         var remaining = status.Duration - elapsed.TotalSeconds;
+        // Client-true color bytes: the client's enum has Yellow=3, so
+        // Orange/Red/White are 4/5/6 — the legacy enum emitted these shifted down by one.
         StatusBarColor color;
         if (remaining >= 80)
             color = StatusBarColor.White;
@@ -442,16 +462,15 @@ public class User : Creature
             color = StatusBarColor.Blue;
 
         if (remove || status.Expired)
-            color = StatusBarColor.Off;
+            color = StatusBarColor.None;
 
-        statuspacket.BarColor = color;
         GameLog.DebugFormat(
             "{Name} - status update - sending Icon: {Icon}, Color: {BarColor}",
-            Name, statuspacket.Icon, statuspacket.BarColor);
+            Name, status.Icon, color);
         GameLog.DebugFormat(
             "{Name} - status: {Status}, expired: {Expired}, remaining: {Remaining}, duration: {Duration}",
             Name, status.Name, status.Expired, remaining, status.Duration);
-        Enqueue(statuspacket.Packet());
+        Enqueue(new StatusBarPacket { Icon = status.Icon, Color = color });
     }
 
     public override void OnHear(SpokenEvent e)
@@ -459,16 +478,13 @@ public class User : Creature
         LastHeard = e;
         if (e.Speaker != this)
             MessagesReceived.Add(e);
-        var x0D = new ServerPacket(0x0D);
-        x0D.WriteBoolean(e.Shout);
-        x0D.WriteUInt32(e.Speaker.Id);
-        if (e.Shout)
-            x0D.WriteString8(
-                !string.IsNullOrEmpty(e.From) ? $"{e.From}! {e.Message}" : $"{e.Speaker.Name}! {e.Message}");
-        else
-            x0D.WriteString8(
-                !string.IsNullOrEmpty(e.From) ? $"{e.From}: {e.Message}" : $"{e.Speaker.Name}: {e.Message}");
-        Enqueue(x0D);
+        var from = !string.IsNullOrEmpty(e.From) ? e.From : e.Speaker.Name;
+        Enqueue(new PublicMessagePacket
+        {
+            Type = e.Shout ? PublicMessagePacket.TypeShout : PublicMessagePacket.TypeSay,
+            SourceId = e.Speaker.Id,
+            Message = e.Shout ? $"{from}! {e.Message}" : $"{from}: {e.Message}"
+        });
     }
 
     /// <summary>
@@ -1050,19 +1066,13 @@ public class User : Creature
 
     public void SendLightLevel()
     {
-        var x20 = new ServerPacket(0x20);
         var time = new HybrasylTime(DateTime.Now);
-        x20.WriteByte((byte) time.Hour);
-        Enqueue(x20);
+        Enqueue(new LightLevelPacket { LightLevel = (byte)time.Hour });
     }
 
     public override void SendMapInfo(int transmitDelay = 0)
     {
         if (Location.Map is not { } map) return;
-        var x15 = new ServerPacket(0x15);
-        x15.WriteUInt16(map.Id);
-        x15.WriteByte(map.X);
-        x15.WriteByte(map.Y);
         // I also hate this
         byte flags = 0;
         if (map.Flags.HasFlag(MapFlags.Snow))
@@ -1077,26 +1087,25 @@ public class User : Creature
             flags |= 64;
         if (map.Flags.HasFlag(MapFlags.Snow))
             flags |= 128;
-        x15.WriteByte(flags);
-        x15.WriteUInt16(0);
-        x15.WriteByte((byte)(map.Checksum % 256));
-        x15.WriteByte((byte)(map.Checksum / 256));
-        x15.WriteString8(map.Name);
-        x15.TransmitDelay = transmitDelay;
-        Enqueue(x15);
+        Enqueue(new MapInfoPacket
+        {
+            MapId = map.Id,
+            Width = map.X,
+            Height = map.Y,
+            Flags = flags,
+            // Crc16.Calculate returns byteswapped CCITT; DALib writes big-endian true CCITT,
+            // so swap back — wire bytes stay identical
+            Checksum = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(map.Checksum),
+            Name = map.Name
+        }, transmitDelay: transmitDelay);
         if (map.Music != 0xFF) SendMusic(map.Music);
         if (!string.IsNullOrEmpty(map.Message)) SendMessage(map.Message, 18);
     }
 
     public override void SendLocation(int transmitDelay = 0)
     {
-        var x04 = new ServerPacket(0x04);
-        x04.WriteUInt16(X);
-        x04.WriteUInt16(Y);
-        x04.WriteUInt16(0x00);
-        x04.WriteUInt16(0x00);
-        x04.TransmitDelay = transmitDelay;
-        Enqueue(x04);
+        Enqueue(new LocationPacket { X = X, Y = Y, Unknown1 = 0, Unknown2 = 0 },
+            transmitDelay: transmitDelay);
 
         var doors = GetDoorsCoordsInView(GetViewport());
 
@@ -1128,13 +1137,7 @@ public class User : Creature
         return ret;
     }
 
-    public void SendRefresh()
-    {
-        var x22 = new ServerPacket(0x22);
-        x22.WriteByte(0x00);
-        x22.TransmitDelay = 100;
-        Enqueue(x22);
-    }
+    public void SendRefresh() => Enqueue(new RefreshPacket(), transmitDelay: 100);
 
     public void DisplayIncomingWhisper(string charname, string message)
     {
@@ -1224,15 +1227,19 @@ public class User : Creature
     public void SendVisibleGold(Gold gold)
     {
         GameLog.DebugFormat("Sending add visible ItemObject packet");
-        var x07 = new ServerPacket(0x07);
-        x07.WriteUInt16(1);
-        x07.WriteUInt16(gold.X);
-        x07.WriteUInt16(gold.Y);
-        x07.WriteUInt32(gold.Id);
-        x07.WriteUInt16((ushort)(gold.Sprite + 0x8000));
-        x07.WriteInt32(0);
-        x07.DumpPacket();
-        Enqueue(x07);
+        Enqueue(new DrawObjectsPacket
+        {
+            Objects =
+            [
+                new ItemWorldObject
+                {
+                    X = gold.X,
+                    Y = gold.Y,
+                    Id = gold.Id,
+                    Sprite = (ushort)(gold.Sprite + 0x8000)
+                }
+            ]
+        });
     }
 
     internal void UseSkill(byte slot)
@@ -1413,48 +1420,41 @@ public class User : Creature
     public void SendVisibleItem(ItemObject itemObject)
     {
         GameLog.DebugFormat("Sending add visible ItemObject packet");
-        var x07 = new ServerPacket(0x07);
-        x07.WriteUInt16(1); // Anything but 0x0001 does nothing or makes client crash
-        x07.WriteUInt16(itemObject.X);
-        x07.WriteUInt16(itemObject.Y);
-        x07.WriteUInt32(itemObject.Id);
-        x07.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-        x07.WriteByte(itemObject.Color);
-        x07.WriteByte(0);
-        x07.WriteByte(0);
-        x07.WriteByte(0);
-        //x07.WriteInt32(0); // Unknown what this is
-        x07.DumpPacket();
-        Enqueue(x07);
+        Enqueue(new DrawObjectsPacket
+        {
+            Objects =
+            [
+                new ItemWorldObject
+                {
+                    X = itemObject.X,
+                    Y = itemObject.Y,
+                    Id = itemObject.Id,
+                    Sprite = (ushort)(itemObject.Sprite + 0x8000),
+                    Color = itemObject.Color
+                }
+            ]
+        });
     }
 
     public void SendVisibleCreature(Creature creature)
     {
         GameLog.DebugFormat("Sending add visible creature packet");
-        var x07 = new ServerPacket(0x07);
-        x07.WriteUInt16(1); // Anything but 0x0001 does nothing or makes client crash
-        x07.WriteUInt16(creature.X);
-        x07.WriteUInt16(creature.Y);
-        x07.WriteUInt32(creature.Id);
-        x07.WriteUInt16((ushort)(creature.Sprite + 0x4000));
-        x07.WriteByte(0); // Unknown what this is
-        x07.WriteByte(0);
-        x07.WriteByte(0);
-        x07.WriteByte(0);
-        x07.WriteByte((byte)creature.Direction);
-        x07.WriteByte(0);
-        if (creature is Merchant)
+        Enqueue(new DrawObjectsPacket
         {
-            x07.WriteByte(0x02);
-            x07.WriteString8(creature.Name);
-        }
-        else
-        {
-            x07.WriteByte(0);
-        }
-
-        //x07.DumpPacket();
-        Enqueue(x07);
+            Objects =
+            [
+                new CreatureWorldObject
+                {
+                    X = creature.X,
+                    Y = creature.Y,
+                    Id = creature.Id,
+                    Sprite = (ushort)(creature.Sprite + 0x4000),
+                    Direction = (byte)creature.Direction,
+                    Type = creature is Merchant ? CreatureWorldObject.TypeNamed : (byte)0,
+                    Name = creature is Merchant ? creature.Name : string.Empty
+                }
+            ]
+        });
     }
 
     public void SetHairstyle(ushort hairStyle)
@@ -1544,18 +1544,15 @@ public class User : Creature
         Enqueue(x49);
     }
 
-    public override void SendId()
-    {
-        var x05 = new ServerPacket(0x05);
-        x05.WriteUInt32(Id);
-        x05.WriteByte((byte)Direction);
-        x05.WriteByte(0x00); // unknown. clanid?
-        x05.WriteByte((byte)Class);
-        x05.WriteByte(0x00); // unknown
-        x05.WriteByte((byte)Gender);
-        x05.WriteByte(0x00);
-        Enqueue(x05);
-    }
+    public override void SendId() =>
+        // Legacy trailing 0x00 after Gender dropped (client parser stops at Gender)
+        Enqueue(new UserAppearancePacket
+        {
+            Id = Id,
+            Direction = (byte)Direction,
+            Class = (byte)Class,
+            Gender = (DALib.Enums.Gender)(byte)Gender
+        });
 
     /// <summary>
     ///     Sends an equip ItemObject packet to the client, triggering an update of the detail window ('a').
@@ -1580,16 +1577,15 @@ public class User : Creature
             return;
         }
 
-        var equipPacket = new ServerPacket(0x37);
-        equipPacket.WriteByte((byte)slot);
-        equipPacket.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-        equipPacket.WriteByte(itemObject.Color);
-        equipPacket.WriteStringWithLength(itemObject.Name);
-        equipPacket.WriteByte(0x00);
-        equipPacket.WriteUInt32(itemObject.MaximumDurability);
-        equipPacket.WriteUInt32(itemObject.DisplayDurability);
-        equipPacket.DumpPacket();
-        Enqueue(equipPacket);
+        Enqueue(new AddEquipmentPacket
+        {
+            Slot = (DALib.Enums.EquipmentSlot)(byte)slot,
+            Sprite = (ushort)(itemObject.Sprite + 0x8000),
+            Color = itemObject.Color,
+            Name = itemObject.Name,
+            MaxDurability = itemObject.MaximumDurability,
+            CurrentDurability = itemObject.DisplayDurability
+        });
         SendSystemMessage(itemObject.EquipmentSlot == (byte)EquipmentSlot.Weapon
             ? $"Equipped {itemObject.SlotName}: {itemObject.Name}"
             : $"Equipped {itemObject.SlotName}: {itemObject.Name} (AC {Stats.Ac} MR {Stats.Mr} Regen {Stats.Regen})");
@@ -1602,25 +1598,17 @@ public class User : Creature
     /// <param name="slot">The client side slot to clear.</param>
     public void SendClearItem(int slot)
     {
-        var x10 = new ServerPacket(0x10);
-        x10.WriteByte((byte)slot);
-        x10.WriteUInt16(0x0000);
-        x10.WriteByte(0x00);
-        Enqueue(x10);
+        Enqueue(new RemoveItemPacket { Slot = (byte)slot });
     }
 
     public void SendClearSkill(int slot)
     {
-        var x2D = new ServerPacket(0x2D);
-        x2D.WriteByte((byte)slot);
-        Enqueue(x2D);
+        Enqueue(new RemoveSkillPacket { Slot = (byte)slot });
     }
 
     public void SendClearSpell(int slot)
     {
-        var x2D = new ServerPacket(0x18);
-        x2D.WriteByte((byte)slot);
-        Enqueue(x2D);
+        Enqueue(new RemoveSpellPacket { Slot = (byte)slot });
     }
 
     /// <summary>
@@ -1639,17 +1627,17 @@ public class User : Creature
 
         GameLog.DebugFormat("Adding {0} qty {1} to slot {2}",
             itemObject.Name, itemObject.Count, slot);
-        var x0F = new ServerPacket(0x0F);
-        x0F.WriteByte((byte)slot);
-        x0F.WriteUInt16((ushort)(itemObject.Sprite + 0x8000));
-        x0F.WriteByte(itemObject.Color);
-        x0F.WriteString8(itemObject.Name);
-        x0F.WriteInt32(itemObject.Count);  //amount
-        x0F.WriteBoolean(itemObject.Stackable);
-        x0F.WriteUInt32(itemObject.MaximumDurability);  //maxdura
-        x0F.WriteUInt32(itemObject.DisplayDurability);  //curdura
-        x0F.WriteUInt32(0x00);  //?
-        Enqueue(x0F);
+        Enqueue(new AddItemPacket
+        {
+            Slot = (byte)slot,
+            Sprite = (ushort)(itemObject.Sprite + 0x8000),
+            Color = itemObject.Color,
+            Name = itemObject.Name,
+            Count = (uint)itemObject.Count,
+            Stackable = itemObject.Stackable,
+            MaxDurability = itemObject.MaximumDurability,
+            CurrentDurability = itemObject.DisplayDurability
+        });
     }
 
     public void SendSkillUpdate(BookSlot? item, int slot)
@@ -1668,23 +1656,21 @@ public class User : Creature
         //    mastery = $"[{item.MasteryLevel}]";
         //}
 
-        var x2C = new ServerPacket(0x2C);
-        x2C.WriteByte((byte)slot);
-        x2C.WriteUInt16(item.Castable.Icon);
+        string name;
         if (item.Castable.Mastery.Uses != 1)
         {
             double percent;
             if (item.UseCount > item.Castable.Mastery.Uses) percent = 100;
             else percent = Math.Floor(item.UseCount / (double)item.Castable.Mastery.Uses * 100);
 
-            x2C.WriteString8($"{item.Castable.Name} (Lev:{percent}/100)");
+            name = $"{item.Castable.Name} (Lev:{percent}/100)";
         }
         else
         {
-            x2C.WriteString8(item.Castable.Name);
+            name = item.Castable.Name;
         }
 
-        Enqueue(x2C);
+        Enqueue(new AddSkillPacket { Slot = (byte)slot, Icon = item.Castable.Icon, Name = name });
     }
 
     public void SendCooldown(BookSlot item, bool clear = false)
@@ -1730,16 +1716,16 @@ public class User : Creature
             name = item.Castable.Name;
         }
 
-        var spellUpdate = new AddSpell
+        Enqueue(new AddSpellPacket
         {
             Slot = (byte)slot,
             Icon = item.Castable.Icon,
-            UseType = (byte)item.Castable.Intents[0].UseType,
+            // value-cast: Hybrasyl.Xml and DALib SpellUseType share byte layout (0-7)
+            UseType = (DALib.Networking.Packets.Server.SpellUseType)(byte)item.Castable.Intents[0].UseType,
             Name = name,
-            Prompt = "\0",
-            Lines = (byte)CalculateLines(item.Castable)
-        };
-        Enqueue(spellUpdate.Packet());
+            Prompt = "\0", // preserved: DALib default is empty; dropping it shifts CastLines
+            CastLines = (byte)CalculateLines(item.Castable)
+        });
     }
 
     private int CalculateLines(Castable castable)
@@ -1805,73 +1791,62 @@ public class User : Creature
     public override void UpdateAttributes(StatUpdateFlags flags)
     {
         if (Client is null) return;
-        var x08 = new ServerPacket(0x08);
         if (UnreadMail || HasParcels) flags |= StatUpdateFlags.UnreadMail;
 
         if (CollisionsDisabled)
             flags |= StatUpdateFlags.GameMasterA;
 
-        x08.WriteByte((byte)flags);
-        if (flags.HasFlag(StatUpdateFlags.Primary))
+        // DALib re-derives the flag byte from populated sections + standalone bits; populate each
+        // section iff its flag bit is set (matching the legacy guards) so the derived flag byte
+        // equals (byte)flags. GameMasterA/B (flag bits 6-7) carry through DALib's 2-bit MovementMode.
+        var x08 = new AttributesPacket
         {
-            x08.Write(new byte[] { 1, 0, 0 });
-            x08.WriteByte(Stats.Level);
-            x08.WriteByte(Stats.Ability);
-            x08.WriteUInt32(Stats.MaximumHp);
-            x08.WriteUInt32(Stats.MaximumMp);
-            x08.WriteByte(Stats.Str);
-            x08.WriteByte(Stats.Int);
-            x08.WriteByte(Stats.Wis);
-            x08.WriteByte(Stats.Con);
-            x08.WriteByte(Stats.Dex);
-            if (LevelPoints > 0)
-            {
-                x08.WriteByte(1);
-                x08.WriteByte((byte)LevelPoints);
-            }
-            else
-            {
-                x08.WriteByte(0);
-                x08.WriteByte(0);
-            }
+            UnreadMail = flags.HasFlag(StatUpdateFlags.UnreadMail),
+            ReservedFlag = flags.HasFlag(StatUpdateFlags.Unknown),
+            MovementMode = (byte)(((byte)flags & 0xC0) >> 6)
+        };
 
-            x08.WriteUInt16(MaximumWeight);
-            x08.WriteUInt16(VisibleWeight);
-            x08.WriteUInt32(uint.MinValue);
-        }
+        if (flags.HasFlag(StatUpdateFlags.Primary))
+            x08.Primary = new PrimaryAttributes
+            {
+                Level = Stats.Level,
+                Ability = Stats.Ability,
+                MaxHp = Stats.MaximumHp,
+                MaxMp = Stats.MaximumMp,
+                Str = Stats.Str,
+                Int = Stats.Int,
+                Wis = Stats.Wis,
+                Con = Stats.Con,
+                Dex = Stats.Dex,
+                UnspentPoints = (byte)LevelPoints,
+                MaxWeight = MaximumWeight,
+                CurrentWeight = VisibleWeight
+            };
 
         if (flags.HasFlag(StatUpdateFlags.Current))
-        {
-            x08.WriteUInt32(Stats.Hp);
-            x08.WriteUInt32(Stats.Mp);
-        }
+            x08.Current = new CurrentAttributes { Hp = Stats.Hp, Mp = Stats.Mp };
 
         if (flags.HasFlag(StatUpdateFlags.Experience))
-        {
-            x08.WriteUInt32(Stats.Experience);
-            x08.WriteUInt32(ExpToLevel);
-            x08.WriteUInt32(Stats.AbilityExp);
-            x08.WriteUInt32(0); // Next AB
-            x08.WriteUInt32(0); // "GP"
-            x08.WriteUInt32(Gold);
-        }
+            x08.Experience = new ExperienceAttributes
+            {
+                Experience = Stats.Experience,
+                ExpToLevel = ExpToLevel,
+                AbilityExp = Stats.AbilityExp,
+                Gold = Gold
+            };
 
         if (flags.HasFlag(StatUpdateFlags.Secondary))
-        {
-            x08.WriteByte(0); // Unknown
-            x08.WriteByte((byte)(Condition.Blinded ? 0x08 : 0x00));
-            x08.WriteByte(0); // Unknown
-            x08.WriteByte(0); // Unknown
-            x08.WriteByte(0); // Unknown
-            x08.WriteByte((byte)MailStatus);
-            x08.WriteByte((byte)Stats.BaseOffensiveElement);
-            x08.WriteByte((byte)Stats.BaseDefensiveElement);
-            x08.WriteByte(Stats.MrRating);
-            x08.WriteByte(0); // "fast move"
-            x08.WriteSByte(Stats.Ac);
-            x08.WriteByte(Stats.DmgRating);
-            x08.WriteByte(Stats.HitRating);
-        }
+            x08.Secondary = new SecondaryAttributes
+            {
+                Blinded = (byte)(Condition.Blinded ? 0x08 : 0x00),
+                MailStatus = (byte)MailStatus,
+                OffensiveElement = (byte)Stats.BaseOffensiveElement,
+                DefensiveElement = (byte)Stats.BaseDefensiveElement,
+                MrRating = Stats.MrRating,
+                Ac = Stats.Ac,
+                DmgRating = Stats.DmgRating,
+                HitRating = Stats.HitRating
+            };
 
         Enqueue(x08);
     }
@@ -2084,18 +2059,15 @@ public class User : Creature
         Direction = direction;
 
         // Transmit update to the moving client, as we are actually walking now
-        var x0B = new ServerPacket(0x0B);
-        x0B.WriteByte((byte)direction);
-        x0B.WriteUInt16((byte)oldX);
-        x0B.WriteUInt16((byte)oldY);
-        x0B.WriteUInt16(0x0B);
-        x0B.WriteUInt16(0x0B);
-        x0B.WriteByte(0x01);
-        Enqueue(x0B);
+        Enqueue(new ConfirmWalkPacket
+        {
+            Direction = (DALib.Enums.Direction)(byte)direction,
+            OldX = (byte)oldX,
+            OldY = (byte)oldY
+        });
 
-        var x32 = new ServerPacket(0x32);
-        x32.WriteByte(0x00);
-        Enqueue(x32);
+        // Retail sends an empty door packet after every self-move
+        Enqueue(new DoorPacket());
 
         // Objects in the common viewport receive a "walk" (0x0C) packet
         // Objects in the arriving viewport receive a "show to" (0x33) packet
@@ -2107,13 +2079,13 @@ public class User : Creature
             {
                 var user = (User)obj;
                 GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
-                var x0C = new ServerPacket(0x0C);
-                x0C.WriteUInt32(Id);
-                x0C.WriteUInt16((byte)oldX);
-                x0C.WriteUInt16((byte)oldY);
-                x0C.WriteByte((byte)direction);
-                x0C.WriteByte(0x00);
-                user.Enqueue(x0C);
+                user.Enqueue(new CreatureWalkPacket
+                {
+                    SourceId = Id,
+                    OldX = (byte)oldX,
+                    OldY = (byte)oldY,
+                    Direction = (DALib.Enums.Direction)(byte)direction
+                });
             }
 
             // Reactors receive an OnMove event
@@ -3070,56 +3042,81 @@ public class User : Creature
 
     public void SendWorldMap(WorldMap map)
     {
-        var x2E = new ServerPacket(0x2E);
-        x2E.Write(map.GetBytes());
-        x2E.DumpPacket();
+        // Retail SFieldMap: screen coords emit as raw u16 (the legacy %255 quadrant/offset
+        // split corrupted them at >=255), and each node carries structured routing — map_id + dest
+        // coords — instead of the legacy opaque Int64 hash.
+        var nodes = new List<WorldMapNode>();
+        foreach (var point in map.Points)
+        {
+            ushort mapId = 0;
+            if (World.WorldState.TryGetValueByIndex<MapObject>(point.DestinationMap, out var destMap))
+                mapId = destMap.Id;
+            else
+                GameLog.Warning("SendWorldMap: node {Node} targets unknown map {Map}; map_id=0",
+                    point.Name, point.DestinationMap);
+
+            nodes.Add(new WorldMapNode
+            {
+                X = (ushort)point.X,
+                Y = (ushort)point.Y,
+                Text = point.Name,
+                CheckSum = 0,
+                MapId = mapId,
+                DestinationX = point.DestinationX,
+                DestinationY = point.DestinationY
+            });
+        }
+
         IsAtWorldMap = true;
-        Enqueue(x2E);
+        Enqueue(new WorldMapPacket
+        {
+            FieldName = map.ClientMap,
+            ImageIndex = 0, // current_node_index: Hybrasyl does not track it (legacy emitted 0x00)
+            Nodes = nodes
+        });
     }
 
-    public void SendAnimation(uint id, byte motion, short speed)
-    {
-        var anim = new PlayerAnimation { Animation = motion, Speed = speed, UserId = id };
-        Enqueue(anim.Packet());
-    }
+    public void SendAnimation(uint id, byte motion, short speed) =>
+        Enqueue(new PlayerAnimationPacket { SourceId = id, Animation = motion, Speed = (ushort)speed });
 
     public void SendEffect(uint id, ushort effect, short speed)
     {
         GameLog.DebugFormat("SendEffect: id {0}, effect {1}, speed {2} ", id, effect, speed);
-        var x29 = new ServerPacket(0x29);
-        x29.WriteUInt32(id);
-        x29.WriteUInt32(id);
-        x29.WriteUInt16(effect);
-        x29.WriteUInt16(ushort.MinValue);
-        x29.WriteInt16(speed);
-        x29.WriteByte(0x00);
-        Enqueue(x29);
+        Enqueue(new SpellAnimationPacket
+        {
+            TargetId = id,
+            SourceId = id,
+            TargetAnimation = effect,
+            Speed = (ushort)speed
+        });
     }
 
     public void SendEffect(uint targetId, ushort targetEffect, uint srcId, ushort srcEffect, short speed)
     {
         GameLog.DebugFormat("SendEffect: targetId {0}, targetEffect {1}, srcId {2}, srcEffect {3}, speed {4}",
             targetId, targetEffect, srcId, srcEffect, speed);
-        var x29 = new ServerPacket(0x29);
-        x29.WriteUInt32(targetId);
-        x29.WriteUInt32(srcId);
-        x29.WriteUInt16(targetEffect);
-        x29.WriteUInt16(srcEffect);
-        x29.WriteInt16(speed);
-        x29.WriteByte(0x00);
-        Enqueue(x29);
+        Enqueue(new SpellAnimationPacket
+        {
+            TargetId = targetId,
+            SourceId = srcId,
+            TargetAnimation = targetEffect,
+            SourceAnimation = srcEffect,
+            Speed = (ushort)speed
+        });
     }
 
     public void SendEffect(short x, short y, ushort effect, short speed)
     {
         GameLog.DebugFormat("SendEffect: x {0}, y {1}, effect {2}, speed {3}", x, y, effect, speed);
-        var x29 = new ServerPacket(0x29);
-        x29.WriteUInt32(uint.MinValue);
-        x29.WriteUInt16(effect);
-        x29.WriteInt16(speed);
-        x29.WriteInt16(x);
-        x29.WriteInt16(y);
-        Enqueue(x29);
+        // TargetId 0 selects the area form: [u32 0][anim][speed][x][y]
+        Enqueue(new SpellAnimationPacket
+        {
+            TargetId = 0,
+            TargetAnimation = effect,
+            Speed = (ushort)speed,
+            X = (ushort)x,
+            Y = (ushort)y
+        });
     }
 
     public void SendMusic(byte track)
@@ -3127,33 +3124,20 @@ public class User : Creature
         if (CurrentMusicTrack == track) return;
 
         CurrentMusicTrack = track;
-
-        var x19 = new ServerPacket(0x19);
-        x19.WriteByte(0xFF);
-        x19.WriteByte(track);
-        Enqueue(x19);
+        Enqueue(new PlaySoundPacket { Sound = PlaySoundPacket.MusicMarker, MusicTrack = track });
     }
 
     public void SendSound(byte sound)
     {
         GameLog.DebugFormat("SendSound {0}", sound);
-        var x19 = new ServerPacket(0x19);
-        x19.WriteByte(sound);
-        Enqueue(x19);
+        Enqueue(new PlaySoundPacket { Sound = sound });
     }
 
-    public void SendDoorUpdate(byte x, byte y, bool state, bool leftright)
-    {
-        // Send the user a door packet
-
-        var doorPacket = new ServerPacket(0x32);
-        doorPacket.WriteByte(1);
-        doorPacket.WriteByte(x);
-        doorPacket.WriteByte(y);
-        doorPacket.WriteBoolean(state);
-        doorPacket.WriteBoolean(leftright);
-        Enqueue(doorPacket);
-    }
+    public void SendDoorUpdate(byte x, byte y, bool state, bool leftright) =>
+        Enqueue(new DoorPacket
+        {
+            Doors = [new WireDoor { X = x, Y = y, Closed = state, OpenRight = leftright }]
+        });
 
     public void OpenManufacture(IEnumerable<ManufactureRecipe> recipes)
     {
@@ -5207,28 +5191,19 @@ public class User : Creature
         SendMessage(message, (byte)type);
     }
 
-    public void SendMessage(string message, byte type)
-    {
-        var x0A = new ServerPacket(0x0A);
-        x0A.WriteByte(type);
-        x0A.WriteString16(message);
-        Enqueue(x0A);
-    }
+    public void SendMessage(string message, byte type) =>
+        Enqueue(new SystemMessagePacket { MessageType = (SystemMessageType)type, Message = message });
 
     public void SendWorldMessage(string sender, string message)
     {
-        var x0A = new ServerPacket(0x0A);
-        x0A.WriteByte(0x00);
         // Hilariously we need to check the length of this string (total length needs
         // to be <67) otherwise we will cause a buffer overflow / crash on the client side
         // (For right now we assume the color code ({=c) isn't counted but that needs testing)
-        // I MEAN IT TAKES 16 BIT RITE BUT HAY ARBITRARY LENGTH ON STRINGS WITH NO NULL TERMINATION IS LEET
         var transmit = string.Format("{{=c[{0}] {1}", sender, message);
         if (transmit.Length > 67)
             // IT'S CHOPPIN TIME
             transmit = transmit.Substring(0, 67);
-        x0A.WriteString16(transmit);
-        Enqueue(x0A);
+        Enqueue(new SystemMessagePacket { MessageType = SystemMessageType.Whisper, Message = transmit });
     }
 
     public void SendRedirect(World world, Login login, string name, bool logoff = true, int transmitDelay = 1200)
@@ -5387,16 +5362,17 @@ public class User : Creature
     public void SendInventorySlot(byte slot)
     {
         if (Inventory[slot] is not { } item) return;
-        var x0F = new ServerPacket(0x0F);
-        x0F.WriteByte(slot);
-        x0F.WriteUInt16((ushort)(item.Sprite + 0x8000));
-        x0F.WriteByte(item.Color);
-        x0F.WriteString8(item.Name);
-        x0F.WriteInt32(item.Count);
-        x0F.WriteBoolean(item.Stackable);
-        x0F.WriteUInt32(item.MaximumDurability);
-        x0F.WriteUInt32(item.DisplayDurability);
-        Enqueue(x0F);
+        Enqueue(new AddItemPacket
+        {
+            Slot = slot,
+            Sprite = (ushort)(item.Sprite + 0x8000),
+            Color = item.Color,
+            Name = item.Name,
+            Count = (uint)item.Count,
+            Stackable = item.Stackable,
+            MaxDurability = item.MaximumDurability,
+            CurrentDurability = item.DisplayDurability
+        });
     }
 
     public void SendInventory()
@@ -5405,16 +5381,17 @@ public class User : Creature
         {
             if (Inventory[i] is not { } item) continue;
             if (item.Id == 0) Game.World.Insert(item);
-            var x0F = new ServerPacket(0x0F);
-            x0F.WriteByte(i);
-            x0F.WriteUInt16((ushort)(item.Sprite + 0x8000));
-            x0F.WriteByte(item.Color);
-            x0F.WriteString8(item.Name);
-            x0F.WriteInt32(item.Count);
-            x0F.WriteBoolean(item.Stackable);
-            x0F.WriteUInt32(item.MaximumDurability);
-            x0F.WriteUInt32(item.DisplayDurability);
-            Enqueue(x0F);
+            Enqueue(new AddItemPacket
+            {
+                Slot = i,
+                Sprite = (ushort)(item.Sprite + 0x8000),
+                Color = item.Color,
+                Name = item.Name,
+                Count = (uint)item.Count,
+                Stackable = item.Stackable,
+                MaxDurability = item.MaximumDurability,
+                CurrentDurability = item.DisplayDurability
+            });
         }
     }
 
@@ -5482,8 +5459,7 @@ public class User : Creature
     public void CancelCasting()
     {
         if (!Condition.Casting) return;
-        var packet = new CancelCast();
-        Enqueue(packet.Packet());
+        Enqueue(new CancelCastPacket());
         Condition.Casting = false;
     }
 

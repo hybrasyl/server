@@ -164,10 +164,11 @@ public class Server
         {
             case Lobby:
                 {
-                    var x7E = new ServerPacket(0x7E);
-                    x7E.WriteByte(0x1B);
-                    x7E.WriteString("CONNECTED SERVER\n");
-                    client.Enqueue(x7E);
+                    // Trailing \n kept: byte-identical to the legacy emit
+                    client.Enqueue(new DALib.Networking.Packets.Server.AcceptConnectionPacket
+                    {
+                        Message = "CONNECTED SERVER\n"
+                    });
                     GameLog.DebugFormat("Lobby: AcceptConnection occuring");
                     GameLog.Info("Lobby: cid is {0}", client.ConnectionId);
                     break;
