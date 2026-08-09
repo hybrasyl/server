@@ -75,13 +75,13 @@ public class GroupRecruitRoundTripSeam(HybrasylFixture fixture)
                 user.Name, "raid", "bring food", 1, 99,
                 maxWarrior: 1, maxWizard: 2, maxRogue: 3, maxPriest: 4, maxMonk: 5));
 
-            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundPacket(0x2E, submitted));
+            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundBody(0x2E, submitted));
 
             while (client.ClientState.SendBufferTake(out _)) { }
 
             // The self-targeted stage 5 Brigid sends to populate its recruit tab.
             var query = ClientBody(GroupRequestPacket.ViewRecruitInfo(user.Name));
-            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundPacket(0x2E, query));
+            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundBody(0x2E, query));
 
             Assert.True(client.ClientState.SendBufferTake(out var sent), "expected a 0x63 reply");
             Assert.Equal(0x63, sent.Opcode);

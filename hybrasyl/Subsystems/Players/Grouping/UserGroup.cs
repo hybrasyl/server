@@ -299,11 +299,7 @@ public class GroupRecruit
         };
     }
 
-    /// <summary>
-    ///     Builds a recruit box from a parsed stage-4 (Groupbox) 0x2E. The caps are assigned by
-    ///     class name rather than wire position: retail order is Warrior, Wizard, Rogue, Priest,
-    ///     Monk (rung-1, HTOO-64), which is what `_wanted[0..4]` has always meant here.
-    /// </summary>
+    // Caps map by class name, not wire position — the order here is deliberate (HTOO-64).
     public static GroupRecruit FromRequest(GroupRequestPacket request, User recruiter)
     {
         return new GroupRecruit(recruiter)
@@ -332,11 +328,7 @@ public class GroupRecruit
         });
     }
 
-    /// <summary>
-    ///     The recruitment block, shared by 0x63 RecruitInfo and the 0x39 self-profile.
-    ///     Class pair order is Warrior, Wizard, Rogue, Priest, Monk (rung-1: darkages-741
-    ///     099-0x63 — the client copies each pair straight into the matching UI row).
-    /// </summary>
+    // Class pair order is deliberate and must match FromRequest — see HTOO-64.
     public GroupRecruitInfo ToRecruitInfo() => new()
     {
         RecruiterName = Recruiter.Name,

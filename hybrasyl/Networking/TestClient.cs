@@ -83,7 +83,7 @@ public class TestClient : AbstractClient, IClient
     }
 
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0) =>
-        ClientState.SendBufferAdd(new OutboundPacket(packet, transmitDelay));
+        ClientState.SendBufferAdd(new QueuedPacket(packet, transmitDelay));
 
     // TestClient has no receive loop; queue without flushing.
     public void ReceiveFrame(InboundFrame frame) => ClientState.ReceiveBufferAdd(frame);
@@ -111,7 +111,7 @@ public class TestClient : AbstractClient, IClient
 
     public bool IsHeartbeatValid(byte a, byte b) => throw new NotImplementedException();
 
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount) => throw new NotImplementedException();
+    public bool IsHeartbeatValid(uint localTickCount, uint clientTickCount) => throw new NotImplementedException();
 
     public bool IsIdle() => throw new NotImplementedException();
 

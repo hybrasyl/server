@@ -464,16 +464,10 @@ public struct MerchantSkill
 }
 
 /// <summary>
-///     Which C&#8594;S 0x39 response form a merchant menu item's reply carries. The 0x39 tail is not
-///     self-describing: its shape depends on the menu the server last displayed, not on any byte in
-///     the packet, so DALib cannot dispatch it and each registration must declare its form here.
+///     Which C&#8594;S 0x39 response shape a merchant menu item's reply carries. The 0x39 tail has no
+///     discriminator — its shape depends on the menu the server last displayed — so DALib cannot
+///     dispatch it and each registration must declare its shape here.
 /// </summary>
-/// <remarks>
-///     The form letters follow the protocol reference, which derives them from the retail
-///     client's eleven C&#8594;S 0x39 emitters. Form C (name and quantity in one
-///     response) is retail-only: Hybrasyl splits buying into an item-list pick and a separate text
-///     prompt, so nothing here ever drives it.
-/// </remarks>
 public enum MerchantResponseForm
 {
     /// <summary>Form A — bare select. The prefix carries everything; there is no tail.</summary>
@@ -510,7 +504,7 @@ public delegate void MerchantOptionHandlerDelegate(User user, Merchant merchant,
 /// </remarks>
 public class MerchantMenuHandler
 {
-    private readonly Action<User, Merchant, InboundPacket> _invoker;
+    private readonly Action<User, Merchant, InboundBody> _invoker;
 
     public MerchantMenuHandler(MerchantJob requiredJob, MerchantSelectHandlerDelegate callback)
     {
@@ -543,5 +537,5 @@ public class MerchantMenuHandler
     ///     body throws here rather than mid-callback; the receive loop catches it, logs, and drops
     ///     the packet with the connection intact.
     /// </summary>
-    public void Invoke(User user, Merchant merchant, InboundPacket packet) => _invoker(user, merchant, packet);
+    public void Invoke(User user, Merchant merchant, InboundBody packet) => _invoker(user, merchant, packet);
 }

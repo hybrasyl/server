@@ -42,7 +42,7 @@ public class Lobby : Server
 
     public LobbyPacketHandler[] PacketHandlers { get; }
 
-    private void PacketHandler_0x00_ClientVersion(IClient client, InboundPacket packet)
+    private void PacketHandler_0x00_ClientVersion(IClient client, InboundBody packet)
     {
         // Lobby clients get their key in the Client constructor; a null here is a server bug.
         if (client.EncryptionKey is not { } key)
@@ -64,7 +64,7 @@ public class Lobby : Server
         });
     }
 
-    private void PacketHandler_0x57_ServerTable(IClient client, InboundPacket packet)
+    private void PacketHandler_0x57_ServerTable(IClient client, InboundBody packet)
     {
         switch (ServerTablePacket.Parse(packet.Body.Span))
         {

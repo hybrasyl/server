@@ -26,31 +26,11 @@ namespace Hybrasyl.Objects;
 ///     C&#8594;S 0x39 reply the item's registered callback does not parse.
 /// </summary>
 /// <remarks>
-///     <para>
-///         The send side fixes a menu's type; the receive side declares the form its callback parses
-///         (<see cref="MerchantMenuHandler.Form" />). Those are two independent statements about the
-///         same reply, and the client resolves the disagreement by sending a tail the handler will
-///         misread — silently, because 0x39 carries no discriminator.
-///     </para>
-///     <para>
-///         Running this against the packet rather than against a table is the point. A table of
-///         item&#8594;form pairings goes stale the moment a <c>Show…Menu</c> offers an item under a
-///         different menu type, and nothing says so; reading the menu type off the packet on its way
-///         to the wire cannot go stale, and covers emit sites that build their menu inline.
-///     </para>
-///     <para>
-///         <strong>Provenance of the type&#8594;form mapping.</strong> The menu type selects the client's
-///         dialog class (Ghidra RTTI, the protocol reference at
-///         <c>023d886</c>): types 0/1 &#8594; <c>NPC_Merchant_TextMenu</c>, 2/3 &#8594;
-///         <c>NPC_Merchant_TextInputMenu</c>, 4/10 &#8594; <c>NPCServerItemMenu</c>, 5/11 &#8594;
-///         <c>NPCClientItemMenu</c>, 6/7 &#8594; <c>NPCServerSkillSpellMenu</c>, 8/9 &#8594;
-///         <c>NPCClientSpellMenu</c>/<c>NPCClientSkillMenu</c>. The <em>Server</em>/<em>Client</em>
-///         split is what decides the form: a Server* class lists the NPC's own catalog and echoes the
-///         chosen row's name (form B), a Client* class lists what the player owns and echoes the slot
-///         (form E). Forms and their tails are from
-///         <c>docs/protocol/client/0x39-npc-main-menu.md</c> at <c>3230079</c>, which classifies all
-///         twenty-one <c>6a 39</c> emit sites in the retail binary.
-///     </para>
+///     The send side fixes a menu's type; the receive side declares the shape its callback parses
+///     (<see cref="MerchantMenuHandler.Form" />). Those are independent statements about the same
+///     reply, and a disagreement is silent — 0x39 carries no discriminator. Checking the outgoing
+///     packet rather than a static table means the check cannot go stale when a <c>Show…Menu</c>
+///     offers an item under a different menu type.
 /// </remarks>
 internal static class MerchantResponseFormCheck
 {

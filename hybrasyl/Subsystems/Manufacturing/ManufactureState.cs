@@ -58,7 +58,7 @@ public class ManufactureState
 
     public ManufactureRecipe SelectedRecipe => Recipes[SelectedIndex];
 
-    public void ProcessManufacturePacket(InboundPacket packet)
+    public void ProcessManufacturePacket(InboundBody packet)
     {
         // ManufacturePacket.Parse self-dispatches on the subtype byte, so the variant carries
         // its own tail; the window tokens are echoed back from the 0x50 that opened it.

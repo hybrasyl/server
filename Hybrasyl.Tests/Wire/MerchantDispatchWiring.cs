@@ -80,7 +80,7 @@ public class MerchantDispatchWiring
     }
 
     private static void Dispatch(User user, byte[] body) =>
-        Game.World.WorldPacketHandlers[0x39].Invoke(user, new InboundPacket(0x39, body));
+        Game.World.WorldPacketHandlers[0x39].Invoke(user, new InboundBody(0x39, body));
 
     /// <summary>
     ///     Text form (B), asserted on the <em>content</em> of the string and not merely on the

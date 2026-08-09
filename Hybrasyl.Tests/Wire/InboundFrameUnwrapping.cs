@@ -33,7 +33,7 @@ namespace Hybrasyl.Tests.Wire;
 /// <remarks>
 ///     <para>
 ///         This is the one part of the pipeline no other test reaches. Every handler test invokes
-///         its handler directly with a body already in hand, so <c>InboundPacket.FromFrame</c> —
+///         its handler directly with a body already in hand, so <c>InboundBody.FromFrame</c> —
 ///         which does the slicing, ordinal handling and de-obfuscation — had no coverage at all
 ///         until this file. A green suite said nothing about it.
 ///     </para>
@@ -53,11 +53,11 @@ public class InboundFrameUnwrapping
     };
 
     /// <summary>Encodes a packet the way a client would, then unwraps it the way the server now does.</summary>
-    private static InboundPacket RoundTrip(IClientPacket packet, CryptoState crypto)
+    private static InboundBody RoundTrip(IClientPacket packet, CryptoState crypto)
     {
         var wire = Client.Codec.EncodeClient(packet, crypto);
         var frame = InboundFrame.FromWire(wire);
-        return InboundPacket.FromFrame(frame, crypto);
+        return InboundBody.FromFrame(frame, crypto);
     }
 
     /// <summary>0x06 Walk — MD5Key, so the frame carries an ordinal the decrypt is keyed on.</summary>

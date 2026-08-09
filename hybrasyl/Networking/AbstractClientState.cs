@@ -35,7 +35,7 @@ public abstract class AbstractClientState
     private readonly object _sendLock = new();
 
     private byte[] _buffer = new byte[BufferSize];
-    private ConcurrentQueue<OutboundPacket> _sendBuffer = new();
+    private ConcurrentQueue<QueuedPacket> _sendBuffer = new();
     public int BytesReceived { get; set; }
 
     public byte[] Buffer => _buffer;
@@ -80,9 +80,9 @@ public abstract class AbstractClientState
         return ret;
     }
 
-    public void SendBufferAdd(OutboundPacket packet) => _sendBuffer.Enqueue(packet);
-    public bool SendBufferPeek(out OutboundPacket packet) => _sendBuffer.TryPeek(out packet);
-    public bool SendBufferTake(out OutboundPacket packet) => _sendBuffer.TryDequeue(out packet);
+    public void SendBufferAdd(QueuedPacket packet) => _sendBuffer.Enqueue(packet);
+    public bool SendBufferPeek(out QueuedPacket packet) => _sendBuffer.TryPeek(out packet);
+    public bool SendBufferTake(out QueuedPacket packet) => _sendBuffer.TryDequeue(out packet);
 
     public void ResetReceive()
     {
@@ -94,7 +94,7 @@ public abstract class AbstractClientState
 
     public void ResetSend()
     {
-        _sendBuffer = new ConcurrentQueue<OutboundPacket>();
+        _sendBuffer = new ConcurrentQueue<QueuedPacket>();
     }
 
     public bool TryGetFrame(out InboundFrame frame)

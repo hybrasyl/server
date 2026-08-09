@@ -117,9 +117,6 @@ public static class Game
     public static string LogDirectory { get; set; } = string.Empty;
     public static string ActiveConfigurationName { get; set; } = string.Empty;
 
-    // Retail-true inner table layout: [u8 count] then per-entry
-    // [u8 id][ip4 network-order][u16-BE port][cstring name]. Must stay in lockstep with
-    // DALib ServerTableDataPacket.WriteEntry, which serializes the same entries for 0x56.
     private static byte[] ServerTablePlaintext(IReadOnlyList<DALib.Networking.Packets.Server.ServerEntry> entries)
     {
         var writer = new DALib.Networking.Wire.PacketWriter();
@@ -650,10 +647,6 @@ public static class Game
             Environment.Exit(1);
         }
 
-        // The 0x56 emit builds from these entries
-        // (ServerTableDataPacket compresses at send time); the CRC is an opaque
-        // change-detection cookie the client caches in mServer.tbl, computed over the
-        // retail-true inner plaintext.
         ServerTableEntries =
         [
             new DALib.Networking.Packets.Server.ServerEntry

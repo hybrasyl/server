@@ -116,9 +116,6 @@ public sealed class Reactor : VisibleObject, IPursuitable, ISpawnable
         if (!VisibleTo(obj)) return;
         if (obj is not User user) return;
 
-        // The client parses item-range sprites as a 13-byte ground
-        // object — exactly how trap sprites render today. The legacy creature-style tail
-        // (MonsterType.Reactor + name) was never consumed and is dropped.
         user.Enqueue(new DALib.Networking.Packets.Server.DrawObjectsPacket
         {
             Objects =

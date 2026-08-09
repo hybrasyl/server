@@ -221,7 +221,7 @@ public class Inventory(HybrasylFixture fixture)
 
         var handler = Game.World.WorldPacketHandlers[0x08];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, new InboundPacket(testPacket.Opcode, testPacket.ToBody()));
+        handler(Fixture.TestUser, new InboundBody(testPacket.Opcode, testPacket.ToBody()));
         Thread.Sleep(1000);
         // Assert X,Y contains the item we just dropped
 
@@ -301,7 +301,7 @@ public class Inventory(HybrasylFixture fixture)
 
         var handler = Game.World.WorldPacketHandlers[testPacket.Opcode];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, new InboundPacket(testPacket.Opcode, testPacket.ToBody()));
+        handler(Fixture.TestUser, new InboundBody(testPacket.Opcode, testPacket.ToBody()));
         Assert.Equal("You can't carry anything else.", Fixture.TestUser.LastSystemMessage);
     }
 

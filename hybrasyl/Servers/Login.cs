@@ -57,7 +57,7 @@ public class Login : Server
 
     public LoginPacketHandler[] PacketHandlers { get; }
 
-    private void PacketHandler_0x02_CreateA(IClient client, InboundPacket packet)
+    private void PacketHandler_0x02_CreateA(IClient client, InboundBody packet)
     {
         var request = CreateCharRequestPacket.Parse(packet.Body.Span);
         var name = request.Name;
@@ -91,7 +91,7 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x03_Login(IClient client, InboundPacket packet)
+    private void PacketHandler_0x03_Login(IClient client, InboundBody packet)
     {
         // Parse validates the 15-byte XOR'd integrity trailer (CRC-CCITT) and throws on
         // mismatch; the receive loop drops the packet.
@@ -184,12 +184,19 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x04_CreateB(IClient client, InboundPacket packet)
+    private void PacketHandler_0x04_CreateB(IClient client, InboundBody packet)
     {
         if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword)) return;
         var finalize = CreateCharFinalizePacket.Parse(packet.Body.Span);
         var hairStyle = finalize.HairStyle;
-        var gender = (byte)finalize.Gender;
+        // DALib parses the wire byte straight to Gender without validating it, so an
+        // out-of-range value is clamped here exactly as the legacy read did.
+        var gender = (byte)finalize.Gender switch
+        {
+            < 1 => Gender.Male,
+            > 2 => Gender.Female,
+            var g => (Gender)g
+        };
         var hairColor = finalize.HairColor;
 
         if (hairStyle < 1)
@@ -201,12 +208,6 @@ public class Login : Server
         if (hairColor > 13)
             hairColor = 13;
 
-        if (gender < 1)
-            gender = 1;
-
-        if (gender > 2)
-            gender = 2;
-
         // Try to get our map
         // TODO: replace with XML config for start map, x, y
         if (!World.PlayerExists(client.NewCharacterName))
@@ -214,7 +215,7 @@ public class Login : Server
             var newPlayer = new User
             {
                 Name = client.NewCharacterName,
-                Gender = (Gender)gender,
+                Gender = gender,
                 Class = Class.Peasant,
                 Nation = Game.World.DefaultNation
             };
@@ -253,7 +254,7 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x10_ClientJoin(IClient client, InboundPacket packet)
+    private void PacketHandler_0x10_ClientJoin(IClient client, InboundBody packet)
     {
         var join = ClientJoinPacket.Parse(packet.Body.Span);
         var seed = join.EncryptionSeed;
@@ -291,11 +292,10 @@ public class Login : Server
 
     // Chart for all error password-related error codes were provided by kojasou@ on
     // https://github.com/hybrasyl/server/pull/11.
-    private void PacketHandler_0x26_ChangePassword(IClient client, InboundPacket packet)
+    private void PacketHandler_0x26_ChangePassword(IClient client, InboundBody packet)
     {
         var request = ChangePasswordPacket.Parse(packet.Body.Span);
         var name = request.Name;
-        var currentPass = request.CurrentPassword;
         // Clientside validation ensures that the same string is typed twice for the new
         // password, and the new password is only sent to the server once. We can assume
         // that they matched if 0x26 request is sent from the client.
@@ -308,7 +308,7 @@ public class Login : Server
             return;
         }
 
-        if (login.VerifyPassword(currentPass))
+        if (login.VerifyPassword(request.CurrentPassword))
         {
             // Check if the password is valid.
             if (ValidPassword(newPass, out var err))
@@ -335,13 +335,13 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x4B_RequestNotification(IClient client, InboundPacket packet) =>
+    private void PacketHandler_0x4B_RequestNotification(IClient client, InboundBody packet) =>
         client.Enqueue(new LoginNotificationPacket
         {
             Form = new NotificationDataForm { Data = Game.Notification }
         });
 
-    private void PacketHandler_0x68_RequestHomepage(IClient client, InboundPacket packet) =>
+    private void PacketHandler_0x68_RequestHomepage(IClient client, InboundBody packet) =>
         client.Enqueue(new UrlPacket
         {
             Form = new SetUrlForm { Url = "http://www.hybrasyl.com" }

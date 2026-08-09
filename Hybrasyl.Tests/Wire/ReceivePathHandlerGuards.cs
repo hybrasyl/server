@@ -58,7 +58,7 @@ public class ReceivePathHandlerGuards
     private const string Sentinel = "no dialog callback ran";
 
     private static void Dispatch(User user, byte opcode, byte[] body) =>
-        Game.World.WorldPacketHandlers[opcode].Invoke(user, new InboundPacket(opcode, body));
+        Game.World.WorldPacketHandlers[opcode].Invoke(user, new InboundBody(opcode, body));
 
     /// <summary>
     ///     0x0F with no target tail. The client sends the bare slot byte for a self/group cast, and

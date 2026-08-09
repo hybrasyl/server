@@ -445,7 +445,6 @@ public class User : Creature
     {
         var elapsed = DateTime.Now - status.Start;
         var remaining = status.Duration - elapsed.TotalSeconds;
-        // The client's enum has Yellow=3, so Orange/Red/White are 4/5/6.
         StatusBarColor color;
         if (remaining >= 80)
             color = StatusBarColor.White;
@@ -1005,8 +1004,7 @@ public class User : Creature
                 slot, displayList[i].Item1, displayList[i].Item2))
             .ToList();
 
-        // TakeLast, not Take: keep the newest marks if a legend ever exceeds the wire u8 cap.
-        // Defensive only — see the note in SendProfile.
+        // TakeLast keeps the newest marks if a legend ever exceeds the wire u8 cap; defensive only.
         var publicMarks = Legend.Where(predicate: mark => mark.Public)
             .TakeLast(DALib.Networking.Packets.Server.ProfilePacket.MaxLegendMarks)
             .Select(mark => new DALib.Networking.Packets.Server.LegendMark
@@ -3033,11 +3031,8 @@ public class User : Creature
             Class = (byte)Class,
             ClassName = IsMaster ? "Master" : Class.ToString(),
             GuildName = guildInfo.GuildName ?? string.Empty,
-            // Wire u8 cap. Defensive only today — Legend.MaximumLegendSize (254) is enforced on
-            // add, so this can't currently trigger. TakeLast, not Take: _legend is keyed by
-            // timestamp ascending, so if the cap ever rises this keeps the newest marks rather
-            // than freezing the pane on the oldest 255. DALib throws above 255 rather than
-            // emitting a count/row desync the way the legacy site did.
+            // Wire u8 cap; defensive only, since Legend.MaximumLegendSize (254) is enforced on add.
+            // TakeLast keeps the newest marks rather than freezing the pane on the oldest.
             Legend = Legend.TakeLast(SelfProfilePacket.MaxLegendMarks)
                 .Select(mark => new DALib.Networking.Packets.Server.LegendMark
                 {
@@ -3174,14 +3169,8 @@ public class User : Creature
         ManufactureState.ShowWindow();
     }
 
-    // 0x2F merchant menus. The prefix is identical at every site, so it lives here once: the
-    // client's ignored four-byte secondary group gets a repeat of the speaker sprite, which is
-    // what the legacy builder wrote. DALib's defaults already supply the rest of the legacy
-    // constants (Unknown1 = 0, Unknown2 = 1, Color/Color2 = 0, IllustrationIndex = 0).
-    //
-    // Menu type and body shape are paired in these overloads rather than at the call sites, so a
-    // site cannot pair them wrongly. Note every Hybrasyl pursuit id is in the 0xFF00+ private
-    // range, so DALib's pursuit-keyed row forks (0x4B item, 0x4E inventory) never fire.
+    // 0x2F merchant menus. Menu type and body shape are paired in these overloads rather than at
+    // the call sites, so a site cannot pair them wrongly.
     private static NpcMenuPacket MerchantMenu(Merchant merchant, NpcMenuType type, string text, NpcMenu menu) =>
         new()
         {
@@ -4756,7 +4745,7 @@ public class User : Creature
 
     public bool IsHeartbeatValid(byte a, byte b) => Client?.IsHeartbeatValid(a, b) ?? false;
 
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount) =>
+    public bool IsHeartbeatValid(uint localTickCount, uint clientTickCount) =>
         Client?.IsHeartbeatValid(localTickCount, clientTickCount) ?? false;
 
     public void Logoff(bool disconnect = false)
@@ -5036,11 +5025,9 @@ public class User : Creature
     public uint PendingRepairCost { get; private set; }
 
     /// <summary>
-    ///     Drop every half-finished merchant interaction and close the menu. Each merchant flow
-    ///     is multi-step and parks its state on the user between steps; abandoning one partway
-    ///     used to leave that state set, because the abort path was an exception thrown out of
-    ///     the handler. Anything the client sends that a flow can't act on should end the whole
-    ///     interaction rather than leave a step's worth of state for a later one to pick up.
+    ///     Drop every half-finished merchant interaction and close the menu. Merchant flows are
+    ///     multi-step and park state on the user between steps, so anything the client sends that
+    ///     a flow can't act on must end the whole interaction rather than leave state behind.
     /// </summary>
     public void AbortMerchantMenu()
     {

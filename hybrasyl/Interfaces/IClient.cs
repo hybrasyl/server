@@ -22,6 +22,7 @@ using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
 using IClientPacket = DALib.Networking.Wire.IClientPacket;
+using IServerPacket = DALib.Networking.Wire.IServerPacket;
 
 namespace Hybrasyl.Interfaces;
 
@@ -55,7 +56,7 @@ public interface IClient : IDisposable
     public void CheckIdle();
     public void SendTickHeartbeat();
     public bool IsHeartbeatValid(byte a, byte b);
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount);
+    public bool IsHeartbeatValid(uint localTickCount, uint clientTickCount);
     public bool IsHeartbeatExpired();
     public void UpdateLastReceived(bool updateIdle);
     public void ToggleIdle();
@@ -66,7 +67,7 @@ public interface IClient : IDisposable
     public void FlushReceiveBuffer();
     public void SendCallback(IAsyncResult ar);
     public void GenerateKeyTable(string seed);
-    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0);
+    public void Enqueue(IServerPacket packet, bool flush = false, int transmitDelay = 0);
     public void ReceiveFrame(InboundFrame frame);
     public void Enqueue(IClientPacket packet);
     public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0);

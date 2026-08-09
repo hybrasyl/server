@@ -49,11 +49,6 @@ internal class MessagingResponse
     /// </summary>
     public int TransmitDelay => ResponseType == BoardResponseType.BoardList ? 600 : 0;
 
-    /// <summary>
-    ///     Builds the 0x31 response. <see cref="ResponseType" /> is the wire type byte (rung-1:
-    ///     darkages-741 049-0x31 — 1 board list, 2 board index, 3 board post, 4 mailbox index,
-    ///     5 mail post, 6/7/8 result popups); this only selects the body shape that goes with it.
-    /// </summary>
     public BoardResponsePacket Packet()
     {
         switch (ResponseType)

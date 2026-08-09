@@ -77,7 +77,7 @@ public class GenericPacketThrottle : Throttle, IPacketThrottle
         return ProcessThrottle(packetData);
     }
 
-    public ThrottleResult ProcessThrottle(Client client, InboundPacket packet)
+    public ThrottleResult ProcessThrottle(Client client, InboundBody packet)
     {
         var result = ThrottleResult.Error;
 

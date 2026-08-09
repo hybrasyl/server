@@ -47,7 +47,7 @@ namespace Hybrasyl.Tests.Wire;
 ///         </item>
 ///     </list>
 ///     <para>
-///         <see cref="InboundFrameUnwrapping" /> covers <c>InboundPacket.FromFrame</c> in isolation and
+///         <see cref="InboundFrameUnwrapping" /> covers <c>InboundBody.FromFrame</c> in isolation and
 ///         would have caught neither: it proves the unwrapping is correct, not that anything calls
 ///         it. Every other test in the suite invokes its handler directly. The gap was the chain,
 ///         so these assert the chain — <c>ReceiveFrame</c> in, handler out.

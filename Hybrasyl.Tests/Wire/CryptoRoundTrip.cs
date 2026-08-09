@@ -176,7 +176,7 @@ public class CryptoRoundTrip
             EncryptionKey = Convert.FromHexString("3D2943692B5F685446")
         };
 
-        var packet = InboundPacket.FromFrame(InboundFrame.FromWire(wire), crypto);
+        var packet = InboundBody.FromFrame(InboundFrame.FromWire(wire), crypto);
 
         // [u8 objectType][u32-BE objectId][u16-BE pursuitId][u16-BE pursuitIndex][u8 tag][u8 option]
         Assert.Equal(

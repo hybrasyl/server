@@ -51,7 +51,7 @@ public readonly record struct InboundFrame(byte Opcode, ReadOnlyMemory<byte> Wir
 ///     the bare select form with the merchant tail silently dropped. Keeping the body as the unit
 ///     of dispatch means one rule for every opcode instead of a carve-out for that family.
 /// </remarks>
-public readonly record struct InboundPacket(byte Opcode, ReadOnlyMemory<byte> Body)
+public readonly record struct InboundBody(byte Opcode, ReadOnlyMemory<byte> Body)
 {
     /// <summary>The body as a span, for the DALib records' <c>Parse</c> entry points.</summary>
     public ReadOnlySpan<byte> Span => Body.Span;
@@ -67,7 +67,7 @@ public readonly record struct InboundPacket(byte Opcode, ReadOnlyMemory<byte> Bo
     ///     the body with the 6-byte header already stripped — so 0x39/0x3A handlers must not skip
     ///     it. Throws on a malformed body; the caller drops the packet and keeps the connection.
     /// </remarks>
-    public static InboundPacket FromFrame(InboundFrame frame, DALib.Networking.Crypto.CryptoState crypto)
+    public static InboundBody FromFrame(InboundFrame frame, DALib.Networking.Crypto.CryptoState crypto)
     {
         var wire = frame.Wire.Span;
         var method = DALib.Networking.Crypto.CryptoState.GetClientEncryptMethod(frame.Opcode);
@@ -114,7 +114,7 @@ public readonly record struct InboundPacket(byte Opcode, ReadOnlyMemory<byte> Bo
         if (DALib.Networking.Crypto.DialogObfuscation.AppliesTo(frame.Opcode))
             body = DALib.Networking.Crypto.DialogObfuscation.Remove(body);
 
-        return new InboundPacket(frame.Opcode, body);
+        return new InboundBody(frame.Opcode, body);
     }
 
     private const int HeaderLength = 3;

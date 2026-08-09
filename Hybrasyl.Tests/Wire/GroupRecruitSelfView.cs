@@ -83,7 +83,7 @@ public class GroupRecruitSelfView(HybrasylFixture fixture)
             while (client.ClientState.SendBufferTake(out _)) { }
 
             var body = GroupRequestBodies.Simple(GroupRequestPacket.StageRecruitInfo, user.Name);
-            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundPacket(0x2E, body));
+            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundBody(0x2E, body));
 
             Assert.True(client.ClientState.SendBufferTake(out var sent),
                 "self-targeted 0x2E stage 5 should answer with the recruit box");

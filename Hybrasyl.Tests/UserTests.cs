@@ -37,7 +37,7 @@ public class UserTests(HybrasylFixture fixture)
     ///     Wraps a DALib client record as the plaintext body a handler now receives. Handlers are
     ///     invoked directly here, so this skips framing and crypto deliberately.
     /// </summary>
-    private static InboundPacket Inbound(DALib.Networking.Wire.IClientPacket packet) =>
+    private static InboundBody Inbound(DALib.Networking.Wire.IClientPacket packet) =>
         new(packet.Opcode, packet.ToBody());
 
     public static TestClient Client => new(new TestSocket())

@@ -31,11 +31,11 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Servers;
 
-public delegate void LobbyPacketHandler(IClient client, InboundPacket packet);
+public delegate void LobbyPacketHandler(IClient client, InboundBody packet);
 
-public delegate void LoginPacketHandler(IClient client, InboundPacket packet);
+public delegate void LoginPacketHandler(IClient client, InboundBody packet);
 
-public delegate void WorldPacketHandler(object obj, InboundPacket packet);
+public delegate void WorldPacketHandler(object obj, InboundBody packet);
 
 public delegate void ControlMessageHandler(HybrasylControlMessage message);
 
@@ -123,7 +123,7 @@ public class Server
         Throttles[newThrottle.Opcode] = newThrottle;
     }
 
-    public ThrottleResult PacketThrottleCheck(Client client, InboundPacket packet) =>
+    public ThrottleResult PacketThrottleCheck(Client client, InboundBody packet) =>
         Throttles.TryGetValue(packet.Opcode, out var throttle)
             ? throttle.ProcessThrottle(new PacketThrottleData(client, packet))
             : ThrottleResult.OK;
@@ -176,7 +176,6 @@ public class Server
         {
             case Lobby:
                 {
-                    // Trailing \n kept: byte-identical to the legacy emit
                     client.Enqueue(new DALib.Networking.Packets.Server.AcceptConnectionPacket
                     {
                         Message = "CONNECTED SERVER\n"
@@ -256,9 +255,6 @@ public class Server
 
         try
         {
-            // ReceiveFrame queues the frame AND drives FlushReceiveBuffer, where decrypt and
-            // parse happen. (Client.Enqueue is the inverse — it *encodes* a typed packet for
-            // test injection, and is not this path.)
             while (client.ClientState.TryGetFrame(out var frame)) client.ReceiveFrame(frame);
         }
         catch (Exception e)

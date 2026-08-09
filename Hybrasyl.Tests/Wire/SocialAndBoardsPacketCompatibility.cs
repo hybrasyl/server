@@ -94,13 +94,13 @@ public class SocialAndBoardsPacketCompatibility
         legacy.WriteUInt16(2);
         legacy.WriteUInt16(2);
         legacy.WriteByte(1);
-        legacy.WriteByte(84); // guild-mate relationship colour
+        legacy.WriteByte(84); // guild-mate relationship color
         legacy.WriteByte(4);  // Grouped
         legacy.WriteString8("Champion");
         legacy.WriteBoolean(true);
         legacy.WriteString8("Kedian");
         legacy.WriteByte(2);
-        legacy.WriteByte(255); // "other" relationship colour
+        legacy.WriteByte(255); // "other" relationship color
         legacy.WriteByte(0);   // Awake
         legacy.WriteString8("");
         legacy.WriteBoolean(false);

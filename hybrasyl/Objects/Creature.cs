@@ -39,6 +39,8 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
+using DALib.Networking.Packets.Server;
+using SpellUseType = Hybrasyl.Xml.Objects.SpellUseType;
 namespace Hybrasyl.Objects;
 
 public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialized
@@ -776,7 +778,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         return true;
     }
 
-    public void SendCastLine(DALib.Networking.Packets.Server.PublicMessagePacket packet)
+    public void SendCastLine(PublicMessagePacket packet)
     {
         if (Location.Map is not { } map) return;
         foreach (var user in map.EntityTree.GetObjects(GetViewport()).OfType<User>())
@@ -915,7 +917,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 if (obj != this && obj is User user)
                 {
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
-                    user.Enqueue(new DALib.Networking.Packets.Server.CreatureWalkPacket
+                    user.Enqueue(new CreatureWalkPacket
                     {
                         SourceId = Id,
                         OldX = (byte)oldX,
@@ -953,7 +955,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         Direction = direction;
         if (Location.Map is not { } map) return true;
 
-        var turn = new DALib.Networking.Packets.Server.CreatureTurnPacket
+        var turn = new CreatureTurnPacket
         {
             SourceId = Id,
             Direction = (DALib.Enums.Direction)(byte)direction
@@ -1317,7 +1319,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     {
         if (Location.Map == null) return;
         var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
-        var healthbar = new DALib.Networking.Packets.Server.HealthBarPacket
+        var healthbar = new HealthBarPacket
         {
             SourceId = creature.Id,
             HealthPercent = (byte)percent

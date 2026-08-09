@@ -25,13 +25,10 @@ namespace Hybrasyl.Networking;
 ///     uses to decide whether to batch it with its neighbours.
 /// </summary>
 /// <remarks>
-///     Replaces the legacy <c>ServerPacket</c> as the send-queue element. That type carried a
-///     hand-written body, an opcode, framing and a full positional write API; with every emit site
-///     converted, all it still carried was a DALib record and a delay, so this is the shape it had
-///     been reduced to. The <c>RawBodyServerPacket</c> bridge that let unconverted sites through
-///     goes with it — there are no unconverted sites left.
+///     The delay is transport pacing, not a property of the packet: the same type takes different
+///     delays at different call sites, so it belongs here rather than on the DALib record.
 /// </remarks>
-public readonly record struct OutboundPacket(IServerPacket Packet, int TransmitDelay = 0)
+public readonly record struct QueuedPacket(IServerPacket Packet, int TransmitDelay = 0)
 {
     /// <summary>The opcode, for the send loop's key check and logging.</summary>
     public byte Opcode => Packet.Opcode;

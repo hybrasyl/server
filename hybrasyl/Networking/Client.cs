@@ -39,7 +39,7 @@ public class Client : AbstractClient, IClient
 {
     private long _byteHeartbeatReceived;
     private long _byteHeartbeatSent;
-    private int _clientTickCount;
+    private uint _clientTickCount;
 
     private int _heartbeatA;
     private int _heartbeatB;
@@ -48,7 +48,7 @@ public class Client : AbstractClient, IClient
     private long _lastReceived;
     private long _lastSent = 0;
 
-    private int _localTickCount;  // Make this int32 because it's what the client expects
+    private uint _localTickCount;
     private long _tickHeartbeatReceived;
     private long _tickHeartbeatSent;
 
@@ -96,13 +96,8 @@ public class Client : AbstractClient, IClient
 
     public long ConnectedSince { get; set; }
 
-    // The codec is stateless and shared process-wide; only the per-connection CryptoState
-    // carries key/seed/ordinal state. The codec scans DALib plus
-    // this assembly so Hybrasyl extension packet records register alongside retail ones.
-    // PacketCodec does NOT implicitly include DALib's own assembly — it must be passed
-    // explicitly. Scanning only Hybrasyl's left both parser tables essentially empty; that
-    // was invisible while nothing parsed through the codec (EncodeFrame uses only Opcode +
-    // WriteBody), and made IsClientOpcodeRegistered answer false for every opcode.
+    // Stateless and shared process-wide; per-connection key state lives in CryptoState. Both
+    // assemblies must be passed explicitly — PacketCodec does not implicitly scan DALib's.
     internal static readonly PacketCodec Codec =
         new([typeof(DALib.Networking.Wire.IPacket).Assembly, typeof(Client).Assembly]);
 
@@ -191,10 +186,10 @@ public class Client : AbstractClient, IClient
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
         if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
-        // We never really want to deal with negative values
-        var tickCount = Environment.TickCount & int.MaxValue;
+        // Masked to 31 bits so the emitted value never wraps into the sign bit.
+        var tickCount = (uint)(Environment.TickCount & int.MaxValue);
         Interlocked.Exchange(ref _localTickCount, tickCount);
-        Enqueue(new TickHeartbeatPacket { ServerTick = (uint)tickCount });
+        Enqueue(new TickHeartbeatPacket { ServerTick = tickCount });
         Interlocked.Exchange(ref _tickHeartbeatSent, DateTime.Now.Ticks);
     }
 
@@ -222,7 +217,7 @@ public class Client : AbstractClient, IClient
     /// <param name="localTickCount">Local (server) tick count returned from the client</param>
     /// <param name="clientTickCount">Tick count returned from the client</param>
     /// <returns>Whether or not the heartbeat is valid</returns>
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount)
+    public bool IsHeartbeatValid(uint localTickCount, uint clientTickCount)
     {
         if (_localTickCount == localTickCount)
         {
@@ -391,16 +386,10 @@ public class Client : AbstractClient, IClient
                         continue;
                     }
 
-                    // An opcode with no registered handler is dropped here rather than reaching
-                    // dispatch, so a crafted opcode is not decrypted and unwrapped first. Framing
-                    // already consumed the whole frame, so the stream behind it stays aligned and
-                    // the connection is kept.
-                    //
-                    // This asked WorldPacketHandlers.ContainsKey until 2026-08-07, which is always
-                    // true: Server's constructor pre-fills all 256 slots with an unhandled-opcode
-                    // logger, so the gate never fired and the comment claiming World's table would
-                    // otherwise throw KeyNotFoundException was simply wrong. RegisteredWorldOpcodes
-                    // holds only the opcodes SetPacketHandlers bound to a real method.
+                    // Dropped before decrypt/unwrap so a crafted opcode is not processed. Framing
+                    // already consumed the whole frame, so the stream stays aligned. Note this
+                    // must test RegisteredWorldOpcodes, not WorldPacketHandlers — the latter has
+                    // all 256 slots pre-filled with a logger, so it is always true.
                     if (Server is World world && !world.RegisteredWorldOpcodes.Contains(frame.Opcode))
                     {
                         GameLog.Warning(
@@ -410,10 +399,10 @@ public class Client : AbstractClient, IClient
                     }
 
                     // Decrypt + de-obfuscate into the plaintext body handlers parse from.
-                    InboundPacket packet;
+                    InboundBody packet;
                     try
                     {
-                        packet = InboundPacket.FromFrame(frame, Crypto);
+                        packet = InboundBody.FromFrame(frame, Crypto);
                     }
                     catch (Exception e)
                     {
@@ -525,35 +514,14 @@ public class Client : AbstractClient, IClient
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
 
-        ClientState.SendBufferAdd(new OutboundPacket(packet, transmitDelay));
+        ClientState.SendBufferAdd(new QueuedPacket(packet, transmitDelay));
         if (flush) FlushSendBuffer();
     }
 
-    // Injects a typed C→S packet as though it had arrived on the wire. Encodes a real frame
-    // through the codec rather than handing the record straight to the queue, so the injected
-    // traffic exercises the same crypto and parse path a retail client's does.
     /// <summary>
-    ///     The socket receive path: queue a framed packet and process the queue.
+    ///     The socket receive path: queue a framed packet and drain the queue. The flush is
+    ///     load-bearing — without it nothing drains and the receive path stalls silently.
     /// </summary>
-    /// <remarks>
-    ///     The flush is load-bearing: without it nothing drains the queue and the entire receive
-    ///     path stalls silently.
-    ///     <para>
-    ///         This used to skip the flush for a Normal-mode opcode arriving before key exchange,
-    ///         on the reasoning that it could not be decrypted yet. That left the frame in the
-    ///         queue permanently: the receive buffer is an unbounded
-    ///         <see cref="System.Collections.Concurrent.ConcurrentQueue{T}" />, nothing else drains
-    ///         it, and the key never arrives on a connection that is sending crafted pre-key
-    ///         traffic — so repeated frames accumulated without limit. It also made the discard
-    ///         guard in <see cref="FlushReceiveBuffer" /> unreachable through this entry point.
-    ///     </para>
-    ///     <para>
-    ///         Always flushing is correct: a Normal-mode frame before the key exchange is out of
-    ///         order by definition (the key is set from the None-mode 0x10 ClientJoin), so it is
-    ///         not a packet to hold for later. The guard discards it with a warning and the queue
-    ///         drains.
-    ///     </para>
-    /// </remarks>
     public void ReceiveFrame(InboundFrame frame)
     {
         ClientState.ReceiveBufferAdd(frame);
