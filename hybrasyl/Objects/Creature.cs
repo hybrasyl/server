@@ -1196,16 +1196,14 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
         if (Stats.Shield > 0)
         {
-            if (Stats.Shield >= damage)
-            {
-                damage = 0;
-                Stats.Shield -= damage;
-            }
-            else
-            {
-                damage -= Stats.Shield;
-                Stats.Shield = 0;
-            }
+            // Order mattered: the old full-absorption branch zeroed damage and *then*
+            // subtracted it from the shield, so it always subtracted zero and any shield big
+            // enough to absorb a hit never depleted. damage is >= 1 here (clamped above), so
+            // absorbed is never negative.
+            var absorbed = Math.Min(Stats.Shield, damage);
+            Stats.Shield -= absorbed;
+            damage -= absorbed;
+            damageEvent.Shielded = (uint) Math.Clamp(absorbed, 0, uint.MaxValue);
         }
 
         // Now, normalize damage for uint (max hp)
@@ -1221,7 +1219,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
             case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
             case DamageType.Direct when AbsoluteImmortal:
+                // Emit rather than returning silently: Applied exists precisely to record
+                // "target was immune", and was never observable because the event was
+                // dropped here. Note this now routes through OnDamage, so an immortal
+                // monster registers threat (amount 0) and wakes, as it would for a real hit.
                 damageEvent.Applied = false;
+                damageEvent.Amount = 0;
+                OnDamage(damageEvent);
                 return;
         }
 

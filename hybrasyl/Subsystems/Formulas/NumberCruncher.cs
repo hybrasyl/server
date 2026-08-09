@@ -169,8 +169,11 @@ internal static class NumberCruncher
             return new DamageOutput
                 { Amount = dmg, Type = type, Flags = DamageFlags.None, Element = castable.Element };
 
-        var statusAdd = castable?.Effects?.Statuses?.Add?.Where(predicate: e => e.Value == statusName)?.ToList();
-        var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
+        // FirstOrDefault, not Where().ToList()[0]: an empty result is an empty list, never
+        // null, so the old null check did not guard the indexer and threw whenever the status
+        // name matched no Add entry (i.e. any status applied by another route).
+        var statusAdd = castable?.Effects?.Statuses?.Add?.FirstOrDefault(predicate: e => e.Value == statusName);
+        var intensity = statusAdd?.Intensity ?? 1;
 
         dmg = effect.Damage.IsSimple
             ? _evalSimple(effect.Damage.Simple)
@@ -209,8 +212,10 @@ internal static class NumberCruncher
 
         if (effect?.Heal == null) return heal;
 
-        var statusAdd = castable?.Effects?.Statuses?.Add?.Where(predicate: e => e.Value == statusName)?.ToList();
-        var intensity = statusAdd != null ? statusAdd[0].Intensity : 1;
+        // See CalculateDamage above: Where().ToList() is never null, so the old guard did not
+        // protect the [0] indexer.
+        var statusAdd = castable?.Effects?.Statuses?.Add?.FirstOrDefault(predicate: e => e.Value == statusName);
+        var intensity = statusAdd?.Intensity ?? 1;
 
         heal = effect.Heal.IsSimple
             ? _evalSimple(effect.Heal.Simple)
@@ -218,8 +223,10 @@ internal static class NumberCruncher
 
         if (source?.Stats?.OutboundHealModifier > 0)
             heal *= source.Stats.OutboundHealModifier;
+        // Was multiplying by the target's Outbound modifier while gating on Inbound, so a
+        // target with inbound > 0 and outbound == 0 had status heals scaled to zero.
         if (target.Stats.InboundHealModifier > 0)
-            heal *= target.Stats.OutboundHealModifier;
+            heal *= target.Stats.InboundHealModifier;
 
         heal *= intensity;
 
