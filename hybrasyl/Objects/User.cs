@@ -218,6 +218,10 @@ public class User : Creature
         set => Location.WorldMap = value;
     }
 
+    /// <summary>The world map the user is currently viewing (transient; not persisted). Gates 0x3F
+    /// click handling so a forged click can only teleport to a destination this map actually offers.</summary>
+    internal WorldMap? ActiveWorldMap { get; set; }
+
     public string GroupText =>
         // This also eventually needs to consider marriages
         Grouping ? "Grouped!" : "Adventuring Alone";
@@ -3068,6 +3072,7 @@ public class User : Creature
         }
 
         IsAtWorldMap = true;
+        ActiveWorldMap = map; // remember the offered destinations for 0x3F click validation
         Enqueue(new WorldMapPacket
         {
             FieldName = map.ClientMap,

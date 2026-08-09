@@ -3214,28 +3214,36 @@ public class World : Server
     private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        // CFieldMap (retail): checksum, map_id, x, y — all u16 big-endian. The client copies
-        // these four words verbatim from the selected SFieldMap node. checksum has no server meaning;
-        // the destination must still be validated because the body can be forged.
-        packet.ReadUInt16();               // checksum (carried back, unused)
+        // CFieldMap (retail): checksum, map_id, x, y — all u16 big-endian, copied verbatim by
+        // the client from the selected SFieldMap node. NEVER trust these directly: the body is
+        // forgeable, so a raw map_id would let a player teleport to any map in the world. The click
+        // must match a destination the *current* world map actually offered — WorldMapPoint is the
+        // allowlist — and we then teleport using the point's server-side destination, not the client's.
+        packet.ReadUInt16();               // checksum (carried back, no server meaning)
         var mapId = packet.ReadUInt16();
         var x = packet.ReadUInt16();
         var y = packet.ReadUInt16();
 
-        if (!user.IsAtWorldMap)
+        if (!user.IsAtWorldMap || user.ActiveWorldMap is not { } worldMap)
         {
             GameLog.ErrorFormat(string.Format("{0}: sent us an 0x3F outside of a map screen!",
                 user.Name));
             return;
         }
 
-        if (!WorldState.ContainsKey<MapObject>(mapId))
+        var point = worldMap.Points.FirstOrDefault(p =>
+            p.DestinationX == x && p.DestinationY == y
+            && WorldState.TryGetValueByIndex<MapObject>(p.DestinationMap, out var m) && m.Id == mapId);
+
+        if (point is null)
         {
-            GameLog.Warning("{User}: 0x3F worldmap click to unknown map_id {MapId}", user.Name, mapId);
+            GameLog.Warning(
+                "{User}: 0x3F worldmap click did not match any offered node (map_id {MapId}, {X},{Y}) — ignoring",
+                user.Name, mapId, x, y);
             return;
         }
 
-        user.Teleport(mapId, (byte)x, (byte)y);
+        user.Teleport(point.DestinationMap, point.DestinationX, point.DestinationY);
     }
 
     [PacketHandler(0x38)]
