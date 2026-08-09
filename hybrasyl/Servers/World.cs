@@ -131,7 +131,9 @@ public class World : Server
 
     private readonly Dictionary<MessageType, List<IMessageHandler>> MessagePlugins = new();
 
-    public HashSet<Creature> ActiveStatuses = new();
+    // Added and removed on the game threads, enumerated on the StatusTickJob timer thread.
+    // The value type is unused; this is a set.
+    public readonly ConcurrentDictionary<Creature, byte> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers = new();
 
     /// <summary>
@@ -283,12 +285,12 @@ public class World : Server
 
     public void EnqueueStatusCheck(Creature obj)
     {
-        ActiveStatuses.Add(obj);
+        ActiveStatuses.TryAdd(obj, 0);
     }
 
     public void RemoveStatusCheck(Creature obj)
     {
-        ActiveStatuses.Remove(obj);
+        ActiveStatuses.TryRemove(obj, out _);
     }
 
     internal void RegisterGlobalSequence(DialogSequence sequence)
@@ -978,7 +980,7 @@ public class World : Server
         {
             Objects.Remove(obj.Id);
             if (obj is Creature creature)
-                ActiveStatuses.Remove(creature);
+                ActiveStatuses.TryRemove(creature, out _);
         }
 
         GameLog.Info("Object {Name}: {Id} removed", obj.Name, obj.Id);
