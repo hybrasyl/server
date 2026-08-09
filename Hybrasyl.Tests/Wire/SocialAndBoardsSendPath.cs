@@ -29,13 +29,13 @@ using DalibLegendMark = DALib.Networking.Packets.Server.LegendMark;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 3c (social/profile/boards slice) send-path coverage. MATCH opcodes are pinned
+///     Social, profile and board send-path coverage. MATCH opcodes are pinned
 ///     byte-identical against the verbatim pre-conversion emit; the 0x63 Ask trailing NULs and
 ///     the 0x39 trailing 9 bytes assert the typed body equals the legacy emit minus exactly the
 ///     dropped slack; the 0x31 board list asserts the retail-true layout produces the same bytes
 ///     the legacy coincidence produced.
 /// </summary>
-public class P3cTypedPackets
+public class SocialAndBoardsSendPath
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {
@@ -204,7 +204,7 @@ public class P3cTypedPackets
     [Fact]
     public void GroupAsk_DropsTrailingNuls()
     {
-        // the delta. Legacy wrote [01][string8 name][00][00]; rung-1 (darkages-741 099-0x63) says the
+        // Legacy wrote [01][string8 name][00][00]; rung-1 (darkages-741 099-0x63) says the
         // client reads the name and stops.
         var legacy = new LegacyServerPacket(0x63);
         legacy.WriteByte(0x01);
@@ -226,7 +226,7 @@ public class P3cTypedPackets
     [Fact]
     public void SelfProfile_DropsTrailingSlack()
     {
-        // the delta. Legacy appended 9 bytes after the legend loop (0x00, u16 body style, 0x02,
+        // Legacy appended 9 bytes after the legend loop (0x00, u16 body style, 0x02,
         // u32 0, 0x00); rung-1 (darkages-741 057-0x39) ends the body at the legend loop.
         var legacy = new LegacyServerPacket(0x39);
         legacy.WriteByte(2);

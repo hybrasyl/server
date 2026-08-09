@@ -24,7 +24,7 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Crypto/wire round-trip coverage introduced with the DALib conversion (Phase 1).
+///     Crypto and wire round-trip coverage.
 ///     Before this, the encrypted 0xAA-framed wire had zero test coverage. These tests pair
 ///     a server-role CryptoState (mirroring Client.Crypto) with a client-role one, encode an
 ///     S->C packet through the real send path (Client.Codec + RawBodyPacket bridge), and

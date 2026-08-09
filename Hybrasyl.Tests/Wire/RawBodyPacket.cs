@@ -28,7 +28,7 @@ namespace Hybrasyl.Tests.Wire;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This is the P1 <c>RawBodyServerPacket</c> bridge, kept as a test fixture when P5b
+///         This is the <c>RawBodyServerPacket</c> bridge, kept as a test fixture when the conversion
 ///         deleted it from the server. In production its job was to let unconverted send sites
 ///         encode through DALib; with every site converted there is nothing left to bridge. Its
 ///         remaining value is that <c>CryptoRoundTrip</c> needs to encrypt and decrypt bodies it
@@ -58,8 +58,8 @@ internal sealed record RawBodyPacket : DALib.Networking.Wire.ServerPacket
         writer.WriteBytes(Body.Span);
 
         // The legacy GenerateFooter inner padding, reproduced so the round-trip covers the same
-        // shape the pre-conversion emit produced. Retail sends no S->C inner padding (a signed-off delta,
-        // still pending sign-off) — if this delta is approved this goes with it.
+        // shape the pre-conversion emit produced. Retail sends no S->C inner padding, so if that
+        // delta is ever taken this goes with it.
         switch (CryptoState.GetServerEncryptMethod(_opcode))
         {
             case EncryptMethod.Normal:

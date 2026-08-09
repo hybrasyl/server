@@ -96,8 +96,8 @@ public class Client : AbstractClient, IClient
 
     public long ConnectedSince { get; set; }
 
-    // DALib conversion (Phase 1): the stateless codec is shared process-wide; only the
-    // per-connection CryptoState carries key/seed/ordinal state. The codec scans DALib plus
+    // The codec is stateless and shared process-wide; only the per-connection CryptoState
+    // carries key/seed/ordinal state. The codec scans DALib plus
     // this assembly so Hybrasyl extension packet records register alongside retail ones.
     // PacketCodec does NOT implicitly include DALib's own assembly — it must be passed
     // explicitly. Scanning only Hybrasyl's left both parser tables essentially empty; that
@@ -123,8 +123,7 @@ public class Client : AbstractClient, IClient
         ? ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString()
         : "unknown";
 
-    // DALib conversion (Phase 1): key/seed now live on Crypto; these are facades so the
-    // existing handshake/redirect call sites compile unchanged (retired in Phase 5).
+    // Facades over Crypto, which owns the key and seed.
     public byte EncryptionSeed
     {
         get => Crypto.EncryptionSeed;
@@ -141,9 +140,7 @@ public class Client : AbstractClient, IClient
     public string NewCharacterName { get; set; } = string.Empty;
     public string NewCharacterPassword { get; set; } = string.Empty;
 
-    // DALib conversion (Phase 1): route the name-seeded 1024-byte key table build onto
-    // Crypto (called from User.SetEncryptionParameters at world join). Shadows the dormant
-    // AbstractClient version, which is removed with the rest of the legacy crypto in Phase 5.
+    // Called from User.SetEncryptionParameters at world join.
     public void GenerateKeyTable(string seed) => Crypto.GenerateKeyTable(seed);
 
 
@@ -515,8 +512,7 @@ public class Client : AbstractClient, IClient
         state.SendComplete.Set();
     }
 
-    // DALib conversion (Phase 2+): enqueue a typed DALib server packet. Encodes retail-true
-    // bytes directly through the codec (no parity bridge, no inner padding).
+    // Encodes retail-true bytes directly through the codec — no parity bridge, no inner padding.
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
     {
         GameLog.DebugFormat("Enqueueing 0x{0:X2}", packet.Opcode);
@@ -537,10 +533,9 @@ public class Client : AbstractClient, IClient
     ///     The socket receive path: queue a framed packet and process the queue.
     /// </summary>
     /// <remarks>
-    ///     Mirrors the pre-P5 <c>Enqueue(ClientPacket)</c>, which is where the flush used to live
-    ///     — a Normal-encrypted opcode arriving before key exchange is left queued rather than
-    ///     flushed, because it cannot be decrypted yet. Dropping this flush is what stalled the
-    ///     entire receive path when framing moved into ReadCallback.
+    ///     The flush is load-bearing: without it nothing drains the queue and the entire receive
+    ///     path stalls silently. A Normal-encrypted opcode arriving before key exchange is left
+    ///     queued rather than flushed, because it cannot be decrypted yet.
     /// </remarks>
     public void ReceiveFrame(InboundFrame frame)
     {

@@ -25,12 +25,12 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 5 — that the receive path is actually <em>wired</em>: a frame arriving on a
+///     That the receive path is actually <em>wired</em>: a frame arriving on a
 ///     connection reaches a handler, with the right body.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This exists because P5a shipped twice with the server unable to process a single
+///         This exists because the receive path shipped twice with the server unable to process a single
 ///         packet, and the suite was green at 426/426 both times. Neither failure was in any
 ///         component's logic:
 ///     </para>
@@ -47,7 +47,7 @@ namespace Hybrasyl.Tests.Wire;
 ///         </item>
 ///     </list>
 ///     <para>
-///         <see cref="P5ReceivePath" /> covers <c>InboundPacket.FromFrame</c> in isolation and
+///         <see cref="InboundFrameUnwrapping" /> covers <c>InboundPacket.FromFrame</c> in isolation and
 ///         would have caught neither: it proves the unwrapping is correct, not that anything calls
 ///         it. Every other test in the suite invokes its handler directly. The gap was the chain,
 ///         so these assert the chain — <c>ReceiveFrame</c> in, handler out.
@@ -60,9 +60,9 @@ namespace Hybrasyl.Tests.Wire;
 ///     </para>
 /// </remarks>
 [Collection("Hybrasyl")]
-public class P5ReceiveWiring
+public class ReceiveWiring
 {
-    public P5ReceiveWiring(HybrasylFixture fixture)
+    public ReceiveWiring(HybrasylFixture fixture)
     {
         Fixture = fixture;
     }
@@ -153,7 +153,7 @@ public class P5ReceiveWiring
     }
 
     /// <summary>
-    ///     The body a handler receives carries no trailing slack. This is the invariant this delta's
+    ///     The body a handler receives carries no trailing slack. This is the invariant the
     ///     live regression violated — a handler reading one field too many got a 0x00 length byte
     ///     back and silently succeeded — asserted here end-to-end rather than on FromFrame alone.
     /// </summary>

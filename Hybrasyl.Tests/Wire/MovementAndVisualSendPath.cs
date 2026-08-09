@@ -26,12 +26,12 @@ using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 3a (movement/map/visual/system slice) send-path coverage. MATCH opcodes are pinned
+///     Movement, map, visual and system send-path coverage. MATCH opcodes are pinned
 ///     byte-identical against the verbatim pre-conversion emit; slack-family opcodes
-///     (signed-off deltas) assert the typed body equals the legacy emit minus exactly the
-///     signed-off slack bytes; this delta asserts the client-true color bytes.
+///     assert the typed body equals the legacy emit minus exactly the signed-off slack bytes,
+///     and the status-bar cases assert the client-true color bytes.
 /// </summary>
-public class P3aTypedPackets
+public class MovementAndVisualSendPath
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {

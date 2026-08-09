@@ -193,9 +193,9 @@ public class Dialog
         GameLog.Debug("Object type is {ObjectType}", objType);
         GameLog.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
 
-        // The text prompt is now emitted unconditionally for the types that carry
-        // it. The legacy site skipped it when empty, which truncated the body the client was
-        // still parsing (an options dialog would read its choice count from the tail).
+        // The text prompt must be emitted even when empty: the client parses it unconditionally
+        // for the types that carry it, so omitting it truncates the body and an options dialog
+        // reads its choice count from the tail.
         return new NpcDialogPacket
         {
             DialogType = (NpcDialogType)DialogType,

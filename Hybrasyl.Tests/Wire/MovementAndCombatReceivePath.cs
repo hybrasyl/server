@@ -24,11 +24,11 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 4a (movement / combat / system) receive-path coverage. Each case feeds DALib's
+///     Movement, combat and system receive-path coverage. Each case feeds DALib's
 ///     <c>Parse</c> the bytes the retail client sends and pins the field mapping the converted
 ///     handler now relies on — the receive-side counterpart of the P3 emit goldens.
 /// </summary>
-public class P4aTypedHandlers
+public class MovementAndCombatReceivePath
 {
     [Theory]
     [InlineData(0, 0x11)]
@@ -99,7 +99,7 @@ public class P4aTypedHandlers
     public void ClientExit_ParsesSignal(byte wire, ExitSignal expected)
     {
         // Hand-written wire body: 0x0B carries the signal byte and nothing else. Previously
-        // taken from the legacy ClientPackets injector, which is gone in P5b — the injector
+        // taken from the legacy ClientPackets injector, which is gone — the injector
         // also appended a 3-byte "hyb" footer of its own that retail never sends, so a literal
         // derived from the layout is both independent and more faithful than it was.
         byte[] body = [wire];

@@ -23,11 +23,11 @@ namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
 ///     The write API of the pre-DALib <c>Hybrasyl.Networking.ServerPacket</c>, lifted verbatim
-///     into the test project when P5b deleted that type from the server.
+///     into the test project when the conversion deleted that type from the server.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         This is the oracle for the ~86 byte-identity assertions across P2–P3d that pin the
+///         This is the oracle for the ~86 byte-identity assertions that pin the
 ///         send-side conversion as wire-neutral. Those goldens work <em>because</em> this is an
 ///         independent reimplementation: the expected bytes are produced by the code Hybrasyl
 ///         shipped before the conversion, not by DALib's writer, so a shared misunderstanding

@@ -36,7 +36,6 @@ internal class GroupCommand : ChatCommand
             return Fail($"The user {args[0]} could not be found");
         if (!newMember.Grouping)
             return Fail($"{args[0]} is not accepting group invites.");
-        // Legacy two trailing 0x00 dropped (client reads the name and stops).
         newMember.Enqueue(new GroupPromptPacket
         {
             ResponseType = GroupResponseType.Ask,

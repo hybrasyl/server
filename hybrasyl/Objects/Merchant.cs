@@ -503,7 +503,7 @@ public delegate void MerchantOptionHandlerDelegate(User user, Merchant merchant,
 /// <summary>
 ///     A merchant menu callback together with the job it requires and the 0x39 response form it
 ///     expects. The constructor overloads pair form with callback shape, so a callback receives an
-///     already-parsed value and cannot read past what its form carries — the failure class.
+///     already-parsed value and cannot read past what its form carries.
 /// </summary>
 /// <remarks>
 ///     This is the receive-side counterpart of <c>User.MerchantMenu</c>'s overloads, which pair menu
@@ -541,9 +541,9 @@ public class MerchantMenuHandler
     public MerchantResponseForm Form { get; }
 
     /// <summary>
-    ///     Parse the body as this handler's declared form and invoke the callback. A malformed body
-    ///     throws here rather than mid-callback, which is the shape: the receive loop catches
-    ///     it, logs and drops the packet with the connection intact.
+    ///     Parse the body as this handler's declared form and invoke the callback. A malformed
+    ///     body throws here rather than mid-callback; the receive loop catches it, logs, and drops
+    ///     the packet with the connection intact.
     /// </summary>
     public void Invoke(User user, Merchant merchant, InboundPacket packet) => _invoker(user, merchant, packet);
 }

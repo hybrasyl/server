@@ -410,8 +410,8 @@ public class User : Creature
     ///     Send a close dialog packet to the client. This will terminate any open dialog.
     /// </summary>
     public void SendCloseDialog() =>
-        // Legacy trailing 0x00 dropped — the client returns from the deserializer
-        // immediately after the type byte, so a close body is the type byte alone.
+        // The client returns from the deserializer immediately after the type byte, so a close
+        // body is the type byte alone.
         Enqueue(new NpcDialogPacket
         {
             DialogType = NpcDialogType.Close,
@@ -437,8 +437,7 @@ public class User : Creature
     {
         var elapsed = DateTime.Now - status.Start;
         var remaining = status.Duration - elapsed.TotalSeconds;
-        // Client-true color bytes: the client's enum has Yellow=3, so
-        // Orange/Red/White are 4/5/6 — the legacy enum emitted these shifted down by one.
+        // The client's enum has Yellow=3, so Orange/Red/White are 4/5/6.
         StatusBarColor color;
         if (remaining >= 80)
             color = StatusBarColor.White;
@@ -1554,7 +1553,7 @@ public class User : Creature
     public void RequestPortrait() => Enqueue(new RequestPortraitPacket());
 
     public override void SendId() =>
-        // Legacy trailing 0x00 after Gender dropped (client parser stops at Gender)
+        // The client's parser stops at Gender; nothing may follow it.
         Enqueue(new UserAppearancePacket
         {
             Id = Id,
@@ -3049,8 +3048,7 @@ public class User : Creature
                 .ToList()
         };
 
-        // Legacy 9 trailing bytes (0x00, u16 body style, 0x02, u32 0, 0x00) dropped;
-        // the client's parse ends at the legend loop.
+        // The client's parse ends at the legend loop; nothing may follow it.
         Enqueue(profile);
     }
 
@@ -3072,9 +3070,8 @@ public class User : Creature
 
     public void SendWorldMap(WorldMap map)
     {
-        // Retail SFieldMap: screen coords emit as raw u16 (the legacy %255 quadrant/offset
-        // split corrupted them at >=255), and each node carries structured routing — map_id + dest
-        // coords — instead of the legacy opaque Int64 hash.
+        // Screen coords are raw u16 — a %255 quadrant/offset split corrupts them at >=255 — and
+        // each node carries structured routing (map_id plus destination coords).
         var nodes = new List<WorldMapNode>();
         foreach (var point in map.Points)
         {
@@ -4029,9 +4026,8 @@ public class User : Creature
     public void ShowMerchantGoBack(Merchant merchant, string message,
         MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
     {
-        // Straggler: this was the last hand-built ServerPacket on the send side, missed by P3d
-        // because it emits the options menu inline rather than through the helper. Same bytes —
-        // an options menu carrying a single "Go back" row.
+        // Built inline rather than through the MerchantMenu helper: an options menu carrying a
+        // single "Go back" row.
         var options = new MerchantOptions
         {
             Options = [new MerchantDialogOption { Id = (ushort)menuItem, Text = "Go back" }]

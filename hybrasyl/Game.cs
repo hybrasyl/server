@@ -650,7 +650,7 @@ public static class Game
             Environment.Exit(1);
         }
 
-        // DALib conversion (Phase 2): the 0x56 emit builds from these entries
+        // The 0x56 emit builds from these entries
         // (ServerTableDataPacket compresses at send time); the CRC is an opaque
         // change-detection cookie the client caches in mServer.tbl, computed over the
         // retail-true inner plaintext.

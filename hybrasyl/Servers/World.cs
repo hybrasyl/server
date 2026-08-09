@@ -2201,7 +2201,6 @@ public class World : Server
 
         if (request.Signal == ExitSignal.Request)
         {
-            // Legacy u16 slack after the confirm bool dropped
             user.Enqueue(new DALib.Networking.Packets.Server.ConfirmExitPacket { ExitConfirmed = true });
         }
         else
@@ -2952,7 +2951,6 @@ public class World : Server
                 }
 
                 // Send partner a dialog asking whether they want to group (opcode 0x63).
-                // Legacy two trailing 0x00 dropped (client reads the name and stops).
                 partner.Enqueue(new DALib.Networking.Packets.Server.GroupPromptPacket
                 {
                     ResponseType = DALib.Networking.Packets.Server.GroupResponseType.Ask,
@@ -3308,7 +3306,7 @@ public class World : Server
     private void PacketHandler_0x3F_MapPointClick(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        // CFieldMap (retail): checksum, map_id, x, y — all u16 big-endian, copied verbatim by
+        // CFieldMap: checksum, map_id, x, y — all u16 big-endian, copied verbatim by
         // the client from the selected SFieldMap node. NEVER trust these directly: the body is
         // forgeable, so a raw map_id would let a player teleport to any map in the world. The click
         // must match a destination the *current* world map actually offered — WorldMapPoint is the
@@ -4005,7 +4003,6 @@ public class World : Server
         var user = (User)obj;
         var text = CastLinePacket.Parse(packet.Body.Span).Line;
 
-        // Chant echo (legacy CastLine builder's 3 trailing 0x00 dropped)
         user.SendCastLine(new DALib.Networking.Packets.Server.PublicMessagePacket
         {
             Type = DALib.Networking.Packets.Server.PublicMessagePacket.TypeChant,

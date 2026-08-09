@@ -62,7 +62,7 @@ public readonly record struct InboundPacket(byte Opcode, ReadOnlyMemory<byte> Bo
     ///     removes dialog obfuscation for the opcodes that use it.
     /// </summary>
     /// <remarks>
-    ///     Delta de-obfuscation is DALib's <c>DialogObfuscation.Remove</c>, which
+    ///     De-obfuscation is DALib's <c>DialogObfuscation.Remove</c>, which
     ///     validates the CRC-CCITT the legacy in-place transform unmasked and ignored, and returns
     ///     the body with the 6-byte header already stripped — so 0x39/0x3A handlers must not skip
     ///     it. Throws on a malformed body; the caller drops the packet and keeps the connection.
@@ -93,8 +93,8 @@ public readonly record struct InboundPacket(byte Opcode, ReadOnlyMemory<byte> Bo
             // Encrypted: [0xAA][u16 len][opcode][ordinal][ciphertext...]. Decrypting yields the
             // body plus inner plaintext padding that is NOT part of it — a trailing 0x00 for
             // Normal, 0x00 plus a copy of the opcode for MD5Key. Handing that slack to a handler
-            // is what let a merchant callback read one string8 too many and silently succeed
-            //; these widths mirror DALib's DecryptAndUnpadBody.
+            // is what let a merchant callback read one string8 too many and silently succeed;
+            // these widths mirror DALib's DecryptAndUnpadBody.
             if (wire.Length < HeaderLength + 2)
                 throw new InvalidDataException(
                     $"0x{frame.Opcode:X2}: frame too short for opcode + ordinal.");

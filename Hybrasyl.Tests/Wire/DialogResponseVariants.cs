@@ -22,12 +22,12 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 4b: the 0x39/0x3A response-variant mapping the converted handlers depend on.
+///     The 0x39/0x3A response-variant mapping the converted handlers depend on.
 ///     Bodies here are hand-written from the field layout rather than produced by DALib's own
 ///     writers — a round-trip through <c>WriteBody</c> would agree with <c>Parse</c> by
-///     construction and could not catch a wrong layout (see this delta's post-mortem).
+///     construction and could not catch a wrong layout.
 /// </summary>
-public class P4bDialogVariants
+public class DialogResponseVariants
 {
     // 0x39/0x3A share a prefix; 0x3A adds the pursuit index.
     private static byte[] MenuPrefix() => [0x01, 0x00, 0x00, 0xAB, 0xCD, 0xFF, 0x11];
@@ -101,7 +101,7 @@ public class P4bDialogVariants
     [Fact]
     public void DialogUse_DispatchIsWhatLetsAMismatchedResponseBeSeen()
     {
-        // the handler branches on the server's idea of the active dialog, then asserts
+        // The handler branches on the server's idea of the active dialog, then asserts
         // the wire shape agrees. The legacy positional read had no way to notice a
         // disagreement — it simply took the next byte as the option. This is the case that
         // used to be invisible: a text submission arriving while an options dialog is open.

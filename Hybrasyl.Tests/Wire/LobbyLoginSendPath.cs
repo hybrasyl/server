@@ -29,13 +29,13 @@ using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 2 (lobby+login slice) send-path coverage: each converted opcode's typed DALib
+///     Lobby and login send-path coverage: each converted opcode's typed DALib
 ///     record must produce the same body bytes the legacy hand-built ServerPacket wrote
-///     (except where a signed-off delta changes them — signed-off deltas for 0x56). The legacy
+///     (except where a signed-off delta changes them, as for 0x56). The legacy
 ///     emit is reproduced inline from the pre-conversion site code, so any drift between
 ///     the record and what Hybrasyl always sent is caught here, not by a live client.
 /// </summary>
-public class P2TypedPackets
+public class LobbyLoginSendPath
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {
@@ -230,7 +230,7 @@ public class P2TypedPackets
         Assert.Equal(body.Length - 2, compressedLength);
 
         // ZLibStream validates the Adler-32 trailer on decompress — a bogus checksum
-        // (the pre-conversion Hybrasyl emit, a signed-off delta) would throw here.
+        // (the pre-conversion Hybrasyl emit) would throw here.
         using var input = new MemoryStream(body[2..], writable: false);
         using var inflater = new ZLibStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
@@ -238,8 +238,8 @@ public class P2TypedPackets
         var plain = output.ToArray();
 
         // Retail-true inner layout: [u8 count][u8 id][ip4 network order][u16-BE port][cstring name].
-        // Network-order octets are a signed-off delta (legacy reversed them); the bare name with no
-        // ";description" packing is a signed-off delta.
+        // The legacy emit reversed the octets and packed ";description" onto the name; retail
+        // sends network order and the bare name.
         var expected = new byte[] { 1, 1, 10, 20, 30, 40, 0x0A, 0x33 }; // 2611 = 0x0A33
         Assert.Equal(expected, plain[..8]);
         Assert.Equal("Hybrasyl\0"u8.ToArray(), plain[8..]);
@@ -254,7 +254,7 @@ public class P2TypedPackets
     ///     through the legacy <c>ClientPackets.Login</c> injector and was described as pinning
     ///     "the bytes the client actually sends", but that injector built its body by calling
     ///     DALib's own <c>LoginPacket.WriteBody</c> — so it was DALib agreeing with itself, and
-    ///     the wording overstated it. The injector is gone in P5b and the construction is now
+    ///     the wording overstated it. The injector is gone and the construction is now
     ///     direct, which changes nothing about what is proven: this catches a parse that rejects
     ///     its own encoder's output, and would not catch a shared misunderstanding of the trailer
     ///     layout. Pinning that needs a capture, not a round-trip.

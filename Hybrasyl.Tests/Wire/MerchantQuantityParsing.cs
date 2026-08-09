@@ -31,7 +31,7 @@ namespace Hybrasyl.Tests.Wire;
 /// </summary>
 /// <remarks>
 ///     The oracle here is <see cref="Convert.ToUInt32(string)" /> itself rather than a restatement
-///     of what it is believed to do; that independence is the point (see this delta's post-mortem).
+///     of what it is believed to do; that independence is the point.
 /// </remarks>
 public class MerchantQuantityParsing
 {

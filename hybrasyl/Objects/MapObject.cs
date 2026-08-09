@@ -648,9 +648,8 @@ public class MapObject : IStateStorable
     }
 
     /// <summary>
-    ///     Toggle the door group at (x, y). Pre-Phase 3 this was a per-tile operation with an adjacency
-    ///     scan in <c>ToggleDoors</c>; now both entry points resolve to a single group-level flip so a
-    ///     click anywhere on a 2/3/4-tile door opens the whole thing.
+    ///     Toggle the door group at (x, y). Both entry points resolve to a single group-level flip,
+    ///     so a click anywhere on a 2/3/4-tile door opens the whole thing.
     /// </summary>
     public void ToggleDoor(byte x, byte y) => ToggleDoors(x, y);
 

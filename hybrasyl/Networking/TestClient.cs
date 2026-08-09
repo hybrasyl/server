@@ -93,9 +93,8 @@ public class TestClient : AbstractClient, IClient
     public void Enqueue(IClientPacket packet) =>
         throw new NotSupportedException("TestClient does not accept inbound packets; call the handler directly.");
 
-    // TestClient has no CryptoState — it captures outbound traffic and never encrypts. The
-    // name-seeded key table it used to inherit from AbstractClient was the legacy implementation,
-    // deleted in P5b; there is nothing for this to do.
+    // TestClient captures outbound traffic and never encrypts, so it has no CryptoState and
+    // nothing to seed.
     public void GenerateKeyTable(string seed) { }
 
     public void FlushReceiveBuffer()

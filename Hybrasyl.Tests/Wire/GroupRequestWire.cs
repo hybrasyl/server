@@ -75,11 +75,11 @@ internal static class GroupRequestBodies
 }
 
 /// <summary>
-///     Phase 4c — 0x2E GroupRequest wire mapping. Held back from the 4c batch until HTOO-64
+///     0x2E GroupRequest wire mapping. Held back during the conversion until HTOO-64
 ///     shipped, because DALib read the stage-4 class caps with Rogue and Monk transposed and
 ///     converting sooner would have imported the swap into code that was already correct.
 /// </summary>
-public class P4cGroupRequest
+public class GroupRequestWire
 {
     [Fact]
     public void Groupbox_MapsEachCapByteToTheNamedClass()
@@ -142,9 +142,9 @@ public class P4cGroupRequest
 ///     produce exactly the bug HTOO-64 describes, one layer further in.
 /// </summary>
 [Collection("Hybrasyl")]
-public class P4cGroupRecruitMapping
+public class GroupRecruitMapping
 {
-    public P4cGroupRecruitMapping(HybrasylFixture fixture)
+    public GroupRecruitMapping(HybrasylFixture fixture)
     {
         Fixture = fixture;
     }

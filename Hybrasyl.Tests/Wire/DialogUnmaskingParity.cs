@@ -25,12 +25,12 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 4b, the 0x39/0x3A dialog-obfuscation cutover. These pin the claim the
-///     delta rests on — that DALib's <c>Remove</c> unmasks byte-for-byte identically to the
+///     The 0x39/0x3A dialog-obfuscation cutover. These pin the claim it rests on — that DALib's
+///     <c>Remove</c> unmasks byte-for-byte identically to the
 ///     deleted <c>ClientPacket.DecryptDialog</c>, and differs only by stripping the 6-byte header
 ///     and validating the CRC the legacy path unmasked and then ignored.
 /// </summary>
-public class P4bDialogObfuscation
+public class DialogUnmaskingParity
 {
     // Verbatim reimplementation of the deleted ClientPacket.DecryptDialog, kept here as the
     // oracle. It unmasks in place and leaves the header (and the CRC it never checked) in front.
@@ -71,7 +71,7 @@ public class P4bDialogObfuscation
     public void LegacyUnmaskedTheCrcBytesButNeverCheckedThem()
     {
         // The legacy loop ran from offset 4, so it unmasked the two CRC bytes as if they were
-        // body — then did nothing with them. This is what the delta turns into a real check.
+        // body — then did nothing with them. The cutover turns that into a real check.
         var body = SampleBody();
         var obfuscated = DialogObfuscation.Apply(body, new Random(1));
 
@@ -111,7 +111,7 @@ public class P4bDialogObfuscation
     [Fact]
     public void RemoveLeavesNoTrailingSlackForAHandlerToOverReadInto()
     {
-        // The regression this surfaced. Rung-1 (darkages-741 packet-transforms, "Dialog-response
+        // The regression the cutover surfaced. Rung-1 (darkages-741 packet-transforms, "Dialog-response
         // inner wrapper") puts a literal zero after encrypted_inner which is NOT part of the
         // payload — inner_length covers crc16 + payload only. The legacy in-place transform left
         // that zero (and any crypto slack) in the buffer, so a handler reading one field too many

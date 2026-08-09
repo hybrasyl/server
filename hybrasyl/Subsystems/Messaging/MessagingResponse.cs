@@ -85,10 +85,8 @@ internal class MessagingResponse
                 };
 
             case BoardResponseType.BoardList:
-                // The legacy emit wrote [u16 count+1][u16 0][string8 "Mail"], which the
-                // client parsed as [string8 heading][u8 count] — the u16's high byte doubling as an
-                // empty heading length. Same bytes below (empty heading, "Mail" as entry 0), now in
-                // the real layout, which also removes the desync past 255 boards.
+                // The layout is [string8 heading][u8 count]{entries}: the heading is empty and
+                // "Mail" is entry 0, which is what retail sends.
                 return new BoardListPacket
                 {
                     ResponseType = ResponseType,

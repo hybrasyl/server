@@ -27,7 +27,7 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 5 — the receive path itself: framing, decrypt, dialog de-obfuscation, and the body a
+///     The receive path itself: framing, decrypt, dialog de-obfuscation, and the body a
 ///     handler ends up parsing.
 /// </summary>
 /// <remarks>
@@ -44,7 +44,7 @@ namespace Hybrasyl.Tests.Wire;
 ///         Hybrasyl's own framing and unwrapping, which can and does fail independently of it.
 ///     </para>
 /// </remarks>
-public class P5ReceivePath
+public class InboundFrameUnwrapping
 {
     private static CryptoState MakeCrypto() => new()
     {

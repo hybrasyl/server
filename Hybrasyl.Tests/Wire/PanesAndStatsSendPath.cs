@@ -26,12 +26,12 @@ using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 3b (inventory/equipment/stats/skill+spell pane slice) send-path coverage.
+///     Inventory, equipment, stats and skill/spell pane send-path coverage.
 ///     MATCH opcodes are pinned byte-identical against the verbatim pre-conversion emit;
-///     slack-family opcodes (the delta 0x0F trailing u32 0x10 trailing 3 bytes) assert the
+///     slack-family opcodes (0x0F trailing u32, 0x10 trailing 3 bytes) assert the
 ///     typed body equals the legacy emit minus exactly the signed-off slack bytes.
 /// </summary>
-public class P3bTypedPackets
+public class PanesAndStatsSendPath
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {
@@ -143,7 +143,7 @@ public class P3bTypedPackets
     {
         // 0x0F: Slot, Sprite u16 (+0x8000), Color, String8(Name), Count u32, Stackable bool,
         // MaxDur u32, CurDur u32. This is the no-trailing form emitted by SendInventorySlot /
-        // SendInventory; this delta normalizes SendItemUpdate to this too.
+        // SendInventory; SendItemUpdate is normalized to this too.
         const string name = "Potion";
         var legacy = new LegacyServerPacket(0x0F);
         legacy.WriteByte(4);
@@ -498,7 +498,7 @@ public class P3bTypedPackets
     [InlineData(false, 1)]  // partner confirmed    -> "Them" -> window stays open
     public void ExchangeConfirm_MatchesLegacyBody(bool source, byte party)
     {
-        // 0x42 action 5: party, string8 message. This is the confirm-flow value the delta was held on;
+        // 0x42 action 5: party, string8 message. This is the confirm-flow value that was queried;
         // the legacy encoding is preserved exactly.
         var legacy = new LegacyServerPacket(0x42);
         legacy.WriteByte(0x05);

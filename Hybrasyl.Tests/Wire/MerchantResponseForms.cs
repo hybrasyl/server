@@ -37,7 +37,7 @@ namespace Hybrasyl.Tests.Wire;
 ///         so diffing them is free evidence.
 ///     </para>
 ///     <para>
-///         This has already gone wrong once. this delta's live regression —
+///         This has already gone wrong once. A live regression —
 ///         <c>MerchantMenuHandler_BuyItemWithQuantity</c> reading one <c>string8</c> too many —
 ///         was exactly this failure class, and it survived because the legacy in-place dialog
 ///         transform left slack in the buffer, so the over-read got a <c>0x00</c> length byte back

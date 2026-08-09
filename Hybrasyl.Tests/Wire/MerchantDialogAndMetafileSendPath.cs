@@ -35,10 +35,10 @@ using DalibNpcMenuPacket = DALib.Networking.Packets.Server.NpcMenuPacket;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Phase 3d (hard set) send-path coverage. Everything here is pinned byte-identical against the
+///     Metafile, dialog and merchant-menu send-path coverage. Everything here is pinned byte-identical against the
 ///     verbatim pre-conversion emit — no deltas were registered for this batch.
 /// </summary>
-public class P3dTypedPackets
+public class MerchantDialogAndMetafileSendPath
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {
@@ -343,9 +343,9 @@ public class P3dTypedPackets
 
     /// <summary>
     ///     ShowMerchantGoBack emitted its options menu inline with a hand-built ServerPacket
-    ///     rather than through the MerchantMenu helper, so P3d's sweep missed it and it survived
+    ///     rather than through the MerchantMenu helper, so the conversion sweep missed it and it survived
     ///     as the last positional send site on the branch. Pins that routing it through the
-    ///     helper in P5b changes nothing on the wire — it is a live path (every "go back" row in
+    ///     helper changes nothing on the wire — it is a live path (every "go back" row in
     ///     a merchant flow).
     /// </summary>
     [Fact]
@@ -583,7 +583,7 @@ public class P3dTypedPackets
     [Fact]
     public void NpcDialogClose_DropsTrailingSlack()
     {
-        // the legacy site wrote [0x0A][0x00]. The client returns from the deserializer
+        // The legacy site wrote [0x0A][0x00]. The client returns from the deserializer
         // immediately after the type byte, so the body is the type byte alone.
         var typed = Body(new DalibNpcDialogPacket
         {
@@ -597,7 +597,7 @@ public class P3dTypedPackets
     [Fact]
     public void NpcDialogEmptyText_StillEmitsTheStringField()
     {
-        // the legacy site skipped the string16 entirely when the text was empty, which
+        // The legacy site skipped the string16 entirely when the text was empty, which
         // truncated a body the client was still parsing — an options dialog would then read its
         // choice count out of the tail. The field is now always present, empty as [u16 0].
         var typed = Body(BasePacket(NpcDialogType.Options,
