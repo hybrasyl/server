@@ -4034,8 +4034,11 @@ public class World : Server
 
     private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
     {
+        // The client sends the item name only. The second read here was spurious: it survived
+        // because the legacy buffer still carried the dialog wrapper's trailing zero past the
+        // payload, so it returned "" — and the value was discarded anyway. Under this delta the body
+        // ends at the payload, so reading it throws. See the register entry.
         var name = packet.ReadString8();
-        var qStr = packet.ReadString8();
 
         user.ShowBuyMenuQuantity(merchant, name);
     }

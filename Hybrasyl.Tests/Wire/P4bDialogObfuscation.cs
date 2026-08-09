@@ -109,6 +109,28 @@ public class P4bDialogObfuscation
     }
 
     [Fact]
+    public void RemoveLeavesNoTrailingSlackForAHandlerToOverReadInto()
+    {
+        // The regression this surfaced. Rung-1 (darkages-741 packet-transforms, "Dialog-response
+        // inner wrapper") puts a literal zero after encrypted_inner which is NOT part of the
+        // payload — inner_length covers crc16 + payload only. The legacy in-place transform left
+        // that zero (and any crypto slack) in the buffer, so a handler reading one field too many
+        // got a 0x00 length byte back and silently succeeded. Remove returns the payload exactly,
+        // so the same over-read now throws — which is how BuyItemWithQuantity's dead second
+        // ReadString8 was found.
+        //
+        // A 0x39 buy-quantity response: [u8 type][u32 id][u16 pursuit][string8 name] and nothing
+        // more.
+        byte[] payload = [0x01, 0x00, 0x00, 0x12, 0x34, 0xFF, 0x11, 0x05, .. "Beryl"u8];
+
+        var body = DialogObfuscation.Remove(DialogObfuscation.Apply(payload, new Random(4)));
+
+        Assert.Equal(payload, body);
+        // Exactly the payload: no terminator, no slack, nothing a second field read could land in.
+        Assert.Equal(payload.Length, body.Length);
+    }
+
+    [Fact]
     public void AppliesToCoversExactlyTheTwoDialogOpcodes()
     {
         Assert.True(DialogObfuscation.AppliesTo(0x39));
