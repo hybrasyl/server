@@ -47,6 +47,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -4074,15 +4075,47 @@ public class World : Server
         user.ShowBuyMenuQuantity(merchant, name);
     }
 
+    /// <summary>
+    ///     Read a quantity/amount from a merchant text prompt. The client's prompt is a plain
+    ///     text field — it accepts "37", "", " 7" and "jafksdjadisojfasdi" alike — and the
+    ///     legacy <c>Convert.ToUInt32</c> threw <c>FormatException</c>/<c>OverflowException</c>
+    ///     on everything but a well-formed value, surfacing as an unhandled handler exception.
+    ///     <see cref="NumberStyles.Integer" /> matches Convert's accept-set exactly (leading and
+    ///     trailing whitespace, a leading sign), so only the inputs that used to throw are now
+    ///     rejected — and they are rejected with a message to the player instead.
+    /// </summary>
+    private static bool TryReadQuantity(User user, ClientPacket packet, out uint quantity)
+    {
+        var text = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+
+        if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out quantity))
+            return true;
+
+        GameLog.UserActivityWarning("{Name}: merchant quantity prompt: rejecting {Input}", user.Name, text);
+        user.SendSystemMessage("That isn't a valid amount.");
+        quantity = 0;
+        return false;
+    }
+
     private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.ShowBuyItem(merchant, quantity);
     }
 
     private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
 
         user.ShowSellConfirm(merchant, user.PendingSellableSlot, quantity);
     }
@@ -4218,7 +4251,12 @@ public class World : Server
 
     private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
 
         user.ShowMerchantSendParcelRecipient(merchant, quantity);
     }
@@ -4253,7 +4291,12 @@ public class World : Server
     private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
     {
         if (user.PendingWithdrawItem == null) return;
-        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
     }
 
@@ -4289,19 +4332,34 @@ public class World : Server
 
     private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
     }
 
     private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var amount = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var amount))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.DepositGoldConfirm(merchant, amount);
     }
 
     private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var amount = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
+        if (!TryReadQuantity(user, packet, out var amount))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.WithdrawGoldConfirm(merchant, amount);
     }
 

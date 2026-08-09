@@ -5070,6 +5070,32 @@ public class User : Creature
     public byte PendingRepairSlot { get; private set; }
     public uint PendingRepairCost { get; private set; }
 
+    /// <summary>
+    ///     Drop every half-finished merchant interaction and close the menu. Each merchant flow
+    ///     is multi-step and parks its state on the user between steps; abandoning one partway
+    ///     used to leave that state set, because the abort path was an exception thrown out of
+    ///     the handler. Anything the client sends that a flow can't act on should end the whole
+    ///     interaction rather than leave a step's worth of state for a later one to pick up.
+    /// </summary>
+    public void AbortMerchantMenu()
+    {
+        PendingLearnable = null;
+        PendingSendableParcel = null;
+        PendingSendableQuantity = 0;
+        PendingParcelRecipient = null;
+        PendingBuyableItem = null;
+        PendingBuyableQuantity = 0;
+        PendingSellableSlot = 0;
+        PendingSellableQuantity = 0;
+        PendingMerchantOffer = 0;
+        PendingDepositSlot = 0;
+        PendingWithdrawItem = null;
+        PendingRepairSlot = 0;
+        PendingRepairCost = 0;
+
+        SendCloseDialog();
+    }
+
     [Persist] public List<KillRecord> RecentKills { get; private set; } = new();
 
     public Stack<ICombatEvent> CombatEvents { get; } = new(50);
