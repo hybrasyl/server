@@ -98,10 +98,9 @@ internal static class FormulaParser
         e = Parameterize(e, evalEnvironment);
         try
         {
-            //GameLog.Info($"Eval of {expression} : {e.Evaluate()} ");
-            var f = e.Evaluate();
-            var r = Convert.ToDouble(e.Evaluate());
-            return r;
+            // Evaluate exactly once: RAND_* parameters are fixed at Parameterize time, but a
+            // second Evaluate() is still wasted work on a per-tick/per-hit path.
+            return Convert.ToDouble(e.Evaluate());
         }
         catch (Exception ex)
         {
