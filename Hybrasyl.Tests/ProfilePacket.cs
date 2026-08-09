@@ -43,9 +43,13 @@ public class ProfilePacket(HybrasylFixture fixture)
 
         Assert.True(client.ClientState.SendBufferTake(out var packet));
         Assert.Equal(0x34, packet.Opcode);
-        return (byte[]) typeof(Packet)
-            .GetField("Data", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(packet)!;
+
+        // Post-DALib conversion the send site enqueues a typed record wrapped in ServerPacket;
+        // write its body to get the same bytes the legacy Data field held.
+        var record = Assert.IsAssignableFrom<DALib.Networking.Wire.ServerPacket>(packet.DalibPacket);
+        var writer = new DALib.Networking.Wire.PacketWriter();
+        record.WriteBody(writer);
+        return writer.WrittenSpan.ToArray();
     }
 
     [Fact]

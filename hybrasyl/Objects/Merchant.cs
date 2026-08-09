@@ -389,21 +389,11 @@ public enum MerchantDialogObjectType : byte
 
 public struct MerchantOptions
 {
-    public byte OptionsCount => Convert.ToByte(Options.Count);
-    public List<MerchantDialogOption> Options;
-}
-
-public struct MerchantOptionsWithArgument
-{
-    public byte ArgumentLength => Convert.ToByte(Argument.Length);
-    public string Argument;
-    public byte OptionsCount => Convert.ToByte(Options.Count);
     public List<MerchantDialogOption> Options;
 }
 
 public struct MerchantDialogOption
 {
-    public byte Length => Convert.ToByte(Text.Length);
     public string Text;
     public ushort Id;
 }
@@ -413,17 +403,9 @@ public struct MerchantInput
     public ushort Id;
 }
 
-public struct MerchantInputWithArgument
-{
-    public byte ArgumentLength => Convert.ToByte(Argument.Length);
-    public string Argument;
-    public ushort Id;
-}
-
 public struct MerchantShopItems
 {
     public ushort Id;
-    public ushort ItemsCount => Convert.ToUInt16(Items.Count);
     public List<MerchantShopItem> Items;
 }
 
@@ -432,16 +414,13 @@ public struct MerchantShopItem
     public ushort Tile;
     public byte Color;
     public uint Price;
-    public byte NameLength => Convert.ToByte(Name.Length);
     public string Name;
-    public byte DescriptionLength => Convert.ToByte(Description.Length);
     public string Description;
 }
 
 public struct UserInventoryItems
 {
     public ushort Id;
-    public byte InventorySlotsCount => Convert.ToByte(InventorySlots.Count);
     public List<byte> InventorySlots;
 }
 
@@ -458,8 +437,6 @@ public struct UserSpellBook
 public struct MerchantSpells
 {
     public ushort Id;
-    public ushort SpellsCount => Convert.ToUInt16(Spells.Count());
-    public byte IconType;
     public List<MerchantSpell> Spells;
 }
 
@@ -468,15 +445,12 @@ public struct MerchantSpell
     public byte IconType;
     public byte Icon;
     public byte Color;
-    public byte NameLength => Convert.ToByte(Name.Length);
     public string Name;
 }
 
 public struct MerchantSkills
 {
     public ushort Id;
-    public ushort SkillsCount => Convert.ToUInt16(Skills.Count());
-    public byte IconType;
     public List<MerchantSkill> Skills;
 }
 
@@ -485,7 +459,6 @@ public struct MerchantSkill
     public byte IconType;
     public byte Icon;
     public byte Color;
-    public byte NameLength => Convert.ToByte(Name.Length);
     public string Name;
 }
 

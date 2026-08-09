@@ -28,6 +28,11 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+// Hybrasyl's own OptionsDialog/TextDialog collide with DALib's 0x30 body records, so the
+// DALib side is always aliased in this namespace.
+using DalibNpcDialog = DALib.Networking.Packets.Server.NpcDialog;
+using NpcDialogPacket = DALib.Networking.Packets.Server.NpcDialogPacket;
+using NpcDialogType = DALib.Networking.Packets.Server.NpcDialogType;
 
 namespace Hybrasyl.Subsystems.Dialogs;
 
@@ -147,7 +152,7 @@ public class Dialog
         return DialogType == DialogTypes.SIMPLE_DIALOG && Index + 1 < Sequence.Dialogs.Count;
     }
 
-    public ServerPacket GenerateBasePacket(DialogInvocation invocation)
+    public NpcDialogPacket GenerateBasePacket(DialogInvocation invocation, DalibNpcDialog body)
     {
         if (invocation.Origin == null)
             throw new ArgumentNullException(nameof(invocation), "Invocations must have origin");
@@ -155,9 +160,6 @@ public class Dialog
         byte color = 0;
         ushort sprite = 0;
         DialogObjectType objType = 0;
-
-        var dialogPacket = new ServerPacket(0x30);
-        dialogPacket.WriteByte((byte)DialogType);
 
         switch (invocation.Origin)
         {
@@ -187,36 +189,34 @@ public class Dialog
         if (sprite == 0)
             sprite = Sprite > 0 ? Sprite : Sequence.Sprite;
 
-        dialogPacket.WriteByte((byte)objType);
-        dialogPacket.WriteUInt32(invocation.Origin.Id);
-        dialogPacket.WriteByte(0); // Unknown value
         GameLog.Debug("Sprite is {Sprite}", sprite);
         GameLog.Debug("Object type is {ObjectType}", objType);
-        dialogPacket.WriteUInt16(sprite);
-        dialogPacket.WriteByte(color);
-        dialogPacket.WriteByte(0); // Unknown value
-        dialogPacket.WriteUInt16(sprite);
-        dialogPacket.WriteByte(color);
         GameLog.Debug("Dialog group id {SequenceId}, index {Index}", Sequence.Id, Index);
-        dialogPacket.WriteUInt16((ushort)(Sequence.Id ?? 0));
-        dialogPacket.WriteUInt16((ushort)Index);
 
-        dialogPacket.WriteBoolean(HasPrevDialog());
-        dialogPacket.WriteBoolean(HasNextDialog());
-
-        dialogPacket.WriteByte(0);
-
-        if (invocation.Origin == null)
-            dialogPacket.WriteString8(Sequence.DisplayName);
-        else 
-            dialogPacket.WriteString8(string.IsNullOrWhiteSpace(invocation.Origin.DisplayName) ? invocation.Origin.Name ??
-                                  invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName : invocation.Origin.DisplayName);
-        var displayText = EvaluateDisplayText(invocation);
-
-        if (!string.IsNullOrEmpty(displayText))
-            dialogPacket.WriteString16(displayText);
-
-        return dialogPacket;
+        // The text prompt is now emitted unconditionally for the types that carry
+        // it. The legacy site skipped it when empty, which truncated the body the client was
+        // still parsing (an options dialog would read its choice count from the tail).
+        return new NpcDialogPacket
+        {
+            DialogType = (NpcDialogType)DialogType,
+            ObjectType = (byte)objType,
+            SourceId = invocation.Origin.Id,
+            // The second sprite/color pair is the client's ignored four-byte secondary group;
+            // the legacy site filled it with a repeat of the first pair.
+            Sprite = sprite,
+            Color = color,
+            Sprite2 = sprite,
+            Color2 = color,
+            PursuitId = (ushort)(Sequence.Id ?? 0),
+            DialogId = (ushort)Index,
+            HasPreviousButton = HasPrevDialog(),
+            HasNextButton = HasNextDialog(),
+            Name = string.IsNullOrWhiteSpace(invocation.Origin.DisplayName)
+                ? invocation.Origin.Name ?? invocation.Target.DialogState?.Associate?.Name ?? Sequence.DisplayName
+                : invocation.Origin.DisplayName,
+            Text = EvaluateDisplayText(invocation) ?? string.Empty,
+            Body = body
+        };
     }
 
     public void AssociateWithSequence(DialogSequence dialogSequence)

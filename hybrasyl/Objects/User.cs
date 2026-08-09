@@ -389,6 +389,13 @@ public class User : Creature
         }
     }
 
+    /// <summary>
+    ///     Send a 0x31 board/mail response, carrying its required transmit delay (the board list
+    ///     needs one for the messaging pane to display correctly).
+    /// </summary>
+    internal void SendBoardResponse(Networking.ServerPackets.MessagingResponse response) =>
+        Enqueue(response.Packet(), transmitDelay: response.TransmitDelay);
+
     public override void AoiEntry(VisibleObject obj)
     {
         GameLog.DebugFormat("Showing {0} to {1}", Name, obj.Name);
@@ -424,13 +431,14 @@ public class User : Creature
     /// <summary>
     ///     Send a close dialog packet to the client. This will terminate any open dialog.
     /// </summary>
-    public void SendCloseDialog()
-    {
-        var p = new ServerPacket(0x30);
-        p.WriteByte(0x0A);
-        p.WriteByte(0x00);
-        Enqueue(p);
-    }
+    public void SendCloseDialog() =>
+        // Legacy trailing 0x00 dropped — the client returns from the deserializer
+        // immediately after the type byte, so a close body is the type byte alone.
+        Enqueue(new NpcDialogPacket
+        {
+            DialogType = NpcDialogType.Close,
+            Body = new CloseDialog()
+        });
 
     /// <summary>
     ///     Close any active dialogs and clear all dialog state.
@@ -1001,43 +1009,46 @@ public class User : Creature
         // This packet can also contain a portrait and profile text but we haven't even remotely implemented it yet.
 
 
-        var profilePacket = new ServerPacket(0x34);
+        // The equipment block is the fixed 18-slot profile *display* order, in which Accessory1
+        // precedes Boots (rung-1: darkages-741 052-0x34, client mapping 0..11, 13, 12, 14..17).
+        // GetEquipmentDisplayList already emits the wire order — it achieves the same swap by
+        // writing FirstAcc's item at the Foot position and vice versa — so zip it onto DALib's
+        // canonical order rather than re-deriving the mapping.
+        var displayList = Equipment.GetEquipmentDisplayList();
+        var equipment = DALib.Networking.Packets.Server.ProfilePacket.EquipmentDisplayOrder
+            .Select((slot, i) => new DALib.Networking.Packets.Server.ProfileEquipmentSlot(
+                slot, displayList[i].Item1, displayList[i].Item2))
+            .ToList();
 
-        profilePacket.WriteUInt32(Id);
+        // TakeLast, not Take: keep the newest marks if a legend ever exceeds the wire u8 cap.
+        // Defensive only — see the note in SendProfile.
+        var publicMarks = Legend.Where(predicate: mark => mark.Public)
+            .TakeLast(DALib.Networking.Packets.Server.ProfilePacket.MaxLegendMarks)
+            .Select(mark => new DALib.Networking.Packets.Server.LegendMark
+            {
+                Icon = (byte)mark.Icon,
+                Color = (byte)mark.Color,
+                Prefix = mark.Prefix ?? string.Empty,
+                Text = mark.ToString()
+            })
+            .ToList();
 
-        // Equipment block is 3 bytes per slot and contains 54 bytes (18 slots), which I believe is sprite+color
-        // EXCEPT WHEN IT'S MUNGED IN SOME OBSCURE WAY BECAUSE REASONS
-        foreach (var tuple in Equipment.GetEquipmentDisplayList())
+        invoker.Enqueue(new DALib.Networking.Packets.Server.ProfilePacket
         {
-            profilePacket.WriteUInt16(tuple.Item1);
-            profilePacket.WriteByte(tuple.Item2);
-        }
-
-        profilePacket.WriteByte((byte)GroupStatus);
-        profilePacket.WriteString8(Name);
-        profilePacket.WriteByte(Nation.Flag); // This should pull from town / nation
-        // test
-        profilePacket.WriteString8("");
-        profilePacket.WriteByte((byte)(Grouping ? 1 : 0));
-        profilePacket.WriteString8(guildInfo.GuildRank);
-        profilePacket.WriteString8(Game.ActiveConfiguration.GetClassName((byte)Class));
-        profilePacket.WriteString8(guildInfo.GuildName);
-        var publicMarks = Legend.Where(predicate: mark => mark.Public).ToList();
-        profilePacket.WriteByte((byte)publicMarks.Count);
-        foreach (var mark in publicMarks)
-        {
-            profilePacket.WriteByte((byte)mark.Icon);
-            profilePacket.WriteByte((byte)mark.Color);
-            profilePacket.WriteString8(mark.Prefix ?? string.Empty);
-            profilePacket.WriteString8(mark.ToString());
-        }
-
-        profilePacket.WriteUInt16((ushort)(PortraitData.Length + ProfileText.Length + 4));
-        profilePacket.WriteUInt16((ushort)PortraitData.Length);
-        profilePacket.Write(PortraitData);
-        profilePacket.WriteString16(ProfileText);
-
-        invoker.Enqueue(profilePacket);
+            Id = Id,
+            Equipment = equipment,
+            SocialStatus = (DALib.Networking.Packets.Server.SocialStatus)(byte)GroupStatus,
+            Name = Name,
+            NationFlag = Nation.Flag, // This should pull from town / nation
+            Title = string.Empty,
+            GroupOpen = Grouping,
+            GuildRank = guildInfo.GuildRank,
+            ClassName = Game.ActiveConfiguration.GetClassName((byte)Class),
+            GuildName = guildInfo.GuildName,
+            Legend = publicMarks,
+            Portrait = PortraitData,
+            ProfileText = ProfileText
+        });
     }
 
     private (string GuildName, string GuildRank) GetGuildInfo()
@@ -1289,12 +1300,12 @@ public class User : Creature
                 SendSkillUpdate(bookSlot, slot);
 
             bookSlot.Castable.LastCast = DateTime.Now;
-            Client?.Enqueue(new Cooldown
+            Client?.Enqueue(new CooldownPacket
             {
-                Length = (uint)bookSlot.Castable.Cooldown,
-                Pane = 1,
-                Slot = slot
-            }.Packet());
+                IsSkill = true,
+                Slot = slot,
+                Seconds = (uint)bookSlot.Castable.Cooldown
+            });
         }
     }
 
@@ -1364,12 +1375,12 @@ public class User : Creature
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
         if (bookSlot.Castable.Cooldown > 0)
-            Client?.Enqueue(new Cooldown
+            Client?.Enqueue(new CooldownPacket
             {
-                Length = (uint)bookSlot.Castable.Cooldown,
-                Pane = 0,
-                Slot = slot
-            }.Packet());
+                IsSkill = false,
+                Slot = slot,
+                Seconds = (uint)bookSlot.Castable.Cooldown
+            });
         bookSlot.LastCast = DateTime.Now;
     }
 
@@ -1504,49 +1515,65 @@ public class User : Creature
         var color = helmcolor == 0 ? HairColor : helmcolor;
         // Why is this so difficult?
         var bootSprite = Equipment.Armor?.HideBoots ?? false ? 0 : Equipment.Boots?.DisplaySprite ?? 0;
-        (client ?? Client)?.Enqueue(new DisplayUser
+        var bootsColor = Equipment.Boots?.Color ?? 0;
+        var armor = Equipment.Armor?.DisplaySprite ?? 0;
+
+        // The appearance block is discriminated on its leading u16: 0xFFFF selects the
+        // creature-sprite form, anything else is the head sprite of the equipment form.
+        DisplayUserAppearance appearance = DisplayAsMonster
+            ? new CreatureSpriteAppearance
+            {
+                // The client subtracts 0x4000 and loads mns%03d.mpf, so the sprite goes on
+                // the wire tagged — same convention as the 0x07 creature form above.
+                Sprite = (ushort)(MonsterSprite + 0x4000),
+                HeadColor = color,
+                BootsColor = bootsColor
+            }
+            : new EquipmentAppearance
+            {
+                HeadSprite = helmet,
+                BodySprite = (byte)((byte)Gender * 16 + offset),
+                // Both armor fields carry the same sprite on purpose: they are two
+                // depth-distinct body passes (layers 7 and 5), not a duplicate.
+                ArmorSprite1 = armor,
+                BootsSprite = (byte)bootSprite,
+                ArmorSprite2 = armor,
+                ShieldSprite = (byte)(Equipment.Shield?.DisplaySprite ?? 0),
+                WeaponSprite = Equipment.Weapon?.DisplaySprite ?? 0,
+                HeadColor = color,
+                BootsColor = bootsColor,
+                AccessoryColor1 = Equipment.FirstAcc?.Color ?? 0,
+                AccessorySprite1 = Equipment.FirstAcc?.DisplaySprite ?? 0,
+                AccessoryColor2 = Equipment.SecondAcc?.Color ?? 0,
+                AccessorySprite2 = Equipment.SecondAcc?.DisplaySprite ?? 0,
+                AccessoryColor3 = Equipment.ThirdAcc?.Color ?? 0,
+                AccessorySprite3 = Equipment.ThirdAcc?.DisplaySprite ?? 0,
+                LanternSize = (byte)LanternSize,
+                RestPosition = (byte)RestPosition,
+                OvercoatSprite = Equipment.Overcoat?.DisplaySprite ?? 0,
+                OvercoatColor = Equipment.Overcoat?.Color ?? 0,
+                BodyColor = (byte)SkinColor,
+                // Client-side this is the translucency flag, not a visibility toggle:
+                // a player hidden from this viewer is sent with zeroed appearance instead.
+                IsHidden = Condition.IsInvisible,
+                FaceSprite = FaceShape
+            };
+
+        (client ?? Client)?.Enqueue(new DisplayUserPacket
         {
             X = X,
             Y = Y,
-            Direction = Direction,
+            Direction = (DALib.Enums.Direction)(byte)Direction,
             Id = Id,
-            Gender = Gender,
-            Helmet = helmet,
-            Weapon = Equipment.Weapon?.DisplaySprite ?? 0,
-            Armor = Equipment.Armor?.DisplaySprite ?? 0,
-            BodySpriteOffset = offset,
-            Boots = (byte)bootSprite,
-            BootsColor = Equipment.Boots?.Color ?? 0,
-            DisplayAsMonster = DisplayAsMonster,
-            FaceShape = FaceShape,
-            FirstAcc = Equipment.FirstAcc?.DisplaySprite ?? 0,
-            SecondAcc = Equipment.SecondAcc?.DisplaySprite ?? 0,
-            ThirdAcc = Equipment.ThirdAcc?.DisplaySprite ?? 0,
-            FirstAccColor = Equipment.FirstAcc?.Color ?? 0,
-            SecondAccColor = Equipment.SecondAcc?.Color ?? 0,
-            ThirdAccColor = Equipment.ThirdAcc?.Color ?? 0,
-            LanternSize = LanternSize,
-            RestPosition = RestPosition,
-            Overcoat = Equipment.Overcoat?.DisplaySprite ?? 0,
-            OvercoatColor = Equipment.Overcoat?.Color ?? 0,
-            SkinColor = SkinColor,
-            Shield = (byte)(Equipment.Shield?.DisplaySprite ?? 0),
-            Invisible = Condition.IsInvisible,
-            NameStyle = NameStyle,
+            Appearance = appearance,
+            NameTagStyle = (byte)NameStyle,
             Name = Name,
-            GroupName = GroupRecruit?.Name ?? string.Empty,
-            MonsterSprite = MonsterSprite,
-            HairColor = color
-        }.Packet());
+            GroupName = GroupRecruit?.Name ?? string.Empty
+        });
     }
 
-    public void RequestPortrait()
-    {
-        var x49 = new ServerPacket(0x49);
-        x49.WriteByte(0x00);
-        x49.WriteByte(0x00);
-        Enqueue(x49);
-    }
+    // DALib's default Padding is the same two inert zero bytes the legacy site wrote.
+    public void RequestPortrait() => Enqueue(new RequestPortraitPacket());
 
     public override void SendId() =>
         // Legacy trailing 0x00 after Gender dropped (client parser stops at Gender)
@@ -1686,12 +1713,16 @@ public class User : Creature
 
         if (slot == -1) return;
 
-        Client?.Enqueue(new Cooldown
+        // NOTE (pre-existing, bytes preserved): the slot is looked up in the skill *or* spell
+        // book above, but the pane is hardcoded to the skill pane. For a spell this sweeps the
+        // skill pane at the spell's index. Not changed here — conversion is byte-identical; see
+        // TODO.
+        Client?.Enqueue(new CooldownPacket
         {
-            Length = (uint)(clear ? 1 : item.Castable.Cooldown),
-            Pane = 1,
-            Slot = (byte)(slot + 1)
-        }.Packet());
+            IsSkill = true,
+            Slot = (byte)(slot + 1),
+            Seconds = (uint)(clear ? 1 : item.Castable.Cooldown)
+        });
     }
 
     public void SendSpellUpdate(BookSlot? item, int slot)
@@ -2570,10 +2601,7 @@ public class User : Creature
     public void SendRefreshEquipmentSlot(int slot)
     {
         // Like a normal refresh packet, except with a byte indicating which slot we wish to clear
-
-        var refreshPacket = new ServerPacket(0x38);
-        refreshPacket.WriteByte((byte)slot);
-        Enqueue(refreshPacket);
+        Enqueue(new RemoveEquipmentPacket { Slot = (DALib.Enums.EquipmentSlot)(byte)slot });
     }
 
     public override void Refresh()
@@ -3011,21 +3039,41 @@ public class User : Creature
     /// </summary>
     public void SendProfile()
     {
-        var profile = new PlayerProfile
+        var recruit = GroupRecruit ?? Group?.RecruitInfo;
+        var guildInfo = GetGuildInfo();
+
+        var profile = new SelfProfilePacket
         {
-            Player = this,
             NationFlag = Nation.Flag,
-            GuildRank = GetGuildInfo().GuildRank,
+            GuildRank = guildInfo.GuildRank,
             CurrentTitle = Title,
-            Group = Group,
+            GroupStatusText = Group is not { } group
+                ? SelfProfilePacket.GroupStatusSolo
+                : SelfProfilePacket.FormatGroupRoster(group.Founder.Name, group.Members.Select(m => m.Name)),
             CanGroup = Grouping,
-            GroupRecruit = GroupRecruit ?? Group?.RecruitInfo ?? null,
+            Recruit = recruit?.ToRecruitInfo(),
             Class = (byte)Class,
-            GuildName = GetGuildInfo().GuildName,
-            PlayerDisplay = Equipment.Armor?.BodyStyle ?? 0
+            ClassName = IsMaster ? "Master" : Class.ToString(),
+            GuildName = guildInfo.GuildName ?? string.Empty,
+            // Wire u8 cap. Defensive only today — Legend.MaximumLegendSize (254) is enforced on
+            // add, so this can't currently trigger. TakeLast, not Take: _legend is keyed by
+            // timestamp ascending, so if the cap ever rises this keeps the newest marks rather
+            // than freezing the pane on the oldest 255. DALib throws above 255 rather than
+            // emitting a count/row desync the way the legacy site did.
+            Legend = Legend.TakeLast(SelfProfilePacket.MaxLegendMarks)
+                .Select(mark => new DALib.Networking.Packets.Server.LegendMark
+                {
+                    Icon = (byte)mark.Icon,
+                    Color = (byte)mark.Color,
+                    Prefix = mark.Prefix ?? string.Empty,
+                    Text = mark.ToString()
+                })
+                .ToList()
         };
 
-        Enqueue(profile.Packet());
+        // Legacy 9 trailing bytes (0x00, u16 body style, 0x02, u32 0, 0x00) dropped;
+        // the client's parse ends at the legend loop.
+        Enqueue(profile);
     }
 
     /// <summary>
@@ -3150,6 +3198,74 @@ public class User : Creature
         ManufactureState.ShowWindow();
     }
 
+    // 0x2F merchant menus. The prefix is identical at every site, so it lives here once: the
+    // client's ignored four-byte secondary group gets a repeat of the speaker sprite, which is
+    // what the legacy builder wrote. DALib's defaults already supply the rest of the legacy
+    // constants (Unknown1 = 0, Unknown2 = 1, Color/Color2 = 0, IllustrationIndex = 0).
+    //
+    // Menu type and body shape are paired in these overloads rather than at the call sites, so a
+    // site cannot pair them wrongly. Note every Hybrasyl pursuit id is in the 0xFF00+ private
+    // range, so DALib's pursuit-keyed row forks (0x4B item, 0x4E inventory) never fire.
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, NpcMenuType type, string text, NpcMenu menu) =>
+        new()
+        {
+            MenuType = type,
+            SourceId = merchant.Id,
+            Sprite = (ushort)(0x4000 + merchant.Sprite),
+            Sprite2 = (ushort)(0x4000 + merchant.Sprite),
+            Name = merchant.Name,
+            Text = text,
+            Menu = menu
+        };
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, MerchantOptions options) =>
+        MerchantMenu(merchant, NpcMenuType.Options, text, new OptionsMenu
+        {
+            Options = options.Options.Select(o => new NpcMenuOption(o.Text, o.Id)).ToList()
+        });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, MerchantInput input) =>
+        MerchantMenu(merchant, NpcMenuType.TextEntry, text, new TextEntryMenu { PursuitId = input.Id });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, MerchantShopItems items) =>
+        MerchantMenu(merchant, NpcMenuType.ItemList, text, new ItemListMenu
+        {
+            PursuitId = items.Id,
+            Items = items.Items
+                .Select(i => new NpcMenuItem(i.Tile, i.Color, i.Price, i.Name, i.Description)).ToList()
+        });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, UserInventoryItems items) =>
+        MerchantMenu(merchant, NpcMenuType.PlayerItemList, text, new PlayerItemListMenu
+        {
+            PursuitId = items.Id,
+            Slots = items.InventorySlots
+        });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, MerchantSpells spells) =>
+        MerchantMenu(merchant, NpcMenuType.SpellList, text, new SpellListMenu
+        {
+            PursuitId = spells.Id,
+            Spells = spells.Spells
+                .Select(s => new NpcMenuCastable(s.IconType, s.Icon, s.Color, s.Name)).ToList()
+        });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, MerchantSkills skills) =>
+        MerchantMenu(merchant, NpcMenuType.SkillList, text, new SkillListMenu
+        {
+            PursuitId = skills.Id,
+            Skills = skills.Skills
+                .Select(s => new NpcMenuCastable(s.IconType, s.Icon, s.Color, s.Name)).ToList()
+        });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, UserSpellBook book) =>
+        MerchantMenu(merchant, NpcMenuType.PlayerSpellList, text,
+            new PlayerSpellListMenu { PursuitId = book.Id });
+
+    private static NpcMenuPacket MerchantMenu(Merchant merchant, string text, UserSkillBook book) =>
+        MerchantMenu(merchant, NpcMenuType.PlayerSkillList, text,
+            new PlayerSkillListMenu { PursuitId = book.Id });
+
     public void ShowLearnSkillMenu(Merchant merchant)
     {
         var merchantSkills = new MerchantSkills();
@@ -3184,22 +3300,9 @@ public class User : Creature
 
         merchantSkills.Id = (ushort)MerchantMenuItem.LearnSkill;
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.MerchantSkills,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = Convert.ToByte(string.IsNullOrEmpty(Portrait)),
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_skill"),
-            Skills = merchantSkills
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("learn_skill"), merchantSkills);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowForgetSkillMenu(Merchant merchant)
@@ -3209,22 +3312,9 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.ForgetSkillAccept
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.UserSkillBook,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("forget_skill"),
-            UserSkills = userSkills
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("forget_skill"), userSkills);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowForgetSkillAccept(Merchant merchant, byte slot)
@@ -3234,21 +3324,8 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("forget_castable_success"),
-            Options = options
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("forget_castable_success"), options);
+        Enqueue(packet);
 
         SkillBook.Remove(slot);
         SendClearSkill(slot);
@@ -3261,22 +3338,9 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.ForgetSpellAccept
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.UserSpellBook,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("forget_spell"),
-            UserSpells = userSpells
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("forget_spell"), userSpells);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowForgetSpellAccept(Merchant merchant, byte slot)
@@ -3286,21 +3350,8 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("forget_castable_success"),
-            Options = options
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("forget_castable_success"), options);
+        Enqueue(packet);
 
         SpellBook.Remove(slot);
         SendClearSpell(slot);
@@ -3325,25 +3376,11 @@ public class User : Creature
             Text = "No"
         });
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_skill", ("$NAME", castable.Name),
-                ("$DESC", skillDesc.Value)),
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("learn_skill", ("$NAME", castable.Name), ("$DESC", skillDesc.Value)), options);
 
         PendingLearnable = new PendingLearnable(castable, merchant.Id, IsSkillFlow: true);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSkillAgree(Merchant merchant)
@@ -3445,22 +3482,9 @@ public class User : Creature
         }
 
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, prompt, options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSkillAccept(Merchant merchant)
@@ -3510,22 +3534,9 @@ public class User : Creature
             prompt = merchant.GetLocalString("learn_skill_success");
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, prompt, options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSkillDisagree(Merchant merchant)
@@ -3534,22 +3545,9 @@ public class User : Creature
 
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("forget_castable_success"),
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("forget_castable_success"), options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSpellMenu(Merchant merchant)
@@ -3587,22 +3585,9 @@ public class User : Creature
 
         merchantSpells.Id = (ushort)MerchantMenuItem.LearnSpell;
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.MerchantSpells,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_spell"),
-            Spells = merchantSpells
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("learn_spell"), merchantSpells);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSpell(Merchant merchant, Castable castable)
@@ -3624,25 +3609,11 @@ public class User : Creature
             Text = "No"
         });
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("learn_spell_choice", ("$NAME", castable.Name),
-                ("$DESC", spellDesc.Value)),
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("learn_spell_choice", ("$NAME", castable.Name), ("$DESC", spellDesc.Value)), options);
 
         PendingLearnable = new PendingLearnable(castable, merchant.Id, IsSkillFlow: false);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSpellAgree(Merchant merchant)
@@ -3749,22 +3720,9 @@ public class User : Creature
             });
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, prompt, options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSpellAccept(Merchant merchant)
@@ -3815,22 +3773,9 @@ public class User : Creature
             prompt = merchant.GetLocalString("learn_spell_success");
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, prompt, options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowLearnSpellDisagree(Merchant merchant)
@@ -3840,22 +3785,9 @@ public class User : Creature
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("forget_castable_success"),
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("forget_castable_success"), options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowBuyMenu(Merchant merchant)
@@ -3882,21 +3814,8 @@ public class User : Creature
         merchantItems.Id = (ushort)MerchantMenuItem.BuyItemQuantity;
 
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.MerchantShopItems,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("buy"),
-            ShopItems = merchantItems
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("buy"), merchantItems);
+        Enqueue(packet);
     }
 
     public void ShowBuyMenuQuantity(Merchant merchant, string name)
@@ -3910,21 +3829,8 @@ public class User : Creature
             input.Id = (ushort)MerchantMenuItem.BuyItemAccept;
 
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Input,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("buy_quantity"),
-                Input = input
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("buy_quantity"), input);
+            Enqueue(packet);
         }
         else //buy item
         {
@@ -3994,22 +3900,9 @@ public class User : Creature
         }
         else
         {
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = prompt,
-                Options = options
-            };
+            var packet = MerchantMenu(merchant, prompt, options);
 
-            Enqueue(packet.Packet());
+            Enqueue(packet);
         }
     }
 
@@ -4030,21 +3923,8 @@ public class User : Creature
             }
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.UserInventoryItems,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("sell"),
-            UserInventoryItems = inventoryItems
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("sell"), inventoryItems);
+        Enqueue(packet);
     }
 
     public void ShowSellQuantity(Merchant merchant, byte slot)
@@ -4062,22 +3942,8 @@ public class User : Creature
 
             input.Id = (ushort)MerchantMenuItem.SellItem;
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Input,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("sell_quantity", ("$QUANTITY", item.Count.ToString()),
-                    ("$ITEM", item.Name)),
-                Input = input
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("sell_quantity", ("$QUANTITY", item.Count.ToString()), ("$ITEM", item.Name)), input);
+            Enqueue(packet);
         }
         else
         {
@@ -4140,22 +4006,9 @@ public class User : Creature
         }
 
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, prompt, options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void SellItemAccept(Merchant merchant)
@@ -4190,22 +4043,9 @@ public class User : Creature
         var options = new MerchantOptions();
         options.Options = new List<MerchantDialogOption>();
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("sell_success"),
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("sell_success"), options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowMerchantGoBack(Merchant merchant, string message,
@@ -4247,21 +4087,8 @@ public class User : Creature
 
         userItems.Id = (ushort)MerchantMenuItem.SendParcelQuantity;
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.UserInventoryItems,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("send_parcel"),
-            UserInventoryItems = userItems
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("send_parcel"), userItems);
+        Enqueue(packet);
     }
 
     public void ShowMerchantSendParcelQuantity(Merchant merchant, ItemObject item)
@@ -4273,22 +4100,8 @@ public class User : Creature
                 Id = (ushort)MerchantMenuItem.SendParcelRecipient
             };
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Input,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("send_parcel_recipient", ("$QUANTITY", item.Count.ToString()),
-                    ("$ITEM", item.Name)),
-                Input = input
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("send_parcel_recipient", ("$QUANTITY", item.Count.ToString()), ("$ITEM", item.Name)), input);
+            Enqueue(packet);
         }
         else
         {
@@ -4306,23 +4119,10 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.SendParcelAccept
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Input,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("send_parcel_recipient"),
-            Input = input
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("send_parcel_recipient"), input);
 
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowMerchantSendParcelAccept(Merchant merchant, string recipient)
@@ -4379,22 +4179,9 @@ public class User : Creature
             PendingSendableParcel = null;
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, prompt, options);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowMerchantReceiveParcelAccept(Merchant merchant)
@@ -4404,25 +4191,12 @@ public class User : Creature
             Options = new List<MerchantDialogOption>()
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("receive_parcel"),
-            Options = options
-        };
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("receive_parcel"), options);
 
         //TODO: Get Parcel from pending mail.
         ParcelStore.RemoveItem(this);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void ShowDepositGoldMenu(Merchant merchant)
@@ -4435,22 +4209,9 @@ public class User : Creature
         var input = new MerchantInput();
         input.Id = (ushort)MerchantMenuItem.DepositGoldQuantity;
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Input,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Input = input
-        };
+        var packet = MerchantMenu(merchant, prompt, input);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void DepositGoldConfirm(Merchant merchant, uint amount)
@@ -4499,22 +4260,9 @@ public class User : Creature
             Id = (ushort)MerchantMenuItem.WithdrawGoldQuantity
         };
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Input,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Input = input
-        };
+        var packet = MerchantMenu(merchant, prompt, input);
 
-        Enqueue(packet.Packet());
+        Enqueue(packet);
     }
 
     public void WithdrawGoldConfirm(Merchant merchant, uint amount)
@@ -4560,21 +4308,8 @@ public class User : Creature
                 inventoryItems.InventorySlots.Add(i);
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.UserInventoryItems,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("deposit_item"),
-            UserInventoryItems = inventoryItems
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("deposit_item"), inventoryItems);
+        Enqueue(packet);
     }
 
     public void ShowDepositItemQuantity(Merchant merchant, byte slot)
@@ -4594,22 +4329,8 @@ public class User : Creature
                 Id = (ushort)MerchantMenuItem.DepositItem
             };
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Input,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("deposit_item_quantity", ("$QUANTITY", item.Count.ToString()),
-                    ("$ITEM", item.Name)),
-                Input = input
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("deposit_item_quantity", ("$QUANTITY", item.Count.ToString()), ("$ITEM", item.Name)), input);
+            Enqueue(packet);
         }
         else
         {
@@ -4686,22 +4407,9 @@ public class User : Creature
             {
                 Options = new List<MerchantDialogOption>()
             };
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = prompt,
-                Options = options
-            };
+            var packet = MerchantMenu(merchant, prompt, options);
 
-            Enqueue(packet.Packet());
+            Enqueue(packet);
         }
         else
         {
@@ -4724,41 +4432,15 @@ public class User : Creature
 
         if (inventoryItems.InventorySlots.Count > 0)
         {
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.UserInventoryItems,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("repair_item"),
-                UserInventoryItems = inventoryItems
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("repair_item"), inventoryItems);
+            Enqueue(packet);
         }
         else
         {
             var options = new MerchantOptions();
             options.Options = new List<MerchantDialogOption>();
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("repair_item_none"),
-                Options = options
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("repair_item_none"), options);
+            Enqueue(packet);
         }
     }
 
@@ -4801,21 +4483,8 @@ public class User : Creature
             });
         }
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = prompt,
-            Options = options
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, prompt, options);
+        Enqueue(packet);
     }
 
     public void ShowRepairItemAccept(Merchant merchant)
@@ -4837,21 +4506,8 @@ public class User : Creature
                 Options = new List<MerchantDialogOption>()
             };
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("repair_item_fail"),
-                Options = options
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("repair_item_fail"), options);
+            Enqueue(packet);
         }
         else
         {
@@ -4917,39 +4573,13 @@ public class User : Creature
                 });
             }
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = prompt,
-                Options = options
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, prompt, options);
+            Enqueue(packet);
         }
         else
         {
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("repair_item_none"),
-                Options = options
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("repair_item_none"), options);
+            Enqueue(packet);
         }
     }
 
@@ -4961,21 +4591,8 @@ public class User : Creature
         };
         if (Gold < PendingRepairCost)
         {
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("repair_item_fail"),
-                Options = options
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("repair_item_fail"), options);
+            Enqueue(packet);
         }
         else
         {
@@ -5002,21 +4619,8 @@ public class User : Creature
                 }
             }
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("repair_all_items_success"),
-                Options = options
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("repair_all_items_success"), options);
+            Enqueue(packet);
         }
     }
 
@@ -5045,21 +4649,8 @@ public class User : Creature
         merchantItems.Id = (ushort)MerchantMenuItem.WithdrawItemQuantity;
 
 
-        var packet = new MerchantResponse
-        {
-            MerchantDialogType = MerchantDialogType.MerchantShopItems,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = merchant.Id,
-            Tile1 = (ushort)(0x4000 + merchant.Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + merchant.Sprite),
-            Color2 = 0,
-            PortraitType = 0,
-            Name = merchant.Name,
-            Text = merchant.GetLocalString("withdraw_item"),
-            ShopItems = merchantItems
-        };
-        Enqueue(packet.Packet());
+        var packet = MerchantMenu(merchant, merchant.GetLocalString("withdraw_item"), merchantItems);
+        Enqueue(packet);
     }
 
     public void ShowWithdrawItemQuantity(Merchant merchant, string item)
@@ -5072,21 +4663,8 @@ public class User : Creature
             var input = new MerchantInput();
             input.Id = (ushort)MerchantMenuItem.WithdrawItem;
 
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Input,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = merchant.GetLocalString("withdraw_item_quantity"),
-                Input = input
-            };
-            Enqueue(packet.Packet());
+            var packet = MerchantMenu(merchant, merchant.GetLocalString("withdraw_item_quantity"), input);
+            Enqueue(packet);
         }
         else
         {
@@ -5172,22 +4750,9 @@ public class User : Creature
         }
         else
         {
-            var packet = new MerchantResponse
-            {
-                MerchantDialogType = MerchantDialogType.Options,
-                MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-                ObjectId = merchant.Id,
-                Tile1 = (ushort)(0x4000 + merchant.Sprite),
-                Color1 = 0,
-                Tile2 = (ushort)(0x4000 + merchant.Sprite),
-                Color2 = 0,
-                PortraitType = 0,
-                Name = merchant.Name,
-                Text = prompt,
-                Options = options
-            };
+            var packet = MerchantMenu(merchant, prompt, options);
 
-            Enqueue(packet.Packet());
+            Enqueue(packet);
         }
     }
 
@@ -5269,6 +4834,9 @@ public class User : Creature
         client.GenerateKeyTable(name);
     }
 
+    private const string ExchangeCancelMessage = "Exchange was cancelled.";
+    private const string ExchangeConfirmMessage = "You exchanged.";
+
     /// <summary>
     ///     Send an exchange initiation request to the client (open exchange window)
     /// </summary>
@@ -5276,12 +4844,11 @@ public class User : Creature
     public void SendExchangeInitiation(User requestor)
     {
         if (!Condition.InExchange || !requestor.Condition.InExchange) return;
-        Enqueue(new ExchangeControl
+        Enqueue(new StartExchangeResponsePacket
         {
-            Action = ExchangeActions.Initiate,
-            RequestorId = requestor.Id,
-            RequestorName = requestor.Name
-        }.Packet());
+            OtherUserId = requestor.Id,
+            OtherUserName = requestor.Name
+        });
     }
 
     /// <summary>
@@ -5291,12 +4858,7 @@ public class User : Creature
     public void SendExchangeQuantityPrompt(byte itemSlot)
     {
         if (!Condition.InExchange) return;
-        Enqueue(
-            new ExchangeControl
-            {
-                Action = ExchangeActions.QuantityPrompt,
-                ItemSlot = itemSlot
-            }.Packet());
+        Enqueue(new RequestExchangeAmountPacket { SourceSlot = itemSlot });
     }
 
     /// <summary>
@@ -5308,16 +4870,14 @@ public class User : Creature
     public void SendExchangeUpdate(ItemObject toAdd, byte slot, bool source = true)
     {
         if (!Condition.InExchange) return;
-        var update = new ExchangeControl
+        Enqueue(new AddExchangeItemResponsePacket
         {
-            Action = ExchangeActions.ItemUpdate,
-            Side = source,
-            ItemSlot = slot,
-            ItemSprite = toAdd.Sprite,
-            ItemColor = toAdd.Color,
-            ItemName = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name
-        };
-        Enqueue(update.Packet());
+            RightSide = !source,
+            ExchangeIndex = slot,
+            Sprite = (ushort)(toAdd.Sprite + 0x8000),
+            Color = toAdd.Color,
+            Name = toAdd.Stackable && toAdd.Count > 1 ? $"{toAdd.Name} [{toAdd.Count}]" : toAdd.Name
+        });
     }
 
     /// <summary>
@@ -5328,12 +4888,7 @@ public class User : Creature
     public void SendExchangeUpdate(uint gold, bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ExchangeControl
-        {
-            Action = ExchangeActions.GoldUpdate,
-            Side = source,
-            Gold = gold
-        }.Packet());
+        Enqueue(new SetExchangeGoldResponsePacket { RightSide = !source, GoldAmount = gold });
     }
 
     /// <summary>
@@ -5343,11 +4898,7 @@ public class User : Creature
     public void SendExchangeCancellation(bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ExchangeControl
-        {
-            Action = ExchangeActions.Cancel,
-            Side = source
-        }.Packet());
+        Enqueue(new CancelExchangeResponsePacket { RightSide = !source, Message = ExchangeCancelMessage });
     }
 
     /// <summary>
@@ -5357,11 +4908,7 @@ public class User : Creature
     public void SendExchangeConfirmation(bool source = true)
     {
         if (!Condition.InExchange) return;
-        Enqueue(new ExchangeControl
-        {
-            Action = ExchangeActions.Confirm,
-            Side = source
-        }.Packet());
+        Enqueue(new AcceptExchangeResponsePacket { RightSide = !source, Message = ExchangeConfirmMessage });
     }
 
     public void SendInventorySlot(byte slot)

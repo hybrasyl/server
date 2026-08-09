@@ -16,19 +16,23 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
+using System;
 using System.Collections.Generic;
-using Hybrasyl.Internals.Enums;
+using System.Linq;
 using Hybrasyl.Subsystems.Messaging;
+// Both namespaces define BoardResponseType; alias each so the mapping below stays explicit about
+// which side it means (they are NOT the same values — see Packet()).
+using BoardResponseType = Hybrasyl.Subsystems.Messaging.BoardResponseType;
+using DalibBoardResponsePacket = DALib.Networking.Packets.Server.BoardResponsePacket;
+using DalibBoardResponseType = DALib.Networking.Packets.Server.BoardResponseType;
 
 namespace Hybrasyl.Networking.ServerPackets;
 
 internal class MessagingResponse
 {
-    private readonly byte OpCode;
-
     public MessagingResponse()
     {
-        OpCode = OpCodes.Board;
         Boards = new List<(ushort Id, string Name)>();
         Messages = new List<MessageInfo>();
         BoardId = 0;
@@ -44,88 +48,90 @@ internal class MessagingResponse
     public string ResponseString { get; set; } = string.Empty;
     public bool ResponseSuccess { get; set; }
 
-    public ServerPacket Packet()
+    /// <summary>
+    ///     Delay applied when this response is enqueued. The board list needs one to display the
+    ///     messaging pane correctly. Computed, not set during <see cref="Packet" />, so callers may
+    ///     read it in any order.
+    /// </summary>
+    public int TransmitDelay => ResponseType == BoardResponseType.DisplayList ? 600 : 0;
+
+    /// <summary>
+    ///     Builds the 0x31 response. Note that <see cref="BoardResponseType" />'s values are NOT the
+    ///     wire type bytes for the index/message forms — the legacy builder wrote literals that differ
+    ///     from the enum (e.g. GetBoardIndex=3 emitted wire type 2). The wire types below are the
+    ///     retail ones (rung-1: darkages-741 049-0x31): 1 board list, 2 board index, 3 board post,
+    ///     4 mailbox index, 5 mail post, 6/7/8 result popups.
+    /// </summary>
+    public DalibBoardResponsePacket Packet()
     {
-        var packet = new ServerPacket(OpCode);
-
-        if (ResponseType == BoardResponseType.EndResult ||
-            ResponseType == BoardResponseType.DeleteMessage ||
-            ResponseType == BoardResponseType.HighlightMessage)
+        switch (ResponseType)
         {
-            packet.WriteByte((byte) ResponseType);
-            packet.WriteBoolean(ResponseSuccess);
-            packet.WriteString8(ResponseString);
+            case BoardResponseType.EndResult:
+            case BoardResponseType.DeleteMessage:
+            case BoardResponseType.HighlightMessage:
+                return new BoardResultPacket
+                {
+                    // These three enum values (6/7/8) DO match the wire.
+                    ResponseType = (DalibBoardResponseType) (byte) ResponseType,
+                    Success = ResponseSuccess,
+                    Message = ResponseString
+                };
+
+            case BoardResponseType.GetMailboxIndex:
+            case BoardResponseType.GetBoardIndex:
+                return new BoardIndexPacket
+                {
+                    ResponseType = ResponseType == BoardResponseType.GetMailboxIndex
+                        ? DalibBoardResponseType.PrivateBoard // wire 4
+                        : DalibBoardResponseType.PublicBoard, // wire 2
+                    // Mail is always 0x01; a board clicked in-world uses 0x02.
+                    RefreshFlag = ResponseType == BoardResponseType.GetMailboxIndex
+                        ? (byte) 0x01
+                        : (byte) (isClick ? 0x02 : 0x01),
+                    BoardId = BoardId,
+                    BoardName = BoardName,
+                    Messages = Messages.Select(selector: m => new BoardMessageHeader(
+                            m.Highlight, (ushort) m.Id, m.Sender, m.Month, m.Day, m.Subject))
+                        .ToList()
+                };
+
+            case BoardResponseType.DisplayList:
+                // The legacy emit wrote [u16 count+1][u16 0][string8 "Mail"], which the
+                // client parsed as [string8 heading][u8 count] — the u16's high byte doubling as an
+                // empty heading length. Same bytes below (empty heading, "Mail" as entry 0), now in
+                // the real layout, which also removes the desync past 255 boards.
+                return new BoardListPacket
+                {
+                    ResponseType = DalibBoardResponseType.BoardList,
+                    Name = string.Empty,
+                    Boards = Boards.Select(selector: b => new BoardListEntry(b.Id, b.Name))
+                        .Prepend(new BoardListEntry(0, "Mail"))
+                        .ToList()
+                };
+
+            case BoardResponseType.GetBoardMessage:
+            case BoardResponseType.GetMailMessage:
+                var message = Messages[0];
+                return new BoardPostPacket
+                {
+                    ResponseType = ResponseType == BoardResponseType.GetMailMessage
+                        ? DalibBoardResponseType.PrivatePost // wire 5
+                        : DalibBoardResponseType.PublicPost, // wire 3
+                    // 0x03 keeps the client "Prev" button live; 0x00 disables backward paging.
+                    RefreshFlag = 0x03,
+                    // Mailbox messages are always "read".
+                    Highlight = ResponseType == BoardResponseType.GetMailMessage || message.Highlight,
+                    PostId = (ushort) message.Id,
+                    Author = message.Sender,
+                    Month = message.Month,
+                    Day = message.Day,
+                    Subject = message.Subject,
+                    Body = message.Body
+                };
+
+            default:
+                throw new InvalidOperationException(
+                    $"MessagingResponse: unhandled response type {ResponseType}.");
         }
-        else if (ResponseType == BoardResponseType.GetMailboxIndex ||
-                 ResponseType == BoardResponseType.GetBoardIndex)
-        {
-            if (ResponseType == BoardResponseType.GetMailboxIndex)
-            {
-                packet.WriteByte(0x04); // 0x02 - public, 0x04 - mail
-                packet.WriteByte(0x01); // ??? - needs to be odd number unless board in world has been clicked
-            }
-            else
-            {
-                packet.WriteByte(0x02);
-                packet.WriteByte((byte) (isClick ? 0x02 : 0x01));
-            }
-
-            packet.WriteUInt16(BoardId);
-            packet.WriteString8(BoardName);
-            packet.WriteByte((byte) Messages.Count);
-            foreach (var message in Messages)
-            {
-                packet.WriteBoolean(message.Highlight);
-                packet.WriteInt16(message.Id);
-                packet.WriteString8(message.Sender);
-                packet.WriteByte(message.Month);
-                packet.WriteByte(message.Day);
-                packet.WriteString8(message.Subject);
-            }
-        }
-
-        else if (ResponseType == BoardResponseType.DisplayList)
-        {
-            packet.WriteByte(0x01);
-            packet.WriteUInt16((ushort) (Boards.Count + 1));
-            packet.WriteUInt16(0);
-            packet.WriteString8("Mail");
-            foreach (var (Id, Name) in Boards)
-            {
-                packet.WriteUInt16(Id);
-                packet.WriteString8(Name);
-            }
-
-            // This is required to correctly display the messaging pane
-            packet.TransmitDelay = 600;
-        }
-
-        else if (ResponseType == BoardResponseType.GetBoardMessage ||
-                 ResponseType == BoardResponseType.GetMailMessage)
-        {
-            // Functionality unknown but necessary
-            var message = Messages[0];
-            if (ResponseType == BoardResponseType.GetMailMessage)
-            {
-                packet.WriteByte(0x05);
-                packet.WriteByte(0x03);
-                packet.WriteBoolean(true); // Mailbox messages are always "read"
-            }
-            else
-            {
-                packet.WriteByte(0x03);
-                packet.WriteByte(0x03); // 0x03 keeps the client "Prev" button live; 0x00 disables backward paging
-                packet.WriteBoolean(message.Highlight);
-            }
-
-            packet.WriteUInt16((ushort) message.Id);
-            packet.WriteString8(message.Sender);
-            packet.WriteByte(message.Month);
-            packet.WriteByte(message.Day);
-            packet.WriteString8(message.Subject);
-            packet.WriteString16(message.Body);
-        }
-
-        return packet;
     }
 }

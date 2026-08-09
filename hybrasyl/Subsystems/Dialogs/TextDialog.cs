@@ -34,11 +34,13 @@ public class TextDialog(string displayText, string topCaption, string bottomCapt
     {
         Log.Debug("active for input dialog: {TopCaption}, {InputLength}, {BottomCaption}", TopCaption, InputLength,
             BottomCaption);
-        var dialogPacket = GenerateBasePacket(invocation);
-        dialogPacket.WriteString8(TopCaption);
-        dialogPacket.WriteByte((byte) InputLength);
-        dialogPacket.WriteString8(BottomCaption);
-        invocation.Target.Enqueue(dialogPacket);
+        var body = new DALib.Networking.Packets.Server.TextInputDialog
+        {
+            TopCaption = TopCaption,
+            InputLength = (byte) InputLength,
+            BottomCaption = BottomCaption
+        };
+        invocation.Target.Enqueue(GenerateBasePacket(invocation, body));
         RunCallback(invocation);
     }
 

@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using System;
 using System.Collections.Generic;
 using Hybrasyl.Networking;
@@ -83,28 +84,29 @@ public class ManufactureState
 
     public void ShowWindow()
     {
-        var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte) Type);
-        manufacturePacket.WriteByte((byte) Slot);
-        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Open);
-        manufacturePacket.WriteByte((byte) Recipes.Count);
-        User.Enqueue(manufacturePacket);
+        // Type/Slot are the session token the client echoes back on every C→S 0x55.
+        User.Enqueue(new OpenManufacturePacket
+        {
+            ManufactureType = (byte) Type,
+            Slot = (byte) Slot,
+            RecipeCount = (byte) Recipes.Count
+        });
     }
 
     public void ShowPage(int pageIndex)
     {
         SelectedIndex = pageIndex;
 
-        var manufacturePacket = new ServerPacket(0x50);
-        manufacturePacket.WriteByte((byte) Type);
-        manufacturePacket.WriteByte((byte) Slot);
-        manufacturePacket.WriteByte((byte) ManufactureServerPacketType.Page);
-        manufacturePacket.WriteByte((byte) pageIndex);
-        manufacturePacket.WriteUInt16((ushort) (SelectedRecipe.Tile + 0x8000));
-        manufacturePacket.WriteString8(SelectedRecipe.Name);
-        manufacturePacket.WriteString16(SelectedRecipe.Description);
-        manufacturePacket.WriteString16(SelectedRecipe.HighlightedIngredientsText(User));
-        manufacturePacket.WriteBoolean(SelectedRecipe.HasAddItem);
-        User.Enqueue(manufacturePacket);
+        User.Enqueue(new ManufacturePagePacket
+        {
+            ManufactureType = (byte) Type,
+            Slot = (byte) Slot,
+            PageIndex = (byte) pageIndex,
+            Sprite = (ushort) (SelectedRecipe.Tile + 0x8000),
+            RecipeName = SelectedRecipe.Name,
+            Description = SelectedRecipe.Description,
+            Ingredients = SelectedRecipe.HighlightedIngredientsText(User),
+            HasAddItem = SelectedRecipe.HasAddItem
+        });
     }
 }

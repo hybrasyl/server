@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Players.Grouping;
@@ -35,12 +36,12 @@ internal class GroupCommand : ChatCommand
             return Fail($"The user {args[0]} could not be found");
         if (!newMember.Grouping)
             return Fail($"{args[0]} is not accepting group invites.");
-        var response = new ServerPacket(0x63);
-        response.WriteByte((byte) GroupServerPacketType.Ask);
-        response.WriteString8(user.Name);
-        response.WriteByte(0);
-        response.WriteByte(0);
-        newMember.Enqueue(response);
+        // Legacy two trailing 0x00 dropped (client reads the name and stops).
+        newMember.Enqueue(new GroupPromptPacket
+        {
+            ResponseType = GroupResponseType.Ask,
+            SourceName = user.Name
+        });
         return Success($"{args[0]} has been invited to your group.");
     }
 }

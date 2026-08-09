@@ -59,8 +59,8 @@ public class Signpost : VisibleObject
                 Message.Length < 1024 ? (byte) MessageTypes.SLATE : (byte) MessageTypes.SLATE_WITH_SCROLLBAR);
         else
             // Ctor guarantees Board for messageboard signposts (GetBoard creates on demand)
-            invoker.Enqueue(MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board!.Id, 0, true)
-                .Packet());
+            invoker.SendBoardResponse(
+                MessagingController.GetMessageList(invoker.GuidReference, (ushort) Board!.Id, 0, true));
     }
 
     public override void AoiEntry(VisibleObject obj)

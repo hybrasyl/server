@@ -2333,25 +2333,29 @@ public class World : Server
                        descending, user.Name
                    select user;
 
-        var listPacket = new ServerPacket(0x36);
-        listPacket.WriteUInt16((ushort)list.Count());
-        listPacket.WriteUInt16((ushort)list.Count());
+        var listPacket = new DALib.Networking.Packets.Server.UserListPacket();
 
         foreach (var user in list)
         {
             var levelDifference = Math.Abs(user.Stats.Level - me.Stats.Level);
 
-            listPacket.WriteByte((byte)user.Class);
-            if (me.GuildGuid != Guid.Empty && user.GuildGuid == me.GuildGuid) listPacket.WriteByte(84);
-            else if (levelDifference <= 5) listPacket.WriteByte(151);
-            else listPacket.WriteByte(255);
+            // Relationship colour: guild-mate, within 5 levels, or neither.
+            byte color;
+            if (me.GuildGuid != Guid.Empty && user.GuildGuid == me.GuildGuid) color = 84;
+            else if (levelDifference <= 5) color = 151;
+            else color = 255;
 
-            listPacket.WriteByte((byte)user.GroupStatus);
-            listPacket.WriteString8(user.Title);
-            listPacket.WriteBoolean(user.IsMaster);
-            listPacket.WriteString8(user.Name);
+            listPacket.Users.Add(new DALib.Networking.Packets.Server.UserListEntry(
+                (byte)user.Class,
+                color,
+                (DALib.Networking.Packets.Server.SocialStatus)(byte)user.GroupStatus,
+                user.Title,
+                user.IsMaster,
+                user.Name));
         }
 
+        // TotalUserCount left null: DALib then mirrors the row count, which is the doubled-count
+        // shape the legacy site emitted (Hybrasyl is single-shard).
         me.Enqueue(listPacket);
     }
 
@@ -2479,6 +2483,19 @@ public class World : Server
         }
     }
 
+    /// <summary>
+    ///     The client-settings pane is driven by an ordinary 0x0A system message of type
+    ///     <c>UserOptions</c> (7) whose text is the setting number as an ASCII digit followed by the
+    ///     display string. The legacy builder wrote that digit and the string separately, so its
+    ///     hand-computed <c>length + 1</c> was just the string16 length of the combined text.
+    /// </summary>
+    private static DALib.Networking.Packets.Server.SystemMessagePacket SettingsMessage(
+        byte number, string displayString) => new()
+    {
+        MessageType = DALib.Networking.Packets.Server.SystemMessageType.UserOptions,
+        Message = (char)(number + 0x30) + displayString
+    };
+
     [PacketHandler(0x1B)]
     private void PacketHandler_0x1B_Settings(object obj, ClientPacket packet)
     {
@@ -2500,14 +2517,7 @@ public class World : Server
                 Game.ActiveConfiguration.SettingsNumberIndex.Select(selector: kvp => string.Format("{0}  :{1}",
                     kvp.Value.Value,
                     user.ClientSettings[kvp.Key] ? "ON" : "OFF")));
-            var x0a = new SettingsMessage
-            {
-                DisplayString = settingsString,
-                Number = 0
-            };
-            var settingsPacket = x0a.Packet();
-            x0a.Packet().DumpPacket();
-            user.Enqueue(settingsPacket);
+            user.Enqueue(SettingsMessage(0, settingsString));
         }
         else
         {
@@ -2518,11 +2528,7 @@ public class World : Server
                 user.ToggleClientSetting(settingNumber);
             var displayString =
                 $"{Game.ActiveConfiguration.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] ? "ON" : "OFF")}";
-            var x0a = new SettingsMessage
-            { DisplayString = displayString, Number = settingNumber };
-            var settingspacket = x0a.Packet();
-            x0a.Packet().DumpPacket();
-            user.Enqueue(settingspacket);
+            user.Enqueue(SettingsMessage(settingNumber, displayString));
         }
     }
 
@@ -2867,13 +2873,12 @@ public class World : Server
                 }
 
                 // Send partner a dialog asking whether they want to group (opcode 0x63).
-                var response = new ServerPacket(0x63);
-                response.WriteByte((byte)GroupServerPacketType.Ask);
-                response.WriteString8(user.Name);
-                response.WriteByte(0);
-                response.WriteByte(0);
-
-                partner.Enqueue(response);
+                // Legacy two trailing 0x00 dropped (client reads the name and stops).
+                partner.Enqueue(new DALib.Networking.Packets.Server.GroupPromptPacket
+                {
+                    ResponseType = DALib.Networking.Packets.Server.GroupResponseType.Ask,
+                    SourceName = user.Name
+                });
                 break;
             // Stage 0x03 means that the invitee has responded with a "yes" to the grouping
             // request. We need to add them to the original user's group. Note that in this
@@ -3130,7 +3135,7 @@ public class World : Server
             case 0x01:
                 {
                     // Get list of boards / mailboxes (w key)
-                    user.Enqueue(MessagingController.BoardList(user.GuidReference).Packet());
+                    user.SendBoardResponse(MessagingController.BoardList(user.GuidReference));
                 }
                 break;
             case 0x02:
@@ -3138,7 +3143,7 @@ public class World : Server
                     // Get message list
                     var boardId = packet.ReadUInt16();
                     var startPostId = packet.ReadInt16();
-                    user.Enqueue(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId).Packet());
+                    user.SendBoardResponse(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId));
                 }
                 break;
             case 0x03:
@@ -3147,7 +3152,7 @@ public class World : Server
                     var boardId = packet.ReadUInt16();
                     var postId = packet.ReadInt16();
                     var offset = packet.ReadSByte();
-                    user.Enqueue(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId).Packet());
+                    user.SendBoardResponse(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId));
                     if (boardId == 0)
                         user.UpdateAttributes(StatUpdateFlags.Secondary);
                 }
@@ -3158,8 +3163,8 @@ public class World : Server
                     var boardId = packet.ReadUInt16();
                     var subject = packet.ReadString8();
                     var body = packet.ReadString16();
-                    user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body)
-                        .Packet());
+                    user.SendBoardResponse(
+                        MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body));
                 }
                 break;
             case 0x05:
@@ -3167,7 +3172,7 @@ public class World : Server
                     // Delete post
                     var boardId = packet.ReadUInt16();
                     var postId = packet.ReadUInt16();
-                    user.Enqueue(MessagingController.DeleteMessage(user.GuidReference, boardId, postId).Packet());
+                    user.SendBoardResponse(MessagingController.DeleteMessage(user.GuidReference, boardId, postId));
                 }
                 break;
             case 0x06:
@@ -3177,8 +3182,8 @@ public class World : Server
                     var recipient = packet.ReadString8();
                     var subject = packet.ReadString8();
                     var body = packet.ReadString16();
-                    user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body)
-                        .Packet());
+                    user.SendBoardResponse(
+                        MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body));
                 }
                 break;
             case 0x07:
@@ -3186,12 +3191,12 @@ public class World : Server
                 {
                     var boardId = packet.ReadUInt16();
                     var postId = packet.ReadInt16();
-                    user.Enqueue(MessagingController.HighlightMessage(user.GuidReference, boardId, postId).Packet());
+                    user.SendBoardResponse(MessagingController.HighlightMessage(user.GuidReference, boardId, postId));
                 }
                 break;
             default:
                 {
-                    user.Enqueue(MessagingController.UnknownError.Packet());
+                    user.SendBoardResponse(MessagingController.UnknownError);
                 }
                 break;
         }
@@ -3948,32 +3953,35 @@ public class World : Server
         var user = (User)obj;
         var all = packet.ReadBoolean();
 
+        // The request's bool selects the response form, and doubles as the response's leading
+        // discriminator byte: false -> op 0 (one named file's data), true -> op 1 (checksum
+        // manifest). Rung-1: darkages-741 111-0x6f-meta-data.
         if (all)
         {
-            var x6F = new ServerPacket(0x6F);
-            x6F.WriteBoolean(all);
-            x6F.WriteUInt16((ushort)WorldState.Count<CompiledMetafile>());
+            var manifest = new DALib.Networking.Packets.Server.MetafileChecksumsPacket();
             foreach (var metafile in WorldState.Values<CompiledMetafile>())
             {
-                x6F.WriteString8(metafile.Name);
                 GameLog.Info("Responding 6F: adding {Name}, checksum {Checksum}", metafile.Name, metafile.Checksum);
-                x6F.WriteUInt32(metafile.Checksum);
+                manifest.Entries.Add(
+                    new DALib.Networking.Packets.Server.MetafileEntry(metafile.Name, metafile.Checksum));
             }
 
-            user.Enqueue(x6F);
+            user.Enqueue(manifest);
         }
         else
         {
             var name = packet.ReadString8();
             if (!WorldState.TryGetValue<CompiledMetafile>(name, out var file)) return;
             GameLog.Info("Responding 6f notall: sending {Name}, checksum {Checksum}", file.Name, file.Checksum);
-            var x6F = new ServerPacket(0x6F);
-            x6F.WriteBoolean(all);
-            x6F.WriteString8(file.Name);
-            x6F.WriteUInt32(file.Checksum);
-            x6F.WriteUInt16((ushort)file.Data.Length);
-            x6F.Write(file.Data);
-            user.Enqueue(x6F);
+            // DALib throws above the u16 payload limit rather than silently truncating the length
+            // field the way the legacy `(ushort)` cast did. Unreachable in practice — the 0xAA
+            // frame length is itself a u16 — but it fails loudly instead of desyncing the client.
+            user.Enqueue(new DALib.Networking.Packets.Server.MetafileDataPacket
+            {
+                Name = file.Name,
+                Checksum = file.Checksum,
+                Data = file.Data
+            });
         }
     }
 

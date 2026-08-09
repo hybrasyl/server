@@ -399,4 +399,115 @@ public class P3bTypedPackets
 
         Assert.Equal(expected.BodyMemory.ToArray(), typed);
     }
+
+    // --- 0x42 Exchange: byte-identical, all six actions. The legacy builder wrote the party
+    //     byte as `Side ? 0 : 1`, so the typed mapping is RightSide = !source. Retail semantics
+    //     (darkages-741 066-0x42): party 0x00 == "You", nonzero == "Them"; action 5 sets one
+    //     per-party ack flag and closes only when both are set. ---
+
+    [Fact]
+    public void ExchangeStart_MatchesLegacyBody()
+    {
+        // 0x42 action 0: u32 requestor id, string8 requestor name. No party byte.
+        var legacy = new LegacyServerPacket(0x42);
+        legacy.WriteByte(0x00);
+        legacy.WriteUInt32(0xDEADBEEF);
+        legacy.WriteString8("Kedian");
+
+        var typed = Body(new StartExchangeResponsePacket
+            { OtherUserId = 0xDEADBEEF, OtherUserName = "Kedian" });
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
+
+    [Fact]
+    public void ExchangeQuantityPrompt_MatchesLegacyBody()
+    {
+        // 0x42 action 1: u8 inventory slot. No party byte.
+        var legacy = new LegacyServerPacket(0x42);
+        legacy.WriteByte(0x01);
+        legacy.WriteByte(12);
+
+        var typed = Body(new RequestExchangeAmountPacket { SourceSlot = 12 });
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
+
+    [Theory]
+    [InlineData(true, 0)]   // source side ("You")  -> wire 0
+    [InlineData(false, 1)]  // partner side ("Them") -> wire 1
+    public void ExchangeItemUpdate_MatchesLegacyBody(bool source, byte party)
+    {
+        // 0x42 action 2: party, exchange index, u16 sprite (+0x8000), color, string8 name.
+        const string name = "Stone of Ard Ioc [3]";
+        var legacy = new LegacyServerPacket(0x42);
+        legacy.WriteByte(0x02);
+        legacy.WriteByte(party);
+        legacy.WriteByte(4);
+        legacy.WriteUInt16(0x8000 + 0x0123);
+        legacy.WriteByte(7);
+        legacy.WriteString8(name);
+
+        var typed = Body(new AddExchangeItemResponsePacket
+        {
+            RightSide = !source,
+            ExchangeIndex = 4,
+            Sprite = 0x8000 + 0x0123,
+            Color = 7,
+            Name = name
+        });
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
+
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void ExchangeGoldUpdate_MatchesLegacyBody(bool source, byte party)
+    {
+        // 0x42 action 3: party, u32 gold.
+        var legacy = new LegacyServerPacket(0x42);
+        legacy.WriteByte(0x03);
+        legacy.WriteByte(party);
+        legacy.WriteUInt32(1_000_000);
+
+        var typed = Body(new SetExchangeGoldResponsePacket { RightSide = !source, GoldAmount = 1_000_000 });
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
+
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void ExchangeCancel_MatchesLegacyBody(bool source, byte party)
+    {
+        // 0x42 action 4: party, string8 message. Legacy message text preserved verbatim.
+        var legacy = new LegacyServerPacket(0x42);
+        legacy.WriteByte(0x04);
+        legacy.WriteByte(party);
+        legacy.WriteString8("Exchange was cancelled.");
+
+        var typed = Body(new CancelExchangeResponsePacket
+            { RightSide = !source, Message = "Exchange was cancelled." });
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
+
+    [Theory]
+    [InlineData(true, 0)]   // both sides confirmed -> "You" -> client closes the window
+    [InlineData(false, 1)]  // partner confirmed    -> "Them" -> window stays open
+    public void ExchangeConfirm_MatchesLegacyBody(bool source, byte party)
+    {
+        // 0x42 action 5: party, string8 message. This is the confirm-flow value the delta was held on;
+        // the legacy encoding is preserved exactly.
+        var legacy = new LegacyServerPacket(0x42);
+        legacy.WriteByte(0x05);
+        legacy.WriteByte(party);
+        legacy.WriteString8("You exchanged.");
+
+        var typed = Body(new AcceptExchangeResponsePacket
+            { RightSide = !source, Message = "You exchanged." });
+
+        Assert.Equal(legacy.BodyMemory.ToArray(), typed);
+    }
 }

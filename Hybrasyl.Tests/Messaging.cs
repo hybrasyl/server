@@ -46,10 +46,11 @@ public class Messaging
                 }
             }
         };
-        var packet = response.Packet();
-        return (byte[]) typeof(Packet)
-            .GetField("Data", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(packet)!;
+        // Post-DALib conversion the builder returns a typed record; write its body to get the
+        // same bytes the legacy Data field held (body only, no opcode).
+        var writer = new DALib.Networking.Wire.PacketWriter();
+        response.Packet().WriteBody(writer);
+        return writer.WrittenSpan.ToArray();
     }
 
     [Fact]

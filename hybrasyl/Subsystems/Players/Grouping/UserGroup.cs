@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -319,30 +320,36 @@ public class GroupRecruit
 
     public void ShowTo(User user)
     {
-        var groupPacket = new ServerPacket(0x63);
-        groupPacket.WriteByte((byte) GroupServerPacketType.RecruitInfo);
-        WriteInfo(groupPacket);
-        user.Enqueue(groupPacket);
+        user.Enqueue(new GroupRecruitInfoPacket
+        {
+            ResponseType = GroupResponseType.RecruitInfo,
+            Info = ToRecruitInfo()
+        });
     }
 
-    public void WriteInfo(ServerPacket packet)
+    /// <summary>
+    ///     The recruitment block, shared by 0x63 RecruitInfo and the 0x39 self-profile.
+    ///     Class pair order is Warrior, Wizard, Rogue, Priest, Monk (rung-1: darkages-741
+    ///     099-0x63 — the client copies each pair straight into the matching UI row).
+    /// </summary>
+    public GroupRecruitInfo ToRecruitInfo() => new()
     {
-        packet.WriteString8(Recruiter.Name);
-        packet.WriteString8(Name);
-        packet.WriteString8(Note);
-        packet.WriteByte((byte) StartingLevelRange);
-        packet.WriteByte((byte) EndingLevelRange);
-        packet.WriteByte((byte) WarriorsWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Warrior] ?? 0));
-        packet.WriteByte((byte) WizardsWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Wizard] ?? 0));
-        packet.WriteByte((byte) RoguesWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Rogue] ?? 0));
-        packet.WriteByte((byte) PriestsWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Priest] ?? 0));
-        packet.WriteByte((byte) MonksWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Monk] ?? 0));
-    }
+        RecruiterName = Recruiter.Name,
+        GroupName = Name,
+        Note = Note,
+        StartingLevel = (byte) StartingLevelRange,
+        EndingLevel = (byte) EndingLevelRange,
+        WarriorsWanted = (byte) WarriorsWanted,
+        CurrentWarriors = (byte) (Group?.ClassCount[Class.Warrior] ?? 0),
+        WizardsWanted = (byte) WizardsWanted,
+        CurrentWizards = (byte) (Group?.ClassCount[Class.Wizard] ?? 0),
+        RoguesWanted = (byte) RoguesWanted,
+        CurrentRogues = (byte) (Group?.ClassCount[Class.Rogue] ?? 0),
+        PriestsWanted = (byte) PriestsWanted,
+        CurrentPriests = (byte) (Group?.ClassCount[Class.Priest] ?? 0),
+        MonksWanted = (byte) MonksWanted,
+        CurrentMonks = (byte) (Group?.ClassCount[Class.Monk] ?? 0)
+    };
 
     public bool InviteToGroup(User invitee)
     {

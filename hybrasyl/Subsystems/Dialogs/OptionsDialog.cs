@@ -32,7 +32,6 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
 
     public override void ShowTo(DialogInvocation invocation)
     {
-        var dialogPacket = GenerateBasePacket(invocation);
         if (Options.Count <= 0) return;
 
         // Handle check expressions on individual options
@@ -40,10 +39,11 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
         var displayedOptions = Options.Where(x => RunCheckExpression(x, invocation)).ToList();
         if (displayedOptions.Count <= 0) return;
 
-        dialogPacket.WriteByte((byte)displayedOptions.Count);
-        foreach (var option in displayedOptions)
-            dialogPacket.WriteString8(option.OptionText ?? string.Empty);
-        invocation.Target.Enqueue(dialogPacket);
+        var body = new DALib.Networking.Packets.Server.OptionsDialog
+        {
+            Options = displayedOptions.Select(option => option.OptionText ?? string.Empty).ToList()
+        };
+        invocation.Target.Enqueue(GenerateBasePacket(invocation, body));
         RunCallback(invocation);
     }
 

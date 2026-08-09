@@ -29,7 +29,7 @@ public class SimpleDialog : Dialog
 
     public override void ShowTo(DialogInvocation invocation)
     {
-        var dialogPacket = GenerateBasePacket(invocation);
+        var dialogPacket = GenerateBasePacket(invocation, new DALib.Networking.Packets.Server.TextDialog());
         invocation.Target.Enqueue(dialogPacket);
         GameLog.Debug("Sending packet to {Invoker}", invocation.Target.Name);
         RunCallback(invocation);
