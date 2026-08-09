@@ -56,6 +56,23 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+// World.cs fully-qualifies DALib types by convention (it imports Hybrasyl.Xml.Objects, which
+// collides); the C→S records converted in P4 are aliased instead, since handler bodies read them
+// often enough that full qualification obscures the logic.
+using ByteHeartbeatPacket = DALib.Networking.Packets.Client.ByteHeartbeatPacket;
+using CastLinePacket = DALib.Networking.Packets.Client.CastLinePacket;
+using ClientExitPacket = DALib.Networking.Packets.Client.ClientExitPacket;
+using ClientJoinPacket = DALib.Networking.Packets.Client.ClientJoinPacket;
+using EmotePacket = DALib.Networking.Packets.Client.EmotePacket;
+using ExitSignal = DALib.Networking.Packets.Client.ExitSignal;
+using RequestMetafilePacket = DALib.Networking.Packets.Client.RequestMetafilePacket;
+using SettingsPacket = DALib.Networking.Packets.Client.SettingsPacket;
+using StatusPacket = DALib.Networking.Packets.Client.StatusPacket;
+using TickHeartbeatPacket = DALib.Networking.Packets.Client.TickHeartbeatPacket;
+using TurnPacket = DALib.Networking.Packets.Client.TurnPacket;
+using UseSkillPacket = DALib.Networking.Packets.Client.UseSkillPacket;
+using UseSpellPacket = DALib.Networking.Packets.Client.UseSpellPacket;
+using WalkPacket = DALib.Networking.Packets.Client.WalkPacket;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using MessageType = Hybrasyl.Xml.Objects.MessageType;
@@ -1827,10 +1844,13 @@ public class World : Server
     private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var direction = packet.ReadByte();
-        if (direction > 3) return;
+        var request = WalkPacket.Parse(packet.PayloadData);
+        // DALib casts the wire byte straight to Direction without validating it, so the
+        // crafted-packet guard stays. (The record also carries a Sequence byte Hybrasyl
+        // has never used.)
+        if ((byte)request.Direction > 3) return;
         user.Condition.Casting = false;
-        user.Walk((Direction)direction);
+        user.Walk((Direction)request.Direction);
     }
 
     [PacketHandler(0x07)]
@@ -2109,9 +2129,14 @@ public class World : Server
     private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var slot = packet.ReadByte();
-        var target = packet.ReadUInt32();
-        user.UseSpell(slot, target);
+        var request = UseSpellPacket.Parse(packet.PayloadData);
+        // DALib models the tail as opaque Args (target serial, then x/y for ground-targeted
+        // casts); Hybrasyl only consumes the serial. An absent tail is a no-target cast, which
+        // UseSpell already expresses as target 0 — the legacy positional read threw instead.
+        var target = request.Args.Length >= 4
+            ? System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(request.Args)
+            : 0u;
+        user.UseSpell(request.Slot, target);
         user.Condition.Casting = false;
     }
 
@@ -2119,9 +2144,9 @@ public class World : Server
     private void PacketHandler_0x0B_ClientExit(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var endSignal = packet.ReadByte();
+        var request = ClientExitPacket.Parse(packet.PayloadData);
 
-        if (endSignal == 1)
+        if (request.Signal == ExitSignal.Request)
         {
             // Legacy u16 slack after the confirm bool dropped
             user.Enqueue(new DALib.Networking.Packets.Server.ConfirmExitPacket { ExitConfirmed = true });
@@ -2175,11 +2200,11 @@ public class World : Server
     {
         var connectionId = (long)obj;
 
-        var seed = packet.ReadByte();
-        var keyLength = packet.ReadByte();
-        var key = packet.Read(keyLength);
-        var name = packet.ReadString8();
-        var id = packet.ReadUInt32();
+        var join = ClientJoinPacket.Parse(packet.PayloadData);
+        var seed = join.EncryptionSeed;
+        var key = join.EncryptionKey;
+        var name = join.Name;
+        var id = join.RedirectId;
 
         if (!ExpectedConnections.TryGetValue(id, out var redirect) || !redirect.Matches(name, key, seed))
             return;
@@ -2308,10 +2333,10 @@ public class World : Server
     private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var direction = packet.ReadByte();
-        if (direction > 3) return;
+        var request = TurnPacket.Parse(packet.PayloadData);
+        if ((byte)request.Direction > 3) return;
         user.Condition.Casting = false;
-        user.Turn((Direction)direction);
+        user.Turn((Direction)request.Direction);
     }
 
     [PacketHandler(0x13)]
@@ -2500,7 +2525,7 @@ public class World : Server
     private void PacketHandler_0x1B_Settings(object obj, ClientPacket packet)
     {
         // TODO: future expansion
-        var settingNumber = packet.ReadByte();
+        var settingNumber = SettingsPacket.Parse(packet.PayloadData).SettingNumber;
         var user = (User)obj;
         // Only seven of these are usable by the client (1-6, and 8), 
         // the seventh one is sent to keep the ordering consistent but seemingly does nothing
@@ -2716,7 +2741,7 @@ public class World : Server
     private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var emote = packet.ReadByte();
+        var emote = EmotePacket.Parse(packet.PayloadData).EmoteIndex;
         if (emote <= 35)
         {
             emote += 9;
@@ -3209,7 +3234,7 @@ public class World : Server
     private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var slot = packet.ReadByte();
+        var slot = UseSkillPacket.Parse(packet.PayloadData).Slot;
 
         user.UseSkill(slot);
     }
@@ -3732,8 +3757,9 @@ public class World : Server
     {
         var user = (User)obj;
         // Client sends 0x45 response in the reverse order of what the server sends...
-        var byteB = packet.ReadByte();
-        var byteA = packet.ReadByte();
+        var request = ByteHeartbeatPacket.Parse(packet.PayloadData);
+        var byteB = request.First;
+        var byteA = request.Second;
 
         if (!user.IsHeartbeatValid(byteA, byteB))
         {
@@ -3887,7 +3913,7 @@ public class World : Server
     private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var text = packet.ReadString8();
+        var text = CastLinePacket.Parse(packet.PayloadData).Line;
 
         // Chant echo (legacy CastLine builder's 3 trailing 0x00 dropped)
         user.SendCastLine(new DALib.Networking.Packets.Server.PublicMessagePacket
@@ -3925,8 +3951,10 @@ public class World : Server
     private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var serverTick = packet.ReadInt32();
-        var clientTick = packet.ReadInt32(); // Dunno what to do with this right now, so we just store it
+        var request = TickHeartbeatPacket.Parse(packet.PayloadData);
+        // Same bits either way; IsHeartbeatValid compares against Environment.TickCount.
+        var serverTick = (int)request.ServerTick;
+        var clientTick = (int)request.ClientTick; // Dunno what to do with this right now, so we just store it
 
         if (!user.IsHeartbeatValid(serverTick, clientTick))
         {
@@ -3943,7 +3971,7 @@ public class World : Server
     private void PacketHandler_0x79_Status(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var status = packet.ReadByte();
+        var status = StatusPacket.Parse(packet.PayloadData).Status;
         if (status <= 7) user.GroupStatus = (UserStatus)status;
     }
 
@@ -3951,12 +3979,12 @@ public class World : Server
     private void PacketHandler_0x7B_RequestMetafile(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var all = packet.ReadBoolean();
+        var request = RequestMetafilePacket.Parse(packet.PayloadData);
 
         // The request's bool selects the response form, and doubles as the response's leading
         // discriminator byte: false -> op 0 (one named file's data), true -> op 1 (checksum
         // manifest). Rung-1: darkages-741 111-0x6f-meta-data.
-        if (all)
+        if (request.All)
         {
             var manifest = new DALib.Networking.Packets.Server.MetafileChecksumsPacket();
             foreach (var metafile in WorldState.Values<CompiledMetafile>())
@@ -3970,7 +3998,8 @@ public class World : Server
         }
         else
         {
-            var name = packet.ReadString8();
+            // Parse only reads the name on the !All branch, so it is null exactly when All is set.
+            if (request.Name is not { } name) return;
             if (!WorldState.TryGetValue<CompiledMetafile>(name, out var file)) return;
             GameLog.Info("Responding 6f notall: sending {Name}, checksum {Checksum}", file.Name, file.Checksum);
             // DALib throws above the u16 payload limit rather than silently truncating the length
