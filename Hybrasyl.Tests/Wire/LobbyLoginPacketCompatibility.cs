@@ -29,13 +29,23 @@ using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Lobby and login send-path coverage: each converted opcode's typed DALib
+///     Lobby and login packet-compatibility coverage: each converted opcode's typed DALib
 ///     record must produce the same body bytes the legacy hand-built ServerPacket wrote
 ///     (except where a signed-off delta changes them, as for 0x56). The legacy
 ///     emit is reproduced inline from the pre-conversion site code, so any drift between
 ///     the record and what Hybrasyl always sent is caught here, not by a live client.
 /// </summary>
-public class LobbyLoginSendPath
+/// <remarks>
+///     <strong>These are compatibility tests, not send-path coverage.</strong> Nothing here
+///     invokes a production send path: each case constructs a DALib record, writes its body and
+///     compares it against a hand-reconstructed copy of the encoder the conversion deleted. That
+///     is legitimate migration evidence — it catches a record whose bytes drifted from what
+///     Hybrasyl always sent — but it says nothing about whether anything calls it. Wiring is
+///     covered by <see cref="ReceiveWiring" />, <see cref="MerchantDispatchWiring" /> and
+///     <see cref="CryptoPipeline" />. Named <c>*SendPath</c> until 2026-08-06, which read as
+///     integration coverage it never had.
+/// </remarks>
+public class LobbyLoginPacketCompatibility
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {
@@ -208,19 +218,6 @@ public class LobbyLoginSendPath
     };
 
     [Fact]
-    public void ServerTable_RoundTripsThroughDalibParse()
-    {
-        var body = Body(new ServerTableDataPacket { Servers = [TestEntry] });
-        var parsed = ServerTableDataPacket.Parse(body);
-
-        var entry = Assert.Single(parsed.Servers);
-        Assert.Equal(TestEntry.Id, entry.Id);
-        Assert.Equal(TestEntry.IpAddress, entry.IpAddress);
-        Assert.Equal(TestEntry.Port, entry.Port);
-        Assert.Equal(TestEntry.Name, entry.Name);
-    }
-
-    [Fact]
     public void ServerTable_EmitsValidZlibAndRetailTruePlaintext()
     {
         var body = Body(new ServerTableDataPacket { Servers = [TestEntry] });
@@ -245,29 +242,60 @@ public class LobbyLoginSendPath
         Assert.Equal("Hybrasyl\0"u8.ToArray(), plain[8..]);
     }
 
+    // Login_ParsesUnderStrictTrailerValidation was removed here: it round-tripped DALib's own
+    // LoginPacket.WriteBody through its Parse, and UserTests.LoginToWorld already drives the real
+    // Game.Login.PacketHandlers[0x03] end to end. What it could not do -- catch a shared
+    // misunderstanding of the trailer layout, since encoder and parser agree by construction --
+    // is now covered by the capture below.
+
     /// <summary>
-    ///     The typed 0x03 parse accepts a well-formed body, integrity trailer and
-    ///     all — the trailer's CRC is validated, so a packet whose trailer is malformed throws.
+    ///     A real 0x03 captured off a retail client parses under the strict trailer validation.
     /// </summary>
     /// <remarks>
-    ///     <strong>This is a round-trip and cannot be more than that.</strong> It previously ran
-    ///     through the legacy <c>ClientPackets.Login</c> injector and was described as pinning
-    ///     "the bytes the client actually sends", but that injector built its body by calling
-    ///     DALib's own <c>LoginPacket.WriteBody</c> — so it was DALib agreeing with itself, and
-    ///     the wording overstated it. The injector is gone and the construction is now
-    ///     direct, which changes nothing about what is proven: this catches a parse that rejects
-    ///     its own encoder's output, and would not catch a shared misunderstanding of the trailer
-    ///     layout. Pinning that needs a capture, not a round-trip.
+    ///     <para>
+    ///         Rung 1. Captured live 2026-08-06 (J): <c>C→S 0x03 Login, Normal ord=2</c>. Opcode and
+    ///         ordinal are consumed by framing and Normal's single trailing padding byte stripped,
+    ///         leaving the body below. The trailer is <strong>verbatim</strong> from the wire, which
+    ///         is the whole point — a round-trip through DALib's own writer cannot tell us the
+    ///         layout is right, only that it is self-consistent.
+    ///     </para>
+    ///     <para>
+    ///         <strong>The password is redacted, and the fixture is therefore not byte-verbatim.</strong>
+    ///         The capture carried a real credential. Substituting it is sound here and only here:
+    ///         the trailer covers neither the name nor the password — verified directly by swapping
+    ///         each for same-length replacements and watching the parse still succeed — so the
+    ///         trailer bytes remain exactly what the client sent. Anything that made the trailer
+    ///         depend on the body would invalidate this fixture, and it would need recapturing
+    ///         rather than editing.
+    ///     </para>
+    ///     <para>
+    ///         Worth knowing on its own: the 0x03 "integrity trailer" does not authenticate the
+    ///         credentials it travels with. That is not a finding about Hybrasyl — the transport is
+    ///         encrypted and this is what retail sends — but it is the reason a redacted fixture is
+    ///         legitimate, so it is recorded rather than left implicit.
+    ///     </para>
     /// </remarks>
     [Fact]
-    public void Login_ParsesUnderStrictTrailerValidation()
+    public void RealClientLoginParsesUnderStrictTrailerValidation()
     {
-        var body = new DALib.Networking.Packets.Client.LoginPacket
-            { Name = "Kerden", Password = "leethax6" }.ToBody();
+        byte[] body =
+        [
+            0x06, .. "Kedian"u8,
+            0x08, .. "redacted"u8,           // real capture carried a live password here
+            0x59, 0xB3, 0x4B, 0xB3, 0x4D, 0xB1, 0x98, 0x8A,
+            0xD2, 0x80, 0xD2, 0x90, 0x4D, 0x95, 0x01,
+        ];
 
         var parsed = DALib.Networking.Packets.Client.LoginPacket.Parse(body);
 
-        Assert.Equal("Kerden", parsed.Name);
-        Assert.Equal("leethax6", parsed.Password);
+        Assert.Equal("Kedian", parsed.Name);
+        Assert.Equal("redacted", parsed.Password);
+
+        // The trailer fields, straight off the wire.
+        Assert.Equal((byte) 0x59, parsed.Rand1);
+        Assert.Equal((byte) 0x27, parsed.XorKey);
+        Assert.Equal(0xFF00FF00u, parsed.ServerHash);
+        Assert.Equal((ushort) 0x1E0F, parsed.ClientHash);
+        Assert.Equal(0x4F1C490Au, parsed.RandData);
     }
 }

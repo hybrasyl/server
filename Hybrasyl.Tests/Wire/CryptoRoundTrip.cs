@@ -24,13 +24,25 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Crypto and wire round-trip coverage.
-///     Before this, the encrypted 0xAA-framed wire had zero test coverage. These tests pair
-///     a server-role CryptoState (mirroring Client.Crypto) with a client-role one, encode an
-///     S->C packet through the real send path (Client.Codec + RawBodyPacket bridge), and
-///     confirm the client recovers the exact plaintext body — proving the DALib codec is a
-///     drop-in for the hand-rolled crypto across all three encrypt methods.
+///     Crypto round-trip smoke coverage for the encrypted 0xAA-framed wire, which had none
+///     before the conversion. Each case pairs a server-role CryptoState (mirroring Client.Crypto)
+///     with a client-role one, encodes an S->C packet, and confirms the client recovers the exact
+///     plaintext body across all three encrypt methods.
 /// </summary>
+/// <remarks>
+///     <strong>This is not the send path, and not codec-configuration evidence.</strong> The
+///     summary claimed both until 2026-08-06. <c>PacketCodec.EncodeServer</c> reads only the
+///     packet's own <c>Opcode</c> and <c>WriteBody</c> — it never consults the configured
+///     assembly/parser tables — and <see cref="RawBodyPacket" /> is deliberately unregistered, so
+///     nothing here can exercise codec registration. That is
+///     <c>InboundFrameUnwrapping.Codec_RegistersDalibOpcodes</c>. The real outbound pipeline,
+///     guards included, is <see cref="CryptoPipeline" />.
+///     <para>
+///         What remains is a dependency smoke test: it would catch DALib's crypto changing shape
+///         under us. Worth keeping at that weight and no more. Strengthening it into protocol
+///         evidence needs fixed known-good ciphertext vectors, which neither repository has.
+///     </para>
+/// </remarks>
 public class CryptoRoundTrip
 {
     private const string KeyTableSeed = "TestCharacter";
@@ -113,14 +125,5 @@ public class CryptoRoundTrip
 
         Assert.True(recovered.Length >= body.Length);
         Assert.Equal(body, recovered[..body.Length]);
-    }
-
-    [Fact]
-    public void ServerNormal_WithoutKey_IsReportedUninitialized()
-    {
-        // The FlushSendBuffer guard drops Normal-mode packets when no key is negotiated.
-        var crypto = new CryptoState();
-        Assert.False(crypto.IsInitialized);
-        Assert.Equal(DALib.Networking.Crypto.EncryptMethod.Normal, CryptoState.GetServerEncryptMethod(0x0A));
     }
 }

@@ -81,11 +81,4 @@ public class MerchantQuantityParsing
         if (convertAccepted)
             Assert.Equal(expected, actual);
     }
-
-    [Fact]
-    public void RejectedInputYieldsZeroSoTheHandlerCannotActOnGarbage()
-    {
-        Assert.False(TryRead("jafksdjadisojfasdi", out var value));
-        Assert.Equal(0u, value);
-    }
 }

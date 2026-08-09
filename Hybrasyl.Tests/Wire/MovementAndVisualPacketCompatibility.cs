@@ -26,12 +26,22 @@ using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Movement, map, visual and system send-path coverage. MATCH opcodes are pinned
+///     Movement, map, visual and system packet-compatibility coverage. MATCH opcodes are pinned
 ///     byte-identical against the verbatim pre-conversion emit; slack-family opcodes
 ///     assert the typed body equals the legacy emit minus exactly the signed-off slack bytes,
 ///     and the status-bar cases assert the client-true color bytes.
 /// </summary>
-public class MovementAndVisualSendPath
+/// <remarks>
+///     <strong>These are compatibility tests, not send-path coverage.</strong> Nothing here
+///     invokes a production send path: each case constructs a DALib record, writes its body and
+///     compares it against a hand-reconstructed copy of the encoder the conversion deleted. That
+///     is legitimate migration evidence — it catches a record whose bytes drifted from what
+///     Hybrasyl always sent — but it says nothing about whether anything calls it. Wiring is
+///     covered by <see cref="ReceiveWiring" />, <see cref="MerchantDispatchWiring" /> and
+///     <see cref="CryptoPipeline" />. Named <c>*SendPath</c> until 2026-08-06, which read as
+///     integration coverage it never had.
+/// </remarks>
+public class MovementAndVisualPacketCompatibility
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {

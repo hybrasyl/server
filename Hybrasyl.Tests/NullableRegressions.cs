@@ -348,42 +348,18 @@ public class NullableRegressions
         Assert.Null(ex);
     }
 
-    // Site: ClientPacket.Decrypt — a default-key-encrypted packet arriving on a connection
-    // that has not completed the key exchange (crafted traffic straight to the login/world
-    // port). Pre-migration: NRE dereferencing the null key. Now: Decrypt reports failure
-    // and the caller discards the packet.
-    // Post-DALib-conversion: the null-key guard moved from ClientPacket.Decrypt to the
-    // Crypto.IsInitialized check in Client.FlushReceiveBuffer. A keyless connection reports
-    // uninitialized so the loop discards Normal-mode C->S packets instead of dereferencing a
-    // null key; once keyed, the same opcode decrypts.
-    [Fact]
-    public void DecryptBeforeKeyExchangeReportsFailure()
-    {
-        // 0x02 is EncryptMethod.Normal (default key).
-        Assert.Equal(DALib.Networking.Crypto.EncryptMethod.Normal,
-            DALib.Networking.Crypto.CryptoState.GetClientEncryptMethod(0x02));
-
-        var keyless = new Client();
-        Assert.False(keyless.Crypto.IsInitialized);
-
-        var keyed = new Client { EncryptionKey = "UrkcnItnI"u8.ToArray() };
-        Assert.True(keyed.Crypto.IsInitialized);
-    }
-
-    // Post-DALib-conversion: the send-side guard moved from ServerPacket.Encrypt to the
-    // Crypto.IsInitialized check in Client.FlushSendBuffer. A keyless connection reports
-    // uninitialized so a Normal-mode S->C response queued before the key exchange is dropped
-    // rather than NRE-ing on a null key.
-    [Fact]
-    public void EncryptBeforeKeyExchangeReportsFailure()
-    {
-        // 0x02 (LoginMessage) is EncryptMethod.Normal (default key).
-        Assert.Equal(DALib.Networking.Crypto.EncryptMethod.Normal,
-            DALib.Networking.Crypto.CryptoState.GetServerEncryptMethod(0x02));
-
-        var keyless = new Client();
-        Assert.False(keyless.Crypto.IsInitialized);
-    }
+    // Site: ClientPacket.Decrypt — a default-key-encrypted packet arriving on a connection that
+    // has not completed the key exchange (crafted traffic straight to the login/world port).
+    // Pre-migration: NRE dereferencing the null key. Post-DALib-conversion the guards moved to
+    // Crypto.IsInitialized checks in Client.FlushSendBuffer and Client.FlushReceiveBuffer.
+    //
+    // Two tests here claimed to cover those guards and did not: they asserted DALib's opcode
+    // table and a constructor-set flag, and never called either flush method. Neutering both
+    // guards left the whole suite green at 459/459. They are removed rather than repaired,
+    // because a comment asserting coverage that does not exist is worse than no test — it stops
+    // the real one being written. The send guard is now covered for real by
+    // Hybrasyl.Tests.Wire.CryptoPipeline; the receive guard is documented there as unobservable
+    // at that boundary, with the reasoning.
 
     // Site: GlobalConnectionManifest.RequestEncryptionKey — key endpoint returns a JSON
     // null body. Pre-migration: a null key was returned (NRE downstream). Now: the

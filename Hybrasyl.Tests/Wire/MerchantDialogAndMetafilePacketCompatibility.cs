@@ -35,10 +35,20 @@ using DalibNpcMenuPacket = DALib.Networking.Packets.Server.NpcMenuPacket;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Metafile, dialog and merchant-menu send-path coverage. Everything here is pinned byte-identical against the
+///     Metafile, dialog and merchant-menu packet-compatibility coverage. Everything here is pinned byte-identical against the
 ///     verbatim pre-conversion emit — no deltas were registered for this batch.
 /// </summary>
-public class MerchantDialogAndMetafileSendPath
+/// <remarks>
+///     <strong>These are compatibility tests, not send-path coverage.</strong> Nothing here
+///     invokes a production send path: each case constructs a DALib record, writes its body and
+///     compares it against a hand-reconstructed copy of the encoder the conversion deleted. That
+///     is legitimate migration evidence — it catches a record whose bytes drifted from what
+///     Hybrasyl always sent — but it says nothing about whether anything calls it. Wiring is
+///     covered by <see cref="ReceiveWiring" />, <see cref="MerchantDispatchWiring" /> and
+///     <see cref="CryptoPipeline" />. Named <c>*SendPath</c> until 2026-08-06, which read as
+///     integration coverage it never had.
+/// </remarks>
+public class MerchantDialogAndMetafilePacketCompatibility
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {

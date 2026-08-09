@@ -29,13 +29,23 @@ using DalibLegendMark = DALib.Networking.Packets.Server.LegendMark;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     Social, profile and board send-path coverage. MATCH opcodes are pinned
+///     Social, profile and board packet-compatibility coverage. MATCH opcodes are pinned
 ///     byte-identical against the verbatim pre-conversion emit; the 0x63 Ask trailing NULs and
 ///     the 0x39 trailing 9 bytes assert the typed body equals the legacy emit minus exactly the
 ///     dropped slack; the 0x31 board list asserts the retail-true layout produces the same bytes
 ///     the legacy coincidence produced.
 /// </summary>
-public class SocialAndBoardsSendPath
+/// <remarks>
+///     <strong>These are compatibility tests, not send-path coverage.</strong> Nothing here
+///     invokes a production send path: each case constructs a DALib record, writes its body and
+///     compares it against a hand-reconstructed copy of the encoder the conversion deleted. That
+///     is legitimate migration evidence — it catches a record whose bytes drifted from what
+///     Hybrasyl always sent — but it says nothing about whether anything calls it. Wiring is
+///     covered by <see cref="ReceiveWiring" />, <see cref="MerchantDispatchWiring" /> and
+///     <see cref="CryptoPipeline" />. Named <c>*SendPath</c> until 2026-08-06, which read as
+///     integration coverage it never had.
+/// </remarks>
+public class SocialAndBoardsPacketCompatibility
 {
     private static byte[] Body(DALib.Networking.Wire.ServerPacket record)
     {

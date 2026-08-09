@@ -182,8 +182,8 @@ public class InboundFrameUnwrapping
     }
 
     /// <summary>
-    ///     Framing pops exactly one frame and leaves the next aligned — the property that lets an
-    ///     undecodable packet be dropped without desyncing the stream behind it.
+    ///     The opcode is read from the frame header, not the body — this pins
+    ///     <c>InboundFrame.OpcodeIndex = 3</c> against DALib's C→S frame layout.
     /// </summary>
     [Fact]
     public void FromWire_ReadsTheOpcodeFromTheFrameHeader()
@@ -195,5 +195,88 @@ public class InboundFrameUnwrapping
 
         Assert.Equal((byte) 0x11, frame.Opcode);
         Assert.Equal(0xAA, wire.Span[0]);
+    }
+    /// <summary>Builds a raw C→S frame: <c>[0xAA][u16-BE len][opcode][body...]</c>.</summary>
+    private static byte[] RawFrame(byte opcode, params byte[] body)
+    {
+        var frame = new byte[body.Length + 4];
+        frame[0] = 0xAA;
+        frame[1] = (byte) (((body.Length + 1) >> 8) & 0xFF);
+        frame[2] = (byte) ((body.Length + 1) & 0xFF);
+        frame[3] = opcode;
+        body.CopyTo(frame, 4);
+
+        return frame;
+    }
+
+    /// <summary>
+    ///     Framing pops exactly one frame and leaves the next aligned. This is the property that
+    ///     lets the receive loop drop an undecodable packet and keep the connection: every
+    ///     <c>continue</c> in <c>Client.FlushReceiveBuffer</c> depends on the stream behind the
+    ///     bad frame still starting on a boundary.
+    /// </summary>
+    /// <remarks>
+    ///     The docstring above <c>FromWire_ReadsTheOpcodeFromTheFrameHeader</c> claimed this
+    ///     property until 2026-08-06 without asserting it, and a sweep of the test project for
+    ///     <c>ReceiveBufferPop</c> found nothing — it had no coverage anywhere. Two frames are
+    ///     written into one buffer with distinct opcodes and distinct bodies, so a length
+    ///     miscalculation shows up as the second frame being wrong rather than merely absent.
+    /// </remarks>
+    [Fact]
+    public void FramingPopsOneFrameAndLeavesTheNextAligned()
+    {
+        var state = new ClientState(new TestSocket());
+        var first = RawFrame(0x11, 0x01, 0x02);
+        var second = RawFrame(0x06, 0x03, 0x04, 0x05);
+
+        first.CopyTo(state.Buffer, 0);
+        second.CopyTo(state.Buffer, first.Length);
+        state.BytesReceived = first.Length + second.Length;
+
+        Assert.True(state.TryGetFrame(out var f1), "first frame should pop");
+        Assert.Equal((byte) 0x11, f1.Opcode);
+        Assert.Equal(first, f1.Wire.ToArray());
+
+        // The byte count must come down with the pop, or a later partial frame is misjudged.
+        Assert.Equal(second.Length, state.BytesReceived);
+
+        Assert.True(state.TryGetFrame(out var f2),
+            "the second frame must still start on a boundary after the first was popped");
+        Assert.Equal((byte) 0x06, f2.Opcode);
+        Assert.Equal(second, f2.Wire.ToArray());
+
+        Assert.False(state.TryGetFrame(out _), "buffer should be drained");
+    }
+    /// <summary>
+    ///     A frame that has not fully arrived must not pop, and must pop intact once the rest of
+    ///     it lands. This is the <c>BytesReceived</c> half of the alignment property: TCP delivers
+    ///     the stream in arbitrary chunks, so a header claiming more than the buffer holds is the
+    ///     normal case, not an error.
+    /// </summary>
+    /// <remarks>
+    ///     Added because the two-frame test above does not cover it — deleting
+    ///     <c>BytesReceived -= packetLength</c> left that test green, since its drain assertion
+    ///     rests on the popped buffer no longer starting with 0xAA rather than on the byte count.
+    /// </remarks>
+    [Fact]
+    public void PartialFrameDoesNotPopUntilTheRestArrives()
+    {
+        var state = new ClientState(new TestSocket());
+        var frame = RawFrame(0x06, 0x03, 0x04, 0x05);
+
+        // Everything but the final byte.
+        frame[..^1].CopyTo(state.Buffer, 0);
+        state.BytesReceived = frame.Length - 1;
+
+        Assert.False(state.TryGetFrame(out _),
+            "an incomplete frame must not pop: the body would be truncated and the stream desynced");
+
+        // The tail arrives.
+        state.Buffer[frame.Length - 1] = frame[^1];
+        state.BytesReceived = frame.Length;
+
+        Assert.True(state.TryGetFrame(out var complete), "the frame should pop once complete");
+        Assert.Equal((byte) 0x06, complete.Opcode);
+        Assert.Equal(frame, complete.Wire.ToArray());
     }
 }

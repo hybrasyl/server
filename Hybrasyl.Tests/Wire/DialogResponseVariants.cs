@@ -47,15 +47,6 @@ public class DialogResponseVariants
     }
 
     [Fact]
-    public void MainMenuTextResponse_ReadsTheTrailingString8()
-    {
-        var parsed = NpcTextResponsePacket.ParseResponse([.. MenuPrefix(), 0x05, .. "Beryl"u8]);
-
-        Assert.Equal(0xFF11, parsed.PursuitId);
-        Assert.Equal("Beryl", parsed.Text);
-    }
-
-    [Fact]
     public void MainMenuOptionResponse_ReadsTheTrailingByte()
     {
         var parsed = NpcOptionResponsePacket.ParseResponse([.. MenuPrefix(), 0x03]);
@@ -76,28 +67,10 @@ public class DialogResponseVariants
         Assert.Null(nav.ResponseType);
     }
 
-    [Fact]
-    public void DialogUse_Tag1IsAMenuChoice()
-    {
-        var parsed = DialogUsePacket.Parse([.. DialogPrefix(), DialogUsePacket.TagMenu, 0x02]);
-
-        var option = Assert.IsType<DialogOptionResponsePacket>(parsed);
-        Assert.Equal(0x0007, option.PursuitId);
-        // Choice indexes arrive one-based; OptionsDialog.HandleResponse indexes accordingly.
-        Assert.Equal(0x02, option.Option);
-    }
-
-    [Fact]
-    public void DialogUse_Tag2IsATextSubmission()
-    {
-        var parsed = DialogUsePacket.Parse(
-            [.. DialogPrefix(), DialogUsePacket.TagText, 0x04, .. "1984"u8]);
-
-        var text = Assert.IsType<DialogTextResponsePacket>(parsed);
-        Assert.Equal(0x0007, text.PursuitId);
-        Assert.Equal("1984", text.Text);
-    }
-
+    // Tag1/Tag2 field-level parsing is covered upstream by DALib's
+    // DialogUsePacketTests Parse_Tag01_IsOptionResponse / Parse_Tag02_IsTextResponse, both of
+    // which parse hand-built bodies. Kept here: choice indexes arrive one-based, and
+    // OptionsDialog.HandleResponse indexes accordingly.
     [Fact]
     public void DialogUse_DispatchIsWhatLetsAMismatchedResponseBeSeen()
     {

@@ -112,6 +112,14 @@ public class ReceiveWiring
     ///     strip. The plaintext branch of the unwrap, and the shape that sat unprocessed in the
     ///     queue during the first failed smoke.
     /// </summary>
+    /// <remarks>
+    ///     The exact-body assertion also carries the no-trailing-slack invariant, which is the one
+    ///     the live regression violated: a handler reading one field too many got a 0x00 length
+    ///     byte back and silently succeeded (<c>MerchantMenuHandler_BuyItemWithQuantity</c>'s dead
+    ///     second <c>ReadString8</c>). A separate length-only test used to state that here; it was
+    ///     removed as strictly weaker — verified by mutation, leaving the trailing null on the body
+    ///     fails this assertion too.
+    /// </remarks>
     [Fact]
     public void PlaintextOpcode_ReachesItsHandlerWithTheRightBody()
     {
@@ -150,21 +158,5 @@ public class ReceiveWiring
         Assert.True(delivered is not null,
             "no handler ran: the frame never made it through the receive path");
         Assert.Equal(packet.ToBody(), delivered);
-    }
-
-    /// <summary>
-    ///     The body a handler receives carries no trailing slack. This is the invariant the
-    ///     live regression violated — a handler reading one field too many got a 0x00 length byte
-    ///     back and silently succeeded — asserted here end-to-end rather than on FromFrame alone.
-    /// </summary>
-    [Fact]
-    public void DeliveredBodyHasNoTrailingSlack()
-    {
-        var packet = Join();
-
-        var delivered = DeliverToHandler(packet);
-
-        Assert.NotNull(delivered);
-        Assert.Equal(packet.ToBody().Length, delivered.Length);
     }
 }
