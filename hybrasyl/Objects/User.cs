@@ -25,13 +25,12 @@ using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Manufacturing;
-using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Players.Guilds;
@@ -372,7 +371,7 @@ public class User : Creature
     ///     Send a 0x31 board/mail response, carrying its required transmit delay (the board list
     ///     needs one for the messaging pane to display correctly).
     /// </summary>
-    internal void SendBoardResponse(Networking.ServerPackets.MessagingResponse response) =>
+    internal void SendBoardResponse(MessagingResponse response) =>
         Enqueue(response.Packet(), transmitDelay: response.TransmitDelay);
 
     public override void AoiEntry(VisibleObject obj)

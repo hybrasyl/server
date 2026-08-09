@@ -16,8 +16,8 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Servers;
 using System;
-using System.Globalization;
 using Xunit;
 
 namespace Hybrasyl.Tests.Wire;
@@ -35,9 +35,9 @@ namespace Hybrasyl.Tests.Wire;
 /// </remarks>
 public class MerchantQuantityParsing
 {
-    // The parse World.TryReadQuantity performs.
-    private static bool TryRead(string text, out uint value) =>
-        uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    // The real parse, not a restatement of it. This used to be a local copy of the uint.TryParse
+    // call, which would have kept passing had the production accept-set changed underneath it.
+    private static bool TryRead(string text, out uint value) => World.TryParseQuantity(text, out value);
 
     [Theory]
     // Accepted by Convert, and still accepted — including the tolerances easy to drop by

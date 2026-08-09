@@ -25,14 +25,13 @@ using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Internals.Metafiles;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
 using Hybrasyl.Subsystems;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
-using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
@@ -105,8 +104,6 @@ using DialogUsePacket = DALib.Networking.Packets.Client.DialogUsePacket;
 using DialogOptionResponsePacket = DALib.Networking.Packets.Client.DialogOptionResponsePacket;
 using DialogTextResponsePacket = DALib.Networking.Packets.Client.DialogTextResponsePacket;
 using NpcMainMenuSelectPacket = DALib.Networking.Packets.Client.NpcMainMenuSelectPacket;
-using NpcOptionResponsePacket = DALib.Networking.Packets.Client.NpcOptionResponsePacket;
-using NpcTextResponsePacket = DALib.Networking.Packets.Client.NpcTextResponsePacket;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using MessageType = Hybrasyl.Xml.Objects.MessageType;
@@ -136,6 +133,13 @@ public class World : Server
 
     public HashSet<Creature> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers = new();
+
+    /// <summary>
+    ///     The merchant menu registrations, exposed so <c>MerchantResponseForms</c> can diff each
+    ///     handler's declared 0x39 response form against the form its menu type implies.
+    /// </summary>
+    internal IReadOnlyDictionary<MerchantMenuItem, MerchantMenuHandler> MerchantMenuHandlers =>
+        merchantMenuHandlers;
 
     public World(IPAddress bindAddress, int port, bool isDefault = false) : base(bindAddress, port, isDefault)
     {
@@ -3395,7 +3399,7 @@ public class World : Server
                     return;
                 }
 
-                handler.Callback(user, merchant, packet);
+                handler.Invoke(user, merchant, packet);
                 return;
             }
             else
@@ -4091,31 +4095,37 @@ public class World : Server
 
     #region Merchant Menu ItemObject Handlers
 
-    private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_MainMenu(User user, Merchant merchant)
     {
         (merchant as IPursuitable).DisplayPursuits(user);
     }
 
-    private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant)
     {
         user.ShowBuyMenu(merchant);
     }
 
-    private void MerchantMenuHandler_SellItemMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SellItemMenu(User user, Merchant merchant)
     {
         user.ShowSellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, InboundPacket packet)
+    // The client sends the item name only. The second read this handler used to perform was
+    // spurious: it survived because the legacy buffer still carried the dialog wrapper's trailing
+    // zero past the payload, so it returned "" — and the value was discarded anyway. Under this delta the
+    // body ends at the payload, so reading it throws. Declaring the form removes the possibility.
+    private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, string name)
     {
-        // The client sends the item name only. The second read here was spurious: it survived
-        // because the legacy buffer still carried the dialog wrapper's trailing zero past the
-        // payload, so it returned "" — and the value was discarded anyway. Under this delta the body
-        // ends at the payload, so reading it throws. See the register entry.
-        var name = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
-
         user.ShowBuyMenuQuantity(merchant, name);
     }
+
+    /// <summary>
+    ///     The accept-set itself, with no player-facing side effects, so
+    ///     <c>MerchantQuantityParsing</c> can exercise the real parse rather than a restatement of
+    ///     it. See <see cref="TryReadQuantity" /> for why this accept-set is what it is.
+    /// </summary>
+    internal static bool TryParseQuantity(string text, out uint quantity) =>
+        uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out quantity);
 
     /// <summary>
     ///     Read a quantity/amount from a merchant text prompt. The client's prompt is a plain
@@ -4126,11 +4136,9 @@ public class World : Server
     ///     trailing whitespace, a leading sign), so only the inputs that used to throw are now
     ///     rejected — and they are rejected with a message to the player instead.
     /// </summary>
-    private static bool TryReadQuantity(User user, InboundPacket packet, out uint quantity)
+    internal static bool TryReadQuantity(User user, string text, out uint quantity)
     {
-        var text = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
-
-        if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out quantity))
+        if (TryParseQuantity(text, out quantity))
             return true;
 
         GameLog.UserActivityWarning("{Name}: merchant quantity prompt: rejecting {Input}", user.Name, text);
@@ -4139,9 +4147,9 @@ public class World : Server
         return false;
     }
 
-    private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, string text)
     {
-        if (!TryReadQuantity(user, packet, out var quantity))
+        if (!TryReadQuantity(user, text, out var quantity))
         {
             user.AbortMerchantMenu();
             return;
@@ -4150,9 +4158,9 @@ public class World : Server
         user.ShowBuyItem(merchant, quantity);
     }
 
-    private void MerchantMenuHandler_SellItem(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SellItem(User user, Merchant merchant, string text)
     {
-        if (!TryReadQuantity(user, packet, out var quantity))
+        if (!TryReadQuantity(user, text, out var quantity))
         {
             user.AbortMerchantMenu();
             return;
@@ -4162,9 +4170,8 @@ public class World : Server
         user.ShowSellConfirm(merchant, user.PendingSellableSlot, quantity);
     }
 
-    private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, byte slot)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4177,19 +4184,18 @@ public class World : Server
         user.ShowSellConfirm(merchant, slot);
     }
 
-    private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant)
     {
         user.SellItemAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant)
     {
         user.ShowLearnSkillMenu(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, string skillName)
     {
-        var skillName = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
         // The name comes straight from the packet; only a real skill may enter the flow
         if (!WorldData.TryGetValueByIndex(skillName, out Castable skill) || !skill.IsSkill)
         {
@@ -4201,29 +4207,28 @@ public class World : Server
         user.ShowLearnSkill(merchant, skill);
     }
 
-    private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant)
     {
         user.ShowLearnSkillAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant)
     {
         user.ShowLearnSkillAgree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant)
     {
         user.ShowLearnSkillDisagree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant)
     {
         user.ShowLearnSpellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, string spellName)
     {
-        var spellName = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
         // The name comes straight from the packet; only a real spell may enter the flow
         if (!WorldData.TryGetValueByIndex(spellName, out Castable spell) || !spell.IsSpell)
         {
@@ -4235,65 +4240,62 @@ public class World : Server
         user.ShowLearnSpell(merchant, spell);
     }
 
-    private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant)
     {
         user.ShowLearnSpellAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant)
     {
         user.ShowLearnSpellAgree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant)
     {
         user.ShowLearnSpellDisagree(merchant);
     }
 
 
-    private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant)
     {
         user.ShowForgetSkillMenu(merchant);
     }
 
-    private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, InboundPacket packet) { }
+    private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, byte slot)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         user.ShowForgetSkillAccept(merchant, slot);
     }
 
-    private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant)
     {
         user.ShowForgetSpellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, InboundPacket packet) { }
+    private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, byte slot)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         user.ShowForgetSpellAccept(merchant, slot);
     }
 
-    private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant)
     {
         user.ShowMerchantSendParcel(merchant);
     }
 
-    private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, byte slot)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         var itemObj = user.Inventory[slot];
         if (itemObj == null) return;
 
         user.ShowMerchantSendParcelQuantity(merchant, itemObj);
     }
 
-    private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, string text)
     {
-        if (!TryReadQuantity(user, packet, out var quantity))
+        if (!TryReadQuantity(user, text, out var quantity))
         {
             user.AbortMerchantMenu();
             return;
@@ -4303,37 +4305,34 @@ public class World : Server
         user.ShowMerchantSendParcelRecipient(merchant, quantity);
     }
 
-    private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, InboundPacket packet) { }
+    private void MerchantMenuHandler_SendParcel(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, InboundPacket packet) { }
+    private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, string recipient)
     {
-        var recipient = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
         user.ShowMerchantSendParcelAccept(merchant, recipient);
     }
 
-    private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant)
     {
         user.ShowMerchantReceiveParcelAccept(merchant);
     }
 
-    private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, string item)
     {
-        var item = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
-
         user.ShowWithdrawItemQuantity(merchant, item);
     }
 
-    private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant)
     {
         user.ShowWithdrawItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, string text)
     {
         if (user.PendingWithdrawItem == null) return;
-        if (!TryReadQuantity(user, packet, out var quantity))
+        if (!TryReadQuantity(user, text, out var quantity))
         {
             user.AbortMerchantMenu();
             return;
@@ -4342,19 +4341,18 @@ public class World : Server
         user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
     }
 
-    private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant)
     {
         user.ShowWithdrawGoldMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant)
     {
         user.ShowDepositGoldMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, byte slot)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4367,14 +4365,14 @@ public class World : Server
         user.DepositItemConfirm(merchant, slot);
     }
 
-    private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant)
     {
         user.ShowDepositItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, string text)
     {
-        if (!TryReadQuantity(user, packet, out var quantity))
+        if (!TryReadQuantity(user, text, out var quantity))
         {
             user.AbortMerchantMenu();
             return;
@@ -4383,9 +4381,9 @@ public class World : Server
         user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
     }
 
-    private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, string text)
     {
-        if (!TryReadQuantity(user, packet, out var amount))
+        if (!TryReadQuantity(user, text, out var amount))
         {
             user.AbortMerchantMenu();
             return;
@@ -4394,9 +4392,9 @@ public class World : Server
         user.DepositGoldConfirm(merchant, amount);
     }
 
-    private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, string text)
     {
-        if (!TryReadQuantity(user, packet, out var amount))
+        if (!TryReadQuantity(user, text, out var amount))
         {
             user.AbortMerchantMenu();
             return;
@@ -4405,28 +4403,27 @@ public class World : Server
         user.WithdrawGoldConfirm(merchant, amount);
     }
 
-    private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant)
     {
         user.ShowRepairItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, byte slot)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         user.ShowRepairItem(merchant, slot);
     }
 
-    private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant)
     {
         user.ShowRepairItemAccept(merchant);
     }
 
-    private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant)
     {
         user.ShowRepairAllItems(merchant);
     }
 
-    private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant, InboundPacket packet)
+    private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant)
     {
         user.ShowRepairAllItemsAccept(merchant);
     }

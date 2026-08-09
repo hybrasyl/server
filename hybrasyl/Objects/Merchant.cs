@@ -462,16 +462,86 @@ public struct MerchantSkill
     public string Name;
 }
 
-public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, InboundPacket packet);
+/// <summary>
+///     Which C&#8594;S 0x39 response form a merchant menu item's reply carries. The 0x39 tail is not
+///     self-describing: its shape depends on the menu the server last displayed, not on any byte in
+///     the packet, so DALib cannot dispatch it and each registration must declare its form here.
+/// </summary>
+/// <remarks>
+///     The form letters are the protocol reference's, from
+///     <c>docs/protocol/client/0x39-npc-main-menu.md</c> §"Response tail forms" — Ghidra-verified
+///     against the retail client's eleven C&#8594;S 0x39 emitters. Form C (name and quantity in one
+///     response) is retail-only: Hybrasyl splits buying into an item-list pick and a separate text
+///     prompt, so nothing here ever drives it.
+/// </remarks>
+public enum MerchantResponseForm
+{
+    /// <summary>Form A — bare select. The prefix carries everything; there is no tail.</summary>
+    Select,
 
+    /// <summary>
+    ///     Form B — a trailing <c>string8</c>. Typed input from a text prompt, or the name of the
+    ///     row picked out of a server-supplied item, skill or spell list.
+    /// </summary>
+    Text,
+
+    /// <summary>
+    ///     Form E — a trailing option byte. The row picked out of a player-owned list, where the
+    ///     option <em>is</em> the inventory or book slot.
+    /// </summary>
+    Option
+}
+
+public delegate void MerchantSelectHandlerDelegate(User user, Merchant merchant);
+
+public delegate void MerchantTextHandlerDelegate(User user, Merchant merchant, string text);
+
+public delegate void MerchantOptionHandlerDelegate(User user, Merchant merchant, byte option);
+
+/// <summary>
+///     A merchant menu callback together with the job it requires and the 0x39 response form it
+///     expects. The constructor overloads pair form with callback shape, so a callback receives an
+///     already-parsed value and cannot read past what its form carries — the failure class.
+/// </summary>
+/// <remarks>
+///     This is the receive-side counterpart of <c>User.MerchantMenu</c>'s overloads, which pair menu
+///     type with body shape on the send side. Declaring the form here also makes it readable, which
+///     is what lets <c>MerchantResponseForms</c> diff the two sides.
+/// </remarks>
 public class MerchantMenuHandler
 {
-    public MerchantMenuHandler(MerchantJob requiredJob, MerchantMenuHandlerDelegate callback)
+    private readonly Action<User, Merchant, InboundPacket> Invoker;
+
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantSelectHandlerDelegate callback)
     {
         RequiredJob = requiredJob;
-        Callback = callback;
+        Form = MerchantResponseForm.Select;
+        Invoker = (user, merchant, _) => callback(user, merchant);
     }
 
-    public MerchantJob RequiredJob { get; set; }
-    public MerchantMenuHandlerDelegate Callback { get; set; }
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantTextHandlerDelegate callback)
+    {
+        RequiredJob = requiredJob;
+        Form = MerchantResponseForm.Text;
+        Invoker = (user, merchant, packet) => callback(user, merchant,
+            DALib.Networking.Packets.Client.NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text);
+    }
+
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantOptionHandlerDelegate callback)
+    {
+        RequiredJob = requiredJob;
+        Form = MerchantResponseForm.Option;
+        Invoker = (user, merchant, packet) => callback(user, merchant,
+            DALib.Networking.Packets.Client.NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option);
+    }
+
+    public MerchantJob RequiredJob { get; }
+    public MerchantResponseForm Form { get; }
+
+    /// <summary>
+    ///     Parse the body as this handler's declared form and invoke the callback. A malformed body
+    ///     throws here rather than mid-callback, which is the shape: the receive loop catches
+    ///     it, logs and drops the packet with the connection intact.
+    /// </summary>
+    public void Invoke(User user, Merchant merchant, InboundPacket packet) => Invoker(user, merchant, packet);
 }

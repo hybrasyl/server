@@ -88,6 +88,10 @@ public class HybrasylFixture : IDisposable
         Game.World.ScriptProcessor.CompileScripts();
         Game.World.SetPacketHandlers();
         Game.World.SetControlMessageHandlers();
+        // Mirrors World.Init's registration order. This was missing, so the merchant menu table was
+        // empty in every test run — nothing noticed, because the merchant tests drive User.Show*
+        // directly rather than dispatching a 0x39.
+        Game.World.SetMerchantMenuHandlers();
         Game.World.StartControlConsumers();
 
 

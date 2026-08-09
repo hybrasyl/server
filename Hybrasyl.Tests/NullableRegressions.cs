@@ -240,11 +240,9 @@ public class NullableRegressions
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(handler);
 
-        // The plaintext body a merchant text-response callback receives: string8 "1".
-        // (Framing, opcode and ordinal are consumed before dispatch and are not part of it.)
-        var packet = new InboundPacket(0x38, new byte[] { 0x01, 0x31 });
-
-        var ex = Record.Exception(() => handler.Invoke(Game.World, new object[] { Fixture.TestUser, merchant, packet }));
+        // HS-1577: the callback now declares its 0x39 response form and receives the already-parsed
+        // value, so what arrives here is the text itself rather than a body to read it out of.
+        var ex = Record.Exception(() => handler.Invoke(Game.World, [Fixture.TestUser, merchant, "1"]));
         Assert.Null(ex);
         Assert.Equal(0, Fixture.TestUser.Inventory.Count);
     }

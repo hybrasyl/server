@@ -20,7 +20,6 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
-using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;

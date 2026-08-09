@@ -16,10 +16,10 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using System.Collections.Generic;
 using System.Reflection;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Subsystems.Messaging;
 using Xunit;
 
@@ -57,13 +57,13 @@ public class Messaging
     public void BoardPostResponseEnablesPrevPaging()
     {
         // 0x03 keeps the client's "Prev" button live so board posts can page backward.
-        Assert.Equal(0x03, PayloadOf(BoardResponseType.GetBoardMessage)[1]);
+        Assert.Equal(0x03, PayloadOf(BoardResponseType.PublicPost)[1]);
     }
 
     [Fact]
     public void MailMessageResponseEnablesPrevPaging()
     {
         // Mail already pages correctly; the board response must match this flag.
-        Assert.Equal(0x03, PayloadOf(BoardResponseType.GetMailMessage)[1]);
+        Assert.Equal(0x03, PayloadOf(BoardResponseType.PrivatePost)[1]);
     }
 }
