@@ -71,6 +71,19 @@ public class Server
     public bool Default { get; set; }
     public ISocketProxy? Listener { get; private set; }
     public Dictionary<byte, WorldPacketHandler> WorldPacketHandlers { get; } = new();
+
+    /// <summary>
+    ///     Opcodes with a real handler, as opposed to the unhandled-opcode logger every one of the
+    ///     256 slots is pre-filled with in the constructor.
+    /// </summary>
+    /// <remarks>
+    ///     The pre-fill is why <c>WorldPacketHandlers.ContainsKey</c> cannot answer "is this opcode
+    ///     handled" — it is always true. The receive loop's unknown-opcode gate asked exactly that
+    ///     and was therefore dead code from the moment the pre-fill was added, so an unregistered
+    ///     opcode was decrypted and unwrapped in full before reaching a logger that discards it.
+    ///     Populated by <see cref="World.SetPacketHandlers" />.
+    /// </remarks>
+    public HashSet<byte> RegisteredWorldOpcodes { get; } = [];
     public Dictionary<byte, IPacketThrottle> Throttles { get; }
 
     public Dictionary<ControlOpcode, ControlMessageHandler> ControlMessageHandlers { get; } = new();

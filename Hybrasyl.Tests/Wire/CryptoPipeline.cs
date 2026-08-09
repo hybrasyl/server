@@ -160,21 +160,74 @@ public class CryptoPipeline
         Assert.Equal(opcode, wire[3]);
     }
 
-    // ---- receive half: deliberately not covered here ----
+    // ---- receive half ----
 
-    // The FlushReceiveBuffer keyless guard is NOT tested, and a test was removed rather than
-    // left in place looking like coverage. It is not observable at this boundary: with the guard
-    // neutered the frame still never reaches a handler, because InboundPacket.FromFrame throws
-    // DivideByZeroException on the empty key (verified directly) and the loop's own per-frame
-    // catch logs it and continues. Guard and exception produce the same observable, so any
-    // assertion on dispatch or on queue drain passes either way — confirmed by mutating the
-    // flush-loop guard, ReceiveFrame's outer gate, and both together. All three stayed green.
-    //
-    // There are two guards on this path: ReceiveFrame declines to call FlushReceiveBuffer at all
-    // for a keyless Normal frame, so the inner one is unreachable through the normal entry point.
-    // What removing either actually changes is which warning is logged and whether an exception
-    // is constructed per crafted packet — a cost and clarity property, not a behavioural one.
-    // Pinning it needs a capturing Serilog sink over the global Log.Logger; that is shared
-    // mutable state across this xunit collection and was judged not worth it for defence in
-    // depth. See task notes if that judgement is revisited.
+    /// <summary>
+    ///     A Normal-mode frame arriving before the key exchange is discarded, and the queue drains.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This class previously carried a note claiming the receive guard was unobservable at
+    ///         this boundary, on the grounds that a wrong decrypt throws and is caught per-frame so
+    ///         nothing reaches a handler either way. That was true of the inner guard and wrong
+    ///         about the path: <see cref="Client.ReceiveFrame" /> declined to flush at all for a
+    ///         keyless Normal frame, so the frame stayed in an unbounded queue permanently and the
+    ///         inner guard was never reached. Queue state distinguishes the two perfectly — this
+    ///         test failed before the fix.
+    ///     </para>
+    ///     <para>
+    ///         The accumulation was the real defect. Nothing else drains that queue, and the key
+    ///         never arrives on a connection sending crafted pre-key traffic, so repeated frames
+    ///         grew without limit.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void KeylessReceive_DiscardsTheFrameAndDrainsTheQueue()
+    {
+        var (client, _) = Keyless();
+        Assert.Equal(EncryptMethod.Normal, CryptoState.GetClientEncryptMethod(NormalClientOpcode));
+        Assert.False(client.Crypto.IsInitialized, "precondition: no negotiated key");
+
+        client.ReceiveFrame(CraftedFrame(NormalClientOpcode));
+
+        Assert.False(client.ClientState.ReceiveBufferTake(out _),
+            "a keyless Normal-mode frame must be discarded, not left queued: the receive buffer is "
+            + "unbounded and nothing else drains it");
+    }
+
+    /// <summary>
+    ///     Repeated crafted frames do not accumulate. The single-frame case above would pass on a
+    ///     path that merely dropped the first one.
+    /// </summary>
+    [Fact]
+    public void KeylessReceive_RepeatedFramesDoNotAccumulate()
+    {
+        var (client, _) = Keyless();
+
+        for (var i = 0; i < 32; i++)
+            client.ReceiveFrame(CraftedFrame(NormalClientOpcode));
+
+        Assert.False(client.ClientState.ReceiveBufferTake(out _), "queue must be empty after 32 crafted frames");
+    }
+
+    /// <summary>
+    ///     Crafted traffic straight to the port: a frame whose ciphertext is garbage.
+    /// </summary>
+    private static InboundFrame CraftedFrame(byte opcode)
+    {
+        // Long enough to clear the padding strip in InboundFrame.FromFrame.
+        var payload = new byte[]
+        {
+            opcode, 0x00,
+            0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04,
+            0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C
+        };
+        var wire = new byte[payload.Length + 3];
+        wire[0] = 0xAA;
+        wire[1] = (byte) ((payload.Length >> 8) & 0xFF);
+        wire[2] = (byte) (payload.Length & 0xFF);
+        payload.CopyTo(wire, 3);
+
+        return InboundFrame.FromWire(wire);
+    }
 }

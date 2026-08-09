@@ -185,6 +185,13 @@ public class InboundFrameUnwrapping
     ///     The opcode is read from the frame header, not the body — this pins
     ///     <c>InboundFrame.OpcodeIndex = 3</c> against DALib's C→S frame layout.
     /// </summary>
+    /// <remarks>
+    ///     Not redundant with <see cref="FramingPopsOneFrameAndLeavesTheNextAligned" />, which was
+    ///     proposed once on that basis. That one builds its frames by hand, so it encodes *our*
+    ///     assumption about the layout and would stay green if DALib moved the opcode. This one
+    ///     feeds DALib's own encoder output through <c>InboundFrame</c>, and is the only place the
+    ///     two are cross-checked. Different oracles, not different amounts of the same one.
+    /// </remarks>
     [Fact]
     public void FromWire_ReadsTheOpcodeFromTheFrameHeader()
     {

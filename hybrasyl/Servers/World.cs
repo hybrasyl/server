@@ -1300,6 +1300,7 @@ public class World : Server
             if (attr == null) continue;
             WorldPacketHandlers[attr.Opcode] =
                 (WorldPacketHandler)Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
+            RegisteredWorldOpcodes.Add(attr.Opcode);
         }
 
         GameLog.Info("Packet handlers registered");

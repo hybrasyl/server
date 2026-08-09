@@ -36,10 +36,12 @@ namespace Hybrasyl.Tests.Wire;
 ///     invokes a production send path: each case constructs a DALib record, writes its body and
 ///     compares it against a hand-reconstructed copy of the encoder the conversion deleted. That
 ///     is legitimate migration evidence — it catches a record whose bytes drifted from what
-///     Hybrasyl always sent — but it says nothing about whether anything calls it. Wiring is
-///     covered by <see cref="ReceiveWiring" />, <see cref="MerchantDispatchWiring" /> and
-///     <see cref="CryptoPipeline" />. Named <c>*SendPath</c> until 2026-08-06, which read as
-///     integration coverage it never had.
+///     Hybrasyl always sent — but it says nothing about whether anything calls it. <strong>No test
+///     covers these particular call sites.</strong> <see cref="ReceiveWiring" />,
+///     <see cref="MerchantDispatchWiring" /> and <see cref="CryptoPipeline" /> cover inbound
+///     dispatch and the generic outbound pipeline respectively; none of them reaches the individual
+///     record-construction sites these cases exercise. Named <c>*SendPath</c> until 2026-08-06,
+///     which read as integration coverage it never had.
 /// </remarks>
 public class MovementAndVisualPacketCompatibility
 {

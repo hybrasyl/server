@@ -391,13 +391,17 @@ public class Client : AbstractClient, IClient
                         continue;
                     }
 
-                    // An opcode with no registered handler is dropped here rather
-                    // than reaching dispatch. Only the World table needs this — Lobby and Login
-                    // pre-fill all 256 slots with an "unhandled opcode" logger, while World's is
-                    // a Dictionary that would otherwise throw KeyNotFoundException. Framing
-                    // already consumed the whole frame, so the stream behind it stays aligned
-                    // and the connection is kept.
-                    if (Server is World world && !world.WorldPacketHandlers.ContainsKey(frame.Opcode))
+                    // An opcode with no registered handler is dropped here rather than reaching
+                    // dispatch, so a crafted opcode is not decrypted and unwrapped first. Framing
+                    // already consumed the whole frame, so the stream behind it stays aligned and
+                    // the connection is kept.
+                    //
+                    // This asked WorldPacketHandlers.ContainsKey until 2026-08-07, which is always
+                    // true: Server's constructor pre-fills all 256 slots with an unhandled-opcode
+                    // logger, so the gate never fired and the comment claiming World's table would
+                    // otherwise throw KeyNotFoundException was simply wrong. RegisteredWorldOpcodes
+                    // holds only the opcodes SetPacketHandlers bound to a real method.
+                    if (Server is World world && !world.RegisteredWorldOpcodes.Contains(frame.Opcode))
                     {
                         GameLog.Warning(
                             "cid {ConnectionId}: no handler for opcode 0x{Opcode:X2} ({Length} bytes), discarding",
@@ -533,17 +537,27 @@ public class Client : AbstractClient, IClient
     /// </summary>
     /// <remarks>
     ///     The flush is load-bearing: without it nothing drains the queue and the entire receive
-    ///     path stalls silently. A Normal-encrypted opcode arriving before key exchange is left
-    ///     queued rather than flushed, because it cannot be decrypted yet.
+    ///     path stalls silently.
+    ///     <para>
+    ///         This used to skip the flush for a Normal-mode opcode arriving before key exchange,
+    ///         on the reasoning that it could not be decrypted yet. That left the frame in the
+    ///         queue permanently: the receive buffer is an unbounded
+    ///         <see cref="System.Collections.Concurrent.ConcurrentQueue{T}" />, nothing else drains
+    ///         it, and the key never arrives on a connection that is sending crafted pre-key
+    ///         traffic — so repeated frames accumulated without limit. It also made the discard
+    ///         guard in <see cref="FlushReceiveBuffer" /> unreachable through this entry point.
+    ///     </para>
+    ///     <para>
+    ///         Always flushing is correct: a Normal-mode frame before the key exchange is out of
+    ///         order by definition (the key is set from the None-mode 0x10 ClientJoin), so it is
+    ///         not a packet to hold for later. The guard discards it with a warning and the queue
+    ///         drains.
+    ///     </para>
     /// </remarks>
     public void ReceiveFrame(InboundFrame frame)
     {
         ClientState.ReceiveBufferAdd(frame);
-
-        var needsKey = CryptoState.GetClientEncryptMethod(frame.Opcode) ==
-                       DALib.Networking.Crypto.EncryptMethod.Normal;
-        if (!needsKey || Crypto.IsInitialized)
-            FlushReceiveBuffer();
+        FlushReceiveBuffer();
     }
 
     public void Enqueue(IClientPacket packet)
