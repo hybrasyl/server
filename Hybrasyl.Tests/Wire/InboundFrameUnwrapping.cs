@@ -181,28 +181,6 @@ public class InboundFrameUnwrapping
             $"expected the full S→C surface, got {Client.Codec.RegisteredServerOpcodeCount}");
     }
 
-    /// <summary>
-    ///     The opcode is read from the frame header, not the body — this pins
-    ///     <c>InboundFrame.OpcodeIndex = 3</c> against DALib's C→S frame layout.
-    /// </summary>
-    /// <remarks>
-    ///     Not redundant with <see cref="FramingPopsOneFrameAndLeavesTheNextAligned" />, which was
-    ///     proposed once on that basis. That one builds its frames by hand, so it encodes *our*
-    ///     assumption about the layout and would stay green if DALib moved the opcode. This one
-    ///     feeds DALib's own encoder output through <c>InboundFrame</c>, and is the only place the
-    ///     two are cross-checked. Different oracles, not different amounts of the same one.
-    /// </remarks>
-    [Fact]
-    public void FromWire_ReadsTheOpcodeFromTheFrameHeader()
-    {
-        var crypto = MakeCrypto();
-        var wire = Client.Codec.EncodeClient(new TurnPacket { Direction = Direction.West }, crypto);
-
-        var frame = InboundFrame.FromWire(wire);
-
-        Assert.Equal((byte) 0x11, frame.Opcode);
-        Assert.Equal(0xAA, wire.Span[0]);
-    }
     /// <summary>Builds a raw C→S frame: <c>[0xAA][u16-BE len][opcode][body...]</c>.</summary>
     private static byte[] RawFrame(byte opcode, params byte[] body)
     {
@@ -223,9 +201,10 @@ public class InboundFrameUnwrapping
     ///     bad frame still starting on a boundary.
     /// </summary>
     /// <remarks>
-    ///     The docstring above <c>FromWire_ReadsTheOpcodeFromTheFrameHeader</c> claimed this
-    ///     property until 2026-08-06 without asserting it, and a sweep of the test project for
-    ///     <c>ReceiveBufferPop</c> found nothing — it had no coverage anywhere. Two frames are
+    ///     A neighbouring opcode-header test claimed this property until 2026-08-06 without
+    ///     asserting it — that test has since been removed, its DALib-encoder cross-check
+    ///     superseded by the raw retail frame in <c>CryptoRoundTrip</c> — and a sweep of the test
+    ///     project for <c>ReceiveBufferPop</c> found nothing: it had no coverage anywhere. Two frames are
     ///     written into one buffer with distinct opcodes and distinct bodies, so a length
     ///     miscalculation shows up as the second frame being wrong rather than merely absent.
     /// </remarks>

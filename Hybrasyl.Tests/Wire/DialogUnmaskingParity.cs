@@ -68,24 +68,6 @@ public class DialogUnmaskingParity
         Assert.Equal(legacy[6..(6 + body.Length)], dalib);
     }
 
-    [Fact]
-    public void LegacyUnmaskedTheCrcBytesButNeverCheckedThem()
-    {
-        // The legacy loop ran from offset 4, so it unmasked the two CRC bytes as if they were
-        // body — then did nothing with them. The cutover turns that into a real check.
-        var body = SampleBody();
-        var obfuscated = DialogObfuscation.Apply(body, new Random(1));
-
-        var legacy = LegacyDecryptDialog(obfuscated);
-        var crc = (ushort) ((legacy[4] << 8) | legacy[5]);
-
-        var actual = (ushort) 0;
-        foreach (var b in body)
-            actual = CrcCcitt.Step(actual, b);
-
-        // The legacy path had the right value sitting in the buffer and ignored it.
-        Assert.Equal(actual, crc);
-    }
 
     // CRC-mismatch rejection and the AppliesTo opcode gate are covered upstream
     // (DialogObfuscationTests, whose AppliesTo case is a strict superset of ours). This one is

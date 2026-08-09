@@ -159,4 +159,121 @@ public class ReceiveWiring
             "no handler ran: the frame never made it through the receive path");
         Assert.Equal(packet.ToBody(), delivered);
     }
+
+    /// <summary>
+    ///     One layer earlier again: bytes in at the socket callback, handler out. This covers
+    ///     <c>Server.ReadCallback</c>'s <c>while (TryGetFrame) ReceiveFrame</c> loop, which is the
+    ///     seam between framing and delivery.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The two tests above begin at <c>ReceiveFrame</c> and so own only the second half of
+    ///         the chain. Deleting that loop from <c>ReadCallback</c> left the entire suite green
+    ///         at 471/471 — framing tests and delivery tests each passing while nothing connected
+    ///         them, which is the shape this branch has already shipped twice.
+    ///     </para>
+    ///     <para>
+    ///         The callback is invoked directly rather than through <see cref="TestSocket" />'s
+    ///         completion, because <c>ReadCallback</c> ends by re-arming the receive; see the
+    ///         remarks on <c>TestSocket.BeginReceive</c>.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void SocketCallback_DrivesFramingAndReachesTheHandler()
+    {
+        var socket = new TestSocket();
+        var client = new Client(socket, Game.Login) { EncryptionKey = "UrkcnItnI"u8.ToArray() };
+        var packet = Join();
+        var original = Game.Login.PacketHandlers[packet.Opcode];
+        byte[]? delivered = null;
+
+        try
+        {
+            Game.Login.PacketHandlers[packet.Opcode] = (_, p) => delivered = p.Body.ToArray();
+
+            socket.QueueReceive(Client.Codec.EncodeClient(packet, client.Crypto).ToArray());
+
+            var state = client.ClientState;
+            var ar = socket.BeginReceive(state.Buffer, state.BytesReceived,
+                state.Buffer.Length - state.BytesReceived, System.Net.Sockets.SocketFlags.None, null, state);
+
+            Game.Login.ReadCallback(ar);
+
+            Assert.True(delivered is not null,
+                "no handler ran: ReadCallback did not carry the bytes through framing to delivery");
+            Assert.Equal(packet.ToBody(), delivered);
+        }
+        finally
+        {
+            Game.Login.PacketHandlers[packet.Opcode] = original;
+            GlobalConnectionManifest.DeregisterClient(client);
+        }
+    }
+
+    /// <summary>
+    ///     A frame arriving across two reads is buffered and reassembled, not dropped or
+    ///     misjudged. This is the ordinary TCP case: nothing guarantees a frame arrives whole.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>ClientState.TryGetFrame</c> refuses to pop until
+    ///         <c>BytesReceived >= packetLength</c>, so the first callback must leave the partial
+    ///         frame alone and the second must complete it. The single-read test above cannot
+    ///         distinguish that from a framing layer that ignores the byte count entirely.
+    ///     </para>
+    ///     <para>
+    ///         This also holds <see cref="TestSocket" /> honest. It advertised split receives while
+    ///         consuming eagerly in <c>BeginReceive</c>, which silently ate one queued receive per
+    ///         callback through the re-arm in <c>ContinueReceiving</c> — so this test could not
+    ///         have passed before that was fixed on 2026-08-07.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void SocketCallback_ReassemblesAFrameSplitAcrossTwoReceives()
+    {
+        var socket = new TestSocket();
+        var client = new Client(socket, Game.Login) { EncryptionKey = "UrkcnItnI"u8.ToArray() };
+        var packet = Join();
+        var original = Game.Login.PacketHandlers[packet.Opcode];
+        byte[]? delivered = null;
+
+        try
+        {
+            Game.Login.PacketHandlers[packet.Opcode] = (_, p) => delivered = p.Body.ToArray();
+
+            var wire = Client.Codec.EncodeClient(packet, client.Crypto).ToArray();
+            var split = wire.Length / 2;
+            // The first read must carry the complete 3-byte header, so TryGetFrame knows the real
+            // packet length and declines on the byte count. A first read shorter than the header
+            // would defer for the weaker reason that it could not read a length at all.
+            Assert.True(split > 3,
+                $"precondition: the first read ({split} bytes) must contain the whole 3-byte header");
+
+            socket.QueueReceive(wire[..split]);
+            socket.QueueReceive(wire[split..]);
+
+            Drive(client, socket);
+            Assert.True(delivered is null,
+                "a partial frame was dispatched: TryGetFrame popped before the whole frame arrived");
+
+            Drive(client, socket);
+            Assert.True(delivered is not null, "the completed frame never reached the handler");
+            Assert.Equal(packet.ToBody(), delivered);
+        }
+        finally
+        {
+            Game.Login.PacketHandlers[packet.Opcode] = original;
+            GlobalConnectionManifest.DeregisterClient(client);
+        }
+    }
+
+    /// <summary>One socket read: arm the buffer where the last one left off, then run the callback.</summary>
+    private static void Drive(Client client, TestSocket socket)
+    {
+        var state = client.ClientState;
+        var ar = socket.BeginReceive(state.Buffer, state.BytesReceived,
+            state.Buffer.Length - state.BytesReceived, System.Net.Sockets.SocketFlags.None, null, state);
+
+        Game.Login.ReadCallback(ar);
+    }
 }

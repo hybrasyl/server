@@ -40,9 +40,22 @@ namespace Hybrasyl.Tests.Wire;
 ///     <c>InboundFrameUnwrapping.Codec_RegistersDalibOpcodes</c>. The real outbound pipeline,
 ///     guards included, is <see cref="CryptoPipeline" />.
 ///     <para>
-///         What remains is a dependency smoke test: it would catch DALib's crypto changing shape
-///         under us. Worth keeping at that weight and no more. Strengthening it into protocol
-///         evidence needs fixed known-good ciphertext vectors, which neither repository has.
+///         What remains is a <strong>unilateral-breakage guard on the outbound encoder</strong>,
+///         and it is worth exactly that. <c>EncodeServer</c> is production-used — it is how
+///         Hybrasyl sends — while its partner <c>DecryptServer</c> is not, so a symmetric
+///         misunderstanding of the cipher passes here unnoticed. What does not pass is
+///         <c>EncodeServer</c> breaking on its own under a DALib upgrade, and nothing else in the
+///         suite would catch that: <see cref="CryptoPipeline" /> asserts the frame header, length
+///         and opcode byte but never the ciphertext, and
+///         <see cref="RetailCiphertextDecryptsAndItsInnerCrcValidates" /> is inbound-only.
+///     </para>
+///     <para>
+///         The principled replacement is a known-good <em>S→C</em> ciphertext vector, at which
+///         point <see cref="ServerEncrypted_RoundTrips" /> should go. That was impossible when
+///         this remark was first written; it is now merely pending a capture, the C→S half having
+///         arrived on 2026-08-07. <c>ClientEncrypted_RoundTrips_ThroughDecryptClient</c> was
+///         removed that day for exactly this reason — its production-used half
+///         (<c>DecryptClient</c>) is covered by the retail vector with a real oracle.
 ///     </para>
 /// </remarks>
 public class CryptoRoundTrip
@@ -108,26 +121,6 @@ public class CryptoRoundTrip
         Assert.Equal(body, enc[1..]);
     }
 
-    [Fact]
-    public void ClientEncrypted_RoundTrips_ThroughDecryptClient()
-    {
-        // Mirror of the receive path: a client encrypts a C->S packet, the server-role
-        // CryptoState.DecryptClient recovers the body (the exact call FlushReceiveBuffer makes).
-        var (server, client) = Paired();
-        var body = new byte[] { 0x41, 0x42, 0x43, 0x44 };
-        const byte opcode = 0x0F; // MD5Key C->S
-
-        var plainPayload = new byte[1 + body.Length];
-        plainPayload[0] = opcode;
-        body.CopyTo(plainPayload, 1);
-
-        var encrypted = client.EncryptClientPacket(opcode, plainPayload);
-        // encrypted = [opcode][ordinal][data][7-byte footer]; DecryptClient wants payload after ordinal.
-        var recovered = server.DecryptClient(opcode, encrypted[1], encrypted[2..]);
-
-        Assert.True(recovered.Length >= body.Length);
-        Assert.Equal(body, recovered[..body.Length]);
-    }
     /// <summary>
     ///     A raw retail frame, decrypted by DALib and validated by a CRC it did not compute.
     /// </summary>
@@ -141,7 +134,7 @@ public class CryptoRoundTrip
     ///     <para>
     ///         Captured pre-decryption 2026-08-07 (J) against <c>da0.kru.com:2610</c>, on the
     ///         connection whose key exchange is pinned in
-    ///         <c>LobbyLoginPacketCompatibility.RealRetailKeyExchangeFramesParse</c> — seed 9, key
+    ///         <c>LobbyLoginPacketCompatibility.RealRetailKeyExchangeFramesMatchOurEmitAndParse</c> — seed 9, key
     ///         <c>3D2943692B5F685446</c>, read off the wire from the 0x00 CryptoKey.
     ///     </para>
     ///     <para>

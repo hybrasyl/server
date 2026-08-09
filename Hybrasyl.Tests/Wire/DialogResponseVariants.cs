@@ -22,38 +22,23 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     The 0x39/0x3A response-variant mapping the converted handlers depend on.
-///     Bodies here are hand-written from the field layout rather than produced by DALib's own
-///     writers — a round-trip through <c>WriteBody</c> would agree with <c>Parse</c> by
-///     construction and could not catch a wrong layout.
+///     The 0x3A variant discrimination the converted handler branches on. Bodies are hand-written
+///     from the field layout rather than produced by DALib's own writers — a round-trip through
+///     <c>WriteBody</c> would agree with <c>Parse</c> by construction and could not catch a wrong
+///     layout.
 /// </summary>
+/// <remarks>
+///     Reduced on 2026-08-07. The 0x39 prefix and option-byte cases were removed: both are now
+///     exercised through the real handler by <see cref="MerchantDispatchWiring" />, which reaches
+///     <c>NpcMainMenuSelectPacket.ParseResponse</c> at <c>World.cs:3358</c> and
+///     <c>NpcOptionResponsePacket.ParseResponse</c> at <c>Merchant.cs:535</c> with Hybrasyl-owned
+///     side effects as the oracle. What remains is the discrimination itself, which no handler
+///     test pins — see the two cases below.
+/// </remarks>
 public class DialogResponseVariants
 {
     // 0x39/0x3A share a prefix; 0x3A adds the pursuit index.
-    private static byte[] MenuPrefix() => [0x01, 0x00, 0x00, 0xAB, 0xCD, 0xFF, 0x11];
-
     private static byte[] DialogPrefix() => [0x01, 0x00, 0x00, 0xAB, 0xCD, 0x00, 0x07, 0x00, 0x02];
-
-    [Fact]
-    public void MainMenuSelect_ReadsPrefixAndIgnoresAnyTail()
-    {
-        // The 0x39 handler parses this form for every response; a merchant callback then
-        // re-parses the same body as whichever variant its own menu carries.
-        var parsed = NpcMainMenuSelectPacket.ParseResponse([.. MenuPrefix(), 0x05, .. "Beryl"u8]);
-
-        Assert.Equal(0x01, parsed.ObjectType);
-        Assert.Equal(0x0000ABCDu, parsed.ObjectId);
-        Assert.Equal(0xFF11, parsed.PursuitId);
-    }
-
-    [Fact]
-    public void MainMenuOptionResponse_ReadsTheTrailingByte()
-    {
-        var parsed = NpcOptionResponsePacket.ParseResponse([.. MenuPrefix(), 0x03]);
-
-        Assert.Equal(0xFF11, parsed.PursuitId);
-        Assert.Equal(0x03, parsed.Option);
-    }
 
     [Fact]
     public void DialogUse_NoTagIsNavigation()
@@ -67,17 +52,31 @@ public class DialogResponseVariants
         Assert.Null(nav.ResponseType);
     }
 
-    // Tag1/Tag2 field-level parsing is covered upstream by DALib's
-    // DialogUsePacketTests Parse_Tag01_IsOptionResponse / Parse_Tag02_IsTextResponse, both of
-    // which parse hand-built bodies. Kept here: choice indexes arrive one-based, and
-    // OptionsDialog.HandleResponse indexes accordingly.
+    /// <summary>
+    ///     A text tail parses as the <em>text</em> variant specifically, not merely as
+    ///     "not an option".
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Proposed for removal on 2026-08-07 as superseded by
+    ///         <c>ReceivePathHandlerGuards.OptionsDialogActive_TextResponseIsRefusedWithoutRunningTheCallback</c>.
+    ///         It is not. That test establishes the parse is <em>not</em>
+    ///         <c>DialogOptionResponsePacket</c> — which a navigation parse would satisfy equally.
+    ///         Production's <c>TextDialog</c> branch in <c>World.cs</c> requires
+    ///         <c>DialogTextResponsePacket</c> by name, and this is the only assertion anywhere
+    ///         that a text tail yields it.
+    ///     </para>
+    ///     <para>
+    ///         <strong>The TextDialog happy path is not covered</strong> (not "cannot be"):
+    ///         <c>TextDialog.HandleResponse</c> returns false without a script handler, and both
+    ///         the refusal branch and a false return end in <c>ClearDialogState(); return;</c> —
+    ///         identical observables. Covering it needs a Lua dialog fixture, which the test
+    ///         project does not have yet. Until then this case carries the contract.
+    ///     </para>
+    /// </remarks>
     [Fact]
-    public void DialogUse_DispatchIsWhatLetsAMismatchedResponseBeSeen()
+    public void DialogUse_TextTailParsesAsTextAndNotAsAnOption()
     {
-        // The handler branches on the server's idea of the active dialog, then asserts
-        // the wire shape agrees. The legacy positional read had no way to notice a
-        // disagreement — it simply took the next byte as the option. This is the case that
-        // used to be invisible: a text submission arriving while an options dialog is open.
         var parsed = DialogUsePacket.Parse(
             [.. DialogPrefix(), DialogUsePacket.TagText, 0x02, .. "no"u8]);
 

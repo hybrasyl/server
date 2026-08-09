@@ -25,9 +25,15 @@ using Xunit;
 namespace Hybrasyl.Tests.Wire;
 
 /// <summary>
-///     The keyless-connection guard in <see cref="Client.FlushSendBuffer" />, exercised through
-///     the real flush loop. The receive-side guard is deliberately not covered — see the note at
-///     the foot of this class for why it cannot be, at this boundary.
+///     The keyless-connection guards in <see cref="Client.FlushSendBuffer" /> and
+///     <see cref="Client.FlushReceiveBuffer" />, both exercised through the real flush loops.
+///     <para>
+///         The receive half was described here as uncoverable at this boundary until 2026-08-07.
+///         That was wrong twice over: the claim was reached by probing an entry point production
+///         does not use, and the underlying reason it looked unobservable was a live defect —
+///         <c>ReceiveFrame</c> enqueued without flushing, so the frame sat in an unbounded queue
+///         forever. With that fixed, queue state distinguishes discard from retention exactly.
+///     </para>
 /// </summary>
 /// <remarks>
 ///     <para>

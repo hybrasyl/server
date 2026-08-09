@@ -59,35 +59,6 @@ public class MovementAndCombatReceivePath
     }
 
     [Fact]
-    public void UseSpell_TargetedCarriesSerialInArgs()
-    {
-        // [u8 slot][u32 target][u16 x][u16 y] — the handler reads only the serial.
-        var body = new byte[9];
-        body[0] = 12;
-        BinaryPrimitives.WriteUInt32BigEndian(body.AsSpan(1), 0xDEADBEEF);
-        BinaryPrimitives.WriteUInt16BigEndian(body.AsSpan(5), 40);
-        BinaryPrimitives.WriteUInt16BigEndian(body.AsSpan(7), 41);
-
-        var parsed = UseSpellPacket.Parse(body);
-
-        Assert.Equal(12, parsed.Slot);
-        Assert.Equal(8, parsed.Args.Length);
-        Assert.Equal(0xDEADBEEFu, BinaryPrimitives.ReadUInt32BigEndian(parsed.Args));
-    }
-
-    [Fact]
-    public void UseSpell_NoTargetLeavesArgsEmpty()
-    {
-        // The legacy positional read threw IndexOutOfRangeException here and the queue consumer
-        // swallowed it, so the cast silently never happened. The handler now treats an absent
-        // tail as target 0, which UseSpell already models as "no target".
-        var parsed = UseSpellPacket.Parse([7]);
-
-        Assert.Equal(7, parsed.Slot);
-        Assert.Empty(parsed.Args);
-    }
-
-    [Fact]
     public void UseSkill_ParsesSlot()
     {
         Assert.Equal(5, UseSkillPacket.Parse([5]).Slot);

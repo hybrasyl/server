@@ -357,9 +357,10 @@ public class NullableRegressions
     // table and a constructor-set flag, and never called either flush method. Neutering both
     // guards left the whole suite green at 459/459. They are removed rather than repaired,
     // because a comment asserting coverage that does not exist is worse than no test — it stops
-    // the real one being written. The send guard is now covered for real by
-    // Hybrasyl.Tests.Wire.CryptoPipeline; the receive guard is documented there as unobservable
-    // at that boundary, with the reasoning.
+    // the real one being written. Both guards are now covered for real by
+    // Hybrasyl.Tests.Wire.CryptoPipeline, receive included — an earlier note here called the
+    // receive guard unobservable, which was itself a false coverage claim sitting on a live
+    // defect (ReceiveFrame enqueued without flushing).
 
     // Site: GlobalConnectionManifest.RequestEncryptionKey — key endpoint returns a JSON
     // null body. Pre-migration: a null key was returned (NRE downstream). Now: the

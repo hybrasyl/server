@@ -306,7 +306,8 @@ public class LobbyLoginPacketCompatibility
         Assert.Equal(0x4F1C490Au, parsed.RandData);
     }
     /// <summary>
-    ///     The two key-exchange frames, captured raw off a retail connection and parsed by DALib.
+    ///     The two key-exchange frames, captured raw off a retail connection. 0x00 is checked by
+    ///     <em>emitting</em> it — that is the direction Hybrasyl takes — and 0x10 by parsing it.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -317,7 +318,8 @@ public class LobbyLoginPacketCompatibility
     ///     <para>
     ///         Captured 2026-08-07 (J) against <c>da0.kru.com:2610</c>. The connection's own log line
     ///         read <c>Seed=9, Key=3D2943692B5F685446</c>, which is an independent oracle for the
-    ///         0x00 parse below — the logger derived it, DALib parses it, and they agree.
+    ///         0x00 case below — the logger derived those values from the wire, and DALib's
+    ///         <c>WriteBody</c> reproduces the captured bytes from them.
     ///     </para>
     ///     <para>
     ///         The key material is kept deliberately. It is a per-connection ephemeral seed and key
@@ -328,15 +330,25 @@ public class LobbyLoginPacketCompatibility
     ///     </para>
     /// </remarks>
     [Fact]
-    public void RealRetailKeyExchangeFramesParse()
+    public void RealRetailKeyExchangeFramesMatchOurEmitAndParse()
     {
-        // S→C 0x00 CryptoKey: [subtype][u32 ServerTableCrc][seed][u8 keyLen][key]
-        var cryptoKey = CryptoKeyPacket.Parse(
-            Convert.FromHexString("00" + "4BDA8542" + "09" + "09" + "3D2943692B5F685446"));
+        // S→C 0x00 CryptoKey: [subtype][u32 ServerTableCrc][seed][u8 keyLen][key].
+        //
+        // Asserted through WriteBody, not Parse. Hybrasyl only ever *emits* 0x00 — Lobby.cs:59
+        // constructs this record and enqueues it — so parsing the captured body would exercise a
+        // direction production never takes, and would stay green if WriteBody laid the fields out
+        // wrongly. Serializing and comparing against retail's own bytes is the contract that
+        // matters, because the retail client is the reader.
+        var lobbyKey = new CryptoKeyPacket
+        {
+            ServerTableCrc = 0x4BDA8542,
+            Seed = 9,
+            Key = Convert.FromHexString("3D2943692B5F685446")
+        };
 
-        Assert.Equal(0x4BDA8542u, cryptoKey.ServerTableCrc);
-        Assert.Equal((byte) 9, cryptoKey.Seed);
-        Assert.Equal(Convert.FromHexString("3D2943692B5F685446"), cryptoKey.Key);
+        Assert.Equal(
+            Convert.FromHexString("00" + "4BDA8542" + "09" + "09" + "3D2943692B5F685446"),
+            lobbyKey.ToBody());
 
         // C→S 0x10 ClientJoin: [seed][u8 keyLen][key][string8 name][u32-BE redirectId]
         var join = DALib.Networking.Packets.Client.ClientJoinPacket.Parse(
@@ -347,8 +359,10 @@ public class LobbyLoginPacketCompatibility
         Assert.Equal("socket[259]", join.Name);
 
         // The redirect carries the same seed and key the lobby issued -- which is the whole
-        // mechanism by which a passive observer recovers them.
-        Assert.Equal(cryptoKey.Seed, join.EncryptionSeed);
-        Assert.Equal(cryptoKey.Key, join.EncryptionKey);
+        // mechanism by which a passive observer recovers them. Still a capture-to-capture
+        // comparison despite the fields being written as literals above: the assertion on
+        // ToBody() pins those literals to the captured 0x00 body.
+        Assert.Equal(lobbyKey.Seed, join.EncryptionSeed);
+        Assert.Equal(lobbyKey.Key, join.EncryptionKey);
     }
 }

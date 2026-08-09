@@ -17,6 +17,8 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System.Linq;
+using DALib.Networking.Packets.Client;
+using DALib.Networking.Wire;
 using Hybrasyl.Networking;
 using Xunit;
 
@@ -35,10 +37,13 @@ namespace Hybrasyl.Tests.Wire;
 ///         the opcodes <c>SetPacketHandlers</c> bound to a real method.
 ///     </para>
 ///     <para>
-///         Asserting on the registration set rather than on log output, because the observable
-///         difference the gate makes is the work it avoids, and that is not visible from outside.
-///         What is checkable is that the predicate the gate consults actually discriminates —
-///         which <c>ContainsKey</c> did not.
+///         The registration tests below check that the <em>predicate</em> discriminates. That is
+///         necessary and was not sufficient: until 2026-08-07 nothing drove
+///         <c>Client.FlushReceiveBuffer</c>, so reverting the production gate to the dead
+///         <c>ContainsKey</c> form left the whole suite green at 471/471. An earlier version of
+///         this remark asserted the gate's effect was "not visible from outside," which was wrong
+///         and is why the gap survived — the World branch adds to <c>World.MessageQueue</c>, and a
+///         frame that never arrives there is precisely the observable.
 ///     </para>
 /// </remarks>
 [Collection("Hybrasyl")]
@@ -86,5 +91,78 @@ public class UnknownOpcodeGate
     public void RegistrationReflectsWhatSetPacketHandlersBound(byte opcode, bool expected)
     {
         Assert.Equal(expected, Game.World.RegisteredWorldOpcodes.Contains(opcode));
+    }
+
+    /// <summary>Builds a raw C→S frame: <c>[0xAA][u16-BE len][opcode][body...]</c>.</summary>
+    private static byte[] RawFrame(byte opcode, params byte[] body)
+    {
+        var frame = new byte[body.Length + 4];
+        frame[0] = 0xAA;
+        frame[1] = (byte) (((body.Length + 1) >> 8) & 0xFF);
+        frame[2] = (byte) ((body.Length + 1) & 0xFF);
+        frame[3] = opcode;
+        body.CopyTo(frame, 4);
+        return frame;
+    }
+
+    /// <summary>
+    ///     The gate itself, driven through a real World client. This is the test whose absence let
+    ///     the dead <c>ContainsKey</c> predicate sit in production undetected.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Both halves are in one test on purpose. The negative alone ("nothing reached the
+    ///         queue") is satisfied by a receive path that delivers nothing at all — which is the
+    ///         failure this branch has actually shipped, twice. The registered-opcode half is the
+    ///         positive control that separates "the gate dropped it" from "the path is dead."
+    ///     </para>
+    ///     <para>
+    ///         <c>Crypto.IsInitialized</c> is asserted as a precondition because the pre-key
+    ///         discard guard sits <em>above</em> the registration gate in
+    ///         <c>FlushReceiveBuffer</c>. Without a key, a Normal/MD5Key frame is dropped by that
+    ///         guard instead, and this test would pass while proving nothing about registration.
+    ///     </para>
+    ///     <para>
+    ///         <c>World.MessageQueue</c> is readable because its consumer thread is started only
+    ///         by <c>Game.cs</c>, never by the fixture — so the queue accumulates rather than
+    ///         draining underneath the assertion. What this test adds is taken back out.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void UnregisteredOpcodeIsDroppedBeforeReachingTheMessageQueue()
+    {
+        const byte registered = 0x0F;   // UseSpell
+        const byte unregistered = 0x12; // no handler bound
+
+        Assert.True(Game.World.RegisteredWorldOpcodes.Contains(registered), "precondition");
+        Assert.False(Game.World.RegisteredWorldOpcodes.Contains(unregistered), "precondition");
+
+        var client = new Client(new TestSocket(), Game.World)
+        {
+            EncryptionKey = "UrkcnItnI"u8.ToArray()
+        };
+
+        try
+        {
+            Assert.True(client.Crypto.IsInitialized,
+                "precondition: without a key the pre-key guard drops the frame above the gate");
+
+            // Positive control.
+            var before = Hybrasyl.Servers.World.MessageQueue.Count;
+            client.ReceiveFrame(InboundFrame.FromWire(
+                Client.Codec.EncodeClient(new UseSpellPacket { Slot = 1 }, client.Crypto)));
+            Assert.Equal(before + 1, Hybrasyl.Servers.World.MessageQueue.Count);
+
+            // The gate.
+            var afterControl = Hybrasyl.Servers.World.MessageQueue.Count;
+            client.ReceiveFrame(InboundFrame.FromWire(
+                RawFrame(unregistered, 0xDE, 0xAD, 0xBE, 0xEF)));
+            Assert.Equal(afterControl, Hybrasyl.Servers.World.MessageQueue.Count);
+        }
+        finally
+        {
+            while (Hybrasyl.Servers.World.MessageQueue.TryTake(out _)) { }
+            GlobalConnectionManifest.DeregisterClient(client);
+        }
     }
 }
