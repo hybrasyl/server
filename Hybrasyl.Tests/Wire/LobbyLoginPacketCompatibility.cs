@@ -303,4 +303,50 @@ public class LobbyLoginPacketCompatibility
         Assert.Equal((ushort) 0x1E0F, parsed.ClientHash);
         Assert.Equal(0x4F1C490Au, parsed.RandData);
     }
+    /// <summary>
+    ///     The two key-exchange frames, captured raw off a retail connection and parsed by DALib.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Rung 1, and genuinely raw rather than reconstructed: 0x00 and 0x10 are
+    ///         <c>EncryptMethod.None</c>, so what the logger printed is what crossed the wire. Every
+    ///         other capture in this suite is post-decrypt.
+    ///     </para>
+    ///     <para>
+    ///         Captured 2026-08-07 (J) against <c>da0.kru.com:2610</c>. The connection's own log line
+    ///         read <c>Seed=9, Key=3D2943692B5F685446</c>, which is an independent oracle for the
+    ///         0x00 parse below — the logger derived it, DALib parses it, and they agree.
+    ///     </para>
+    ///     <para>
+    ///         The key material is kept deliberately. It is a per-connection ephemeral seed and key
+    ///         from a session that ended in 1.5 seconds, and it grants nothing now; the fixture is
+    ///         worthless without it. Note that <c>socket[259]</c> is the redirect's session name, not
+    ///         a character name — it is what the key table is generated from, which is worth knowing
+    ///         before anyone tries to reproduce an MD5Key frame with a character's name.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void RealRetailKeyExchangeFramesParse()
+    {
+        // S→C 0x00 CryptoKey: [subtype][u32 ServerTableCrc][seed][u8 keyLen][key]
+        var cryptoKey = CryptoKeyPacket.Parse(
+            Convert.FromHexString("00" + "4BDA8542" + "09" + "09" + "3D2943692B5F685446"));
+
+        Assert.Equal(0x4BDA8542u, cryptoKey.ServerTableCrc);
+        Assert.Equal((byte) 9, cryptoKey.Seed);
+        Assert.Equal(Convert.FromHexString("3D2943692B5F685446"), cryptoKey.Key);
+
+        // C→S 0x10 ClientJoin: [seed][u8 keyLen][key][string8 name][u32-BE redirectId]
+        var join = DALib.Networking.Packets.Client.ClientJoinPacket.Parse(
+            Convert.FromHexString("09" + "09" + "3D2943692B5F685446" + "0B" + "736F636B65745B3235395D" + "0000048B"));
+
+        Assert.Equal((byte) 9, join.EncryptionSeed);
+        Assert.Equal(Convert.FromHexString("3D2943692B5F685446"), join.EncryptionKey);
+        Assert.Equal("socket[259]", join.Name);
+
+        // The redirect carries the same seed and key the lobby issued -- which is the whole
+        // mechanism by which a passive observer recovers them.
+        Assert.Equal(cryptoKey.Seed, join.EncryptionSeed);
+        Assert.Equal(cryptoKey.Key, join.EncryptionKey);
+    }
 }

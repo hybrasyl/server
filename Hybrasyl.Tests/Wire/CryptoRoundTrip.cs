@@ -16,8 +16,10 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System;
 using System.Text;
 using DALib.Networking.Crypto;
+using DALib.Networking.Packets.Client;
 using Hybrasyl.Networking;
 using Xunit;
 
@@ -125,5 +127,72 @@ public class CryptoRoundTrip
 
         Assert.True(recovered.Length >= body.Length);
         Assert.Equal(body, recovered[..body.Length]);
+    }
+    /// <summary>
+    ///     A raw retail frame, decrypted by DALib and validated by a CRC it did not compute.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Everything else in this class pairs two DALib <see cref="CryptoState" /> instances and
+    ///         is therefore self-consistent by construction — it would survive DALib and retail
+    ///         disagreeing about the cipher entirely. This one cannot: the ciphertext was produced by
+    ///         a retail client and nothing here participated in making it.
+    ///     </para>
+    ///     <para>
+    ///         Captured pre-decryption 2026-08-07 (J) against <c>da0.kru.com:2610</c>, on the
+    ///         connection whose key exchange is pinned in
+    ///         <c>LobbyLoginPacketCompatibility.RealRetailKeyExchangeFramesParse</c> — seed 9, key
+    ///         <c>3D2943692B5F685446</c>, read off the wire from the 0x00 CryptoKey.
+    ///     </para>
+    ///     <para>
+    ///         <strong>The oracle is the CRC, not the assertion below.</strong> 0x3A is
+    ///         dialog-obfuscated, and <c>DialogObfuscation.Remove</c> validates a CRC-CCITT carried
+    ///         <em>inside</em> the encrypted payload. A single wrong byte anywhere in the decrypt —
+    ///         wrong salt row for the seed, wrong key application, wrong footer width — makes the
+    ///         unmask throw rather than return plausible garbage. The asserted plaintext is a
+    ///         convenience; the fact that this chain completes at all is the result.
+    ///     </para>
+    ///     <para>
+    ///         Note the direction. Re-encrypting cannot be pinned byte-for-byte: the 7-byte footer
+    ///         carries per-packet random bRand/sRand, so DALib encoding the same body produces
+    ///         different bytes every time and legitimately so. Decrypt is the only direction in which
+    ///         a fixed vector is meaningful.
+    ///     </para>
+    ///     <para>
+    ///         <strong>Scope, established by mutating each input.</strong> This pins the seed (which
+    ///         selects the salt row), the key, and the ciphertext body — corrupting any of the three
+    ///         makes the inner CRC reject. It pins <em>neither</em> the ordinal nor the footer:
+    ///         altering the ordinal byte, or the bRand/sRand at the tail, leaves it green. Both are
+    ///         genuinely inert here, because a Normal-mode packet decrypts under the static
+    ///         <see cref="CryptoState.EncryptionKey" /> rather than the <c>GenerateKey(bRand, sRand)</c>
+    ///         path an MD5Key packet takes. An MD5Key vector would cover them and needs a separate
+    ///         capture — plus the session name the key table is built from, which is the redirect's
+    ///         name and not the character's.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public void RetailCiphertextDecryptsAndItsInnerCrcValidates()
+    {
+        // AA [u16-BE len] [opcode 3A] [ordinal 1D] [ciphertext...]
+        var wire = Convert.FromHexString(
+            "AA001B3A1D72F4A2869378D0EEFD7F051E7B6B162A17371F7539C64E543E");
+
+        var crypto = new CryptoState
+        {
+            EncryptionSeed = 9,
+            EncryptionKey = Convert.FromHexString("3D2943692B5F685446")
+        };
+
+        var packet = InboundPacket.FromFrame(InboundFrame.FromWire(wire), crypto);
+
+        // [u8 objectType][u32-BE objectId][u16-BE pursuitId][u16-BE pursuitIndex][u8 tag][u8 option]
+        Assert.Equal(
+            new byte[] { 0x01, 0x00, 0x00, 0x1F, 0x70, 0x02, 0x4C, 0x01, 0x09, 0x01, 0x01 },
+            packet.Body.ToArray());
+
+        var option = Assert.IsType<DialogOptionResponsePacket>(
+            DialogUsePacket.Parse(packet.Body.Span));
+        Assert.Equal(0x024C, option.PursuitId);
+        Assert.Equal(0x01, option.Option);
     }
 }
