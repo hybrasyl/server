@@ -2966,8 +2966,12 @@ public class World : Server
                 user.GroupRecruit = GroupRecruit.FromRequest(request, user);
                 user.Show();
                 break;
+            // Stage 5 is also how a recruiter asks for their *own* box: the client opens the
+            // recruit tab by querying itself and populating the panel from the reply, which retail
+            // answers. Refusing the self-query left "start a recruitment, click it, nothing
+            // happens" — so only the missing-box case returns here.
             case GroupClientPacketType.RecruitInfo:
-                if (partner == user || partner.GroupRecruit == null) return;
+                if (partner.GroupRecruit == null) return;
 
                 partner.GroupRecruit.ShowTo(user);
                 break;
