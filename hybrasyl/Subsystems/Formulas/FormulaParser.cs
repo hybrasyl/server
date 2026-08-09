@@ -91,16 +91,36 @@ internal static class FormulaParser
         return e;
     }
 
+    // Guard rails for designer-authored formulas. OverflowProtection turns silently-wrapping
+    // integer arithmetic (2000000000*2 was -294967296) and division by zero into exceptions
+    // the catch below reports. RoundAwayFromZero replaces .NET's banker's rounding, under
+    // which Round(2.5) is 2 -- rarely what a formula author means.
+    private const ExpressionOptions EvalOptions =
+        ExpressionOptions.OverflowProtection | ExpressionOptions.RoundAwayFromZero;
+
     public static double Eval(string expression, FormulaEvaluation evalEnvironment)
     {
         if (string.IsNullOrEmpty(expression)) return 0.0;
-        Expression e = new(expression);
+        Expression e = new(expression, EvalOptions);
         e = Parameterize(e, evalEnvironment);
         try
         {
             // Evaluate exactly once: RAND_* parameters are fixed at Parameterize time, but a
             // second Evaluate() is still wasted work on a per-tick/per-hit path.
-            return Convert.ToDouble(e.Evaluate());
+            var result = Convert.ToDouble(e.Evaluate());
+
+            // OverflowProtection covers x/0 but NOT 0/0 (NaN) or Pow overflow (infinity), and
+            // every caller casts this double to a narrower unsigned type where .NET saturates
+            // rather than erroring -- (uint)infinity is 4294967295, which would read as a
+            // legitimate award of gold, xp or regen. Fail closed instead.
+            if (!double.IsFinite(result))
+            {
+                GameLog.SpawnError("Eval error: expression {Expression} produced non-finite result {Result}",
+                    expression, result);
+                return 0.0;
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
