@@ -24,6 +24,8 @@ using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Mundanes;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
+using NpcOptionResponsePacket = DALib.Networking.Packets.Client.NpcOptionResponsePacket;
+using NpcTextResponsePacket = DALib.Networking.Packets.Client.NpcTextResponsePacket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -510,29 +512,29 @@ public delegate void MerchantOptionHandlerDelegate(User user, Merchant merchant,
 /// </remarks>
 public class MerchantMenuHandler
 {
-    private readonly Action<User, Merchant, InboundPacket> Invoker;
+    private readonly Action<User, Merchant, InboundPacket> _invoker;
 
     public MerchantMenuHandler(MerchantJob requiredJob, MerchantSelectHandlerDelegate callback)
     {
         RequiredJob = requiredJob;
         Form = MerchantResponseForm.Select;
-        Invoker = (user, merchant, _) => callback(user, merchant);
+        _invoker = (user, merchant, _) => callback(user, merchant);
     }
 
     public MerchantMenuHandler(MerchantJob requiredJob, MerchantTextHandlerDelegate callback)
     {
         RequiredJob = requiredJob;
         Form = MerchantResponseForm.Text;
-        Invoker = (user, merchant, packet) => callback(user, merchant,
-            DALib.Networking.Packets.Client.NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text);
+        _invoker = (user, merchant, packet) => callback(user, merchant,
+            NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text);
     }
 
     public MerchantMenuHandler(MerchantJob requiredJob, MerchantOptionHandlerDelegate callback)
     {
         RequiredJob = requiredJob;
         Form = MerchantResponseForm.Option;
-        Invoker = (user, merchant, packet) => callback(user, merchant,
-            DALib.Networking.Packets.Client.NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option);
+        _invoker = (user, merchant, packet) => callback(user, merchant,
+            NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option);
     }
 
     public MerchantJob RequiredJob { get; }
@@ -543,5 +545,5 @@ public class MerchantMenuHandler
     ///     throws here rather than mid-callback, which is the shape: the receive loop catches
     ///     it, logs and drops the packet with the connection intact.
     /// </summary>
-    public void Invoke(User user, Merchant merchant, InboundPacket packet) => Invoker(user, merchant, packet);
+    public void Invoke(User user, Merchant merchant, InboundPacket packet) => _invoker(user, merchant, packet);
 }

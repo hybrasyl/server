@@ -21,10 +21,9 @@ using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Xml.Objects;
 using System;
-using System.Buffers.Binary;
 using System.Linq;
-using System.Reflection;
 using Xunit;
+using LegacyServerPacket = Hybrasyl.Tests.Wire.LegacyBodyWriter;
 
 namespace Hybrasyl.Tests.Wire;
 
@@ -36,22 +35,15 @@ namespace Hybrasyl.Tests.Wire;
 ///     <para>
 ///         <see cref="MerchantResponseForms" /> reads the registration table; it proves each
 ///         callback <em>declares</em> the right form and says nothing about whether anything
-///         dispatches to it. That gap was real: commenting out the <c>handler.Invoke</c> call in
-///         <c>PacketHandler_0x39_NPCMainMenu</c> left the entire suite green. Every merchant test
-///         drives <c>User.Show…</c> or reflects onto a callback directly, so all 46 registrations
-///         and the dispatch that reads them were unexercised.
+///         dispatches to it. Every other merchant test drives <c>User.Show…</c> or reflects onto a
+///         callback directly, so the dispatch that reads those registrations is otherwise
+///         unexercised.
 ///     </para>
 ///     <para>
-///         That is the same shape as the two P5a failures — components correct, chain unwired, suite
-///         green — which is why this asserts the chain rather than another component. The
-///         <c>MerchantMenuHandlers</c> table was also empty in every test run until the fixture was
-///         taught to call <c>SetMerchantMenuHandlers</c>, so nothing here could have worked before.
-///     </para>
-///     <para>
-///         Bodies are hand-assembled rather than built with DALib's writer, so a writer bug cannot
-///         make a broken chain look wired. Layout is the protocol reference's 0x39 prefix
-///         <c>[u8 objectType][u32 objectId][u16 pursuitId]</c> — multi-byte fields big-endian — then
-///         the form's tail.
+///         Dispatch goes through <c>WorldPacketHandlers</c> rather than at the handler method, so
+///         the <c>[PacketHandler(0x39)]</c> registration is part of what this covers. Bodies are
+///         assembled with <c>LegacyBodyWriter</c> rather than DALib's writer, so a writer bug
+///         cannot make a broken chain look wired.
 ///     </para>
 /// </remarks>
 [Collection("Hybrasyl")]
@@ -73,44 +65,30 @@ public class MerchantDispatchWiring
         return merchant;
     }
 
-    /// <summary>The 0x39 prefix, then whatever tail the caller's form carries.</summary>
-    private static byte[] Body(uint objectId, MerchantMenuItem item, params byte[] tail)
+    /// <summary>
+    ///     The 0x39 prefix — <c>[u8 objectType][u32 objectId][u16 pursuitId]</c>, multi-byte fields
+    ///     big-endian — then whatever tail the caller's form carries.
+    /// </summary>
+    private static byte[] Body(uint objectId, MerchantMenuItem item, Action<LegacyServerPacket>? tail = null)
     {
-        var body = new byte[7 + tail.Length];
-        body[0] = 0x01; // ObjectTypeCreature
-        BinaryPrimitives.WriteUInt32BigEndian(body.AsSpan(1, 4), objectId);
-        BinaryPrimitives.WriteUInt16BigEndian(body.AsSpan(5, 2), (ushort)item);
-        tail.CopyTo(body, 7);
-        return body;
+        var body = new LegacyServerPacket(0x39);
+        body.WriteByte(0x01); // ObjectTypeCreature
+        body.WriteUInt32(objectId);
+        body.WriteUInt16((ushort) item);
+        tail?.Invoke(body);
+        return body.BodyMemory.ToArray();
     }
 
-    private static byte[] String8(string value)
-    {
-        var bytes = System.Text.Encoding.ASCII.GetBytes(value);
-        var tail = new byte[bytes.Length + 1];
-        tail[0] = (byte)bytes.Length;
-        bytes.CopyTo(tail, 1);
-        return tail;
-    }
-
-    private void Dispatch(InboundPacket packet)
-    {
-        var handler = typeof(World).GetMethod("PacketHandler_0x39_NPCMainMenu",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(handler);
-        handler.Invoke(Game.World, [Fixture.TestUser, packet]);
-    }
+    private static void Dispatch(User user, byte[] body) =>
+        Game.World.WorldPacketHandlers[0x39].Invoke(user, new InboundPacket(0x39, body));
 
     /// <summary>
     ///     Text form (B), asserted on the <em>content</em> of the string and not merely on the
     ///     callback having run.
     /// </summary>
     /// <remarks>
-    ///     The first version of this dispatched an invalid quantity and asserted the rejection
-    ///     message. It passed with the parse mutated to hand the callback <c>string.Empty</c> —
-    ///     because empty is rejected too, so nothing about it depended on the text surviving the
-    ///     chain. Depositing a specific amount makes the value load-bearing: drop the text and no
-    ///     gold moves.
+    ///     Depositing a specific amount is what makes the value load-bearing: an assertion on a
+    ///     rejection message would also hold if the chain delivered an empty string.
     /// </remarks>
     [Fact]
     public void TextFormReachesItsCallbackWithTheTypedString()
@@ -121,8 +99,8 @@ public class MerchantDispatchWiring
         Fixture.TestUser.Stats.Gold = 1000;
         var vaultBefore = Fixture.TestUser.Vault.CurrentGold;
 
-        var body = Body(merchant.Id, MerchantMenuItem.DepositGoldQuantity, String8("123"));
-        Dispatch(new InboundPacket(0x39, body));
+        var body = Body(merchant.Id, MerchantMenuItem.DepositGoldQuantity, b => b.WriteString8("123"));
+        Dispatch(Fixture.TestUser, body);
 
         Assert.Equal(vaultBefore + 123, Fixture.TestUser.Vault.CurrentGold);
         Assert.Equal(1000u - 123, Fixture.TestUser.Stats.Gold);
@@ -152,8 +130,8 @@ public class MerchantDispatchWiring
         Fixture.TestUser.ShowRepairItem(merchant, 2);
         Assert.Equal(2, Fixture.TestUser.PendingRepairSlot);
 
-        var body = Body(merchant.Id, MerchantMenuItem.RepairItem, 1);
-        Dispatch(new InboundPacket(0x39, body));
+        var body = Body(merchant.Id, MerchantMenuItem.RepairItem, b => b.WriteByte(1));
+        Dispatch(Fixture.TestUser, body);
 
         Assert.Equal(1, Fixture.TestUser.PendingRepairSlot);
     }
@@ -174,8 +152,8 @@ public class MerchantDispatchWiring
         try
         {
             merchant.Jobs = MerchantJob.Repair; // anything but Bank
-            var body = Body(merchant.Id, MerchantMenuItem.DepositGoldQuantity, String8("notanumber"));
-            Dispatch(new InboundPacket(0x39, body));
+            var body = Body(merchant.Id, MerchantMenuItem.DepositGoldQuantity, b => b.WriteString8("notanumber"));
+            Dispatch(Fixture.TestUser, body);
         }
         finally
         {

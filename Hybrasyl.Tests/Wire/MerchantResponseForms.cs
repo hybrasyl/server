@@ -72,18 +72,15 @@ namespace Hybrasyl.Tests.Wire;
 [Collection("Hybrasyl")]
 public class MerchantResponseForms
 {
-    public MerchantResponseForms(HybrasylFixture fixture)
-    {
-        Fixture = fixture;
-    }
-
-    private HybrasylFixture Fixture { get; }
-
     /// <summary>
     ///     Item &#8594; the form its menu type implies. Derived from the send site in
     ///     <c>User.cs</c>, never from the handler bodies. The comment on each group names the
     ///     <c>MerchantMenu</c> overload that offers those items.
     /// </summary>
+    /// <remarks>
+    ///     46 entries, covering every live registration. HS-1577 was written against 47, a count
+    ///     that included a commented-out <c>BuyItem</c> line.
+    /// </remarks>
     public static readonly Dictionary<MerchantMenuItem, MerchantResponseForm> ExpectedForms = new()
     {
         // MerchantInput -> NpcMenuType.TextEntry -> form B. A typed reply.
@@ -159,8 +156,10 @@ public class MerchantResponseForms
     public void EveryRegisteredCallbackParsesItsMenuTypesForm()
     {
         var mismatches = Game.World.MerchantMenuHandlers
-            .Where(predicate: kv => ExpectedForms.TryGetValue(kv.Key, out var expected) && kv.Value.Form != expected)
-            .Select(selector: kv => $"{kv.Key}: registered {kv.Value.Form}, menu implies {ExpectedForms[kv.Key]}")
+            .Select(selector: kv => (kv.Key, Registered: kv.Value.Form,
+                Expected: ExpectedForms.TryGetValue(kv.Key, out var e) ? e : (MerchantResponseForm?) null))
+            .Where(predicate: x => x.Expected is not null && x.Registered != x.Expected)
+            .Select(selector: x => $"{x.Key}: registered {x.Registered}, menu implies {x.Expected}")
             .ToList();
 
         Assert.Empty(mismatches);
@@ -193,16 +192,5 @@ public class MerchantResponseForms
             .ToList();
 
         Assert.Empty(unregistered);
-    }
-
-    /// <summary>
-    ///     Pins the denominator. HS-1577 was written against "47 pairings", which counted the
-    ///     commented-out <c>BuyItem</c> line; there are 46 live registrations. A count that drifts
-    ///     silently is how an audit's completeness claim goes stale.
-    /// </summary>
-    [Fact]
-    public void TheRegistrationCountIsWhatTheAuditCovered()
-    {
-        Assert.Equal(46, Game.World.MerchantMenuHandlers.Count);
     }
 }

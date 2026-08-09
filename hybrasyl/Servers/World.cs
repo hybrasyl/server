@@ -271,9 +271,7 @@ public class World : Server
             GameLog.Error(e, "GenerateMetafiles: unhandled failure; server will start with incomplete metafiles");
         }
 
-        SetPacketHandlers();
-        SetControlMessageHandlers();
-        SetMerchantMenuHandlers();
+        RegisterHandlers();
         RegisterWorldThrottles();
         LoadPlugins();
         if (_dataLoadErrors > 0)
@@ -1276,6 +1274,18 @@ public class World : Server
         }
 
         GameLog.Info("Control message handlers registered");
+    }
+
+    /// <summary>
+    ///     Every in-process handler table, in one call so a caller cannot register a subset. The
+    ///     test fixture used to list these itself and had silently drifted by one, leaving the
+    ///     merchant menu table empty in every run.
+    /// </summary>
+    public void RegisterHandlers()
+    {
+        SetPacketHandlers();
+        SetControlMessageHandlers();
+        SetMerchantMenuHandlers();
     }
 
     public void SetPacketHandlers()
@@ -2970,10 +2980,12 @@ public class World : Server
                 user.GroupRecruit = GroupRecruit.FromRequest(request, user);
                 user.Show();
                 break;
-            // Stage 5 is also how a recruiter asks for their *own* box: the client opens the
-            // recruit tab by querying itself and populating the panel from the reply, which retail
-            // answers. Refusing the self-query left "start a recruitment, click it, nothing
-            // happens" — so only the missing-box case returns here.
+            // The subject guards across these arms follow one rule: a mutation of your own recruit
+            // state requires partner == user (stages 4 and 6), a mutation of someone else's group
+            // requires partner != user (stage 7), and a pure query requires neither. Stage 5 is a
+            // query, so it answers a self-targeted request too — Brigid sends one to populate its
+            // own recruit tab. Whether the retail client emits stage 5 at all is unresolved
+            // (HTOO-259); answering a request nobody sends costs nothing either way.
             case GroupClientPacketType.RecruitInfo:
                 if (partner.GroupRecruit == null) return;
 
@@ -4110,10 +4122,6 @@ public class World : Server
         user.ShowSellMenu(merchant);
     }
 
-    // The client sends the item name only. The second read this handler used to perform was
-    // spurious: it survived because the legacy buffer still carried the dialog wrapper's trailing
-    // zero past the payload, so it returned "" — and the value was discarded anyway. Under this delta the
-    // body ends at the payload, so reading it throws. Declaring the form removes the possibility.
     private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, string name)
     {
         user.ShowBuyMenuQuantity(merchant, name);
@@ -4136,7 +4144,7 @@ public class World : Server
     ///     trailing whitespace, a leading sign), so only the inputs that used to throw are now
     ///     rejected — and they are rejected with a message to the player instead.
     /// </summary>
-    internal static bool TryReadQuantity(User user, string text, out uint quantity)
+    private static bool TryReadQuantity(User user, string text, out uint quantity)
     {
         if (TryParseQuantity(text, out quantity))
             return true;

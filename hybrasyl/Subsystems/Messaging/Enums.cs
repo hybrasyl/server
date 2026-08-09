@@ -24,9 +24,3 @@ public enum BoardAccessLevel
     Write,       // N.B. Write implies read
     Moderate    // Moderator implies r/w access
 }
-
-// The 0x31 response type is DALib's BoardResponseType. Hybrasyl used to declare its own with the
-// same eight concepts under different numbers — DisplayList/GetMailboxIndex/GetBoardIndex/
-// GetMailMessage/GetBoardMessage = 1..5 against the wire's 1/4/2/5/3 — which read as a wire enum
-// and was not one. Four values disagreed and four agreed, and the two builders that cast it
-// straight to the wire (6/7/8) were correct only by that coincidence.

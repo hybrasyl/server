@@ -17,12 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Networking;
-using Hybrasyl.Objects;
-using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Players.Grouping;
-using System;
-using System.Reflection;
-using System.Text;
 using Xunit;
 using GroupRequestPacket = DALib.Networking.Packets.Client.GroupRequestPacket;
 
@@ -33,53 +28,29 @@ namespace Hybrasyl.Tests.Wire;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Brigid opens the recruit tab by sending a <em>self</em>-targeted ViewGroupBox
-///         (<c>WorldScreen.cs:372</c>, <c>SendGroupInvite(ViewGroupBox, WorldState.PlayerName)</c>)
-///         and populating the panel from the server's reply — the comment on
-///         <c>GroupTabControl.OnRecruitTabOpened</c> spells the contract out. Retail answers it:
-///         the recruitment window opens on USDA.
+///         Brigid opens its recruit tab by sending a <em>self</em>-targeted ViewGroupBox and
+///         populating the panel from the server's reply, so a server that refuses the self-query
+///         leaves the tab blank — "start a recruitment, click it, nothing happens". Observed
+///         working against USDA and not against Hybrasyl, which is what prompted this.
 ///     </para>
 ///     <para>
-///         Hybrasyl refused it. The <c>RecruitInfo</c> arm guarded on
-///         <c>partner == user || partner.GroupRecruit == null</c>, so the self-query returned
-///         before <c>ShowTo</c> and nothing was ever sent. The observable is "start a recruitment,
-///         click it, nothing happens."
+///         Grounding, since the two halves differ: that Brigid emits it is read from Brigid's
+///         source, and that a live server answers it is J's observation. Whether the <em>retail</em>
+///         client emits stage 5 at all is still disputed — the protocol reference marks it
+///         unresolved pending a rung-1 sweep (HTOO-259). This test pins Hybrasyl's side of the
+///         exchange, which is correct under either answer.
 ///     </para>
 ///     <para>
-///         Not conversion fallout, despite looking like it: that guard dates to
-///         <c>aacdc07</c> (2024-05-24) and P4c left the arm untouched. Brigid grew the self-query in
-///         <c>f11d341</c> (2026-04-18), so the two have simply never agreed.
+///         Dispatch goes through <c>WorldPacketHandlers</c> rather than at the handler method, so
+///         the <c>[PacketHandler(0x2E)]</c> registration is part of what this covers. The body is
+///         hand-assembled by <see cref="GroupRequestBodies" /> rather than by DALib's writer, so a
+///         writer bug cannot make a broken chain look wired.
 ///     </para>
 /// </remarks>
 [Collection("Hybrasyl")]
-public class GroupRecruitSelfView
+public class GroupRecruitSelfView(HybrasylFixture fixture)
 {
-    public GroupRecruitSelfView(HybrasylFixture fixture)
-    {
-        Fixture = fixture;
-    }
-
-    private HybrasylFixture Fixture { get; }
-
-    /// <summary>Simple form: <c>[u8 Stage][string8 Name][u8 0]</c>.</summary>
-    private static byte[] SimpleForm(byte stage, string name)
-    {
-        var bytes = Encoding.ASCII.GetBytes(name);
-        var body = new byte[bytes.Length + 3];
-        body[0] = stage;
-        body[1] = (byte)bytes.Length;
-        bytes.CopyTo(body, 2);
-        body[^1] = 0x00; // trailing reserved zero, always 0
-        return body;
-    }
-
-    private static void Dispatch(User user, byte[] body)
-    {
-        var handler = typeof(World).GetMethod("PacketHandler_0x2E_GroupRequest",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(handler);
-        handler.Invoke(Game.World, [user, new InboundPacket(0x2E, body)]);
-    }
+    private HybrasylFixture Fixture { get; } = fixture;
 
     [Fact]
     public void SelfTargetedRecruitInfoReturnsYourOwnBox()
@@ -87,18 +58,12 @@ public class GroupRecruitSelfView
         var user = Fixture.TestUser;
         Fixture.ResetTestUserStats();
 
-        var clientField = typeof(User).GetField("Client", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(clientField);
-        var oldClient = clientField.GetValue(user);
-        var client = new TestClient(new TestSocket());
-        clientField.SetValue(user, client);
-        Game.World.AddUser(user, user.ConnectionId);
+        var client = HybrasylFixture.AttachTestClient(user, out var restore);
 
         try
         {
             Assert.True(Game.World.UserConnected(user.Name), "test user must read as connected");
 
-            // Stand up a recruit box the way stage 4 would have.
             user.GroupRecruit = GroupRecruit.FromRequest(new GroupRequestPacket
             {
                 Stage = GroupRequestPacket.StageGroupbox,
@@ -114,17 +79,18 @@ public class GroupRecruitSelfView
                 MaxMonk = 5
             }, user);
 
-            // Drain anything the setup left queued so the assertion is about this dispatch.
+            // Drain the setup's traffic so the assertion is about this dispatch.
             while (client.ClientState.SendBufferTake(out _)) { }
 
-            Dispatch(user, SimpleForm(GroupRequestPacket.StageRecruitInfo, user.Name));
+            var body = GroupRequestBodies.Simple(GroupRequestPacket.StageRecruitInfo, user.Name);
+            Game.World.WorldPacketHandlers[0x2E].Invoke(user, new InboundPacket(0x2E, body));
 
             Assert.True(client.ClientState.SendBufferTake(out var sent),
                 "self-targeted 0x2E stage 5 should answer with the recruit box");
             Assert.Equal(0x63, sent.Opcode);
 
-            // And it must be *this* box, not an empty one — the caps prove the body came from the
-            // recruit we stood up rather than from a default-constructed reply.
+            // It must be *this* box: the caps prove the body came from the recruit set up above
+            // rather than from a default-constructed reply.
             var info = Assert.IsType<DALib.Networking.Packets.Server.GroupRecruitInfoPacket>(sent.Packet);
             Assert.Equal(user.Name, info.Info.RecruiterName);
             Assert.Equal(3, info.Info.RoguesWanted);
@@ -133,7 +99,12 @@ public class GroupRecruitSelfView
         finally
         {
             user.GroupRecruit = null;
-            clientField.SetValue(user, oldClient);
+            restore.Dispose();
         }
+
+        // The helper must undo the registration as well as the client, or every later test in the
+        // collection inherits a user that resolves by name but cannot be sent to.
+        Assert.False(Game.World.TryGetActiveUser(user.Name, out _),
+            "AttachTestClient's restore must deregister the user it added");
     }
 }

@@ -35,8 +35,8 @@ namespace Hybrasyl.Tests.Wire;
 /// </remarks>
 public class MerchantQuantityParsing
 {
-    // The real parse, not a restatement of it. This used to be a local copy of the uint.TryParse
-    // call, which would have kept passing had the production accept-set changed underneath it.
+    // The real parse, not a restatement of it — a local copy could not fail for the reason
+    // these cases exist.
     private static bool TryRead(string text, out uint value) => World.TryParseQuantity(text, out value);
 
     [Theory]
