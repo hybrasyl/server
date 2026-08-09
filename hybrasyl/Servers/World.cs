@@ -1040,7 +1040,6 @@ public class World : Server
                     {
                         // Check if the action is prohibited due to statuses or flags
                         MethodBase method = handler.GetMethodInfo();
-                        // TODO: improve
                         var sendRefresh = false;
                         var ignore = false;
                         var systemMessage = string.Empty;
@@ -1313,7 +1312,6 @@ public class World : Server
                 MerchantMenuItem.BuyItemMenu,
                 new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemMenu)
             },
-            //{MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItem)},
             {
                 MerchantMenuItem.BuyItemQuantity,
                 new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
@@ -1742,7 +1740,6 @@ public class World : Server
     {
         var msg = message.GetArgument<string>(0);
         foreach (var user in ActiveUsers)
-            // TODO: make less teeth-grindingly dumb
             try
             {
                 user.SendSystemMessage(msg);
@@ -2224,7 +2221,7 @@ public class World : Server
             RemoveUser(user.Name);
 
             // Remove any active async dialog sessions
-            // TODO: async fix
+            // HS-1596: teardown is not wired up; the shape below is the intended one.
             //foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
             //{
             //    if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
@@ -2575,7 +2572,6 @@ public class World : Server
     [PacketHandler(0x1B)]
     private void PacketHandler_0x1B_Settings(object obj, InboundPacket packet)
     {
-        // TODO: future expansion
         var settingNumber = SettingsPacket.Parse(packet.Body.Span).SettingNumber;
         var user = (User)obj;
         // Only seven of these are usable by the client (1-6, and 8), 
@@ -3678,7 +3674,6 @@ public class World : Server
             return;
         }
 
-        // TODO: improve this logic
         // Handle function dialogs in between us and the next real dialog (or the end)
         if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
         {

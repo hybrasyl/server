@@ -78,10 +78,6 @@ internal class QuadTreeObject<T> where T : IQuadStorable //, IComparable<QuadTre
     internal QuadTreeNode<T>? Owner { get; set; }
 
 
-    //public int CompareTo(QuadTreeObject<T> other)
-    //{
-    //    return (int)(Data.Rect.Y + Data.Rect.Height) - (int)(other.Data.Rect.Y + other.Data.Rect.Height);
-    //}
 }
 
 /// <summary>
@@ -93,10 +89,6 @@ public class QuadTree<T> : ICollection<T> where T : IQuadStorable
     #region Private Members
 
     private readonly Dictionary<T, QuadTreeObject<T>> wrappedDictionary = new();
-
-    // Alternate method, use Parallel arrays
-    //private List<T> m_rawObjects = new List<T>();       // The unwrapped objects in this QuadTree
-    //private List<QuadTreeObject<T>> m_wrappedObjects = new List<QuadTreeObject<T>>();       // The wrapped objects in this QuadTree
 
     // The root of this quad tree
 
@@ -150,12 +142,6 @@ public class QuadTree<T> : ICollection<T> where T : IQuadStorable
     ///// <summary>
     ///// Get the objects in this tree that intersect with the specified rectangle.
     ///// </summary>
-    ///// <param name="rect">The rectangle to find objects in.</param>
-    ///// <param name="results">A reference to a list that will be populated with the results.</param>
-    //public void GetObjects(Rectangle rect, ref List<T> results)
-    //{
-    //    quadTreeRoot.GetObjects(rect, ref results);
-    //}
 
 
     /// <summary>
@@ -331,7 +317,6 @@ public class QuadTreeNode<T> where T : IQuadStorable
 
     #region Private Members
 
-    //private List<T> m_objects = null;       // The objects in this QuadTree
     private readonly Rectangle rect; // The area this QuadTree represents
 
     private readonly object lockObject = new();
@@ -373,7 +358,6 @@ public class QuadTreeNode<T> where T : IQuadStorable
     /// <summary>
     ///     The objects contained in this QuadTree at it's level (ie, excludes children)
     /// </summary>
-    //public List<T> Objects { get { return m_objects; } }
     internal List<QuadTreeObject<T>>? Objects { get; private set; }
 
     /// <summary>

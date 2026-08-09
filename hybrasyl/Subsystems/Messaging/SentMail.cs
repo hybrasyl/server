@@ -28,7 +28,6 @@ public class SentMail : MessageStore
 {
     private SentMail() { }
 
-    // TODO: correct
     public SentMail(Guid ownerGuid) : base(ownerGuid.ToString()) { }
 
     [Persist] public DateTime LastMailMessageSent { get; set; }

@@ -33,7 +33,7 @@ internal class VoiceCommand : ChatCommand
         {
             if (e.MapId != user.Location.Map?.Id)
                 return Fail("You are not at the event...?");
-            // TODO: this is case sensitive which has the potential to be ungodly annoying
+            // HS-1597: case-sensitive, so a mistyped capital reads as "not here".
             if (!user.Location.Map.Users.ContainsKey(args[0]))
                 return Fail("They are not at this event.");
             e.Speakers.Add(args[0]);

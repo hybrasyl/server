@@ -37,7 +37,7 @@ namespace Hybrasyl.Tests.Wire;
 ///         Grounding, since the two halves differ: that Brigid emits it is read from Brigid's
 ///         source, and that a live server answers it is J's observation. Whether the <em>retail</em>
 ///         client emits stage 5 at all is still disputed — the protocol reference marks it
-///         unresolved pending a rung-1 sweep (HTOO-259). This test pins Hybrasyl's side of the
+///         unresolved pending a fresh disassembly sweep (HTOO-259). This test pins Hybrasyl's side of the
 ///         exchange, which is correct under either answer.
 ///     </para>
 ///     <para>

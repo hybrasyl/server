@@ -42,7 +42,6 @@ public class HybrasylWorldObject : IScriptable
 
     public virtual bool IsPlayer => false;
 
-    //public Xml.Direction Direction => WorldObject.Direction;
     public string Guid => Obj.Guid.ToString();
 
     public string LocationDescription

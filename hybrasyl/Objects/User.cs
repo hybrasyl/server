@@ -98,7 +98,6 @@ public class User : Creature
     public long PreviousConnectionId { get; set; }
 
     [Persist] public Gender Gender { get; set; }
-    //private account Account { get; set; }
 
     [Persist] public Class Class { get; set; }
 
@@ -1086,7 +1085,7 @@ public class User : Creature
             Height = map.Y,
             Flags = flags,
             // Crc16.Calculate returns byteswapped CCITT; DALib writes big-endian true CCITT,
-            // so swap back — wire bytes stay identical
+            // so swap back — wire bytes stay identical.
             Checksum = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(map.Checksum),
             Name = map.Name
         }, transmitDelay: transmitDelay);
@@ -1659,11 +1658,6 @@ public class User : Creature
         GameLog.DebugFormat("Adding skill {0} to slot {2}",
             item.Castable.Name, slot);
 
-        //if(item.Castable.Mastery.Tiered)
-        //{
-        //    mastery = $"[{item.MasteryLevel}]";
-        //}
-
         string name;
         if (item.Castable.Mastery.Uses != 1)
         {
@@ -1690,10 +1684,9 @@ public class User : Creature
 
         if (slot == -1) return;
 
-        // NOTE (pre-existing, bytes preserved): the slot is looked up in the skill *or* spell
-        // book above, but the pane is hardcoded to the skill pane. For a spell this sweeps the
-        // skill pane at the spell's index. Not changed here — conversion is byte-identical; see
-        // TODO.
+        // Pre-existing: the slot is looked up in the skill *or* spell book above, but IsSkill is
+        // hardcoded, so a spell sweeps the skill pane at the spell's index. Fixing it changes the
+        // emitted bytes, which is why the conversion left it alone. HS-1591.
         Client?.Enqueue(new CooldownPacket
         {
             IsSkill = true,
@@ -2552,7 +2545,6 @@ public class User : Creature
                 .SelectMany(selector: itemReq => itemReq.Template.SlotRequirements)
                 .Any(predicate: req => req.Slot == (EquipmentSlot)slot))
             {
-                // TODO: improve messaging here
                 SendSystemMessage("Other equipment must be removed first.");
                 return false;
             }

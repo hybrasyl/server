@@ -357,7 +357,7 @@ public class Login : Server
     /**
          * Checks that a string is a valid password.
          *
-         * TODO: can we modernize this policy to allow for better passwords?
+         * HS-1598: the 8-character ceiling may be the retail client's, not ours.
          */
     private bool ValidPassword(string password, out byte code)
     {

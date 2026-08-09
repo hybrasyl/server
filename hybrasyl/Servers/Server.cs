@@ -101,7 +101,6 @@ public class Server
                 }
             }
 
-            // TODO: configurable?
             await Task.Delay(50, StopToken);
         }
     }
@@ -244,7 +243,6 @@ public class Server
 
         try
         {
-            // TODO: improve / refactor
             // ReceiveFrame queues the frame AND drives FlushReceiveBuffer, where decrypt and
             // parse happen. (Client.Enqueue is the inverse — it *encodes* a typed packet for
             // test injection, and is not this path.)

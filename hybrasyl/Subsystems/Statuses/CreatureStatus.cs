@@ -50,7 +50,6 @@ public class CreatureStatus : ICreatureStatus
     public Status XmlStatus { get; set; } = null!;
     public StatInfo BonusModifiers { get; set; } = new();
 
-    // TODO: xmlfix
     public List<string> Category => XmlStatus.CategoryList;
     public string Name => XmlStatus.Name;
     public ushort Icon => XmlStatus.Icon;
@@ -142,7 +141,6 @@ public class CreatureStatus : ICreatureStatus
         }
     }
 
-    // TODO: xmlfix
     public List<string> UseCastRestrictions => XmlStatus.CastRestrictions
         .Where(predicate: x => !string.IsNullOrEmpty(x.Use)).Select(selector: y => y.Use).ToList();
 

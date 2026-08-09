@@ -117,7 +117,6 @@ public class Client : AbstractClient, IClient
     public ISocketProxy Socket => ClientState.WorkSocket;
 
     public long ConnectionId => ClientState.Id;
-    //private byte clientOrdinal = 0x00;
 
     public string RemoteAddress => Socket is { RemoteEndPoint: not null }
         ? ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString()

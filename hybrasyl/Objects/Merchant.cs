@@ -229,7 +229,6 @@ public sealed class Merchant : Creature, IPursuitable, IEphemeral, ISpawnable
         // Call/response?
         if (Responses.TryGetValue(e.SanitizedMessage, out var response))
         {
-            // TODO: improve
             Say(response.Replace("$NAME", Name));
             return;
         }
@@ -470,9 +469,8 @@ public struct MerchantSkill
 ///     the packet, so DALib cannot dispatch it and each registration must declare its form here.
 /// </summary>
 /// <remarks>
-///     The form letters are the protocol reference's, from
-///     <c>docs/protocol/client/0x39-npc-main-menu.md</c> §"Response tail forms" — Ghidra-verified
-///     against the retail client's eleven C&#8594;S 0x39 emitters. Form C (name and quantity in one
+///     The form letters follow the protocol reference, which derives them from the retail
+///     client's eleven C&#8594;S 0x39 emitters. Form C (name and quantity in one
 ///     response) is retail-only: Hybrasyl splits buying into an item-list pick and a separate text
 ///     prompt, so nothing here ever drives it.
 /// </remarks>

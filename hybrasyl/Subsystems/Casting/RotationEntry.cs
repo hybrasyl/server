@@ -44,7 +44,6 @@ public class RotationEntry
 
     private CreatureTargetPriority currentPriority { get; set; } = CreatureTargetPriority.None;
 
-    // TODO: hardcoded
     public double CastingTime => Slot.Castable.Lines * 1.25;
 
     public CreatureTargetPriority CurrentPriority

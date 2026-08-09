@@ -33,7 +33,6 @@ public class MerchantController
 {
     private readonly Merchant Merchant;
 
-    // TODO: static?
     private readonly Dictionary<Regex, MerchantCommand> Triggers = new();
 
     public MerchantController(Merchant merchant)

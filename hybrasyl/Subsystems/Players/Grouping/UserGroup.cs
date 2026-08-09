@@ -110,7 +110,6 @@ public class UserGroup
         return true;
     }
 
-    // TODO: refactor to use hashset
     public bool Contains(User user)
     {
         return Members.Where(predicate: e => e.Name == user.Name).Count() > 0;

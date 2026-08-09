@@ -47,9 +47,8 @@ namespace Hybrasyl.Tests.Wire;
 ///         <strong>Where the expectations come from, and why not from the handlers.</strong> Every
 ///         entry in <see cref="ExpectedForms" /> was read off the <em>send</em> site in
 ///         <c>User.cs</c> — which <c>MerchantMenu</c> overload offers that item as its
-///         <c>Id</c> — and then mapped to a form through the protocol reference's
-///         <c>docs/protocol/client/0x39-npc-main-menu.md</c> §"Response tail forms", which is
-///         Ghidra-verified from the retail client's eleven C&#8594;S 0x39 emitters. Deriving them
+///         <c>Id</c> — and then mapped to a form through the protocol reference's response tail
+///         forms, which are derived from the retail client's eleven C&#8594;S 0x39 emitters. Deriving them
 ///         from Hybrasyl's own handler bodies instead would be the exact circularity this test
 ///         exists to break: the table would agree with the code by construction and could not fail
 ///         for the reason it is here to catch.

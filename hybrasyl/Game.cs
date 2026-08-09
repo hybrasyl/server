@@ -538,7 +538,7 @@ public static class Game
         // Configure logging 
         GameLog.LogInit(LogDirectory, activeConfiguration.Logging);
 
-        // TODO: OTel telemetry export not yet implemented (ApiEndpoints.TelemetryEndpoint)
+        // HS-1595: the endpoint is configurable but export is not implemented.
         if (activeConfiguration.ApiEndpoints?.TelemetryEndpoint != null)
             Log.Warning("TelemetryEndpoint is configured, but telemetry export is not yet implemented");
 

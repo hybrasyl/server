@@ -307,7 +307,6 @@ public class ThreatInfo(Guid id)
     public void OnRangeEnter(Creature threat)
     {
         if (ThreatTableByCreature.ContainsKey(threat.Guid)) return;
-        // TODO: review / refactor
         if (threat is not User userThreat) return;
         if (HighestThreat is User { Group: not null } user && user.Group.Members.Contains(userThreat))
             AddNewThreat(userThreat);
