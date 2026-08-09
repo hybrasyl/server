@@ -269,10 +269,15 @@ public class LobbyLoginPacketCompatibility
     ///         rather than editing.
     ///     </para>
     ///     <para>
-    ///         Worth knowing on its own: the 0x03 "integrity trailer" does not authenticate the
-    ///         credentials it travels with. That is not a finding about Hybrasyl — the transport is
-    ///         encrypted and this is what retail sends — but it is the reason a redacted fixture is
-    ///         legitimate, so it is recorded rather than left implicit.
+    ///         The 0x03 trailer does not authenticate the credentials it travels with — hence
+    ///         "integrity" in the loosest sense. Do not read that as harmless on the grounds that
+    ///         the transport protects them: <strong>it does not.</strong> Login bodies are
+    ///         obfuscated with a key the client must already possess, so a passive observer
+    ///         recovers the password from a capture. That is retail behaviour of 25 years'
+    ///         standing rather than anything this codebase introduced, and it is a tracked finding
+    ///         in the security register — but the cipher here cannot be described as credential
+    ///         confidentiality, and the redaction above exists because of it, not merely for
+    ///         tidiness.
     ///     </para>
     /// </remarks>
     [Fact]
