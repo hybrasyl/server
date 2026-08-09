@@ -1348,8 +1348,8 @@ public class User : Creature
             Motion(motion.Id, motion.Speed);
 
         if (!UseCastable(bookSlot.Castable, targetCreature)) return;
-        bookSlot.UseCount += 1;
-        bookSlot.UseCount += 1;
+        if (bookSlot.UseCount != uint.MaxValue)
+            bookSlot.UseCount += 1;
         if (bookSlot.UseCount <= bookSlot.Castable.Mastery.Uses)
             SendSpellUpdate(bookSlot, slot);
         if (bookSlot.Castable.Cooldown > 0)
