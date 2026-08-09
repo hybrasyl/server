@@ -73,6 +73,12 @@ using TurnPacket = DALib.Networking.Packets.Client.TurnPacket;
 using UseSkillPacket = DALib.Networking.Packets.Client.UseSkillPacket;
 using UseSpellPacket = DALib.Networking.Packets.Client.UseSpellPacket;
 using WalkPacket = DALib.Networking.Packets.Client.WalkPacket;
+using DialogUsePacket = DALib.Networking.Packets.Client.DialogUsePacket;
+using DialogOptionResponsePacket = DALib.Networking.Packets.Client.DialogOptionResponsePacket;
+using DialogTextResponsePacket = DALib.Networking.Packets.Client.DialogTextResponsePacket;
+using NpcMainMenuSelectPacket = DALib.Networking.Packets.Client.NpcMainMenuSelectPacket;
+using NpcOptionResponsePacket = DALib.Networking.Packets.Client.NpcOptionResponsePacket;
+using NpcTextResponsePacket = DALib.Networking.Packets.Client.NpcTextResponsePacket;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using MessageType = Hybrasyl.Xml.Objects.MessageType;
@@ -3291,11 +3297,13 @@ public class World : Server
     {
         var user = (User)obj;
 
-        // The 6-byte dialog header is gone by the time we get here — DALib's
-        // DialogObfuscation.Remove strips it, and validates the CRC the legacy path ignored.
-        var objectType = packet.ReadByte();
-        var objectId = packet.ReadUInt32();
-        var pursuitId = packet.ReadUInt16();
+        // The prefix only. Each merchant callback re-parses the full body as whichever
+        // variant its own menu form carries — 0x39 is not self-describing, so the variant is
+        // determined by the menu the server last sent, not by anything on the wire.
+        var request = NpcMainMenuSelectPacket.ParseResponse(packet.PayloadData);
+        var objectType = request.ObjectType;
+        var objectId = request.ObjectId;
+        var pursuitId = request.PursuitId;
 
         GameLog.DebugFormat("main menu packet: ObjectType {0}, ID {1}, pursuitID {2}",
             objectType, objectId, pursuitId);
@@ -3380,11 +3388,14 @@ public class World : Server
     {
         var user = (User)obj;
 
-        // Header already stripped by DialogObfuscation.Remove.
-        var objectType = (DialogObjectType)packet.ReadByte();
-        var objectID = packet.ReadUInt32();
-        var pursuitID = packet.ReadUInt16();
-        var pursuitIndex = packet.ReadUInt16();
+        // 0x3A *is* self-describing: DialogUsePacket.Parse dispatches on the trailing tag
+        // byte (none = navigation, 1 = menu choice, 2 = text). Only the prefix is read here;
+        // the response tail is pulled from the typed record further down.
+        var request = DialogUsePacket.Parse(packet.PayloadData);
+        var objectType = (DialogObjectType)request.ObjectType;
+        var objectID = request.ObjectId;
+        var pursuitID = request.PursuitId;
+        var pursuitIndex = request.PursuitIndex;
         GameLog.DebugFormat(
             "0x3A   user: {User} objectType {ObjectType} objectID {ObjectId} pursuitID {PursuitId} pursuitIndex {PursuitIndex}", user.Name, objectType, objectID, pursuitID, pursuitIndex);
 
@@ -3480,8 +3491,20 @@ public class World : Server
 
         if (user.DialogState.ActiveDialog is OptionsDialog optionsDialog)
         {
-            var paramsLength = packet.ReadByte();
-            var option = packet.ReadByte();
+            // The byte the legacy read called paramsLength is the wire tag DALib dispatches
+            // on. Because it dispatches, a client whose response shape disagrees with the
+            // dialog the server thinks is open is now visible instead of being silently
+            // misread one byte over.
+            if (request is not DialogOptionResponsePacket optionResponse)
+            {
+                GameLog.UserActivityWarning(
+                    "{Name}: 0x3A: options dialog active but response is {Shape}, ignoring",
+                    user.Name, request.GetType().Name);
+                user.ClearDialogState();
+                return;
+            }
+
+            var option = optionResponse.Option;
 
             // If an error occurred in handling the response, it's generally safest to 
             // simply bail out 
@@ -3502,8 +3525,16 @@ public class World : Server
         // This logic is effectively identical to OptionsDialog
         if (user.DialogState.ActiveDialog is TextDialog textDialog)
         {
-            var paramsLength = packet.ReadByte();
-            var response = packet.ReadString8();
+            if (request is not DialogTextResponsePacket textResponse)
+            {
+                GameLog.UserActivityWarning(
+                    "{Name}: 0x3A: text dialog active but response is {Shape}, ignoring",
+                    user.Name, request.GetType().Name);
+                user.ClearDialogState();
+                return;
+            }
+
+            var response = textResponse.Text;
             if (!textDialog.HandleResponse(response, invocation))
             {
                 user.ClearDialogState();
@@ -4038,27 +4069,27 @@ public class World : Server
         // because the legacy buffer still carried the dialog wrapper's trailing zero past the
         // payload, so it returned "" — and the value was discarded anyway. Under this delta the body
         // ends at the payload, so reading it throws. See the register entry.
-        var name = packet.ReadString8();
+        var name = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
 
         user.ShowBuyMenuQuantity(merchant, name);
     }
 
     private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
         user.ShowBuyItem(merchant, quantity);
     }
 
     private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
 
         user.ShowSellConfirm(merchant, user.PendingSellableSlot, quantity);
     }
 
     private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var slot = packet.ReadByte();
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4083,7 +4114,7 @@ public class World : Server
 
     private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
     {
-        var skillName = packet.ReadString8();
+        var skillName = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
         // The name comes straight from the packet; only a real skill may enter the flow
         if (!WorldData.TryGetValueByIndex(skillName, out Castable skill) || !skill.IsSkill)
         {
@@ -4117,7 +4148,7 @@ public class World : Server
 
     private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
     {
-        var spellName = packet.ReadString8();
+        var spellName = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
         // The name comes straight from the packet; only a real spell may enter the flow
         if (!WorldData.TryGetValueByIndex(spellName, out Castable spell) || !spell.IsSpell)
         {
@@ -4154,7 +4185,7 @@ public class World : Server
 
     private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
     {
-        var slot = packet.ReadByte();
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
         user.ShowForgetSkillAccept(merchant, slot);
     }
 
@@ -4167,7 +4198,7 @@ public class World : Server
 
     private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
     {
-        var slot = packet.ReadByte();
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
         user.ShowForgetSpellAccept(merchant, slot);
     }
 
@@ -4178,7 +4209,7 @@ public class World : Server
 
     private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var slot = packet.ReadByte();
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
         var itemObj = user.Inventory[slot];
         if (itemObj == null) return;
 
@@ -4187,7 +4218,7 @@ public class World : Server
 
     private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
 
         user.ShowMerchantSendParcelRecipient(merchant, quantity);
     }
@@ -4198,7 +4229,7 @@ public class World : Server
 
     private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, ClientPacket packet)
     {
-        var recipient = packet.ReadString8();
+        var recipient = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
         user.ShowMerchantSendParcelAccept(merchant, recipient);
     }
 
@@ -4209,7 +4240,7 @@ public class World : Server
 
     private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var item = packet.ReadString8();
+        var item = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
 
         user.ShowWithdrawItemQuantity(merchant, item);
     }
@@ -4222,7 +4253,7 @@ public class World : Server
     private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
     {
         if (user.PendingWithdrawItem == null) return;
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
         user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
     }
 
@@ -4238,7 +4269,7 @@ public class World : Server
 
     private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var slot = packet.ReadByte();
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4258,19 +4289,19 @@ public class World : Server
 
     private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        var quantity = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
         user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
     }
 
     private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var amount = Convert.ToUInt32(packet.ReadString8());
+        var amount = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
         user.DepositGoldConfirm(merchant, amount);
     }
 
     private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, ClientPacket packet)
     {
-        var amount = Convert.ToUInt32(packet.ReadString8());
+        var amount = Convert.ToUInt32(NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text);
         user.WithdrawGoldConfirm(merchant, amount);
     }
 
@@ -4281,7 +4312,7 @@ public class World : Server
 
     private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, ClientPacket packet)
     {
-        var slot = packet.ReadByte();
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
         user.ShowRepairItem(merchant, slot);
     }
 
