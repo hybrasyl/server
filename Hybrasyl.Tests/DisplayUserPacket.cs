@@ -16,64 +16,68 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using System.Reflection;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
-using Hybrasyl.Xml.Objects;
+using Hybrasyl.Objects;
 using Xunit;
 
 namespace Hybrasyl.Tests;
 
 [Collection("Hybrasyl")]
-public class DisplayUserPacket
+public class DisplayUserPacket(HybrasylFixture fixture)
 {
-    // 0x33 DisplayUser wire layout (fixed prefix):
-    //   [0..1] X, [2..3] Y, [4] Direction, [5..8] Id, [9..10] Helmet/first-sprite field
-    // The client only renders an aisling in creature form when the first sprite field
-    // carries the 0xFFFF sentinel, immediately followed by the 16-bit monster sprite.
-    private const int SpriteFieldOffset = 9;
+    // 0x33 body offsets (opcode excluded):
+    //   [0..1] X, [2..3] Y, [4] Direction, [5..8] Id, [9..10] appearance discriminator
+    // The discriminator is 0xFFFF for the creature form (the monster sprite follows it
+    // immediately); any other value is the head sprite of the equipment form.
+    private const int DiscriminatorOffset = 9;
 
-    private static byte[] DataOf(DisplayUser display)
+    public HybrasylFixture Fixture { get; } = fixture;
+
+    // Capture the 0x33 the subject sends about itself and return its body bytes.
+    private static byte[] UpdateBody(User subject)
     {
-        var packet = display.Packet();
-        return (byte[]) typeof(Packet)
-            .GetField("Data", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(packet)!;
+        var client = new TestClient(new TestSocket());
+        subject.SendUpdateToUser(client);
+
+        Assert.True(client.ClientState.SendBufferTake(out var packet));
+        Assert.Equal(0x33, packet.Opcode);
+
+        var record = Assert.IsAssignableFrom<DALib.Networking.Wire.ServerPacket>(packet.Packet);
+        var writer = new DALib.Networking.Wire.PacketWriter();
+        record.WriteBody(writer);
+        return writer.WrittenSpan.ToArray();
     }
 
     [Fact]
     public void MorphedUserEmitsSentinelThenMonsterSprite()
     {
-        var data = DataOf(new DisplayUser
-        {
-            DisplayAsMonster = true,
-            Helmet = 0x1122,
-            MonsterSprite = 0x0405
-        });
+        var subject = Fixture.CreateUser("MorphSubject");
+        subject.DisplayAsMonster = true;
+        subject.MonsterSprite = 0x0405;
 
-        // Sentinel replaces the helmet/first-sprite 16-bit field...
-        Assert.Equal(0xFF, data[SpriteFieldOffset]);
-        Assert.Equal(0xFF, data[SpriteFieldOffset + 1]);
-        // ...and the monster sprite follows immediately (big-endian).
-        Assert.Equal(0x04, data[SpriteFieldOffset + 2]);
-        Assert.Equal(0x05, data[SpriteFieldOffset + 3]);
+        var body = UpdateBody(subject);
+
+        // Sentinel occupies the discriminator field...
+        Assert.Equal(0xFF, body[DiscriminatorOffset]);
+        Assert.Equal(0xFF, body[DiscriminatorOffset + 1]);
+        // ...and the monster sprite follows immediately (big-endian), carrying the 0x4000
+        // namespace tag the client subtracts back off to reach mns%03d.mpf.
+        Assert.Equal(0x44, body[DiscriminatorOffset + 2]);
+        Assert.Equal(0x05, body[DiscriminatorOffset + 3]);
     }
 
     [Fact]
-    public void NonMorphedUserPayloadUnchanged()
+    public void NonMorphedUserEmitsHeadSpriteNotSentinel()
     {
-        var data = DataOf(new DisplayUser
-        {
-            DisplayAsMonster = false,
-            Helmet = 0x1122,
-            Gender = Gender.Male,
-            BodySpriteOffset = 3
-        });
+        var subject = Fixture.CreateUser("NonMorphSubject");
+        subject.DisplayAsMonster = false;
+        subject.HairStyle = 0x1122;
 
-        // Real helmet sprite is written (no sentinel), and the body sprite byte
-        // that follows is unchanged: (byte)Gender * 16 + BodySpriteOffset.
-        Assert.Equal(0x11, data[SpriteFieldOffset]);
-        Assert.Equal(0x22, data[SpriteFieldOffset + 1]);
-        Assert.Equal((byte) ((byte) Gender.Male * 16 + 3), data[SpriteFieldOffset + 2]);
+        var body = UpdateBody(subject);
+
+        // No helmet equipped, so the head sprite is the hair style — and the client
+        // must read the equipment form, not the creature form.
+        Assert.Equal(0x11, body[DiscriminatorOffset]);
+        Assert.Equal(0x22, body[DiscriminatorOffset + 1]);
     }
 }

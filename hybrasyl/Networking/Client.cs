@@ -16,6 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Crypto;
+using DALib.Networking.Packets.Server;
+using DALib.Networking.Wire;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
@@ -36,7 +39,7 @@ public class Client : AbstractClient, IClient
 {
     private long _byteHeartbeatReceived;
     private long _byteHeartbeatSent;
-    private int _clientTickCount;
+    private uint _clientTickCount;
 
     private int _heartbeatA;
     private int _heartbeatB;
@@ -45,7 +48,7 @@ public class Client : AbstractClient, IClient
     private long _lastReceived;
     private long _lastSent = 0;
 
-    private int _localTickCount;  // Make this int32 because it's what the client expects
+    private uint _localTickCount;
     private long _tickHeartbeatReceived;
     private long _tickHeartbeatSent;
 
@@ -93,7 +96,14 @@ public class Client : AbstractClient, IClient
 
     public long ConnectedSince { get; set; }
 
-    public byte ServerOrdinal { get; set; }
+    // Stateless and shared process-wide; per-connection key state lives in CryptoState. Both
+    // assemblies must be passed explicitly — PacketCodec does not implicitly scan DALib's.
+    internal static readonly PacketCodec Codec =
+        new([typeof(DALib.Networking.Wire.IPacket).Assembly, typeof(Client).Assembly]);
+
+    public CryptoState Crypto { get; set; } = new();
+
+    public byte ServerOrdinal => Crypto.ServerOrdinal;
 
     public Dictionary<byte, ThrottleInfo> ThrottleState { get; set; } = new();
 
@@ -102,19 +112,30 @@ public class Client : AbstractClient, IClient
     public ISocketProxy Socket => ClientState.WorkSocket;
 
     public long ConnectionId => ClientState.Id;
-    //private byte clientOrdinal = 0x00;
 
     public string RemoteAddress => Socket is { RemoteEndPoint: not null }
         ? ((IPEndPoint)Socket.RemoteEndPoint).Address.ToString()
         : "unknown";
 
-    public byte EncryptionSeed { get; set; }
+    // Facades over Crypto, which owns the key and seed.
+    public byte EncryptionSeed
+    {
+        get => Crypto.EncryptionSeed;
+        set => Crypto.EncryptionSeed = value;
+    }
 
     // Null until the lobby handshake (lobby client ctor) or a confirmed redirect supplies it.
-    public byte[]? EncryptionKey { get; set; }
+    public byte[]? EncryptionKey
+    {
+        get => Crypto.IsInitialized ? Crypto.EncryptionKey : null;
+        set => Crypto.EncryptionKey = value ?? [];
+    }
 
     public string NewCharacterName { get; set; } = string.Empty;
     public string NewCharacterPassword { get; set; } = string.Empty;
+
+    // Called from User.SetEncryptionParameters at world join.
+    public void GenerateKeyTable(string seed) => Crypto.GenerateKeyTable(seed);
 
 
     /// <summary>
@@ -129,14 +150,11 @@ public class Client : AbstractClient, IClient
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
         if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
-        var byteHeartbeat = new ServerPacket(0x3b);
         var a = Random.Shared.Next(254);
         var b = Random.Shared.Next(254);
         Interlocked.Exchange(ref _heartbeatA, a);
         Interlocked.Exchange(ref _heartbeatB, b);
-        byteHeartbeat.WriteByte((byte)a);
-        byteHeartbeat.WriteByte((byte)b);
-        Enqueue(byteHeartbeat);
+        Enqueue(new ByteHeartbeatPacket { First = (byte)a, Second = (byte)b });
         Interlocked.Exchange(ref _byteHeartbeatSent, DateTime.Now.Ticks);
     }
 
@@ -168,12 +186,10 @@ public class Client : AbstractClient, IClient
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
         if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
-        var tickHeartbeat = new ServerPacket(0x68);
-        // We never really want to deal with negative values
-        var tickCount = Environment.TickCount & int.MaxValue;
+        // Masked to 31 bits so the emitted value never wraps into the sign bit.
+        var tickCount = (uint)(Environment.TickCount & int.MaxValue);
         Interlocked.Exchange(ref _localTickCount, tickCount);
-        tickHeartbeat.WriteInt32(tickCount);
-        Enqueue(tickHeartbeat);
+        Enqueue(new TickHeartbeatPacket { ServerTick = tickCount });
         Interlocked.Exchange(ref _tickHeartbeatSent, DateTime.Now.Ticks);
     }
 
@@ -201,7 +217,7 @@ public class Client : AbstractClient, IClient
     /// <param name="localTickCount">Local (server) tick count returned from the client</param>
     /// <param name="clientTickCount">Tick count returned from the client</param>
     /// <returns>Whether or not the heartbeat is valid</returns>
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount)
+    public bool IsHeartbeatValid(uint localTickCount, uint clientTickCount)
     {
         if (_localTickCount == localTickCount)
         {
@@ -303,27 +319,22 @@ public class Client : AbstractClient, IClient
 
                 if (ClientState.SendBufferTake(out var packet))
                 {
-                    // If no packets, just call the whole thing off
-                    if (packet == null) return;
-
-                    if (packet.ShouldEncrypt)
+                    // Normal-mode packets need the negotiated key; MD5Key tolerates the
+                    // zeroed pre-world table, None needs no key at all. Mirrors the legacy
+                    // drop-and-warn on a missing key (DALib divides by zero on an empty key).
+                    if (CryptoState.GetServerEncryptMethod(packet.Opcode) ==
+                        DALib.Networking.Crypto.EncryptMethod.Normal && !Crypto.IsInitialized)
                     {
-                        ++ServerOrdinal;
-                        packet.Ordinal = ServerOrdinal;
-                        packet.GenerateFooter();
-                        if (!packet.Encrypt(this))
-                        {
-                            GameLog.Warning(
-                                "cid {ConnectionId}: opcode 0x{Opcode:X2} requires encryption but no key is set, dropping packet",
-                                ConnectionId, packet.Opcode);
-                            continue;
-                        }
+                        GameLog.Warning(
+                            "cid {ConnectionId}: opcode 0x{Opcode:X2} requires the negotiated key but none is set, dropping packet",
+                            ConnectionId, packet.Opcode);
+                        continue;
                     }
 
                     if (packet.TransmitDelay > 0)
                         transmitDelay = packet.TransmitDelay;
-                    // Write packet to our memory stream
-                    buffer.Write(packet.ToArray());
+                    var wire = Codec.EncodeServer(packet.Packet, Crypto);
+                    buffer.Write(wire.Span);
                 }
             }
 
@@ -364,18 +375,43 @@ public class Client : AbstractClient, IClient
         {
             try
             {
-                while (ClientState.ReceiveBufferTake(out var packet))
+                while (ClientState.ReceiveBufferTake(out var frame))
                 {
-                    if (packet.ShouldEncrypt && !packet.Decrypt(this))
+                    var method = CryptoState.GetClientEncryptMethod(frame.Opcode);
+                    if (method == DALib.Networking.Crypto.EncryptMethod.Normal && !Crypto.IsInitialized)
                     {
                         GameLog.Warning(
                             "cid {ConnectionId}: encrypted opcode 0x{Opcode:X2} received before key exchange, discarding",
-                            ConnectionId, packet.Opcode);
+                            ConnectionId, frame.Opcode);
                         continue;
                     }
 
-                    if (packet.Opcode == 0x39 || packet.Opcode == 0x3A)
-                        packet.DecryptDialog();
+                    // Dropped before decrypt/unwrap so a crafted opcode is not processed. Framing
+                    // already consumed the whole frame, so the stream stays aligned. Note this
+                    // must test RegisteredWorldOpcodes, not WorldPacketHandlers — the latter has
+                    // all 256 slots pre-filled with a logger, so it is always true.
+                    if (Server is World world && !world.RegisteredWorldOpcodes.Contains(frame.Opcode))
+                    {
+                        GameLog.Warning(
+                            "cid {ConnectionId}: no handler for opcode 0x{Opcode:X2} ({Length} bytes), discarding",
+                            ConnectionId, frame.Opcode, frame.Wire.Length);
+                        continue;
+                    }
+
+                    // Decrypt + de-obfuscate into the plaintext body handlers parse from.
+                    InboundBody packet;
+                    try
+                    {
+                        packet = InboundBody.FromFrame(frame, Crypto);
+                    }
+                    catch (Exception e)
+                    {
+                        GameLog.Warning(e,
+                            "cid {ConnectionId}: undecodable body for 0x{Opcode:X2}, discarding",
+                            ConnectionId, frame.Opcode);
+                        continue;
+                    }
+
                     try
                     {
                         if (Server is Lobby lobby)
@@ -468,30 +504,44 @@ public class Client : AbstractClient, IClient
         state.SendComplete.Set();
     }
 
-    public void Enqueue(ServerPacket packet, bool flush = false)
+    // Encodes retail-true bytes directly through the codec — no parity bridge, no inner padding.
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
     {
-        GameLog.DebugFormat("Enqueueing ServerPacket {0}", packet.Opcode);
+        GameLog.DebugFormat("Enqueueing 0x{0:X2}", packet.Opcode);
         if (!Connected)
         {
             Disconnect();
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
 
-        ClientState.SendBufferAdd(packet);
+        ClientState.SendBufferAdd(new QueuedPacket(packet, transmitDelay));
         if (flush) FlushSendBuffer();
     }
 
-    public void Enqueue(ClientPacket packet)
+    /// <summary>
+    ///     The socket receive path: queue a framed packet and drain the queue. The flush is
+    ///     load-bearing — without it nothing drains and the receive path stalls silently.
+    /// </summary>
+    public void ReceiveFrame(InboundFrame frame)
     {
-        GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
+        ClientState.ReceiveBufferAdd(frame);
+        FlushReceiveBuffer();
+    }
+
+    public void Enqueue(IClientPacket packet)
+    {
+        GameLog.DebugFormat("Enqueueing IClientPacket {0}", packet.Opcode);
         if (!Connected)
         {
             Disconnect();
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
 
-        ClientState.ReceiveBufferAdd(packet);
-        if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
+        ClientState.ReceiveBufferAdd(InboundFrame.FromWire(Codec.EncodeClient(packet, Crypto)));
+        // Flush immediately unless this opcode needs a key we do not have yet.
+        var needsKey = CryptoState.GetClientEncryptMethod(packet.Opcode) ==
+                       DALib.Networking.Crypto.EncryptMethod.Normal;
+        if (!needsKey || Crypto.IsInitialized)
             FlushReceiveBuffer();
     }
 
@@ -506,45 +556,28 @@ public class Client : AbstractClient, IClient
 
         var endPoint = Socket.RemoteEndPoint as IPEndPoint
                        ?? throw new InvalidOperationException("Redirect: socket has no remote endpoint");
-        byte[] addressBytes;
 
-        if (Game.RedirectTarget != null)
-            addressBytes = Game.RedirectTarget.GetAddressBytes();
-        else
-            addressBytes = IPAddress.IsLoopback(endPoint.Address)
-                ? IPAddress.Loopback.GetAddressBytes()
-                : Game.Lobby.BindAddress.GetAddressBytes();
+        // RedirectPacket reverses the octets on the wire itself.
+        var address = Game.RedirectTarget ?? (IPAddress.IsLoopback(endPoint.Address)
+            ? IPAddress.Loopback
+            : Game.Lobby.BindAddress);
 
-        Array.Reverse(addressBytes);
-
-        var x03 = new ServerPacket(0x03);
-        x03.Write(addressBytes);
-        x03.WriteUInt16((ushort)redirect.Destination.Port);
-        x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
-        x03.WriteByte(redirect.EncryptionSeed);
-        x03.WriteByte((byte)redirect.EncryptionKey.Length);
-        x03.Write(redirect.EncryptionKey);
-        x03.WriteString8(redirect.Name);
-        x03.WriteUInt32(redirect.Id);
-        x03.TransmitDelay = transmitDelay == 0 ? 250 : transmitDelay;
-        Enqueue(x03, true);
+        Enqueue(new RedirectPacket
+        {
+            IpAddress = address,
+            Port = (ushort)redirect.Destination.Port,
+            EncryptionSeed = redirect.EncryptionSeed,
+            EncryptionKey = redirect.EncryptionKey,
+            Name = redirect.Name,
+            RedirectId = redirect.Id
+        }, flush: true, transmitDelay: transmitDelay == 0 ? 250 : transmitDelay);
     }
 
-    public void LoginMessage(string message, byte type)
-    {
-        var x02 = new ServerPacket(0x02);
-        x02.WriteByte(type);
-        x02.WriteString8(message);
-        Enqueue(x02);
-    }
+    public void LoginMessage(string message, byte type) =>
+        Enqueue(new LoginMessagePacket { Type = type, Message = message });
 
-    public void SendMessage(string message, byte type)
-    {
-        var x0A = new ServerPacket(0x0A);
-        x0A.WriteByte(type);
-        x0A.WriteString16(message);
-        Enqueue(x0A);
-    }
+    public void SendMessage(string message, byte type) =>
+        Enqueue(new SystemMessagePacket { MessageType = (SystemMessageType)type, Message = message });
 
     public void Dispose()
     {

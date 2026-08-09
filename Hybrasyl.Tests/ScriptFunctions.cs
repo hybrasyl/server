@@ -59,8 +59,11 @@ public class ScriptFunctions
         {
             Stats =
             {
-                BaseHp = 400,
-                Hp = 400
+                // Must die to a single assail: this test is about HasKilled, not damage
+                // numbers. Was 400, which only died because Stats.Dmg was applied additively
+                // and doubled every hit; a level-99 255-Str assail actually lands ~230.
+                BaseHp = 100,
+                Hp = 100
             },
             Name = "Bee Bait",
             X = (byte)(Fixture.TestUser.X - 1),
@@ -85,8 +88,11 @@ public class ScriptFunctions
         {
             Stats =
             {
-                BaseHp = 400,
-                Hp = 400
+                // Must die to a single assail: this test is about HasKilled, not damage
+                // numbers. Was 400, which only died because Stats.Dmg was applied additively
+                // and doubled every hit; a level-99 255-Str assail actually lands ~230.
+                BaseHp = 100,
+                Hp = 100
             },
             Name = "Bee Bait",
             X = (byte)(Fixture.TestUser.X - 1),
@@ -129,8 +135,11 @@ public class ScriptFunctions
         {
             Stats =
             {
-                BaseHp = 400,
-                Hp = 400
+                // Must die to a single assail: this test is about HasKilled, not damage
+                // numbers. Was 400, which only died because Stats.Dmg was applied additively
+                // and doubled every hit; a level-99 255-Str assail actually lands ~230.
+                BaseHp = 100,
+                Hp = 100
             },
             Name = "Bee Bait",
             X = (byte)(Fixture.TestUser.X - 1),
@@ -162,8 +171,11 @@ public class ScriptFunctions
         {
             Stats =
             {
-                BaseHp = 400,
-                Hp = 400
+                // Must die to a single assail: this test is about HasKilled, not damage
+                // numbers. Was 400, which only died because Stats.Dmg was applied additively
+                // and doubled every hit; a level-99 255-Str assail actually lands ~230.
+                BaseHp = 100,
+                Hp = 100
             },
             Name = "Bee Bait",
             X = (byte)(Fixture.TestUser.X - 1),

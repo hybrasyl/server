@@ -16,11 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using Hybrasyl.Extensions;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Plugins;
 using Hybrasyl.Servers;
 using System;
@@ -57,7 +57,7 @@ internal static class MessagingController
 
         return new MessagingResponse
         {
-            ResponseType = BoardResponseType.DisplayList,
+            ResponseType = BoardResponseType.BoardList,
             Boards = boards
         };
     }
@@ -67,12 +67,12 @@ internal static class MessagingController
     {
         MessageStore store;
         var displayname = string.Empty;
-        var responseType = BoardResponseType.GetBoardIndex;
+        var responseType = BoardResponseType.PublicBoard;
         if (boardId == 0)
         {
             store = Game.World.WorldState.GetOrCreate<Mailbox>(userRef);
             displayname = $"{store.DisplayName}'s Mail";
-            responseType = BoardResponseType.GetMailboxIndex;
+            responseType = BoardResponseType.PrivateBoard;
         }
         else if (boardId == ushort.MaxValue - 1)
         {
@@ -210,7 +210,7 @@ internal static class MessagingController
             {
                 BoardId = 0,
                 Messages = message.InfoAsList,
-                ResponseType = store is Mailbox ? BoardResponseType.GetMailMessage : BoardResponseType.GetBoardMessage
+                ResponseType = store is Mailbox ? BoardResponseType.PrivatePost : BoardResponseType.PublicPost
             };
         }
 
@@ -288,7 +288,7 @@ internal static class MessagingController
 
         return new MessagingResponse
         {
-            ResponseType = BoardResponseType.DeleteMessage,
+            ResponseType = BoardResponseType.DeleteResult,
             ResponseSuccess = success,
             ResponseString = response
         };
@@ -503,7 +503,7 @@ internal static class MessagingController
 
         return new MessagingResponse
         {
-            ResponseType = BoardResponseType.HighlightMessage,
+            ResponseType = BoardResponseType.HighlightResult,
             ResponseString = response,
             ResponseSuccess = success
         };

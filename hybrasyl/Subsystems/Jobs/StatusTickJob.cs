@@ -39,12 +39,13 @@ public static class StatusTickJob
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.StatusTick, user.Id));
         }
 
-        foreach (var wobj in Game.World.ActiveStatuses)
+        // Keys snapshots, so game threads may add and remove while the tick runs.
+        foreach (var wobj in Game.World.ActiveStatuses.Keys)
             if (wobj is Creature creature)
                 if (creature.Condition.Alive)
                     World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.StatusTick, wobj.Id));
                 else
-                    Game.World.ActiveStatuses.Remove(wobj);
+                    Game.World.ActiveStatuses.TryRemove(wobj, out _);
         GameLog.Debug("Status tick job ending");
     }
 }

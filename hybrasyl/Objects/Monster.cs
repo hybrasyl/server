@@ -506,7 +506,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
             Game.World.RemoveStatusCheck(this);
             // TODO: ondeath castables
-            // FIXME: in the glorious future, run asynchronously with locking
             Script?.ExecuteFunction("OnDeath",
                 ScriptEnvironment.Create(("origin", this), ("target", this), ("source", LastHitter)));
             Location.Map?.Remove(this);
@@ -526,7 +525,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         if (e.Speaker == this)
             return;
 
-        // FIXME: in the glorious future, run asynchronously with locking
         base.OnHear(e);
     }
 
@@ -549,7 +547,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
             Condition.Asleep = false;
             ShouldWander = false;
 
-            // FIXME: in the glorious future, run asynchronously with locking
             if (damageEvent.Source is User user)
                 user.SendCombatLogMessage(damageEvent);
 
@@ -563,7 +560,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
 
     public override void OnHeal(HealEvent healEvent)
     {
-        // FIXME: in the glorious future, run asynchronously with locking
         if (Script == null) return;
         var env = ScriptEnvironment.CreateWithOriginTargetAndSource(healEvent.Source, this, healEvent.Source);
         env.Add("heal", healEvent);
@@ -822,7 +818,6 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
         if (CurrentPath == null) return true;
         // Despawned or removed mid-tick; nothing to obstruct, and Walk() guards the actual move.
         if (Location.Map is not { } map) return true;
-        // TODO: optimize
         if (map.IsCreatureAt(CurrentPath.X, CurrentPath.Y) && CurrentPath.Parent != null &&
             map.IsCreatureAt(CurrentPath.Parent.X, CurrentPath.Parent.Y))
             if (!(X == CurrentPath.X && Y == CurrentPath.Y) || X == CurrentPath.Parent.X || Y == CurrentPath.Parent.Y)

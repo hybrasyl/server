@@ -37,13 +37,13 @@ public interface IClientState
     public bool SendBufferEmpty { get; }
     public IEnumerable<byte> ReceiveBufferTake(int range);
     public IEnumerable<byte> ReceiveBufferPop(int range);
-    public void SendBufferAdd(ServerPacket packet);
-    public bool SendBufferPeek([MaybeNullWhen(false)] out ServerPacket packet);
-    public bool SendBufferTake([MaybeNullWhen(false)] out ServerPacket packet);
+    public void SendBufferAdd(QueuedPacket packet);
+    public bool SendBufferPeek(out QueuedPacket packet);
+    public bool SendBufferTake(out QueuedPacket packet);
     public void ResetReceive();
     public void ResetSend();
     public void Dispose();
-    public bool TryGetPacket([MaybeNullWhen(false)] out ClientPacket packet);
-    public void ReceiveBufferAdd(ClientPacket packet);
-    public bool ReceiveBufferTake([MaybeNullWhen(false)] out ClientPacket packet);
+    public bool TryGetFrame(out InboundFrame frame);
+    public void ReceiveBufferAdd(InboundFrame frame);
+    public bool ReceiveBufferTake(out InboundFrame frame);
 }

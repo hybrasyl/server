@@ -24,7 +24,6 @@ namespace Hybrasyl.Networking;
 
 public abstract class AbstractClient
 {
-    protected byte[] EncryptionKeyTable { get; set; } = new byte[1024];
     protected Server? Server { get; init; }
     public string LastMessage { get; set; } = string.Empty;
 
@@ -41,20 +40,4 @@ public abstract class AbstractClient
         }
     }
 
-    public byte[] GenerateKey(ushort bRand, byte sRand)
-    {
-        var key = new byte[9];
-
-        for (var i = 0; i < 9; ++i) key[i] = EncryptionKeyTable[(i * (9 * i + sRand * sRand) + bRand) % 1024];
-
-        return key;
-    }
-
-    public void GenerateKeyTable(string seed)
-    {
-        var table = Crypto.Md5HashString(seed);
-        table = Crypto.Md5HashString(table);
-        for (var i = 0; i < 31; i++) table += Crypto.Md5HashString(table);
-        EncryptionKeyTable = Encoding.ASCII.GetBytes(table);
-    }
 }

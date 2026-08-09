@@ -20,13 +20,13 @@ namespace Hybrasyl.Networking;
 
 public class HybrasylClientMessage : HybrasylMessage
 {
-    public HybrasylClientMessage(ClientPacket packet, long connectionId, params object[] arguments) :
+    public HybrasylClientMessage(InboundBody packet, long connectionId, params object[] arguments) :
         base("HybrasylClientMessage", arguments)
     {
         Packet = packet;
         ConnectionId = connectionId;
     }
 
-    public ClientPacket Packet { get; }
+    public InboundBody Packet { get; }
     public long ConnectionId { get; }
 }

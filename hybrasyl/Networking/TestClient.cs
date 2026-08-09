@@ -23,6 +23,7 @@ using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using IClientPacket = DALib.Networking.Wire.IClientPacket;
 
 namespace Hybrasyl.Networking;
 
@@ -81,9 +82,20 @@ public class TestClient : AbstractClient, IClient
         ClientState.Dispose();
     }
 
-    public void Enqueue(ServerPacket packet, bool flush = false) => ClientState.SendBufferAdd(packet);
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0) =>
+        ClientState.SendBufferAdd(new QueuedPacket(packet, transmitDelay));
 
-    public void Enqueue(ClientPacket packet) => ClientState.ReceiveBufferAdd(packet);
+    // TestClient has no receive loop; queue without flushing.
+    public void ReceiveFrame(InboundFrame frame) => ClientState.ReceiveBufferAdd(frame);
+
+    // TestClient captures outbound traffic; it has no CryptoState, so there is nothing to
+    // encode an inbound frame against. Tests that need to drive a handler invoke it directly.
+    public void Enqueue(IClientPacket packet) =>
+        throw new NotSupportedException("TestClient does not accept inbound packets; call the handler directly.");
+
+    // TestClient captures outbound traffic and never encrypts, so it has no CryptoState and
+    // nothing to seed.
+    public void GenerateKeyTable(string seed) { }
 
     public void FlushReceiveBuffer()
     {
@@ -99,7 +111,7 @@ public class TestClient : AbstractClient, IClient
 
     public bool IsHeartbeatValid(byte a, byte b) => throw new NotImplementedException();
 
-    public bool IsHeartbeatValid(int localTickCount, int clientTickCount) => throw new NotImplementedException();
+    public bool IsHeartbeatValid(uint localTickCount, uint clientTickCount) => throw new NotImplementedException();
 
     public bool IsIdle() => throw new NotImplementedException();
 

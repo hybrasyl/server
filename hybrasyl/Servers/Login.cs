@@ -16,6 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Client;
+using DALib.Networking.Packets.Server;
 using Hybrasyl.Extensions;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
@@ -55,11 +57,11 @@ public class Login : Server
 
     public LoginPacketHandler[] PacketHandlers { get; }
 
-    private void PacketHandler_0x02_CreateA(IClient client, ClientPacket packet)
+    private void PacketHandler_0x02_CreateA(IClient client, InboundBody packet)
     {
-        var name = packet.ReadString8();
-        var password = packet.ReadString8();
-        var email = packet.ReadString8();
+        var request = CreateCharRequestPacket.Parse(packet.Body.Span);
+        var name = request.Name;
+        var password = request.Password;
 
         // This string will contain a client-ready message if the provided password
         // isn't valid.
@@ -89,10 +91,13 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x03_Login(IClient client, ClientPacket packet)
+    private void PacketHandler_0x03_Login(IClient client, InboundBody packet)
     {
-        var name = packet.ReadString8();
-        var password = packet.ReadString8();
+        // Parse validates the 15-byte XOR'd integrity trailer (CRC-CCITT) and throws on
+        // mismatch; the receive loop drops the packet.
+        var request = LoginPacket.Parse(packet.Body.Span);
+        var name = request.Name;
+        var password = request.Password;
         GameLog.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
 
         if (Game.World.WorldState.TryGetAuthInfo(name, out var login))
@@ -179,12 +184,20 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x04_CreateB(IClient client, ClientPacket packet)
+    private void PacketHandler_0x04_CreateB(IClient client, InboundBody packet)
     {
         if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword)) return;
-        var hairStyle = packet.ReadByte();
-        var gender = packet.ReadByte();
-        var hairColor = packet.ReadByte();
+        var finalize = CreateCharFinalizePacket.Parse(packet.Body.Span);
+        var hairStyle = finalize.HairStyle;
+        // DALib parses the wire byte straight to Gender without validating it, so an
+        // out-of-range value is clamped here exactly as the legacy read did.
+        var gender = (byte)finalize.Gender switch
+        {
+            < 1 => Gender.Male,
+            > 2 => Gender.Female,
+            var g => (Gender)g
+        };
+        var hairColor = finalize.HairColor;
 
         if (hairStyle < 1)
             hairStyle = 1;
@@ -195,12 +208,6 @@ public class Login : Server
         if (hairColor > 13)
             hairColor = 13;
 
-        if (gender < 1)
-            gender = 1;
-
-        if (gender > 2)
-            gender = 2;
-
         // Try to get our map
         // TODO: replace with XML config for start map, x, y
         if (!World.PlayerExists(client.NewCharacterName))
@@ -208,7 +215,7 @@ public class Login : Server
             var newPlayer = new User
             {
                 Name = client.NewCharacterName,
-                Gender = (Gender)gender,
+                Gender = gender,
                 Class = Class.Peasant,
                 Nation = Game.World.DefaultNation
             };
@@ -247,13 +254,13 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x10_ClientJoin(IClient client, ClientPacket packet)
+    private void PacketHandler_0x10_ClientJoin(IClient client, InboundBody packet)
     {
-        var seed = packet.ReadByte();
-        var keyLength = packet.ReadByte();
-        var key = packet.Read(keyLength);
-        var name = packet.ReadString8();
-        var id = packet.ReadUInt32();
+        var join = ClientJoinPacket.Parse(packet.Body.Span);
+        var seed = join.EncryptionSeed;
+        var key = join.EncryptionKey;
+        var name = join.Name;
+        var id = join.RedirectId;
 
         if (!ExpectedConnections.TryGetValue(id, out var redirect))
         {
@@ -276,25 +283,23 @@ public class Login : Server
             client.EncryptionSeed = seed;
 
             if (redirect.Source is Lobby || redirect.Source is World)
-            {
-                var x60 = new ServerPacket(0x60);
-                x60.WriteByte(0x00);
-                x60.WriteUInt32(Game.NotificationCrc);
-                client.Enqueue(x60);
-            }
+                client.Enqueue(new LoginNotificationPacket
+                {
+                    Form = new NotificationChecksumForm { Checksum = Game.NotificationCrc }
+                });
         }
     }
 
     // Chart for all error password-related error codes were provided by kojasou@ on
     // https://github.com/hybrasyl/server/pull/11.
-    private void PacketHandler_0x26_ChangePassword(IClient client, ClientPacket packet)
+    private void PacketHandler_0x26_ChangePassword(IClient client, InboundBody packet)
     {
-        var name = packet.ReadString8();
-        var currentPass = packet.ReadString8();
+        var request = ChangePasswordPacket.Parse(packet.Body.Span);
+        var name = request.Name;
         // Clientside validation ensures that the same string is typed twice for the new
         // password, and the new password is only sent to the server once. We can assume
         // that they matched if 0x26 request is sent from the client.
-        var newPass = packet.ReadString8();
+        var newPass = request.NewPassword;
 
         if (!Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {
@@ -303,7 +308,7 @@ public class Login : Server
             return;
         }
 
-        if (login.VerifyPassword(currentPass))
+        if (login.VerifyPassword(request.CurrentPassword))
         {
             // Check if the password is valid.
             if (ValidPassword(newPass, out var err))
@@ -330,22 +335,17 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x4B_RequestNotification(IClient client, ClientPacket packet)
-    {
-        var x60 = new ServerPacket(0x60);
-        x60.WriteByte(0x01);
-        x60.WriteUInt16((ushort)Game.Notification.Length);
-        x60.Write(Game.Notification);
-        client.Enqueue(x60);
-    }
+    private void PacketHandler_0x4B_RequestNotification(IClient client, InboundBody packet) =>
+        client.Enqueue(new LoginNotificationPacket
+        {
+            Form = new NotificationDataForm { Data = Game.Notification }
+        });
 
-    private void PacketHandler_0x68_RequestHomepage(IClient client, ClientPacket packet)
-    {
-        var x03 = new ServerPacket(0x66);
-        x03.WriteByte(0x03);
-        x03.WriteString8("http://www.hybrasyl.com");
-        client.Enqueue(x03);
-    }
+    private void PacketHandler_0x68_RequestHomepage(IClient client, InboundBody packet) =>
+        client.Enqueue(new UrlPacket
+        {
+            Form = new SetUrlForm { Url = "http://www.hybrasyl.com" }
+        });
 
     /**
          * Hashes the provided password and returns the hashed version. This method should be used
@@ -357,7 +357,7 @@ public class Login : Server
     /**
          * Checks that a string is a valid password.
          *
-         * TODO: can we modernize this policy to allow for better passwords?
+         * HS-1598: the 8-character ceiling may be the retail client's, not ours.
          */
     private bool ValidPassword(string password, out byte code)
     {

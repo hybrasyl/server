@@ -21,12 +21,6 @@ namespace Hybrasyl.Objects;
 ///     One physical door on a map — the authoritative owner of Closed state for a connected set of 1–4 panel
 ///     tiles that make up a single retail door. Instantiated at map load once <see cref="Hybrasyl.Objects.MapObject.LoadMapFile" />
 ///     finds a <see cref="DoorDefinition" />'s full panel set placed adjacently on the map.
-///     <br /><br />
-///     Phase 2 introduces the type and builds groups at load time. Per-tile <see cref="Door.Closed" /> state is
-///     preserved for backward-compatibility with the existing <c>ToggleDoor</c> logic, which continues to mutate
-///     each panel's <c>Closed</c> field independently via the adjacent-panel scan in <c>ToggleDoors</c>. Phase 3
-///     unifies the state on <see cref="Closed" /> here and removes the adjacency scan in favour of a single
-///     <c>Toggle</c> method that emits <c>SendDoorUpdate</c> for every toggle-able panel of the group atomically.
 /// </summary>
 public sealed class DoorGroup
 {

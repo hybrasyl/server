@@ -19,6 +19,7 @@
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Subsystems.Scripting;
+using DalibTextDialog = DALib.Networking.Packets.Server.TextDialog;
 
 namespace Hybrasyl.Subsystems.Dialogs;
 
@@ -29,7 +30,7 @@ public class SimpleDialog : Dialog
 
     public override void ShowTo(DialogInvocation invocation)
     {
-        var dialogPacket = GenerateBasePacket(invocation);
+        var dialogPacket = GenerateBasePacket(invocation, new DalibTextDialog());
         invocation.Target.Enqueue(dialogPacket);
         GameLog.Debug("Sending packet to {Invoker}", invocation.Target.Name);
         RunCallback(invocation);

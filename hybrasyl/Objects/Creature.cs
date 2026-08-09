@@ -23,7 +23,7 @@ using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Players;
@@ -39,6 +39,8 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
+using DALib.Networking.Packets.Server;
+using SpellUseType = Hybrasyl.Xml.Objects.SpellUseType;
 namespace Hybrasyl.Objects;
 
 public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialized
@@ -601,14 +603,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         if (targets.Count == 0)
             GameLog.UserActivityInfo("UseCastable: {Name} casting {Castable}: no targets", Name, castableXml.Name);
 
-        foreach (var tar in targets)
-        {
-            if (castableXml.Effects?.ScriptOverride == true)
-                // TODO: handle castables with scripting
-                // DoStuff();
-                continue;
-
-            // Reactors may be null in the Xml model; treat absent as no reactors.
+        // Reactor coordinates are caster-relative, so they are placed once per cast on the
+        // caster's map — not per target. Reactors may be null in the Xml model; treat absent
+        // as no reactors.
+        if (castableXml.Effects?.ScriptOverride != true && Location.Map is { } casterMap)
             foreach (var reactor in castableXml.Effects?.Reactors ?? [])
             {
                 if (X + reactor.RelativeX < byte.MinValue || X + reactor.RelativeX > byte.MaxValue ||
@@ -616,10 +614,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     continue;
                 var actualX = (byte)(X + reactor.RelativeX);
                 var actualY = (byte)(Y + reactor.RelativeY);
-                // Cast targets are selected from map entity trees and are always in-world
-                var targetMap = tar.Location.Map!;
                 var reactorObj =
-                    new Reactor(actualX, actualY, targetMap, reactor, this, $"{Name}'s {castableXml.Name}")
+                    new Reactor(actualX, actualY, casterMap, reactor, this, $"{Name}'s {castableXml.Name}")
                     {
                         Sprite = reactor.Sprite,
                         CreatedBy = Guid,
@@ -629,9 +625,16 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 // Don't insert a reactor with no uses into the world
                 if (reactorObj.Uses == 0) continue;
                 World.Insert(reactorObj);
-                targetMap.InsertReactor(reactorObj);
+                casterMap.InsertReactor(reactorObj);
                 reactorObj.OnSpawn();
             }
+
+        foreach (var tar in targets)
+        {
+            if (castableXml.Effects?.ScriptOverride == true)
+                // TODO: handle castables with scripting
+                // DoStuff();
+                continue;
 
             if (castableXml.Effects?.Damage != null && !castableXml.Effects.Damage.IsEmpty)
             {
@@ -775,16 +778,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         return true;
     }
 
-    public void SendCastLine(ServerPacket packet)
+    public void SendCastLine(PublicMessagePacket packet)
     {
-        GameLog.DebugFormat("SendCastLine");
-        GameLog.DebugFormat("SendCastLine byte format is: {PacketBytes}", BitConverter.ToString(packet.ToArray()));
         if (Location.Map is not { } map) return;
         foreach (var user in map.EntityTree.GetObjects(GetViewport()).OfType<User>())
         {
-            var nPacket = packet.Clone();
             GameLog.DebugFormat("SendCastLine to {User}", user.Name);
-            user.Enqueue(nPacket);
+            user.Enqueue(packet);
         }
     }
 
@@ -917,13 +917,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 if (obj != this && obj is User user)
                 {
                     GameLog.DebugFormat("Sending walk packet for {0} to {1}", Name, user.Name);
-                    var x0C = new ServerPacket(0x0C);
-                    x0C.WriteUInt32(Id);
-                    x0C.WriteUInt16((byte)oldX);
-                    x0C.WriteUInt16((byte)oldY);
-                    x0C.WriteByte((byte)direction);
-                    x0C.WriteByte(0x00);
-                    user.Enqueue(x0C);
+                    user.Enqueue(new CreatureWalkPacket
+                    {
+                        SourceId = Id,
+                        OldX = (byte)oldX,
+                        OldY = (byte)oldY,
+                        Direction = (DALib.Enums.Direction)(byte)direction
+                    });
                 }
 
             map.EntityTree.Move(this);
@@ -955,24 +955,20 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         Direction = direction;
         if (Location.Map is not { } map) return true;
 
+        var turn = new CreatureTurnPacket
+        {
+            SourceId = Id,
+            Direction = (DALib.Enums.Direction)(byte)direction
+        };
+
         foreach (var obj in map.EntityTree.GetObjects(GetViewport()))
         {
             if (obj is User targetUser)
-            {
-                var x11 = new ServerPacket(0x11);
-                x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
-                targetUser.Enqueue(x11);
-            }
+                targetUser.Enqueue(turn);
 
             if (obj is Monster mob)
-            {
-                var x11 = new ServerPacket(0x11);
-                x11.WriteUInt32(Id);
-                x11.WriteByte((byte)direction);
                 foreach (var user in map.EntityTree.GetObjects(map.GetViewport(mob.X, mob.Y)).OfType<User>().ToList())
-                    user.Enqueue(x11);
-            }
+                    user.Enqueue(turn);
         }
 
         return true;
@@ -1032,11 +1028,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         damageEvent.Element = element;
         damageEvent.Type = damageType;
 
-        // Handle dodging first
+        // Handle dodging first. Stats.Hit is a multiplier centered on 1.0, so the attacker's
+        // accuracy *reduces* the defender's dodge chance (1.16 accuracy removes 16% of it).
+        // A sourceless hit (scripts, /damage) stays undodgeable, as before.
         if (damageType == DamageType.Physical && Stats.Dodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
-            var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
-            if (Random.Shared.NextDouble() <= Stats.Dodge * dodgeReduction)
+            var dodgeChance = attacker == null ? 0.0 : Stats.Dodge * Math.Max(0.0, 2.0 - attacker.Stats.Hit);
+            if (Random.Shared.NextDouble() <= dodgeChance)
             {
                 Effect(115, 100);
                 return;
@@ -1045,8 +1043,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
         if (damageType == DamageType.Magical && Stats.MagicDodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
-            var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
-            if (Random.Shared.NextDouble() <= Stats.MagicDodge * dodgeReduction)
+            var dodgeChance = attacker == null ? 0.0 : Stats.MagicDodge * Math.Max(0.0, 2.0 - attacker.Stats.Hit);
+            if (Random.Shared.NextDouble() <= dodgeChance)
             {
                 Effect(33, 100);
                 return;
@@ -1090,13 +1088,22 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         // Handle dmg/mr/crit/magiccrit
         if (attacker != null && damageType != DamageType.Direct)
         {
-            damage += damage * attacker.Stats.Dmg;
-            damageEvent.BonusDmg = Convert.ToInt32(damage * attacker.Stats.Dmg);
+            // Stats.Dmg is a multiplier centered on 1.0, so it is applied, not added: 1.16
+            // means 116% damage. Report the delta, which is why the pre-value is kept.
+            var beforeDmg = damage;
+            damage *= attacker.Stats.Dmg;
+            damageEvent.BonusDmg = Convert.ToInt32(damage - beforeDmg);
 
+            // Stats.Mr is magic resistance as damage *reduction* (MagicDodge covers evasion
+            // separately). It is a multiplier centered on 1.0 where the deviation is the
+            // resisted fraction -- 1.16 means 16% resisted -- so the damage factor is
+            // 2.0 - Mr. Clamped: immune at or above BonusMr 1.0, at most 2x when deeply
+            // negative, so resistance can never heal the target.
             if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
-                damage += damage * Stats.Mr;
-                damageEvent.MagicResisted = Convert.ToInt32(damage * Stats.Mr);
+                var beforeMr = damage;
+                damage *= Math.Clamp(2.0 - Stats.Mr, 0.0, 2.0);
+                damageEvent.MagicResisted = Convert.ToInt32(beforeMr - damage);
             }
 
             if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical &&
@@ -1110,7 +1117,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
             if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical &&
                 !damageFlags.HasFlag(DamageFlags.NoCrit))
-                if (Random.Shared.NextDouble() <= attacker.Stats.Crit)
+                if (Random.Shared.NextDouble() <= attacker.Stats.MagicCrit)
                 {
                     damage += damage * 2;
                     damageEvent.MagicCrit = true;
@@ -1119,7 +1126,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
             // negative dodge, aka "i rolled a 1 and hit myself in the face"
             if (damageType != DamageType.Magical && Stats.Dodge < 0)
-                if (Random.Shared.Next() <= Stats.Dodge * -1)
+                if (Random.Shared.NextDouble() <= Stats.Dodge * -1)
                 {
                     Effect(68, 100);
                     var selfDamage = damage * -1 * 0.25;
@@ -1128,7 +1135,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                         new StatInfo { DeltaHp = (long)selfDamage },
                         new StatChangeEvent
                         {
-                            Amount = Convert.ToUInt32(selfDamage),
+                            // selfDamage is negative (it is a DeltaHp); Amount is an unsigned
+                            // report field, so it takes the magnitude. Convert.ToUInt32 is
+                            // checked and throws on a negative, unlike a cast.
+                            Amount = Convert.ToUInt32(Math.Abs(selfDamage)),
                             EventType = CombatLogEventType.CriticalFailure,
                             Source = attacker,
                             Target = this
@@ -1147,7 +1157,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                         new StatInfo { DeltaHp = (long)selfDamage },
                         new StatChangeEvent
                         {
-                            Amount = Convert.ToUInt32(selfDamage),
+                            Amount = Convert.ToUInt32(Math.Abs(selfDamage)),
                             EventType = CombatLogEventType.CriticalMagicFailure,
                             Source = attacker,
                             Target = this
@@ -1181,16 +1191,14 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
         if (Stats.Shield > 0)
         {
-            if (Stats.Shield >= damage)
-            {
-                damage = 0;
-                Stats.Shield -= damage;
-            }
-            else
-            {
-                damage -= Stats.Shield;
-                Stats.Shield = 0;
-            }
+            // Order mattered: the old full-absorption branch zeroed damage and *then*
+            // subtracted it from the shield, so it always subtracted zero and any shield big
+            // enough to absorb a hit never depleted. damage is >= 1 here (clamped above), so
+            // absorbed is never negative.
+            var absorbed = Math.Min(Stats.Shield, damage);
+            Stats.Shield -= absorbed;
+            damage -= absorbed;
+            damageEvent.Shielded = (uint) Math.Clamp(absorbed, 0, uint.MaxValue);
         }
 
         // Now, normalize damage for uint (max hp)
@@ -1206,7 +1214,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
             case DamageType.Physical when AbsoluteImmortal || PhysicalImmortal || Condition.IsInvulnerable:
             case DamageType.Magical when AbsoluteImmortal || MagicalImmortal || Condition.IsInvulnerable:
             case DamageType.Direct when AbsoluteImmortal:
+                // Emit rather than returning silently: Applied exists precisely to record
+                // "target was immune", and was never observable because the event was
+                // dropped here. Note this now routes through OnDamage, so an immortal
+                // monster registers threat (amount 0) and wakes, as it would for a real hit.
                 damageEvent.Applied = false;
+                damageEvent.Amount = 0;
+                OnDamage(damageEvent);
                 return;
         }
 
@@ -1224,7 +1238,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     new StatInfo { DeltaHp = (long)(reflected * -1) },
                     new StatChangeEvent
                     {
-                        Amount = Convert.ToUInt32(reflected * -1),
+                        // reflected is positive; DeltaHp carries the sign, Amount is unsigned.
+                        Amount = Convert.ToUInt32(reflected),
                         EventType = CombatLogEventType.ReflectMagical,
                         Source = attacker,
                         Target = this
@@ -1238,7 +1253,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)reflected * -1 },
                     new StatChangeEvent
                     {
-                        Amount = Convert.ToUInt32(reflected * -1),
+                        Amount = Convert.ToUInt32(reflected),
                         EventType = CombatLogEventType.ReflectPhysical,
                         Source = attacker,
                         Target = this
@@ -1304,13 +1319,14 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
     {
         if (Location.Map == null) return;
         var percent = creature.Stats.Hp / (double)creature.Stats.MaximumHp * 100;
-        var healthbar = new HealthBar { CurrentPercent = (byte)percent, ObjId = creature.Id };
+        var healthbar = new HealthBarPacket
+        {
+            SourceId = creature.Id,
+            HealthPercent = (byte)percent
+        };
 
         foreach (var user in Location.Map.EntityTree.GetObjects(GetViewport()).OfType<User>())
-        {
-            var nPacket = healthbar.Packet().Clone();
-            user.Enqueue(nPacket);
-        }
+            user.Enqueue(healthbar);
     }
 
     public override void ShowTo(IVisible obj)

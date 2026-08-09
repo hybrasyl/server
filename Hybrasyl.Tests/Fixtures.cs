@@ -18,6 +18,7 @@
 
 using Hybrasyl.Internals;
 using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Players;
@@ -27,6 +28,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Linq;
 using System.Net;
 using Xunit;
@@ -86,8 +88,7 @@ public class HybrasylFixture : IDisposable
         Game.ActiveConfiguration.Time = new Time { Ages = new List<HybrasylAge>() };
 
         Game.World.ScriptProcessor.CompileScripts();
-        Game.World.SetPacketHandlers();
-        Game.World.SetControlMessageHandlers();
+        Game.World.RegisterHandlers();
         Game.World.StartControlConsumers();
 
 
@@ -182,6 +183,48 @@ public class HybrasylFixture : IDisposable
             server.FlushDatabase(15);
         }
         catch (Exception) { }
+    }
+
+    /// <summary>
+    ///     Give <paramref name="user" /> a capturing client and register it as connected, so
+    ///     handler paths that resolve the user by name reach it and anything sent can be read back
+    ///     off <see cref="TestClient.ClientState" />.
+    /// </summary>
+    /// <remarks>
+    ///     Disposing <paramref name="restore" /> must undo <em>both</em> halves. Leaving the user
+    ///     registered after the client is detached makes <c>TryGetActiveUser</c> succeed for a user
+    ///     nothing can be sent to, and every later test in the collection then sees a different
+    ///     world depending on whether this one ran.
+    /// </remarks>
+    public static TestClient AttachTestClient(User user, out IDisposable restore)
+    {
+        var field = typeof(User).GetField("Client", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?? throw new InvalidOperationException("User.Client is no longer a private instance field");
+        var previous = field.GetValue(user);
+        // Registration, not connectivity: UserConnected also requires a live client, so it reads
+        // false for a user who is still in WorldState with no client attached.
+        var wasRegistered = Game.World.TryGetActiveUser(user.Name, out _);
+        var client = new TestClient(new TestSocket());
+        field.SetValue(user, client);
+        Game.World.AddUser(user, user.ConnectionId);
+        restore = new Restorer(() =>
+        {
+            if (!wasRegistered) Game.World.RemoveUser(user.Name);
+            field.SetValue(user, previous);
+        });
+        return client;
+    }
+
+    private sealed class Restorer(Action onDispose) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            onDispose();
+        }
     }
 
     public User CreateUser(string username)
@@ -315,7 +358,7 @@ public class HybrasylFixture : IDisposable
         user.Stats.Mp = 1000;
         user.Class = Class.Peasant;
         user.Inventory.Clear();
-        TestUser.Equipment.Clear();
+        user.Equipment.Clear();
         user.Vault.Clear();
         user.RemoveAllStatuses();
     }

@@ -24,15 +24,3 @@ public enum BoardAccessLevel
     Write,       // N.B. Write implies read
     Moderate    // Moderator implies r/w access
 }
-
-public enum BoardResponseType : byte
-{
-    DisplayList = 0x01,
-    GetMailboxIndex = 0x02,
-    GetBoardIndex = 0x03,
-    GetMailMessage = 0x04,
-    GetBoardMessage = 0x05,
-    EndResult = 0x06,
-    DeleteMessage = 0x07,
-    HighlightMessage = 0x08
-}

@@ -16,6 +16,8 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Client;
+using DALib.Networking.Packets.Server;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -108,7 +110,6 @@ public class UserGroup
         return true;
     }
 
-    // TODO: refactor to use hashset
     public bool Contains(User user)
     {
         return Members.Where(predicate: e => e.Name == user.Name).Count() > 0;
@@ -298,51 +299,54 @@ public class GroupRecruit
         };
     }
 
-    public static GroupRecruit Read(ClientPacket packet, User recruiter)
+    // Caps map by class name, not wire position — the order here is deliberate (HTOO-64).
+    public static GroupRecruit FromRequest(GroupRequestPacket request, User recruiter)
     {
         return new GroupRecruit(recruiter)
         {
-            Name = packet.ReadString8(),
-            Note = packet.ReadString8(),
-            StartingLevelRange = Math.Max((int) packet.ReadByte(), 1),
-            EndingLevelRange = Math.Clamp((int) packet.ReadByte(), 1, 99),
+            Name = request.Title ?? string.Empty,
+            Note = request.Note ?? string.Empty,
+            StartingLevelRange = Math.Max((int) (request.MinLevel ?? 0), 1),
+            EndingLevelRange = Math.Clamp((int) (request.MaxLevel ?? 0), 1, 99),
             _wanted = new[]
             {
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13)
+                Math.Min((int) (request.MaxWarrior ?? 0), 13),
+                Math.Min((int) (request.MaxWizard ?? 0), 13),
+                Math.Min((int) (request.MaxRogue ?? 0), 13),
+                Math.Min((int) (request.MaxPriest ?? 0), 13),
+                Math.Min((int) (request.MaxMonk ?? 0), 13)
             }
         };
     }
 
     public void ShowTo(User user)
     {
-        var groupPacket = new ServerPacket(0x63);
-        groupPacket.WriteByte((byte) GroupServerPacketType.RecruitInfo);
-        WriteInfo(groupPacket);
-        user.Enqueue(groupPacket);
+        user.Enqueue(new GroupRecruitInfoPacket
+        {
+            ResponseType = GroupResponseType.RecruitInfo,
+            Info = ToRecruitInfo()
+        });
     }
 
-    public void WriteInfo(ServerPacket packet)
+    // Class pair order is deliberate and must match FromRequest — see HTOO-64.
+    public GroupRecruitInfo ToRecruitInfo() => new()
     {
-        packet.WriteString8(Recruiter.Name);
-        packet.WriteString8(Name);
-        packet.WriteString8(Note);
-        packet.WriteByte((byte) StartingLevelRange);
-        packet.WriteByte((byte) EndingLevelRange);
-        packet.WriteByte((byte) WarriorsWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Warrior] ?? 0));
-        packet.WriteByte((byte) WizardsWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Wizard] ?? 0));
-        packet.WriteByte((byte) RoguesWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Rogue] ?? 0));
-        packet.WriteByte((byte) PriestsWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Priest] ?? 0));
-        packet.WriteByte((byte) MonksWanted);
-        packet.WriteByte((byte) (Group?.ClassCount[Class.Monk] ?? 0));
-    }
+        RecruiterName = Recruiter.Name,
+        GroupName = Name,
+        Note = Note,
+        StartingLevel = (byte) StartingLevelRange,
+        EndingLevel = (byte) EndingLevelRange,
+        WarriorsWanted = (byte) WarriorsWanted,
+        CurrentWarriors = (byte) (Group?.ClassCount[Class.Warrior] ?? 0),
+        WizardsWanted = (byte) WizardsWanted,
+        CurrentWizards = (byte) (Group?.ClassCount[Class.Wizard] ?? 0),
+        RoguesWanted = (byte) RoguesWanted,
+        CurrentRogues = (byte) (Group?.ClassCount[Class.Rogue] ?? 0),
+        PriestsWanted = (byte) PriestsWanted,
+        CurrentPriests = (byte) (Group?.ClassCount[Class.Priest] ?? 0),
+        MonksWanted = (byte) MonksWanted,
+        CurrentMonks = (byte) (Group?.ClassCount[Class.Monk] ?? 0)
+    };
 
     public bool InviteToGroup(User invitee)
     {

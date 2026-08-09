@@ -36,8 +36,8 @@ public class ClientState(ISocketProxy incoming) : IClientState
     private readonly object _recvlock = new();
 
     private readonly object _sendlock = new();
-    private ConcurrentQueue<ClientPacket> _receiveBuffer = new();
-    private ConcurrentQueue<ServerPacket> _sendBuffer = new();
+    private ConcurrentQueue<InboundFrame> _receiveBuffer = new();
+    private ConcurrentQueue<QueuedPacket> _sendBuffer = new();
 
     public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; set; } = new(false);
@@ -90,27 +90,27 @@ public class ClientState(ISocketProxy incoming) : IClientState
         return ret;
     }
 
-    public void SendBufferAdd(ServerPacket packet)
+    public void SendBufferAdd(QueuedPacket packet)
     {
         _sendBuffer.Enqueue(packet);
     }
 
-    public bool SendBufferPeek([MaybeNullWhen(false)] out ServerPacket packet) => _sendBuffer.TryPeek(out packet);
+    public bool SendBufferPeek(out QueuedPacket packet) => _sendBuffer.TryPeek(out packet);
 
-    public bool SendBufferTake([MaybeNullWhen(false)] out ServerPacket packet) => _sendBuffer.TryDequeue(out packet);
+    public bool SendBufferTake(out QueuedPacket packet) => _sendBuffer.TryDequeue(out packet);
 
     public void ResetReceive()
     {
         lock (ReceiveLock)
         {
             Buffer = new byte[BufferSize];
-            _receiveBuffer = new ConcurrentQueue<ClientPacket>();
+            _receiveBuffer = new ConcurrentQueue<InboundFrame>();
         }
     }
 
     public void ResetSend()
     {
-        _sendBuffer = new ConcurrentQueue<ServerPacket>();
+        _sendBuffer = new ConcurrentQueue<QueuedPacket>();
     }
 
     public void Dispose()
@@ -133,19 +133,19 @@ public class ClientState(ISocketProxy incoming) : IClientState
         Connected = false;
     }
 
-    public bool TryGetPacket([MaybeNullWhen(false)] out ClientPacket packet)
+    public bool TryGetFrame(out InboundFrame frame)
     {
-        packet = null!;
+        frame = default;
         lock (ReceiveLock)
         {
             if (Buffer.Length != 0 && Buffer[0] == 0xAA && Buffer.Length > 3)
             {
                 var packetLength = (Buffer[1] << 8) + Buffer[2] + 3;
-                // Complete packet, pop it off and return it
+                // Complete frame, pop it off and return it
                 if (BytesReceived >= packetLength)
                 {
                     BytesReceived -= packetLength;
-                    packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
+                    frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength).ToArray());
                     return true;
                 }
             }
@@ -154,10 +154,10 @@ public class ClientState(ISocketProxy incoming) : IClientState
         }
     }
 
-    public void ReceiveBufferAdd(ClientPacket packet)
+    public void ReceiveBufferAdd(InboundFrame frame)
     {
-        _receiveBuffer.Enqueue(packet);
+        _receiveBuffer.Enqueue(frame);
     }
 
-    public bool ReceiveBufferTake([MaybeNullWhen(false)] out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
+    public bool ReceiveBufferTake(out InboundFrame frame) => _receiveBuffer.TryDequeue(out frame);
 }

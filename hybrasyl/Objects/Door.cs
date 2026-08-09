@@ -24,10 +24,6 @@ namespace Hybrasyl.Objects;
 ///     A single panel tile of a retail door. Each physical door on a map is represented by one
 ///     <see cref="DoorGroup" /> owning a shared Closed state plus one <see cref="Door" /> per panel tile
 ///     (1 for single-tile doors, up to 4 for four-tile doors).
-///     <br /><br />
-///     In Phase 2, per-tile <see cref="Closed" /> is preserved as a settable field so the existing
-///     <c>ToggleDoor</c>/<c>ToggleDoors</c> logic continues to work unchanged. Phase 3 unifies state on
-///     <see cref="DoorGroup.Closed" />.
 /// </summary>
 public class Door : VisibleObject
 {

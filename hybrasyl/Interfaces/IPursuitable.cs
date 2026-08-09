@@ -16,12 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Server;
 using Hybrasyl.Internals.Logging;
-using Hybrasyl.Networking.ServerPackets;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Scripting;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Hybrasyl.Interfaces;
 
@@ -172,23 +173,25 @@ public interface IPursuitable : IInteractable, IResponseCapable, IVisible
             optionsCount++;
         }
 
-        var packet = new MerchantResponse
+        // The ignored four-byte secondary group carries a repeat of the speaker sprite, as the
+        // legacy builder wrote it. This site does not go through User.MerchantMenu because its
+        // source is any IInteractable, not a Merchant.
+        var packet = new NpcMenuPacket
         {
-            MerchantDialogType = MerchantDialogType.Options,
-            MerchantDialogObjectType = MerchantDialogObjectType.Merchant,
-            ObjectId = (this as IInteractable).Id,
-            Tile1 = (ushort)(0x4000 + Sprite),
-            Color1 = 0,
-            Tile2 = (ushort)(0x4000 + Sprite),
-            Color2 = 0,
-            PortraitType = 1,
+            MenuType = NpcMenuType.Options,
+            SourceId = (this as IInteractable).Id,
+            Sprite = (ushort)(0x4000 + Sprite),
+            Sprite2 = (ushort)(0x4000 + Sprite),
             Name = string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName,
             // merchant (`this as Merchant`) is null for Reactor, the other IPursuitable
             // implementer; fall back to an empty greeting.
             Text = merchant?.GetLocalString("greeting") ?? string.Empty,
-            Options = options
+            Menu = new OptionsMenu
+            {
+                Options = options.Options.Select(o => new NpcMenuOption(o.Text, o.Id)).ToList()
+            }
         };
 
-        invoker.Enqueue(packet.Packet());
+        invoker.Enqueue(packet);
     }
 }

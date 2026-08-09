@@ -20,13 +20,13 @@ namespace Hybrasyl.Networking.Throttling;
 
 public class PacketThrottleData : IPacketThrottleData
 {
-    public PacketThrottleData(Client client, ClientPacket packet)
+    public PacketThrottleData(Client client, InboundBody packet)
     {
         Client = client;
         Packet = packet;
     }
 
     public Client Client { get; set; }
-    public ClientPacket Packet { get; set; }
+    public InboundBody Packet { get; set; }
     public byte Opcode => Packet.Opcode;
 }

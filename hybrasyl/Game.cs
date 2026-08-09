@@ -24,7 +24,6 @@ using Hybrasyl.Internals.CommandLine;
 using Hybrasyl.Internals.Compression;
 using Hybrasyl.Internals.Crc;
 using Hybrasyl.Internals.Logging;
-using Hybrasyl.Networking.ClientPackets;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Spawning;
 using Hybrasyl.Xml.Manager;
@@ -105,7 +104,7 @@ public static class Game
         set => _activeConfiguration = value;
     }
 
-    public static byte[] ServerTable { get; private set; } = null!;
+    public static IReadOnlyList<DALib.Networking.Packets.Server.ServerEntry> ServerTableEntries { get; private set; } = [];
     public static uint ServerTableCrc { get; private set; }
     public static byte[] Notification { get; set; } = [];
     public static uint NotificationCrc { get; set; }
@@ -117,6 +116,22 @@ public static class Game
     public static string DataDirectory { get; set; } = string.Empty;
     public static string LogDirectory { get; set; } = string.Empty;
     public static string ActiveConfigurationName { get; set; } = string.Empty;
+
+    private static byte[] ServerTablePlaintext(IReadOnlyList<DALib.Networking.Packets.Server.ServerEntry> entries)
+    {
+        var writer = new DALib.Networking.Wire.PacketWriter();
+        writer.WriteByte((byte)entries.Count);
+
+        foreach (var entry in entries)
+        {
+            writer.WriteByte(entry.Id);
+            writer.WriteBytes(entry.IpAddress.GetAddressBytes());
+            writer.WriteUInt16(entry.Port);
+            writer.WriteCString(entry.Name);
+        }
+
+        return writer.WrittenSpan.ToArray();
+    }
 
     public static T? GetServerByGuid<T>(Guid g) where T : Server
     {
@@ -520,7 +535,7 @@ public static class Game
         // Configure logging 
         GameLog.LogInit(LogDirectory, activeConfiguration.Logging);
 
-        // TODO: OTel telemetry export not yet implemented (ApiEndpoints.TelemetryEndpoint)
+        // HS-1595: the endpoint is configurable but export is not implemented.
         if (activeConfiguration.ApiEndpoints?.TelemetryEndpoint != null)
             Log.Warning("TelemetryEndpoint is configured, but telemetry export is not yet implemented");
 
@@ -632,30 +647,17 @@ public static class Game
             Environment.Exit(1);
         }
 
-        byte[] addressBytes;
-        addressBytes = Lobby.BindAddress.GetAddressBytes();
-        Array.Reverse(addressBytes);
-
-        using (var multiServerTableStream = new MemoryStream())
-        {
-            using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
+        ServerTableEntries =
+        [
+            new DALib.Networking.Packets.Server.ServerEntry
             {
-                multiServerTableWriter.Write((byte)1);
-                multiServerTableWriter.Write((byte)1);
-                multiServerTableWriter.Write(addressBytes);
-                multiServerTableWriter.Write((byte)(2611 / 256));
-                multiServerTableWriter.Write((byte)(2611 % 256));
-                multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
+                Id = 1,
+                IpAddress = Lobby.BindAddress,
+                Port = 2611,
+                Name = "Hybrasyl"
             }
-
-            ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
-
-            using (var compressedMultiServerTableStream = new MemoryStream())
-            {
-                ZlibCompression.Compress(multiServerTableStream, compressedMultiServerTableStream);
-                ServerTable = compressedMultiServerTableStream.ToArray();
-            }
-        }
+        ];
+        ServerTableCrc = ~Crc32.Calculate(ServerTablePlaintext(ServerTableEntries));
 
         using (var stipulationStream = new MemoryStream())
         {

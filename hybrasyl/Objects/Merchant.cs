@@ -24,6 +24,8 @@ using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Mundanes;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Xml.Objects;
+using NpcOptionResponsePacket = DALib.Networking.Packets.Client.NpcOptionResponsePacket;
+using NpcTextResponsePacket = DALib.Networking.Packets.Client.NpcTextResponsePacket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -99,21 +101,22 @@ public sealed class Merchant : Creature, IPursuitable, IEphemeral, ISpawnable
     public override void ShowTo(IVisible obj)
     {
         if (obj is not User user) return;
-        var npcPacket = new ServerPacket(0x07);
-        npcPacket.WriteUInt16(0x01); // Number of mobs in this packet
-        npcPacket.WriteUInt16(X);
-        npcPacket.WriteUInt16(Y);
-        npcPacket.WriteUInt32(Id);
-        npcPacket.WriteUInt16((ushort) (Sprite + 0x4000));
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte((byte) Direction);
-        npcPacket.WriteByte(0);
-        npcPacket.WriteByte(2); // Dot color. 0 = monster, 1 = nonsolid monster, 2=NPC
-        npcPacket.WriteString8(string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName);
-        user.Enqueue(npcPacket);
+        user.Enqueue(new DALib.Networking.Packets.Server.DrawObjectsPacket
+        {
+            Objects =
+            [
+                new DALib.Networking.Packets.Server.CreatureWorldObject
+                {
+                    X = X,
+                    Y = Y,
+                    Id = Id,
+                    Sprite = (ushort)(Sprite + 0x4000),
+                    Direction = (byte)Direction,
+                    Type = DALib.Networking.Packets.Server.CreatureWorldObject.TypeNamed,
+                    Name = string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName
+                }
+            ]
+        });
     }
 
 
@@ -226,7 +229,6 @@ public sealed class Merchant : Creature, IPursuitable, IEphemeral, ISpawnable
         // Call/response?
         if (Responses.TryGetValue(e.SanitizedMessage, out var response))
         {
-            // TODO: improve
             Say(response.Replace("$NAME", Name));
             return;
         }
@@ -388,21 +390,11 @@ public enum MerchantDialogObjectType : byte
 
 public struct MerchantOptions
 {
-    public byte OptionsCount => Convert.ToByte(Options.Count);
-    public List<MerchantDialogOption> Options;
-}
-
-public struct MerchantOptionsWithArgument
-{
-    public byte ArgumentLength => Convert.ToByte(Argument.Length);
-    public string Argument;
-    public byte OptionsCount => Convert.ToByte(Options.Count);
     public List<MerchantDialogOption> Options;
 }
 
 public struct MerchantDialogOption
 {
-    public byte Length => Convert.ToByte(Text.Length);
     public string Text;
     public ushort Id;
 }
@@ -412,17 +404,9 @@ public struct MerchantInput
     public ushort Id;
 }
 
-public struct MerchantInputWithArgument
-{
-    public byte ArgumentLength => Convert.ToByte(Argument.Length);
-    public string Argument;
-    public ushort Id;
-}
-
 public struct MerchantShopItems
 {
     public ushort Id;
-    public ushort ItemsCount => Convert.ToUInt16(Items.Count);
     public List<MerchantShopItem> Items;
 }
 
@@ -431,16 +415,13 @@ public struct MerchantShopItem
     public ushort Tile;
     public byte Color;
     public uint Price;
-    public byte NameLength => Convert.ToByte(Name.Length);
     public string Name;
-    public byte DescriptionLength => Convert.ToByte(Description.Length);
     public string Description;
 }
 
 public struct UserInventoryItems
 {
     public ushort Id;
-    public byte InventorySlotsCount => Convert.ToByte(InventorySlots.Count);
     public List<byte> InventorySlots;
 }
 
@@ -457,8 +438,6 @@ public struct UserSpellBook
 public struct MerchantSpells
 {
     public ushort Id;
-    public ushort SpellsCount => Convert.ToUInt16(Spells.Count());
-    public byte IconType;
     public List<MerchantSpell> Spells;
 }
 
@@ -467,15 +446,12 @@ public struct MerchantSpell
     public byte IconType;
     public byte Icon;
     public byte Color;
-    public byte NameLength => Convert.ToByte(Name.Length);
     public string Name;
 }
 
 public struct MerchantSkills
 {
     public ushort Id;
-    public ushort SkillsCount => Convert.ToUInt16(Skills.Count());
-    public byte IconType;
     public List<MerchantSkill> Skills;
 }
 
@@ -484,20 +460,82 @@ public struct MerchantSkill
     public byte IconType;
     public byte Icon;
     public byte Color;
-    public byte NameLength => Convert.ToByte(Name.Length);
     public string Name;
 }
 
-public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);
+/// <summary>
+///     Which C&#8594;S 0x39 response shape a merchant menu item's reply carries. The 0x39 tail has no
+///     discriminator — its shape depends on the menu the server last displayed — so DALib cannot
+///     dispatch it and each registration must declare its shape here.
+/// </summary>
+public enum MerchantResponseForm
+{
+    /// <summary>Form A — bare select. The prefix carries everything; there is no tail.</summary>
+    Select,
 
+    /// <summary>
+    ///     Form B — a trailing <c>string8</c>. Typed input from a text prompt, or the name of the
+    ///     row picked out of a server-supplied item, skill or spell list.
+    /// </summary>
+    Text,
+
+    /// <summary>
+    ///     Form E — a trailing option byte. The row picked out of a player-owned list, where the
+    ///     option <em>is</em> the inventory or book slot.
+    /// </summary>
+    Option
+}
+
+public delegate void MerchantSelectHandlerDelegate(User user, Merchant merchant);
+
+public delegate void MerchantTextHandlerDelegate(User user, Merchant merchant, string text);
+
+public delegate void MerchantOptionHandlerDelegate(User user, Merchant merchant, byte option);
+
+/// <summary>
+///     A merchant menu callback together with the job it requires and the 0x39 response form it
+///     expects. The constructor overloads pair form with callback shape, so a callback receives an
+///     already-parsed value and cannot read past what its form carries.
+/// </summary>
+/// <remarks>
+///     This is the receive-side counterpart of <c>User.MerchantMenu</c>'s overloads, which pair menu
+///     type with body shape on the send side. Declaring the form here also makes it readable, which
+///     is what lets <c>MerchantResponseForms</c> diff the two sides.
+/// </remarks>
 public class MerchantMenuHandler
 {
-    public MerchantMenuHandler(MerchantJob requiredJob, MerchantMenuHandlerDelegate callback)
+    private readonly Action<User, Merchant, InboundBody> _invoker;
+
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantSelectHandlerDelegate callback)
     {
         RequiredJob = requiredJob;
-        Callback = callback;
+        Form = MerchantResponseForm.Select;
+        _invoker = (user, merchant, _) => callback(user, merchant);
     }
 
-    public MerchantJob RequiredJob { get; set; }
-    public MerchantMenuHandlerDelegate Callback { get; set; }
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantTextHandlerDelegate callback)
+    {
+        RequiredJob = requiredJob;
+        Form = MerchantResponseForm.Text;
+        _invoker = (user, merchant, packet) => callback(user, merchant,
+            NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text);
+    }
+
+    public MerchantMenuHandler(MerchantJob requiredJob, MerchantOptionHandlerDelegate callback)
+    {
+        RequiredJob = requiredJob;
+        Form = MerchantResponseForm.Option;
+        _invoker = (user, merchant, packet) => callback(user, merchant,
+            NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option);
+    }
+
+    public MerchantJob RequiredJob { get; }
+    public MerchantResponseForm Form { get; }
+
+    /// <summary>
+    ///     Parse the body as this handler's declared form and invoke the callback. A malformed
+    ///     body throws here rather than mid-callback; the receive loop catches it, logs, and drops
+    ///     the packet with the connection intact.
+    /// </summary>
+    public void Invoke(User user, Merchant merchant, InboundBody packet) => _invoker(user, merchant, packet);
 }

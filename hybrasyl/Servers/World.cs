@@ -25,14 +25,13 @@ using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Internals.Metafiles;
 using Hybrasyl.Networking;
-using Hybrasyl.Networking.ServerPackets;
+using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Objects;
 using Hybrasyl.Plugins;
 using Hybrasyl.Subsystems;
 using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
-using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
@@ -47,6 +46,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -56,6 +56,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+// DALib server-side types stay fully qualified: WorldObject, OptionsDialog and
+// TextDialog collide with Hybrasyl types, and the heartbeat packets exist under
+// both DALib.Networking.Packets.Client and .Server.
+using DALib.Networking.Packets.Client;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
 using MessageType = Hybrasyl.Xml.Objects.MessageType;
@@ -83,8 +87,17 @@ public class World : Server
 
     private readonly Dictionary<MessageType, List<IMessageHandler>> MessagePlugins = new();
 
-    public HashSet<Creature> ActiveStatuses = new();
+    // Added and removed on the game threads, enumerated on the StatusTickJob timer thread.
+    // The value type is unused; this is a set.
+    public readonly ConcurrentDictionary<Creature, byte> ActiveStatuses = new();
     private Dictionary<MerchantMenuItem, MerchantMenuHandler> merchantMenuHandlers = new();
+
+    /// <summary>
+    ///     The merchant menu registrations, exposed so <c>MerchantResponseForms</c> can diff each
+    ///     handler's declared 0x39 response form against the form its menu type implies.
+    /// </summary>
+    internal IReadOnlyDictionary<MerchantMenuItem, MerchantMenuHandler> MerchantMenuHandlers =>
+        merchantMenuHandlers;
 
     public World(IPAddress bindAddress, int port, bool isDefault = false) : base(bindAddress, port, isDefault)
     {
@@ -149,6 +162,9 @@ public class World : Server
     private Thread? ConsumerThread { get; set; }
     private Thread? ControlConsumerThread { get; set; }
 
+    // World data entities skipped during load; bad data is logged and skipped, never fatal
+    private int _dataLoadErrors;
+
     public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
     public bool DebugEnabled { get; set; }
@@ -202,23 +218,35 @@ public class World : Server
 
         WorldState.Ready = true;
         WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
-        GenerateMetafiles();
-        SetPacketHandlers();
-        SetControlMessageHandlers();
-        SetMerchantMenuHandlers();
+        try
+        {
+            GenerateMetafiles();
+        }
+        catch (Exception e)
+        {
+            // Backstop for anything the per-entity guards inside don't cover
+            _dataLoadErrors++;
+            GameLog.Error(e, "GenerateMetafiles: unhandled failure; server will start with incomplete metafiles");
+        }
+
+        RegisterHandlers();
         RegisterWorldThrottles();
         LoadPlugins();
+        if (_dataLoadErrors > 0)
+            GameLog.Error(
+                "World data: {Count} entities failed to load and were skipped — search the log for 'skipping' or 'omitted'",
+                _dataLoadErrors);
         return true;
     }
 
     public void EnqueueStatusCheck(Creature obj)
     {
-        ActiveStatuses.Add(obj);
+        ActiveStatuses.TryAdd(obj, 0);
     }
 
     public void RemoveStatusCheck(Creature obj)
     {
-        ActiveStatuses.Remove(obj);
+        ActiveStatuses.TryRemove(obj, out _);
     }
 
     internal void RegisterGlobalSequence(DialogSequence sequence)
@@ -314,35 +342,47 @@ public class World : Server
         // Generate map objects from maps (TODO: remove)
 
         foreach (var map in WorldData.Values<Map>())
-        {
-            var mapObj = new MapObject(map, this);
-            WorldState.SetWithIndex(mapObj.Id, mapObj, mapObj.Name);
-        }
+            try
+            {
+                var mapObj = new MapObject(map, this);
+                WorldState.SetWithIndex(mapObj.Id, mapObj, mapObj.Name);
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "map {Name} ({Id}): failed to load, skipping", map.Name, map.Id);
+            }
 
         uint castableId = 0;
         // Generate castable objects from castables (used specifically to handle spell dialogs)
         foreach (var castable in WorldData.Values<Castable>())
-        {
-            if (string.IsNullOrEmpty(castable.Script) ||
-                !Game.World.ScriptProcessor.TryGetScript(castable.Script, out var script)) continue;
-            var env = new ScriptEnvironment();
-            var associate = new HybrasylInteractable();
-            env.Add("associate", associate);
-            env.Add("origin", associate);
-            var result = script.ExecuteFunction("OnLoad", env);
-            var castableObject = new CastableObject
+            try
             {
-                Guid = castable.Guid,
-                Id = castableId,
-                Template = castable,
-                ScriptedDialogs = associate,
-                Sprite = associate.Sprite,
-                Script = script
-            };
-            // Store the CastableObject for later usage by dialog system, along with guid index
-            WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
-            castableId++;
-        }
+                if (string.IsNullOrEmpty(castable.Script) ||
+                    !Game.World.ScriptProcessor.TryGetScript(castable.Script, out var script)) continue;
+                var env = new ScriptEnvironment();
+                var associate = new HybrasylInteractable();
+                env.Add("associate", associate);
+                env.Add("origin", associate);
+                var result = script.ExecuteFunction("OnLoad", env);
+                var castableObject = new CastableObject
+                {
+                    Guid = castable.Guid,
+                    Id = castableId,
+                    Template = castable,
+                    ScriptedDialogs = associate,
+                    Sprite = associate.Sprite,
+                    Script = script
+                };
+                // Store the CastableObject for later usage by dialog system, along with guid index
+                WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
+                castableId++;
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "castable {Name}: scripted dialog load failed, skipping", castable.Name);
+            }
 
         // Create a static "monster weapon" that is used in various places
         // TODO: maybe just use xml for this
@@ -356,20 +396,26 @@ public class World : Server
         if (Game.ActiveConfiguration?.Boards != null)
         {
             foreach (var globalboard in Game.ActiveConfiguration.Boards)
-            {
-                var board = WorldState.GetBoard(globalboard.Name);
-                board.DisplayName = globalboard.DisplayName;
-                board.Global = true;
-                foreach (var reader in globalboard.AccessList.Read)
-                    board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
-                foreach (var writer in globalboard.AccessList.Write)
-                    board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
-                foreach (var moderator in globalboard.AccessList.Moderate)
-                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
-                GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
-                WorldState.SetWithIndex(board.Name, board, board.Id);
-                board.Save();
-            }
+                try
+                {
+                    var board = WorldState.GetBoard(globalboard.Name);
+                    board.DisplayName = globalboard.DisplayName;
+                    board.Global = true;
+                    foreach (var reader in globalboard.AccessList.Read)
+                        board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
+                    foreach (var writer in globalboard.AccessList.Write)
+                        board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
+                    foreach (var moderator in globalboard.AccessList.Moderate)
+                        board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
+                    GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
+                    WorldState.SetWithIndex(board.Name, board, board.Id);
+                    board.Save();
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "board {Name}: failed to initialize, skipping", globalboard.Name);
+                }
         }
         else
         {
@@ -408,23 +454,31 @@ public class World : Server
             {
                 if (j == items.Length) break;
                 var item = items[j];
-                var level = item.Properties.Restrictions?.Level?.Min ?? 1;
-                var xclass = item.Properties.Restrictions?.Class ?? Class.Peasant;
-                var nclass = xclass.ToString("g").Replace("Peasant", "All");
-                var weight = item.Properties.Physical.Weight;
-                var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
-                var defaultDesc = item.Properties?.StatModifiers != null
-                    ? item.Properties.StatModifiers.BonusString
-                    : "";
-                if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
+                try
+                {
+                    var level = item.Properties.Restrictions?.Level?.Min ?? 1;
+                    var xclass = item.Properties.Restrictions?.Class ?? Class.Peasant;
+                    var nclass = xclass.ToString("g").Replace("Peasant", "All");
+                    var weight = item.Properties.Physical.Weight;
+                    var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
+                    var defaultDesc = item.Properties?.StatModifiers != null
+                        ? item.Properties.StatModifiers.BonusString
+                        : "";
+                    if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
-                var desc = "";
-                if (item.Properties!.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
-                    desc = defaultDesc;
-                else
-                    desc = item.Properties.Vendor?.Description ?? "";
+                    var desc = "";
+                    if (item.Properties!.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
+                        desc = defaultDesc;
+                    else
+                        desc = item.Properties.Vendor?.Description ?? "";
 
-                iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
+                    iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "metafile: item {Name} failed, omitted from ItemInfo", item.Name);
+                }
             }
 
             WorldState.Set(iteminfo.Name, iteminfo.Compile());
@@ -469,170 +523,182 @@ public class World : Server
             sclass.Nodes.Add("");
             sclass.Nodes.Add("Skill");
             foreach (var skill in skills)
-            {
-                if (!skill.IncludeInMetafile)
-                    continue;
-                var desc = "";
-                if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
-                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
-                else if (skill.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
-                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
-
-                if (desc == null) desc = "";
-
-                var requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
-                if (requirements == null)
-                    requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
-
-                List<LearnPrerequisite>? prereqs = null;
-                if (requirements != null)
-                    prereqs = requirements.Prerequisites.Prerequisite;
-                else
-                    requirements = new Requirement();
-
-                if (requirements.Level == null)
+                try
                 {
-                    requirements.Level = new ClassRequirementLevel();
-                    requirements.Level.Min = 0;
-                }
+                    if (!skill.IncludeInMetafile)
+                        continue;
+                    var desc = "";
+                    if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
+                        desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
+                    else if (skill.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
+                        desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
 
-                if (requirements.Items != null)
-                {
-                    desc += "\n\nRequired Items:\n";
+                    if (desc == null) desc = "";
 
-                    foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}";
-                    desc += "\n\n";
-                }
+                    var requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
+                    if (requirements == null)
+                        requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
 
-                if (requirements.Gold != 0) desc += $"Required Gold: {requirements.Gold}";
+                    List<LearnPrerequisite>? prereqs = null;
+                    if (requirements != null)
+                        prereqs = requirements.Prerequisites.Prerequisite;
+                    else
+                        requirements = new Requirement();
 
-                var prereq1 = "0";
-                var prereq1level = "0";
-                var prereq2 = "0";
-                var prereq2level = "0";
-                if (prereqs != null)
-                    if (prereqs.Count <= 2 && prereqs.Count > 0)
+                    if (requirements.Level == null)
                     {
-                        if (prereqs[0] != null)
-                        {
-                            prereq1 = prereqs[0].Value;
-                            prereq1level = $"{prereqs[0].Level}";
-                        }
-
-                        if (prereqs.Count == 2)
-                            if (prereqs[1] != null)
-                            {
-                                prereq2 = prereqs[1].Value;
-                                prereq2level = $"{prereqs[1].Level}";
-                            }
+                        requirements.Level = new ClassRequirementLevel();
+                        requirements.Level.Min = 0;
                     }
 
-                sclass.Nodes.Add(new MetafileNode(skill.Name,
-                    string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
-                        requirements.Ab != null
-                            ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
-                            : 0), // req level, master (0/1), req ab
-                    string.Format("{0}/{1}/{2}", skill.Icon, 0,
-                        0), // skill icon, x position (defunct), y position (defunct)
-                    string.Format("{0}/{1}/{2}/{3}/{4}",
-                        requirements?.Physical == null ? 3 : requirements.Physical.Str,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Int,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
-                    // str, int, wis, dex, con (not a typo, dex before con)
-                    string.Format("{0}/{1}", prereq1,
-                        prereq1level), // req skill 1 (skill name or 0 for none), req skill 1 level
-                    string.Format("{0}/{1}", prereq2,
-                        prereq2level), // req skill 2 (skill name or 0 for none), req skill 2 level
-                    desc
-                ));
-            }
+                    if (requirements.Items != null)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}";
+                        desc += "\n\n";
+                    }
+
+                    if (requirements.Gold != 0) desc += $"Required Gold: {requirements.Gold}";
+
+                    var prereq1 = "0";
+                    var prereq1level = "0";
+                    var prereq2 = "0";
+                    var prereq2level = "0";
+                    if (prereqs != null)
+                        if (prereqs.Count <= 2 && prereqs.Count > 0)
+                        {
+                            if (prereqs[0] != null)
+                            {
+                                prereq1 = prereqs[0].Value;
+                                prereq1level = $"{prereqs[0].Level}";
+                            }
+
+                            if (prereqs.Count == 2)
+                                if (prereqs[1] != null)
+                                {
+                                    prereq2 = prereqs[1].Value;
+                                    prereq2level = $"{prereqs[1].Level}";
+                                }
+                        }
+
+                    sclass.Nodes.Add(new MetafileNode(skill.Name,
+                        string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
+                            requirements.Ab != null
+                                ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
+                                : 0), // req level, master (0/1), req ab
+                        string.Format("{0}/{1}/{2}", skill.Icon, 0,
+                            0), // skill icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}/{3}/{4}",
+                            requirements?.Physical == null ? 3 : requirements.Physical.Str,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Int,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Wis,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Dex,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Con),
+                        // str, int, wis, dex, con (not a typo, dex before con)
+                        string.Format("{0}/{1}", prereq1,
+                            prereq1level), // req skill 1 (skill name or 0 for none), req skill 1 level
+                        string.Format("{0}/{1}", prereq2,
+                            prereq2level), // req skill 2 (skill name or 0 for none), req skill 2 level
+                        desc
+                    ));
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "metafile: skill {Name} failed, omitted from SClass{Class}", skill.Name, i);
+                }
 
             sclass.Nodes.Add(new MetafileNode("Skill_End", ""));
             sclass.Nodes.Add("");
             sclass.Nodes.Add("Spell");
             foreach (var spell in spells)
             // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
-            {
-                if (!spell.IncludeInMetafile)
-                    continue;
-                var desc = "";
-                if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
-                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
-                else if (spell.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
-                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
-
-                if (desc == null) desc = "";
-
-                var requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
-                if (requirements == null)
-                    requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
-
-                List<LearnPrerequisite>? prereqs = null;
-                if (requirements != null)
-                    prereqs = requirements.Prerequisites.Prerequisite;
-                else
-                    requirements = new Requirement();
-
-                if (requirements.Level == null)
+                try
                 {
-                    requirements.Level = new ClassRequirementLevel();
-                    requirements.Level.Min = 0;
-                }
+                    if (!spell.IncludeInMetafile)
+                        continue;
+                    var desc = "";
+                    if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
+                        desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
+                    else if (spell.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
+                        desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
 
-                if (requirements.Items != null && requirements.Items.Count > 0)
-                {
-                    desc += "\n\nRequired Items:\n";
+                    if (desc == null) desc = "";
 
-                    foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}\n";
-                    desc = desc.Remove(desc.Length - 1);
-                }
+                    var requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
+                    if (requirements == null)
+                        requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
 
-                if (requirements.Gold != 0) desc += $"\n\nRequired Gold: {requirements.Gold}";
+                    List<LearnPrerequisite>? prereqs = null;
+                    if (requirements != null)
+                        prereqs = requirements.Prerequisites.Prerequisite;
+                    else
+                        requirements = new Requirement();
 
-                var prereq1 = "0";
-                var prereq1level = "0";
-                var prereq2 = "0";
-                var prereq2level = "0";
-                if (prereqs != null)
-                    if (prereqs.Count <= 2 && prereqs.Count > 0)
+                    if (requirements.Level == null)
                     {
-                        if (prereqs[0] != null)
-                        {
-                            prereq1 = prereqs[0].Value;
-                            prereq1level = $"{prereqs[0].Level}";
-                        }
-
-                        if (prereqs.Count == 2)
-                            if (prereqs[1] != null)
-                            {
-                                prereq2 = prereqs[1].Value;
-                                prereq2level = $"{prereqs[1].Level}";
-                            }
+                        requirements.Level = new ClassRequirementLevel();
+                        requirements.Level.Min = 0;
                     }
 
-                sclass.Nodes.Add(new MetafileNode(spell.Name,
-                    string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
-                        requirements.Ab != null
-                            ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
-                            : 0), // req level, master (0/1), req ab
-                    string.Format("{0}/{1}/{2}", spell.Icon, 0,
-                        0), // spell icon, x position (defunct), y position (defunct)
-                    string.Format("{0}/{1}/{2}/{3}/{4}",
-                        requirements?.Physical == null ? 3 : requirements.Physical.Str,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Int,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
-                    //spell: str/dex/int/con/wis
-                    string.Format("{0}/{1}", prereq1,
-                        prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
-                    string.Format("{0}/{1}", prereq2,
-                        prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
-                    desc
-                ));
-            }
+                    if (requirements.Items != null && requirements.Items.Count > 0)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}\n";
+                        desc = desc.Remove(desc.Length - 1);
+                    }
+
+                    if (requirements.Gold != 0) desc += $"\n\nRequired Gold: {requirements.Gold}";
+
+                    var prereq1 = "0";
+                    var prereq1level = "0";
+                    var prereq2 = "0";
+                    var prereq2level = "0";
+                    if (prereqs != null)
+                        if (prereqs.Count <= 2 && prereqs.Count > 0)
+                        {
+                            if (prereqs[0] != null)
+                            {
+                                prereq1 = prereqs[0].Value;
+                                prereq1level = $"{prereqs[0].Level}";
+                            }
+
+                            if (prereqs.Count == 2)
+                                if (prereqs[1] != null)
+                                {
+                                    prereq2 = prereqs[1].Value;
+                                    prereq2level = $"{prereqs[1].Level}";
+                                }
+                        }
+
+                    sclass.Nodes.Add(new MetafileNode(spell.Name,
+                        string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
+                            requirements.Ab != null
+                                ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
+                                : 0), // req level, master (0/1), req ab
+                        string.Format("{0}/{1}/{2}", spell.Icon, 0,
+                            0), // spell icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}/{3}/{4}",
+                            requirements?.Physical == null ? 3 : requirements.Physical.Str,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Int,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Wis,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Dex,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Con),
+                        //spell: str/dex/int/con/wis
+                        string.Format("{0}/{1}", prereq1,
+                            prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
+                        string.Format("{0}/{1}", prereq2,
+                            prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
+                        desc
+                    ));
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "metafile: spell {Name} failed, omitted from SClass{Class}", spell.Name, i);
+                }
 
             sclass.Nodes.Add(new MetafileNode("Spell_End", ""));
             WorldState.Set(sclass.Name, sclass.Compile());
@@ -644,10 +710,18 @@ public class World : Server
 
         var npcillust = new Metafile("NPCIllust");
         foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
-            if (npc.Appearance.Portrait != null)
+            try
             {
-                npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
-                GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
+                if (npc.Appearance.Portrait != null)
+                {
+                    npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
+                    GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
+                }
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "metafile: npc {Name} failed, omitted from NPCIllust", npc.Name);
             }
 
         WorldState.Set(npcillust.Name, npcillust.Compile());
@@ -658,10 +732,16 @@ public class World : Server
 
         var nationdesc = new Metafile("NationDesc");
         foreach (var nation in WorldData.Values<Nation>())
-        {
-            GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
-            nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
-        }
+            try
+            {
+                GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
+                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "metafile: nation {Name} failed, omitted from NationDesc", nation.Name);
+            }
 
         WorldState.Set(nationdesc.Name, nationdesc.Compile());
 
@@ -682,21 +762,27 @@ public class World : Server
         // By now this has been populated since OnSpawn for all NPCS has run
 
         foreach (var quest in Game.World.WorldState.QuestMetadata)
-        {
-            if (quest.Circle < 1 || quest.Circle > 6) continue;
-            var file = files[quest.Circle - 1];
-            var hdr = quests[quest.Circle - 1].ToString().PadLeft(2, '0');
-            file.Nodes.Add(new MetafileNode($"{hdr}_start"));
-            file.Nodes.Add(new MetafileNode($"{hdr}_title", quest.Title));
-            file.Nodes.Add(new MetafileNode($"{hdr}_id", quest.Id));
-            file.Nodes.Add(new MetafileNode($"{hdr}_qual", quest.Circle, quest.Classes));
-            file.Nodes.Add(new MetafileNode($"{hdr}_sum", quest.Summary));
-            file.Nodes.Add(new MetafileNode($"{hdr}_result", quest.Result));
-            file.Nodes.Add(new MetafileNode($"{hdr}_sub", quest.Prerequisite));
-            file.Nodes.Add(new MetafileNode($"{hdr}_reward", quest.Reward));
-            file.Nodes.Add(new MetafileNode($"{hdr}_end"));
-            quests[quest.Circle - 1]++;
-        }
+            try
+            {
+                if (quest.Circle < 1 || quest.Circle > 6) continue;
+                var file = files[quest.Circle - 1];
+                var hdr = quests[quest.Circle - 1].ToString().PadLeft(2, '0');
+                file.Nodes.Add(new MetafileNode($"{hdr}_start"));
+                file.Nodes.Add(new MetafileNode($"{hdr}_title", quest.Title));
+                file.Nodes.Add(new MetafileNode($"{hdr}_id", quest.Id));
+                file.Nodes.Add(new MetafileNode($"{hdr}_qual", quest.Circle, quest.Classes));
+                file.Nodes.Add(new MetafileNode($"{hdr}_sum", quest.Summary));
+                file.Nodes.Add(new MetafileNode($"{hdr}_result", quest.Result));
+                file.Nodes.Add(new MetafileNode($"{hdr}_sub", quest.Prerequisite));
+                file.Nodes.Add(new MetafileNode($"{hdr}_reward", quest.Reward));
+                file.Nodes.Add(new MetafileNode($"{hdr}_end"));
+                quests[quest.Circle - 1]++;
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "metafile: quest {Id} failed, omitted from SEvent", quest.Id);
+            }
 
         foreach (var f in files) WorldState.Set(f.Name, f.Compile());
 
@@ -849,7 +935,7 @@ public class World : Server
         {
             Objects.Remove(obj.Id);
             if (obj is Creature creature)
-                ActiveStatuses.Remove(creature);
+                ActiveStatuses.TryRemove(creature, out _);
         }
 
         GameLog.Info("Object {Name}: {Id} removed", obj.Name, obj.Id);
@@ -911,7 +997,6 @@ public class World : Server
                     {
                         // Check if the action is prohibited due to statuses or flags
                         MethodBase method = handler.GetMethodInfo();
-                        // TODO: improve
                         var sendRefresh = false;
                         var ignore = false;
                         var systemMessage = string.Empty;
@@ -1147,6 +1232,16 @@ public class World : Server
         GameLog.Info("Control message handlers registered");
     }
 
+    /// <summary>
+    ///     Every in-process handler table, in one call so a caller cannot register a subset.
+    /// </summary>
+    public void RegisterHandlers()
+    {
+        SetPacketHandlers();
+        SetControlMessageHandlers();
+        SetMerchantMenuHandlers();
+    }
+
     public void SetPacketHandlers()
     {
         var methods = GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
@@ -1158,6 +1253,7 @@ public class World : Server
             if (attr == null) continue;
             WorldPacketHandlers[attr.Opcode] =
                 (WorldPacketHandler)Delegate.CreateDelegate(typeof(WorldPacketHandler), this, method);
+            RegisteredWorldOpcodes.Add(attr.Opcode);
         }
 
         GameLog.Info("Packet handlers registered");
@@ -1172,7 +1268,6 @@ public class World : Server
                 MerchantMenuItem.BuyItemMenu,
                 new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemMenu)
             },
-            //{MerchantMenuItem.BuyItem, new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItem)},
             {
                 MerchantMenuItem.BuyItemQuantity,
                 new MerchantMenuHandler(MerchantJob.Vend, MerchantMenuHandler_BuyItemWithQuantity)
@@ -1430,7 +1525,7 @@ public class World : Server
         // regenerate a user
         // USDA Formula for HP: MAXHP * (0.1 + (CON - Lv) * 0.01) <20% MAXHP
         // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
-        // Regen = regen * 0.0015 (so 100 regen = 15%)
+        // Regen bonus applies as a multiplier: Stats.Regen == BonusRegen + 1.0 (clamped).
         var connectionId = message.GetArgument<long>(0);
         if (!TryGetActiveUserById(connectionId, out var user)) return;
         if (user.Condition.Comatose || !user.Condition.Alive) return;
@@ -1450,23 +1545,19 @@ public class World : Server
                 User = user
             });
 
-        switch (user.Stats.Regen)
-        {
-            case > 0:
-                hpRegen += (uint)(hpRegen * (user.Stats.Regen / 100));
-                mpRegen += (uint)(mpRegen * (user.Stats.Regen / 100));
-                break;
-            case < 0:
-                hpRegen -= (uint)(hpRegen * (user.Stats.Regen / 100) * -1);
-                mpRegen -= (uint)(mpRegen * (user.Stats.Regen / 100) * -1);
-                break;
-        }
+        // Stats.Regen is a multiplier centered on 1.0 (BonusRegen + 1.0, clamped), not a
+        // percentage — BonusRegen 0.1 means 1.1x regen. Floored at 0 so a bonus below -1.0
+        // stops regen rather than underflowing the unsigned arithmetic.
+        var regenModifier = Math.Max(0.0, user.Stats.Regen);
+        hpRegen = (uint) (hpRegen * regenModifier);
+        mpRegen = (uint) (mpRegen * regenModifier);
 
         if (!user.Condition.IsHpRegenProhibited)
         {
             user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
             GameLog.UserActivityInfo(
-                "User {User}: regen HP {HpRegen}, regen bonus {RegenBonus}%", user.Name, hpRegen, user.Stats.Regen);
+                "User {User}: regen HP {HpRegen}, regen modifier {RegenModifier}x", user.Name, hpRegen,
+                user.Stats.Regen);
         }
         else
             user.SendSystemMessage("You cannot regenerate health at this time.");
@@ -1475,7 +1566,8 @@ public class World : Server
         {
             user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
             GameLog.UserActivityInfo(
-                "User {User}: regen MP {MpRegen},regen bonus {RegenBonus}%", user.Name, mpRegen, user.Stats.Regen);
+                "User {User}: regen MP {MpRegen}, regen modifier {RegenModifier}x", user.Name, mpRegen,
+                user.Stats.Regen);
 
         }
         else 
@@ -1604,7 +1696,6 @@ public class World : Server
     {
         var msg = message.GetArgument<string>(0);
         foreach (var user in ActiveUsers)
-            // TODO: make less teeth-grindingly dumb
             try
             {
                 user.SendSystemMessage(msg);
@@ -1616,8 +1707,8 @@ public class World : Server
     private void ControlMessage_RemoveReactor(HybrasylControlMessage message)
     {
         if (message.Arguments[0] is not Guid g || !WorldState.TryGetWorldObject<Reactor>(g, out var obj) ||
-            obj.Location.Map is not { } reactorMap || !WorldState.TryGetValue<MapObject>(reactorMap.Id, out var m)) return;
-        m.Remove(obj);
+            obj.Location.Map is not { } reactorMap) return;
+        reactorMap.Remove(obj);
     }
 
     [HybrasylMessageHandler(ControlOpcode.ModifyStats)]
@@ -1727,7 +1818,7 @@ public class World : Server
     #region Packet Handlers
 
     [PacketHandler(0x05)]
-    private void PacketHandler_0x05_RequestMap(object obj, ClientPacket packet)
+    private void PacketHandler_0x05_RequestMap(object obj, InboundBody packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
@@ -1735,41 +1826,46 @@ public class World : Server
 
         for (ushort row = 0; row < map.Y; ++row)
         {
-            var x3C = new ServerPacket(0x3C);
-            x3C.WriteUInt16(row);
-            for (var col = 0; col < map.X * 6; col += 2)
+            // Wire row data is byte-swapped per u16 pair relative to the .map file
+            var rowData = new byte[map.X * 6];
+            for (var col = 0; col < rowData.Length; col += 2)
             {
-                x3C.WriteByte(map.RawData[index + 1]);
-                x3C.WriteByte(map.RawData[index]);
+                rowData[col] = map.RawData[index + 1];
+                rowData[col + 1] = map.RawData[index];
                 index += 2;
             }
 
-            user.Enqueue(x3C);
+            user.Enqueue(new DALib.Networking.Packets.Server.MapDataPacket { RowIndex = row, RowData = rowData });
         }
     }
 
     [PacketHandler(0x06)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
-    private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
+    private void PacketHandler_0x06_Walk(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var direction = packet.ReadByte();
-        if (direction > 3) return;
+        var request = WalkPacket.Parse(packet.Body.Span);
+        // DALib parses the wire byte straight to Direction without validating it.
+        if (!Enum.IsDefined(request.Direction)) return;
         user.Condition.Casting = false;
-        user.Walk((Direction)direction);
+        user.Walk((Direction)request.Direction);
     }
 
     [PacketHandler(0x07)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
+    private void PacketHandler_0x07_PickupItem(object obj, InboundBody packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var slot = packet.ReadByte();
-        var x = packet.ReadInt16();
-        var y = packet.ReadInt16();
+        var request = PickupItemPacket.Parse(packet.Body.Span);
+        var slot = request.Slot;
+        // Map coordinates are byte-wide; the wire type is u16, so reject anything that
+        // cannot be a real tile rather than narrowing it silently.
+        if (request.X > byte.MaxValue || request.Y > byte.MaxValue) return;
+        var x = (byte)request.X;
+        var y = (byte)request.Y;
 
         // Is the player within PICKUP_DISTANCE tiles of what they're trying to pick up?
         if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
@@ -1899,14 +1995,16 @@ public class World : Server
     [PacketHandler(0x08)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
+    private void PacketHandler_0x08_DropItem(object obj, InboundBody packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var slot = packet.ReadByte();
-        var x = packet.ReadInt16();
-        var y = packet.ReadInt16();
-        var count = packet.ReadUInt32();
+        var request = DropItemPacket.Parse(packet.Body.Span);
+        var slot = request.Slot;
+        if (request.X > byte.MaxValue || request.Y > byte.MaxValue) return;
+        var x = (byte)request.X;
+        var y = (byte)request.Y;
+        var count = request.Count;
 
         GameLog.DebugFormat("{0} {1} {2} {3}", slot, x, y, count);
 
@@ -1990,11 +2088,12 @@ public class World : Server
     }
 
     [PacketHandler(0x0E)]
-    private void PacketHandler_0x0E_Talk(object obj, ClientPacket packet)
+    private void PacketHandler_0x0E_Talk(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var isShout = packet.ReadByte();
-        var message = packet.ReadString8();
+        var request = TalkPacket.Parse(packet.Body.Span);
+        var isShout = request.ChatType == ChatType.Shout;
+        var message = request.Message;
         var cmdPrefix = Game.ActiveConfiguration.Handlers?.Chat?.CommandPrefix ?? "/";
 
         string argString;
@@ -2022,7 +2121,7 @@ public class World : Server
                 return;
             }
 
-            if (isShout == 1)
+            if (isShout)
                 user.Shout(message);
             else
                 user.Say(message);
@@ -2033,27 +2132,29 @@ public class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
+    private void PacketHandler_0x0F_UseSpell(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var slot = packet.ReadByte();
-        var target = packet.ReadUInt32();
-        user.UseSpell(slot, target);
+        var request = UseSpellPacket.Parse(packet.Body.Span);
+        // DALib models the tail as opaque Args (target serial, then x/y for ground-targeted
+        // casts); Hybrasyl only consumes the serial. An absent tail is a no-target cast, which
+        // UseSpell already expresses as target 0 — the legacy positional read threw instead.
+        var target = request.Args.Length >= 4
+            ? System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(request.Args)
+            : 0u;
+        user.UseSpell(request.Slot, target);
         user.Condition.Casting = false;
     }
 
     [PacketHandler(0x0B)]
-    private void PacketHandler_0x0B_ClientExit(object obj, ClientPacket packet)
+    private void PacketHandler_0x0B_ClientExit(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var endSignal = packet.ReadByte();
+        var request = ClientExitPacket.Parse(packet.Body.Span);
 
-        if (endSignal == 1)
+        if (request.Signal == ExitSignal.Request)
         {
-            var x4C = new ServerPacket(0x4C);
-            x4C.WriteByte(0x01);
-            x4C.WriteUInt16(0x00);
-            user.Enqueue(x4C);
+            user.Enqueue(new DALib.Networking.Packets.Server.ConfirmExitPacket { ExitConfirmed = true });
         }
         else
         {
@@ -2076,7 +2177,7 @@ public class World : Server
             RemoveUser(user.Name);
 
             // Remove any active async dialog sessions
-            // TODO: async fix
+            // HS-1596: teardown is not wired up; the shape below is the intended one.
             //foreach (var dialog in ActiveAsyncDialogs.Keys.Where(key => key.Item1 == user.Id || key.Item2 == user.Id))
             //{
             //    if (ActiveAsyncDialogs.TryRemove(dialog, out AsyncDialogRequest request))
@@ -2088,10 +2189,10 @@ public class World : Server
     }
 
     [PacketHandler(0x0C)]
-    private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
+    private void PacketHandler_0X0C_PutGround(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var missingObjId = packet.ReadUInt32();
+        var missingObjId = RequestObjectPacket.Parse(packet.Body.Span).ObjectId;
         if (user.World.Objects.TryGetValue(missingObjId, out var missingObj) &&
             missingObj is VisibleObject missingVisibleObj &&
             user.Location.Map == missingVisibleObj.Location.Map)
@@ -2100,15 +2201,15 @@ public class World : Server
     }
 
     [PacketHandler(0x10)]
-    private void PacketHandler_0x10_ClientJoin(object obj, ClientPacket packet)
+    private void PacketHandler_0x10_ClientJoin(object obj, InboundBody packet)
     {
         var connectionId = (long)obj;
 
-        var seed = packet.ReadByte();
-        var keyLength = packet.ReadByte();
-        var key = packet.Read(keyLength);
-        var name = packet.ReadString8();
-        var id = packet.ReadUInt32();
+        var join = ClientJoinPacket.Parse(packet.Body.Span);
+        var seed = join.EncryptionSeed;
+        var key = join.EncryptionKey;
+        var name = join.Name;
+        var id = join.RedirectId;
 
         if (!ExpectedConnections.TryGetValue(id, out var redirect) || !redirect.Matches(name, key, seed))
             return;
@@ -2234,26 +2335,27 @@ public class World : Server
 
     [PacketHandler(0x11)]
     [Prohibited(CreatureCondition.Stun, PlayerFlags.InDialog)]
-    private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
+    private void PacketHandler_0x11_Turn(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var direction = packet.ReadByte();
-        if (direction > 3) return;
+        var request = TurnPacket.Parse(packet.Body.Span);
+        // DALib parses the wire byte straight to Direction without validating it.
+        if (!Enum.IsDefined(request.Direction)) return;
         user.Condition.Casting = false;
-        user.Turn((Direction)direction);
+        user.Turn((Direction)request.Direction);
     }
 
     [PacketHandler(0x13)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
-    private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
+    private void PacketHandler_0x13_Attack(object obj, InboundBody packet)
     {
         var user = (User)obj;
         user.AssailAttack(user.Direction);
     }
 
     [PacketHandler(0x18)]
-    private void PacketHandler_0x18_ShowPlayerList(object obj, ClientPacket packet)
+    private void PacketHandler_0x18_ShowPlayerList(object obj, InboundBody packet)
     {
         var me = (User)obj;
 
@@ -2262,23 +2364,25 @@ public class World : Server
                        descending, user.Name
                    select user;
 
-        var listPacket = new ServerPacket(0x36);
-        listPacket.WriteUInt16((ushort)list.Count());
-        listPacket.WriteUInt16((ushort)list.Count());
+        var listPacket = new DALib.Networking.Packets.Server.UserListPacket();
 
         foreach (var user in list)
         {
             var levelDifference = Math.Abs(user.Stats.Level - me.Stats.Level);
 
-            listPacket.WriteByte((byte)user.Class);
-            if (me.GuildGuid != Guid.Empty && user.GuildGuid == me.GuildGuid) listPacket.WriteByte(84);
-            else if (levelDifference <= 5) listPacket.WriteByte(151);
-            else listPacket.WriteByte(255);
+            // Relationship color: guild-mate, within 5 levels, or neither.
+            byte color;
+            if (me.GuildGuid != Guid.Empty && user.GuildGuid == me.GuildGuid) color = 84;
+            else if (levelDifference <= 5) color = 151;
+            else color = 255;
 
-            listPacket.WriteByte((byte)user.GroupStatus);
-            listPacket.WriteString8(user.Title);
-            listPacket.WriteBoolean(user.IsMaster);
-            listPacket.WriteString8(user.Name);
+            listPacket.Users.Add(new DALib.Networking.Packets.Server.UserListEntry(
+                (byte)user.Class,
+                color,
+                (DALib.Networking.Packets.Server.SocialStatus)(byte)user.GroupStatus,
+                user.Title,
+                user.IsMaster,
+                user.Name));
         }
 
         me.Enqueue(listPacket);
@@ -2286,13 +2390,12 @@ public class World : Server
 
     [PacketHandler(0x19)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x19_Whisper(object obj, ClientPacket packet)
+    private void PacketHandler_0x19_Whisper(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var size = packet.ReadByte();
-        var target = Encoding.ASCII.GetString(packet.Read(size));
-        var msgsize = packet.ReadByte();
-        var message = Encoding.ASCII.GetString(packet.Read(msgsize));
+        var request = WhisperPacket.Parse(packet.Body.Span);
+        var target = request.Target;
+        var message = request.Message;
 
         switch (target)
         {
@@ -2408,11 +2511,23 @@ public class World : Server
         }
     }
 
-    [PacketHandler(0x1B)]
-    private void PacketHandler_0x1B_Settings(object obj, ClientPacket packet)
+    /// <summary>
+    ///     The client-settings pane is driven by an ordinary 0x0A system message of type
+    ///     <c>UserOptions</c> (7) whose text is the setting number as an ASCII digit followed by the
+    ///     display string. The legacy builder wrote that digit and the string separately, so its
+    ///     hand-computed <c>length + 1</c> was just the string16 length of the combined text.
+    /// </summary>
+    private static DALib.Networking.Packets.Server.SystemMessagePacket SettingsMessage(
+        byte number, string displayString) => new()
     {
-        // TODO: future expansion
-        var settingNumber = packet.ReadByte();
+        MessageType = DALib.Networking.Packets.Server.SystemMessageType.UserOptions,
+        Message = (char)(number + 0x30) + displayString
+    };
+
+    [PacketHandler(0x1B)]
+    private void PacketHandler_0x1B_Settings(object obj, InboundBody packet)
+    {
+        var settingNumber = SettingsPacket.Parse(packet.Body.Span).SettingNumber;
         var user = (User)obj;
         // Only seven of these are usable by the client (1-6, and 8), 
         // the seventh one is sent to keep the ordering consistent but seemingly does nothing
@@ -2429,14 +2544,7 @@ public class World : Server
                 Game.ActiveConfiguration.SettingsNumberIndex.Select(selector: kvp => string.Format("{0}  :{1}",
                     kvp.Value.Value,
                     user.ClientSettings[kvp.Key] ? "ON" : "OFF")));
-            var x0a = new SettingsMessage
-            {
-                DisplayString = settingsString,
-                Number = 0
-            };
-            var settingsPacket = x0a.Packet();
-            x0a.Packet().DumpPacket();
-            user.Enqueue(settingsPacket);
+            user.Enqueue(SettingsMessage(0, settingsString));
         }
         else
         {
@@ -2447,11 +2555,7 @@ public class World : Server
                 user.ToggleClientSetting(settingNumber);
             var displayString =
                 $"{Game.ActiveConfiguration.GetSettingLabel(settingNumber)}  :{(user.ClientSettings[settingNumber] ? "ON" : "OFF")}";
-            var x0a = new SettingsMessage
-            { DisplayString = displayString, Number = settingNumber };
-            var settingspacket = x0a.Packet();
-            x0a.Packet().DumpPacket();
-            user.Enqueue(settingspacket);
+            user.Enqueue(SettingsMessage(settingNumber, displayString));
         }
     }
 
@@ -2459,10 +2563,10 @@ public class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x1C_UseItem(object obj, ClientPacket packet)
+    private void PacketHandler_0x1C_UseItem(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var slot = packet.ReadByte();
+        var slot = UseItemPacket.Parse(packet.Body.Span).Slot;
 
         GameLog.DebugFormat("Updating slot {0}", slot);
 
@@ -2636,10 +2740,10 @@ public class World : Server
     [PacketHandler(0x1D)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
+    private void PacketHandler_0x1D_Emote(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var emote = packet.ReadByte();
+        var emote = EmotePacket.Parse(packet.Body.Span).EmoteIndex;
         if (emote <= 35)
         {
             emote += 9;
@@ -2650,13 +2754,15 @@ public class World : Server
     [PacketHandler(0x24)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
+    private void PacketHandler_0x24_DropGold(object obj, InboundBody packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var amount = packet.ReadUInt32();
-        var x = packet.ReadInt16();
-        var y = packet.ReadInt16();
+        var request = DropGoldPacket.Parse(packet.Body.Span);
+        var amount = request.Amount;
+        if (request.X > byte.MaxValue || request.Y > byte.MaxValue) return;
+        var x = (byte)request.X;
+        var y = (byte)request.Y;
 
         if (amount > user.Gold)
         {
@@ -2718,7 +2824,7 @@ public class World : Server
     }
 
     [PacketHandler(0x2D)]
-    private void PacketHandler_0x2D_PlayerInfo(object obj, ClientPacket packet)
+    private void PacketHandler_0x2D_PlayerInfo(object obj, InboundBody packet)
     {
         //this handler also handles group management pane
 
@@ -2729,7 +2835,7 @@ public class World : Server
     [PacketHandler(0x2E)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x2E_GroupRequest(object obj, ClientPacket packet)
+    private void PacketHandler_0x2E_GroupRequest(object obj, InboundBody packet)
     {
         /*
          * Handle user-initiated grouping requests. There are a number of mechanisms in the client
@@ -2752,14 +2858,15 @@ public class World : Server
         // stage:
         //   0x02 = user is sending initial request to invitee
         //   0x03 = invitee responds with a "yes"
-        var stage = (GroupClientPacketType)packet.ReadByte();
+        // The simple stages carry the target name in Name; stage 4 (the recruit box) carries
+        // the sender's own name in Leader instead, followed by the box itself.
+        var request = GroupRequestPacket.Parse(packet.Body.Span);
+        var stage = (GroupClientPacketType)request.Stage;
 
-        if (!TryGetActiveUser(packet.ReadString8(), out var partner))
+        var subject = stage == GroupClientPacketType.RecruitInit ? request.Leader : request.Name;
+
+        if (string.IsNullOrEmpty(subject) || !TryGetActiveUser(subject, out var partner))
             return;
-
-        // TODO: currently leaving five bytes on the table here. There's probably some
-        // additional work that needs to happen though I haven't been able to determine
-        // what those bytes represent yet...
 
         if (partner == null) return;
 
@@ -2796,13 +2903,11 @@ public class World : Server
                 }
 
                 // Send partner a dialog asking whether they want to group (opcode 0x63).
-                var response = new ServerPacket(0x63);
-                response.WriteByte((byte)GroupServerPacketType.Ask);
-                response.WriteString8(user.Name);
-                response.WriteByte(0);
-                response.WriteByte(0);
-
-                partner.Enqueue(response);
+                partner.Enqueue(new DALib.Networking.Packets.Server.GroupPromptPacket
+                {
+                    ResponseType = DALib.Networking.Packets.Server.GroupResponseType.Ask,
+                    SourceName = user.Name
+                });
                 break;
             // Stage 0x03 means that the invitee has responded with a "yes" to the grouping
             // request. We need to add them to the original user's group. Note that in this
@@ -2822,11 +2927,11 @@ public class World : Server
 
                 if (!user.Grouping) user.Grouping = true;
 
-                user.GroupRecruit = GroupRecruit.Read(packet, user);
+                user.GroupRecruit = GroupRecruit.FromRequest(request, user);
                 user.Show();
                 break;
             case GroupClientPacketType.RecruitInfo:
-                if (partner == user || partner.GroupRecruit == null) return;
+                if (partner.GroupRecruit == null) return;
 
                 partner.GroupRecruit.ShowTo(user);
                 break;
@@ -2858,7 +2963,7 @@ public class World : Server
     [PacketHandler(0x2F)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x2F_GroupToggle(object obj, ClientPacket packet)
+    private void PacketHandler_0x2F_GroupToggle(object obj, InboundBody packet)
     {
         var user = (User)obj;
 
@@ -2882,10 +2987,10 @@ public class World : Server
     [PacketHandler(0x2A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
+    private void PacketHandler_0x2A_DropGoldOnCreature(object obj, InboundBody packet)
     {
-        var goldAmount = packet.ReadUInt32();
-        var targetId = packet.ReadUInt32();
+        var request = DropGoldOnCreaturePacket.Parse(packet.Body.Span);
+        var goldAmount = request.Amount;
 
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
@@ -2898,7 +3003,7 @@ public class World : Server
         }
 
         WorldObject? target;
-        if (!user.World.Objects.TryGetValue(targetId, out target))
+        if (!user.World.Objects.TryGetValue(request.TargetId, out target))
             return;
 
         if (map.Objects.Contains((VisibleObject)target))
@@ -2938,11 +3043,11 @@ public class World : Server
     [PacketHandler(0x29)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
+    private void PacketHandler_0x29_DropItemOnCreature(object obj, InboundBody packet)
     {
-        var itemSlot = packet.ReadByte();
-        var targetId = packet.ReadUInt32();
-        var quantity = packet.ReadByte();
+        var request = DropItemOnCreaturePacket.Parse(packet.Body.Span);
+        var itemSlot = request.Slot;
+        var quantity = request.Count;
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
 
@@ -2951,7 +3056,7 @@ public class World : Server
         // initiate an exchange
 
         WorldObject? target;
-        if (!user.World.Objects.TryGetValue(targetId, out target))
+        if (!user.World.Objects.TryGetValue(request.TargetId, out target))
             return;
 
         if (map.Objects.Contains((VisibleObject)target))
@@ -2993,12 +3098,13 @@ public class World : Server
 
     [PacketHandler(0x30)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x30_MoveUIElement(object obj, ClientPacket packet)
+    private void PacketHandler_0x30_MoveUIElement(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var window = packet.ReadByte();
-        var oldSlot = packet.ReadByte();
-        var newSlot = packet.ReadByte();
+        var request = SwapSlotPacket.Parse(packet.Body.Span);
+        var window = request.Window;
+        var oldSlot = request.Slot1;
+        var newSlot = request.Slot2;
 
         // For right now we ignore the other cases (moving a skill or spell)
 
@@ -3045,82 +3151,78 @@ public class World : Server
     }
 
     [PacketHandler(0x3b)]
-    private void PacketHandler_0x3B_AccessMessages(object obj, ClientPacket packet)
+    private void PacketHandler_0x3B_AccessMessages(object obj, InboundBody packet)
     {
         var user = (User)obj;
 
-        var action = packet.ReadByte();
+        var request = BoardRequestPacket.Parse(packet.Body.Span);
 
         // The moment we get a 3B packet, we assume a user is "in a board"
         user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
 
-        switch (action)
+        switch (request.RequestType)
         {
-            case 0x01:
+            case BoardRequestType.BoardList:
                 {
                     // Get list of boards / mailboxes (w key)
-                    user.Enqueue(MessagingController.BoardList(user.GuidReference).Packet());
+                    user.SendBoardResponse(MessagingController.BoardList(user.GuidReference));
                 }
                 break;
-            case 0x02:
+            case BoardRequestType.ViewBoard:
                 {
-                    // Get message list
-                    var boardId = packet.ReadUInt16();
-                    var startPostId = packet.ReadInt16();
-                    user.Enqueue(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId).Packet());
+                    // Get message list. DALib reads a third field as Offset; unused here.
+                    if (request is not ViewBoardPacket viewBoard) return;
+                    user.SendBoardResponse(MessagingController.GetMessageList(
+                        user.GuidReference, viewBoard.BoardId, viewBoard.StartPostId));
                 }
                 break;
-            case 0x03:
+            case BoardRequestType.ViewPost:
                 {
                     // Get message
-                    var boardId = packet.ReadUInt16();
-                    var postId = packet.ReadInt16();
-                    var offset = packet.ReadSByte();
-                    user.Enqueue(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId).Packet());
+                    if (request is not ViewPostPacket viewPost) return;
+                    var boardId = viewPost.BoardId;
+                    user.SendBoardResponse(MessagingController.GetMessage(
+                        user.GuidReference, viewPost.PostId, viewPost.Offset, boardId));
                     if (boardId == 0)
                         user.UpdateAttributes(StatUpdateFlags.Secondary);
                 }
                 break;
-            case 0x04:
+            case BoardRequestType.NewPost:
                 {
                     // Send message
-                    var boardId = packet.ReadUInt16();
-                    var subject = packet.ReadString8();
-                    var body = packet.ReadString16();
-                    user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body)
-                        .Packet());
+                    if (request is not NewPostPacket newPost) return;
+                    user.SendBoardResponse(MessagingController.SendMessage(
+                        user.GuidReference, newPost.BoardId, string.Empty, newPost.Subject, newPost.Body));
                 }
                 break;
-            case 0x05:
+            case BoardRequestType.Delete:
                 {
-                    // Delete post
-                    var boardId = packet.ReadUInt16();
-                    var postId = packet.ReadUInt16();
-                    user.Enqueue(MessagingController.DeleteMessage(user.GuidReference, boardId, postId).Packet());
+                    // Delete post. DALib types PostId short where the legacy read was unsigned;
+                    // same bytes, and DeleteMessage takes the wider type.
+                    if (request is not DeletePostPacket deletePost) return;
+                    user.SendBoardResponse(MessagingController.DeleteMessage(
+                        user.GuidReference, deletePost.BoardId, (ushort)deletePost.PostId));
                 }
                 break;
-            case 0x06:
+            case BoardRequestType.SendMail:
                 {
                     // Replies (why is this separate)
-                    var boardId = packet.ReadUInt16();
-                    var recipient = packet.ReadString8();
-                    var subject = packet.ReadString8();
-                    var body = packet.ReadString16();
-                    user.Enqueue(MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body)
-                        .Packet());
+                    if (request is not SendMailPacket sendMail) return;
+                    user.SendBoardResponse(MessagingController.SendMessage(
+                        user.GuidReference, sendMail.BoardId, sendMail.Recipient, sendMail.Subject, sendMail.Body));
                 }
                 break;
-            case 0x07:
+            case BoardRequestType.Highlight:
                 // Highlight message
                 {
-                    var boardId = packet.ReadUInt16();
-                    var postId = packet.ReadInt16();
-                    user.Enqueue(MessagingController.HighlightMessage(user.GuidReference, boardId, postId).Packet());
+                    if (request is not HighlightPostPacket highlight) return;
+                    user.SendBoardResponse(MessagingController.HighlightMessage(
+                        user.GuidReference, highlight.BoardId, highlight.PostId));
                 }
                 break;
             default:
                 {
-                    user.Enqueue(MessagingController.UnknownError.Packet());
+                    user.SendBoardResponse(MessagingController.UnknownError);
                 }
                 break;
         }
@@ -3130,41 +3232,53 @@ public class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
+    private void PacketHandler_0x3E_UseSkill(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var slot = packet.ReadByte();
+        var slot = UseSkillPacket.Parse(packet.Body.Span).Slot;
 
         user.UseSkill(slot);
     }
 
     [PacketHandler(0x3F)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
-    private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
+    private void PacketHandler_0x3F_MapPointClick(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var target = BitConverter.ToInt64(packet.Read(8), 0);
-        GameLog.DebugFormat("target bytes are: {0}, maybe", target);
+        // NEVER trust these fields directly: the body is forgeable, so a raw map_id would let a
+        // player teleport to any map in the world. The click must match a destination the current
+        // world map actually offered (WorldMapPoint is the allowlist), and the teleport then uses
+        // the point's server-side destination rather than anything the client sent.
+        var request = MapPointClickPacket.Parse(packet.Body.Span);
+        var mapId = request.MapId;      // CheckSum is carried back and has no server meaning
+        var x = request.X;
+        var y = request.Y;
 
-        if (user.IsAtWorldMap)
-        {
-            WorldMapPoint targetmap;
-            if (WorldData.TryGetValue(target, out targetmap))
-                user.Teleport(targetmap.DestinationMap, targetmap.DestinationX, targetmap.DestinationY);
-            else
-                GameLog.ErrorFormat(string.Format("{0}: sent us a click to a non-existent map point!",
-                    user.Name));
-        }
-        else
+        if (!user.IsAtWorldMap || user.ActiveWorldMap is not { } worldMap)
         {
             GameLog.ErrorFormat(string.Format("{0}: sent us an 0x3F outside of a map screen!",
                 user.Name));
+            return;
         }
+
+        var point = worldMap.Points.FirstOrDefault(p =>
+            p.DestinationX == x && p.DestinationY == y
+            && WorldState.TryGetValueByIndex<MapObject>(p.DestinationMap, out var m) && m.Id == mapId);
+
+        if (point is null)
+        {
+            GameLog.Warning(
+                "{User}: 0x3F worldmap click did not match any offered node (map_id {MapId}, {X},{Y}) — ignoring",
+                user.Name, mapId, x, y);
+            return;
+        }
+
+        user.Teleport(point.DestinationMap, point.DestinationX, point.DestinationY);
     }
 
     [PacketHandler(0x38)]
     [Prohibited(PlayerFlags.InDialog)]
-    private void PacketHandler_0x38_Refresh(object obj, ClientPacket packet)
+    private void PacketHandler_0x38_Refresh(object obj, InboundBody packet)
     {
         var user = (User)obj;
         user.Condition.Casting = false;
@@ -3173,19 +3287,19 @@ public class World : Server
 
     [PacketHandler(0x39)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
-    private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
+    private void PacketHandler_0x39_NPCMainMenu(object obj, InboundBody packet)
     {
         var user = (User)obj;
 
-        // We just ignore the header, because, really, what exactly is a 16-bit encryption
-        // key plus CRC really doing for you
-        var header = packet.ReadDialogHeader();
-        var objectType = packet.ReadByte();
-        var objectId = packet.ReadUInt32();
-        var pursuitId = packet.ReadUInt16();
+        // The prefix only. Each merchant callback re-parses the full body as whichever
+        // variant its own menu form carries — 0x39 is not self-describing, so the variant is
+        // determined by the menu the server last sent, not by anything on the wire.
+        var request = NpcMainMenuSelectPacket.ParseResponse(packet.Body.Span);
+        var objectId = request.ObjectId;
+        var pursuitId = request.PursuitId;
 
         GameLog.DebugFormat("main menu packet: ObjectType {0}, ID {1}, pursuitID {2}",
-            objectType, objectId, pursuitId);
+            request.ObjectType, objectId, pursuitId);
 
         // Sanity checks
         WorldObject? wobj;
@@ -3232,7 +3346,7 @@ public class World : Server
                     return;
                 }
 
-                handler.Callback(user, merchant, packet);
+                handler.Invoke(user, merchant, packet);
                 return;
             }
             else
@@ -3263,15 +3377,17 @@ public class World : Server
 
     [PacketHandler(0x3A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
-    private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
+    private void PacketHandler_0x3A_DialogUse(object obj, InboundBody packet)
     {
         var user = (User)obj;
 
-        var header = packet.ReadDialogHeader();
-        var objectType = (DialogObjectType)packet.ReadByte();
-        var objectID = packet.ReadUInt32();
-        var pursuitID = packet.ReadUInt16();
-        var pursuitIndex = packet.ReadUInt16();
+        // Parse dispatches on the trailing tag byte (none = navigation, 1 = menu choice, 2 = text).
+        // Only the prefix is read here; the response tail comes off the typed record further down.
+        var request = DialogUsePacket.Parse(packet.Body.Span);
+        var objectType = (DialogObjectType)request.ObjectType;
+        var objectID = request.ObjectId;
+        var pursuitID = request.PursuitId;
+        var pursuitIndex = request.PursuitIndex;
         GameLog.DebugFormat(
             "0x3A   user: {User} objectType {ObjectType} objectID {ObjectId} pursuitID {PursuitId} pursuitIndex {PursuitIndex}", user.Name, objectType, objectID, pursuitID, pursuitIndex);
 
@@ -3367,12 +3483,19 @@ public class World : Server
 
         if (user.DialogState.ActiveDialog is OptionsDialog optionsDialog)
         {
-            var paramsLength = packet.ReadByte();
-            var option = packet.ReadByte();
+            if (request is not DialogOptionResponsePacket optionResponse)
+            {
+                GameLog.UserActivityWarning(
+                    "{Name}: 0x3A: options dialog active but response is {Shape}, ignoring",
+                    user.Name, request.GetType().Name);
+                user.ClearDialogState();
+                return;
+            }
+
 
             // If an error occurred in handling the response, it's generally safest to 
             // simply bail out 
-            if (!optionsDialog.HandleResponse(option, invocation))
+            if (!optionsDialog.HandleResponse(optionResponse.Option, invocation))
             {
                 user.ClearDialogState();
                 return;
@@ -3389,8 +3512,16 @@ public class World : Server
         // This logic is effectively identical to OptionsDialog
         if (user.DialogState.ActiveDialog is TextDialog textDialog)
         {
-            var paramsLength = packet.ReadByte();
-            var response = packet.ReadString8();
+            if (request is not DialogTextResponsePacket textResponse)
+            {
+                GameLog.UserActivityWarning(
+                    "{Name}: 0x3A: text dialog active but response is {Shape}, ignoring",
+                    user.Name, request.GetType().Name);
+                user.ClearDialogState();
+                return;
+            }
+
+            var response = textResponse.Text;
             if (!textDialog.HandleResponse(response, invocation))
             {
                 user.ClearDialogState();
@@ -3478,7 +3609,6 @@ public class World : Server
             return;
         }
 
-        // TODO: improve this logic
         // Handle function dialogs in between us and the next real dialog (or the end)
         if (user.DialogState.SetDialogIndex(clickTarget, pursuitID, pursuitIndex))
         {
@@ -3515,11 +3645,14 @@ public class World : Server
 
     [PacketHandler(0x43)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
-    private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
+    private void PacketHandler_0x43_PointClick(object obj, InboundBody packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var clickType = packet.ReadByte();
+        // ClickPacket carries a discriminated tail: type 3 is an X/Y map click, type 1 an
+        // entity click. Both forms are read up front.
+        var request = ClickPacket.Parse(packet.Body.Span);
+        var clickType = request.ClickType;
         var commonViewport = user.GetViewport();
         // N.B. We handle dead checks here rather than at the Required attribute level due to some 
         // edge cases
@@ -3528,8 +3661,9 @@ public class World : Server
             // User has clicked an X,Y point
             case 3:
                 {
-                    var x = (byte)packet.ReadUInt16();
-                    var y = (byte)packet.ReadUInt16();
+                    if (request.X is not { } clickX || request.Y is not { } clickY) return;
+                    var x = (byte)clickX;
+                    var y = (byte)clickY;
                     var coords = (x, y);
                     GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
 
@@ -3560,7 +3694,7 @@ public class World : Server
             // User has clicked on another entity
             case 1:
                 {
-                    var entityId = packet.ReadUInt32();
+                    if (request.TargetId is not { } entityId) return;
                     GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
 
                     var clickTarget = new WorldObject();
@@ -3592,8 +3726,6 @@ public class World : Server
                 }
             default:
                 GameLog.DebugFormat("Unsupported clickType {0}", clickType);
-                GameLog.DebugFormat("Packet follows:");
-                packet.DumpPacket();
                 break;
         }
     }
@@ -3601,12 +3733,12 @@ public class World : Server
     [PacketHandler(0x44)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
+    private void PacketHandler_0x44_EquippedItemClick(object obj, InboundBody packet)
     {
         var user = (User)obj;
         // This packet is received when a client unequips an item from the detail (a) screen.
 
-        var slot = packet.ReadByte();
+        var slot = UnequipPacket.Parse(packet.Body.Span).Slot;
 
         GameLog.DebugFormat("Removing equipment from slot {0}", slot);
         var item = user.Equipment[slot];
@@ -3639,12 +3771,13 @@ public class World : Server
     }
 
     [PacketHandler(0x45)]
-    private void PacketHandler_0x45_ByteHeartbeat(object obj, ClientPacket packet)
+    private void PacketHandler_0x45_ByteHeartbeat(object obj, InboundBody packet)
     {
         var user = (User)obj;
         // Client sends 0x45 response in the reverse order of what the server sends...
-        var byteB = packet.ReadByte();
-        var byteA = packet.ReadByte();
+        var request = ByteHeartbeatPacket.Parse(packet.Body.Span);
+        var byteB = request.First;
+        var byteA = request.Second;
 
         if (!user.IsHeartbeatValid(byteA, byteB))
         {
@@ -3660,12 +3793,13 @@ public class World : Server
     [PacketHandler(0x47)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
+    private void PacketHandler_0x47_StatPoint(object obj, InboundBody packet)
     {
         var user = (User)obj;
         if (user.LevelPoints > 0)
         {
-            switch (packet.ReadByte())
+            var statPoint = StatPointPacket.Parse(packet.Body.Span);
+            switch (statPoint.Stat)
             {
                 case 0x01:
                     user.Stats.BaseStr++;
@@ -3699,29 +3833,28 @@ public class World : Server
     [PacketHandler(0x4A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
+    private void PacketHandler_0x4A_Trade(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var tradeStage = packet.ReadByte();
+        var request = ExchangePacket.Parse(packet.Body.Span);
+        var starting = request.RequestType == ExchangeRequestType.StartExchange;
 
-        if (tradeStage == 0 && user.ActiveExchange != null)
+        if (starting && user.ActiveExchange != null)
             return;
 
-        if (tradeStage != 0 && user.ActiveExchange == null)
+        if (!starting && user.ActiveExchange == null)
             return;
 
         if (user.ActiveExchange != null && !user.ActiveExchange.ConditionsValid)
             return;
 
-        switch (tradeStage)
+        switch (request.RequestType)
         {
-            case 0x00:
+            case ExchangeRequestType.StartExchange:
                 {
                     // Starting trade
-                    var x0PlayerId = packet.ReadInt32();
-
                     WorldObject? target;
-                    if (Objects.TryGetValue((uint)x0PlayerId, out target))
+                    if (Objects.TryGetValue(request.OtherUserId, out target))
                         if (target is User playerTarget)
                         {
                             if (!Exchange.StartConditionsValid(user, playerTarget, out var errorMessage))
@@ -3737,44 +3870,41 @@ public class World : Server
                 }
                 break;
 
-            case 0x01:
+            case ExchangeRequestType.AddItem:
                 // Add item to trade
                 {
-                    // We ignore playerId because we only allow one exchange at a time and we
+                    // We ignore OtherUserId because we only allow one exchange at a time and we
                     // keep track of the participants on both sides
-                    var x1playerId = packet.ReadInt32();
-                    var x1ItemSlot = packet.ReadByte();
+                    if (request is not AddExchangeItemPacket addItem) return;
+                    var x1ItemSlot = addItem.SourceSlot;
                     if (user.Inventory[x1ItemSlot] is { Count: > 1 })
                         // Send quantity request
                         user.SendExchangeQuantityPrompt(x1ItemSlot);
                     else
-                        // ActiveExchange non-null for tradeStage != 0 (guarded above)
+                        // ActiveExchange non-null unless starting (guarded above)
                         user.ActiveExchange!.AddItem(user, x1ItemSlot);
                 }
                 break;
 
-            case 0x02:
+            case ExchangeRequestType.AddStackableItem:
                 // Add item with quantity
-                var x2PlayerId = packet.ReadInt32();
-                var x2ItemSlot = packet.ReadByte();
-                var x2ItemQuantity = packet.ReadByte();
-                user.ActiveExchange!.AddItem(user, x2ItemSlot, x2ItemQuantity);
+                if (request is not AddExchangeStackableItemPacket addStackable) return;
+                user.ActiveExchange!.AddItem(user, addStackable.SourceSlot, addStackable.ItemCount);
                 break;
 
-            case 0x03:
+            case ExchangeRequestType.SetGold:
                 // Add gold to trade
-                var x3PlayerId = packet.ReadInt32();
-                var x3GoldQuantity = packet.ReadUInt32();
-                user.ActiveExchange!.AddGold(user, x3GoldQuantity);
+                if (request is not SetExchangeGoldPacket addGold) return;
+                user.ActiveExchange!.AddGold(user, addGold.GoldAmount);
                 break;
 
-            case 0x04:
+            case ExchangeRequestType.Cancel:
                 // Cancel trade
                 GameLog.Debug("Cancelling trade");
                 user.ActiveExchange!.CancelExchange(user);
                 break;
 
-            case 0x05:
+            case ExchangeRequestType.Accept:
                 // Confirm trade
                 GameLog.Debug("Confirming trade");
                 user.ActiveExchange!.ConfirmExchange(user);
@@ -3787,7 +3917,7 @@ public class World : Server
 
     [PacketHandler(0x4D)]
     [Prohibited(PlayerFlags.InDialog)]
-    private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
+    private void PacketHandler_0x4D_BeginCasting(object obj, InboundBody packet)
     {
         var user = (User)obj;
         user.Condition.Casting = true;
@@ -3795,33 +3925,33 @@ public class World : Server
 
     [PacketHandler(0x4E)]
     [Prohibited(PlayerFlags.InDialog)]
-    private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
+    private void PacketHandler_0x4E_CastLine(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var text = packet.ReadString8();
+        var text = CastLinePacket.Parse(packet.Body.Span).Line;
 
-        var x0D = new CastLine
-        { ChatType = 2, LineLength = (byte)text.Length, LineText = text, TargetId = user.Id };
-        var enqueue = x0D.Packet();
-
-        user.SendCastLine(enqueue);
+        user.SendCastLine(new DALib.Networking.Packets.Server.PublicMessagePacket
+        {
+            Type = DALib.Networking.Packets.Server.PublicMessagePacket.TypeChant,
+            SourceId = user.Id,
+            Message = text
+        });
     }
 
     [PacketHandler(0x4F)]
-    private void PacketHandler_0x4F_ProfileTextPortrait(object obj, ClientPacket packet)
+    private void PacketHandler_0x4F_ProfileTextPortrait(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var totalLength = packet.ReadUInt16();
-        var portraitLength = packet.ReadUInt16();
-        var portraitData = packet.Read(portraitLength);
-        var profileText = packet.ReadString16();
+        // The leading total-length field is redundant with the two that follow; DALib reads
+        // and discards it, as the legacy site did.
+        var request = SetProfilePacket.Parse(packet.Body.Span);
 
-        user.PortraitData = portraitData;
-        user.ProfileText = profileText;
+        user.PortraitData = request.PortraitData;
+        user.ProfileText = request.ProfileText;
     }
 
     [PacketHandler(0x55)]
-    private void PacketHandler_0x55_Manufacture(object obj, ClientPacket packet)
+    private void PacketHandler_0x55_Manufacture(object obj, InboundBody packet)
     {
         var user = (User)obj;
 
@@ -3831,13 +3961,13 @@ public class World : Server
     }
 
     [PacketHandler(0x75)]
-    private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
+    private void PacketHandler_0x75_TickHeartbeat(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var serverTick = packet.ReadInt32();
-        var clientTick = packet.ReadInt32(); // Dunno what to do with this right now, so we just store it
-
-        if (!user.IsHeartbeatValid(serverTick, clientTick))
+        var request = TickHeartbeatPacket.Parse(packet.Body.Span);
+        // Same bits either way; IsHeartbeatValid compares against Environment.TickCount.
+        // ClientTick is stored but not otherwise used.
+        if (!user.IsHeartbeatValid(request.ServerTick, request.ClientTick))
         {
             GameLog.InfoFormat("{0}: tick heartbeat not valid, disconnecting", user.Name);
             user.SendRedirect(Game.World, Game.Login, user.Name);
@@ -3849,45 +3979,43 @@ public class World : Server
     }
 
     [PacketHandler(0x79)]
-    private void PacketHandler_0x79_Status(object obj, ClientPacket packet)
+    private void PacketHandler_0x79_Status(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var status = packet.ReadByte();
+        var status = StatusPacket.Parse(packet.Body.Span).Status;
         if (status <= 7) user.GroupStatus = (UserStatus)status;
     }
 
     [PacketHandler(0x7B)]
-    private void PacketHandler_0x7B_RequestMetafile(object obj, ClientPacket packet)
+    private void PacketHandler_0x7B_RequestMetafile(object obj, InboundBody packet)
     {
         var user = (User)obj;
-        var all = packet.ReadBoolean();
+        var request = RequestMetafilePacket.Parse(packet.Body.Span);
 
-        if (all)
+        if (request.All)
         {
-            var x6F = new ServerPacket(0x6F);
-            x6F.WriteBoolean(all);
-            x6F.WriteUInt16((ushort)WorldState.Count<CompiledMetafile>());
+            var manifest = new DALib.Networking.Packets.Server.MetafileChecksumsPacket();
             foreach (var metafile in WorldState.Values<CompiledMetafile>())
             {
-                x6F.WriteString8(metafile.Name);
                 GameLog.Info("Responding 6F: adding {Name}, checksum {Checksum}", metafile.Name, metafile.Checksum);
-                x6F.WriteUInt32(metafile.Checksum);
+                manifest.Entries.Add(
+                    new DALib.Networking.Packets.Server.MetafileEntry(metafile.Name, metafile.Checksum));
             }
 
-            user.Enqueue(x6F);
+            user.Enqueue(manifest);
         }
         else
         {
-            var name = packet.ReadString8();
+            // Parse only reads the name on the !All branch, so it is null exactly when All is set.
+            if (request.Name is not { } name) return;
             if (!WorldState.TryGetValue<CompiledMetafile>(name, out var file)) return;
             GameLog.Info("Responding 6f notall: sending {Name}, checksum {Checksum}", file.Name, file.Checksum);
-            var x6F = new ServerPacket(0x6F);
-            x6F.WriteBoolean(all);
-            x6F.WriteString8(file.Name);
-            x6F.WriteUInt32(file.Checksum);
-            x6F.WriteUInt16((ushort)file.Data.Length);
-            x6F.Write(file.Data);
-            user.Enqueue(x6F);
+            user.Enqueue(new DALib.Networking.Packets.Server.MetafileDataPacket
+            {
+                Name = file.Name,
+                Checksum = file.Checksum,
+                Data = file.Data
+            });
         }
     }
 
@@ -3895,45 +4023,79 @@ public class World : Server
 
     #region Merchant Menu ItemObject Handlers
 
-    private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_MainMenu(User user, Merchant merchant)
     {
         (merchant as IPursuitable).DisplayPursuits(user);
     }
 
-    private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant)
     {
         user.ShowBuyMenu(merchant);
     }
 
-    private void MerchantMenuHandler_SellItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItemMenu(User user, Merchant merchant)
     {
         user.ShowSellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, string name)
     {
-        var name = packet.ReadString8();
-        var qStr = packet.ReadString8();
-
         user.ShowBuyMenuQuantity(merchant, name);
     }
 
-    private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
+    /// <summary>
+    ///     The accept-set itself, with no player-facing side effects, so
+    ///     <c>MerchantQuantityParsing</c> can exercise the real parse rather than a restatement of
+    ///     it. See <see cref="TryReadQuantity" /> for why this accept-set is what it is.
+    /// </summary>
+    internal static bool TryParseQuantity(string text, out uint quantity) =>
+        uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out quantity);
+
+    /// <summary>
+    ///     Read a quantity/amount from a merchant text prompt. The client's prompt is a plain
+    ///     text field — it accepts "37", "", " 7" and "jafksdjadisojfasdi" alike — and the
+    ///     legacy <c>Convert.ToUInt32</c> threw <c>FormatException</c>/<c>OverflowException</c>
+    ///     on everything but a well-formed value, surfacing as an unhandled handler exception.
+    ///     <see cref="NumberStyles.Integer" /> matches Convert's accept-set exactly (leading and
+    ///     trailing whitespace, a leading sign), so only the inputs that used to throw are now
+    ///     rejected — and they are rejected with a message to the player instead.
+    /// </summary>
+    private static bool TryReadQuantity(User user, string text, out uint quantity)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        if (TryParseQuantity(text, out quantity))
+            return true;
+
+        GameLog.UserActivityWarning("{Name}: merchant quantity prompt: rejecting {Input}", user.Name, text);
+        user.SendSystemMessage("That isn't a valid amount.");
+        quantity = 0;
+        return false;
+    }
+
+    private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, string text)
+    {
+        if (!TryReadQuantity(user, text, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.ShowBuyItem(merchant, quantity);
     }
 
-    private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItem(User user, Merchant merchant, string text)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        if (!TryReadQuantity(user, text, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
 
         user.ShowSellConfirm(merchant, user.PendingSellableSlot, quantity);
     }
 
-    private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, byte slot)
     {
-        var slot = packet.ReadByte();
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -3946,19 +4108,18 @@ public class World : Server
         user.ShowSellConfirm(merchant, slot);
     }
 
-    private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant)
     {
         user.SellItemAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant)
     {
         user.ShowLearnSkillMenu(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, string skillName)
     {
-        var skillName = packet.ReadString8();
         // The name comes straight from the packet; only a real skill may enter the flow
         if (!WorldData.TryGetValueByIndex(skillName, out Castable skill) || !skill.IsSkill)
         {
@@ -3970,29 +4131,28 @@ public class World : Server
         user.ShowLearnSkill(merchant, skill);
     }
 
-    private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant)
     {
         user.ShowLearnSkillAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant)
     {
         user.ShowLearnSkillAgree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant)
     {
         user.ShowLearnSkillDisagree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant)
     {
         user.ShowLearnSpellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, string spellName)
     {
-        var spellName = packet.ReadString8();
         // The name comes straight from the packet; only a real spell may enter the flow
         if (!WorldData.TryGetValueByIndex(spellName, out Castable spell) || !spell.IsSpell)
         {
@@ -4004,116 +4164,119 @@ public class World : Server
         user.ShowLearnSpell(merchant, spell);
     }
 
-    private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant)
     {
         user.ShowLearnSpellAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant)
     {
         user.ShowLearnSpellAgree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant)
     {
         user.ShowLearnSpellDisagree(merchant);
     }
 
 
-    private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant)
     {
         user.ShowForgetSkillMenu(merchant);
     }
 
-    private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, byte slot)
     {
-        var slot = packet.ReadByte();
         user.ShowForgetSkillAccept(merchant, slot);
     }
 
-    private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant)
     {
         user.ShowForgetSpellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, byte slot)
     {
-        var slot = packet.ReadByte();
         user.ShowForgetSpellAccept(merchant, slot);
     }
 
-    private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant)
     {
         user.ShowMerchantSendParcel(merchant);
     }
 
-    private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, byte slot)
     {
-        var slot = packet.ReadByte();
         var itemObj = user.Inventory[slot];
         if (itemObj == null) return;
 
         user.ShowMerchantSendParcelQuantity(merchant, itemObj);
     }
 
-    private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, string text)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        if (!TryReadQuantity(user, text, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
 
         user.ShowMerchantSendParcelRecipient(merchant, quantity);
     }
 
-    private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_SendParcel(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant) { }
 
-    private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, string recipient)
     {
-        var recipient = packet.ReadString8();
         user.ShowMerchantSendParcelAccept(merchant, recipient);
     }
 
-    private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant)
     {
         user.ShowMerchantReceiveParcelAccept(merchant);
     }
 
-    private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, string item)
     {
-        var item = packet.ReadString8();
-
         user.ShowWithdrawItemQuantity(merchant, item);
     }
 
-    private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant)
     {
         user.ShowWithdrawItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, string text)
     {
         if (user.PendingWithdrawItem == null) return;
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        if (!TryReadQuantity(user, text, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
     }
 
-    private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant)
     {
         user.ShowWithdrawGoldMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant)
     {
         user.ShowDepositGoldMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, byte slot)
     {
-        var slot = packet.ReadByte();
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4126,51 +4289,65 @@ public class World : Server
         user.DepositItemConfirm(merchant, slot);
     }
 
-    private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant)
     {
         user.ShowDepositItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, string text)
     {
-        var quantity = Convert.ToUInt32(packet.ReadString8());
+        if (!TryReadQuantity(user, text, out var quantity))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
     }
 
-    private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, string text)
     {
-        var amount = Convert.ToUInt32(packet.ReadString8());
+        if (!TryReadQuantity(user, text, out var amount))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.DepositGoldConfirm(merchant, amount);
     }
 
-    private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, string text)
     {
-        var amount = Convert.ToUInt32(packet.ReadString8());
+        if (!TryReadQuantity(user, text, out var amount))
+        {
+            user.AbortMerchantMenu();
+            return;
+        }
+
         user.WithdrawGoldConfirm(merchant, amount);
     }
 
-    private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant)
     {
         user.ShowRepairItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, byte slot)
     {
-        var slot = packet.ReadByte();
         user.ShowRepairItem(merchant, slot);
     }
 
-    private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant)
     {
         user.ShowRepairItemAccept(merchant);
     }
 
-    private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant)
     {
         user.ShowRepairAllItems(merchant);
     }
 
-    private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant)
     {
         user.ShowRepairAllItemsAccept(merchant);
     }

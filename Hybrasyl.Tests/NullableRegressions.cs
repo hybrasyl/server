@@ -240,10 +240,9 @@ public class NullableRegressions
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(handler);
 
-        // 0xAA <len16> <opcode> <ordinal> <data: string8 "1">
-        var packet = new ClientPacket(new byte[] { 0xAA, 0x00, 0x03, 0x38, 0x00, 0x01, 0x31 });
-
-        var ex = Record.Exception(() => handler.Invoke(Game.World, new object[] { Fixture.TestUser, merchant, packet }));
+        // HS-1577: the callback now declares its 0x39 response form and receives the already-parsed
+        // value, so what arrives here is the text itself rather than a body to read it out of.
+        var ex = Record.Exception(() => handler.Invoke(Game.World, [Fixture.TestUser, merchant, "1"]));
         Assert.Null(ex);
         Assert.Equal(0, Fixture.TestUser.Inventory.Count);
     }
@@ -349,45 +348,19 @@ public class NullableRegressions
         Assert.Null(ex);
     }
 
-    // Site: ClientPacket.Decrypt — a default-key-encrypted packet arriving on a connection
-    // that has not completed the key exchange (crafted traffic straight to the login/world
-    // port). Pre-migration: NRE dereferencing the null key. Now: Decrypt reports failure
-    // and the caller discards the packet.
-    [Fact]
-    public void DecryptBeforeKeyExchangeReportsFailure()
-    {
-        // 0x02 is EncryptMethod.Normal (default key); one payload byte so the XOR loop runs.
-        var buffer = new byte[] { 0xAA, 0x00, 0x06, 0x02, 0x01, 0xFF, 0x00, 0x00, 0x00 };
-        var packet = new ClientPacket(buffer);
-        Assert.True(packet.UseDefaultKey);
-
-        var keyless = new Client();
-        var result = true;
-        var ex = Record.Exception(() => result = packet.Decrypt(keyless));
-        Assert.Null(ex);
-        Assert.False(result);
-
-        var keyed = new Client { EncryptionKey = "UrkcnItnI"u8.ToArray() };
-        Assert.True(packet.Decrypt(keyed));
-    }
-
-    // Site: ServerPacket.Encrypt — a default-key-encrypted response queued before the key
-    // exchange has completed. Pre-migration: NRE dereferencing the null key. Now: Encrypt
-    // reports failure and the caller drops the packet instead of transmitting it.
-    [Fact]
-    public void EncryptBeforeKeyExchangeReportsFailure()
-    {
-        // 0x02 (LoginMessage) is EncryptMethod.Normal (default key).
-        var packet = new ServerPacket(0x02);
-        packet.WriteByte(0x01);
-        packet.GenerateFooter();
-
-        var keyless = new Client();
-        var result = true;
-        var ex = Record.Exception(() => result = packet.Encrypt(keyless));
-        Assert.Null(ex);
-        Assert.False(result);
-    }
+    // Site: ClientPacket.Decrypt — a default-key-encrypted packet arriving on a connection that
+    // has not completed the key exchange (crafted traffic straight to the login/world port).
+    // Pre-migration: NRE dereferencing the null key. Post-DALib-conversion the guards moved to
+    // Crypto.IsInitialized checks in Client.FlushSendBuffer and Client.FlushReceiveBuffer.
+    //
+    // Two tests here claimed to cover those guards and did not: they asserted DALib's opcode
+    // table and a constructor-set flag, and never called either flush method. Neutering both
+    // guards left the whole suite green at 459/459. They are removed rather than repaired,
+    // because a comment asserting coverage that does not exist is worse than no test — it stops
+    // the real one being written. Both guards are now covered for real by
+    // Hybrasyl.Tests.Wire.CryptoPipeline, receive included — an earlier note here called the
+    // receive guard unobservable, which was itself a false coverage claim sitting on a live
+    // defect (ReceiveFrame enqueued without flushing).
 
     // Site: GlobalConnectionManifest.RequestEncryptionKey — key endpoint returns a JSON
     // null body. Pre-migration: a null key was returned (NRE downstream). Now: the

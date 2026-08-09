@@ -31,11 +31,11 @@ using System.Threading.Tasks;
 
 namespace Hybrasyl.Servers;
 
-public delegate void LobbyPacketHandler(IClient client, ClientPacket packet);
+public delegate void LobbyPacketHandler(IClient client, InboundBody packet);
 
-public delegate void LoginPacketHandler(IClient client, ClientPacket packet);
+public delegate void LoginPacketHandler(IClient client, InboundBody packet);
 
-public delegate void WorldPacketHandler(object obj, ClientPacket packet);
+public delegate void WorldPacketHandler(object obj, InboundBody packet);
 
 public delegate void ControlMessageHandler(HybrasylControlMessage message);
 
@@ -71,6 +71,19 @@ public class Server
     public bool Default { get; set; }
     public ISocketProxy? Listener { get; private set; }
     public Dictionary<byte, WorldPacketHandler> WorldPacketHandlers { get; } = new();
+
+    /// <summary>
+    ///     Opcodes with a real handler, as opposed to the unhandled-opcode logger every one of the
+    ///     256 slots is pre-filled with in the constructor.
+    /// </summary>
+    /// <remarks>
+    ///     The pre-fill is why <c>WorldPacketHandlers.ContainsKey</c> cannot answer "is this opcode
+    ///     handled" — it is always true. The receive loop's unknown-opcode gate asked exactly that
+    ///     and was therefore dead code from the moment the pre-fill was added, so an unregistered
+    ///     opcode was decrypted and unwrapped in full before reaching a logger that discards it.
+    ///     Populated by <see cref="World.SetPacketHandlers" />.
+    /// </remarks>
+    public HashSet<byte> RegisteredWorldOpcodes { get; } = [];
     public Dictionary<byte, IPacketThrottle> Throttles { get; }
 
     public Dictionary<ControlOpcode, ControlMessageHandler> ControlMessageHandlers { get; } = new();
@@ -101,7 +114,6 @@ public class Server
                 }
             }
 
-            // TODO: configurable?
             await Task.Delay(50, StopToken);
         }
     }
@@ -111,7 +123,7 @@ public class Server
         Throttles[newThrottle.Opcode] = newThrottle;
     }
 
-    public ThrottleResult PacketThrottleCheck(Client client, ClientPacket packet) =>
+    public ThrottleResult PacketThrottleCheck(Client client, InboundBody packet) =>
         Throttles.TryGetValue(packet.Opcode, out var throttle)
             ? throttle.ProcessThrottle(new PacketThrottleData(client, packet))
             : ThrottleResult.OK;
@@ -164,10 +176,10 @@ public class Server
         {
             case Lobby:
                 {
-                    var x7E = new ServerPacket(0x7E);
-                    x7E.WriteByte(0x1B);
-                    x7E.WriteString("CONNECTED SERVER\n");
-                    client.Enqueue(x7E);
+                    client.Enqueue(new DALib.Networking.Packets.Server.AcceptConnectionPacket
+                    {
+                        Message = "CONNECTED SERVER\n"
+                    });
                     GameLog.DebugFormat("Lobby: AcceptConnection occuring");
                     GameLog.Info("Lobby: cid is {0}", client.ConnectionId);
                     break;
@@ -243,8 +255,7 @@ public class Server
 
         try
         {
-            // TODO: improve / refactor
-            while (client.ClientState.TryGetPacket(out var receivedPacket)) client.Enqueue(receivedPacket);
+            while (client.ClientState.TryGetFrame(out var frame)) client.ReceiveFrame(frame);
         }
         catch (Exception e)
         {
