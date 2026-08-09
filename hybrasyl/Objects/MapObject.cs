@@ -274,6 +274,13 @@ public class MapObject : IStateStorable
 
         foreach (var sign in newMap.Signs)
         {
+            if (sign.Type != BoardType.Sign && string.IsNullOrEmpty(sign.BoardKey))
+            {
+                GameLog.Error("map {Name}: messageboard signpost at {X},{Y} has no board key, will not be loaded",
+                    Name, sign.X, sign.Y);
+                continue;
+            }
+
             Signpost post;
             post = sign.Type == BoardType.Sign
                 ? new Signpost(sign.X, sign.Y, sign.Message)

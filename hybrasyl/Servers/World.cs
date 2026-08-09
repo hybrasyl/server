@@ -149,6 +149,9 @@ public class World : Server
     private Thread? ConsumerThread { get; set; }
     private Thread? ControlConsumerThread { get; set; }
 
+    // World data entities skipped during load; bad data is logged and skipped, never fatal
+    private int _dataLoadErrors;
+
     public static ConnectionMultiplexer DatastoreConnection => _lazyConnector.Value;
 
     public bool DebugEnabled { get; set; }
@@ -202,12 +205,26 @@ public class World : Server
 
         WorldState.Ready = true;
         WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
-        GenerateMetafiles();
+        try
+        {
+            GenerateMetafiles();
+        }
+        catch (Exception e)
+        {
+            // Backstop for anything the per-entity guards inside don't cover
+            _dataLoadErrors++;
+            GameLog.Error(e, "GenerateMetafiles: unhandled failure; server will start with incomplete metafiles");
+        }
+
         SetPacketHandlers();
         SetControlMessageHandlers();
         SetMerchantMenuHandlers();
         RegisterWorldThrottles();
         LoadPlugins();
+        if (_dataLoadErrors > 0)
+            GameLog.Error(
+                "World data: {Count} entities failed to load and were skipped — search the log for 'skipping' or 'omitted'",
+                _dataLoadErrors);
         return true;
     }
 
@@ -314,35 +331,48 @@ public class World : Server
         // Generate map objects from maps (TODO: remove)
 
         foreach (var map in WorldData.Values<Map>())
-        {
-            var mapObj = new MapObject(map, this);
-            WorldState.SetWithIndex(mapObj.Id, mapObj, mapObj.Name);
-        }
+            try
+            {
+                var mapObj = new MapObject(map, this);
+                WorldState.SetWithIndex(mapObj.Id, mapObj, mapObj.Name);
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                // Data errors degrade to a missing map, never a failed server start
+                GameLog.Error(e, "map {Name} ({Id}): failed to load, skipping", map.Name, map.Id);
+            }
 
         uint castableId = 0;
         // Generate castable objects from castables (used specifically to handle spell dialogs)
         foreach (var castable in WorldData.Values<Castable>())
-        {
-            if (string.IsNullOrEmpty(castable.Script) ||
-                !Game.World.ScriptProcessor.TryGetScript(castable.Script, out var script)) continue;
-            var env = new ScriptEnvironment();
-            var associate = new HybrasylInteractable();
-            env.Add("associate", associate);
-            env.Add("origin", associate);
-            var result = script.ExecuteFunction("OnLoad", env);
-            var castableObject = new CastableObject
+            try
             {
-                Guid = castable.Guid,
-                Id = castableId,
-                Template = castable,
-                ScriptedDialogs = associate,
-                Sprite = associate.Sprite,
-                Script = script
-            };
-            // Store the CastableObject for later usage by dialog system, along with guid index
-            WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
-            castableId++;
-        }
+                if (string.IsNullOrEmpty(castable.Script) ||
+                    !Game.World.ScriptProcessor.TryGetScript(castable.Script, out var script)) continue;
+                var env = new ScriptEnvironment();
+                var associate = new HybrasylInteractable();
+                env.Add("associate", associate);
+                env.Add("origin", associate);
+                var result = script.ExecuteFunction("OnLoad", env);
+                var castableObject = new CastableObject
+                {
+                    Guid = castable.Guid,
+                    Id = castableId,
+                    Template = castable,
+                    ScriptedDialogs = associate,
+                    Sprite = associate.Sprite,
+                    Script = script
+                };
+                // Store the CastableObject for later usage by dialog system, along with guid index
+                WorldState.SetWithIndex(castableObject.Id, castableObject, castableObject.Guid);
+                castableId++;
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "castable {Name}: scripted dialog load failed, skipping", castable.Name);
+            }
 
         // Create a static "monster weapon" that is used in various places
         // TODO: maybe just use xml for this
@@ -356,20 +386,26 @@ public class World : Server
         if (Game.ActiveConfiguration?.Boards != null)
         {
             foreach (var globalboard in Game.ActiveConfiguration.Boards)
-            {
-                var board = WorldState.GetBoard(globalboard.Name);
-                board.DisplayName = globalboard.DisplayName;
-                board.Global = true;
-                foreach (var reader in globalboard.AccessList.Read)
-                    board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
-                foreach (var writer in globalboard.AccessList.Write)
-                    board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
-                foreach (var moderator in globalboard.AccessList.Moderate)
-                    board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
-                GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
-                WorldState.SetWithIndex(board.Name, board, board.Id);
-                board.Save();
-            }
+                try
+                {
+                    var board = WorldState.GetBoard(globalboard.Name);
+                    board.DisplayName = globalboard.DisplayName;
+                    board.Global = true;
+                    foreach (var reader in globalboard.AccessList.Read)
+                        board.SetAccessLevel(Convert.ToString(reader), BoardAccessLevel.Read);
+                    foreach (var writer in globalboard.AccessList.Write)
+                        board.SetAccessLevel(Convert.ToString(writer), BoardAccessLevel.Write);
+                    foreach (var moderator in globalboard.AccessList.Moderate)
+                        board.SetAccessLevel(Convert.ToString(moderator), BoardAccessLevel.Moderate);
+                    GameLog.InfoFormat("Boards: Global board {0} initialized", globalboard.Name);
+                    WorldState.SetWithIndex(board.Name, board, board.Id);
+                    board.Save();
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "board {Name}: failed to initialize, skipping", globalboard.Name);
+                }
         }
         else
         {
@@ -408,23 +444,31 @@ public class World : Server
             {
                 if (j == items.Length) break;
                 var item = items[j];
-                var level = item.Properties.Restrictions?.Level?.Min ?? 1;
-                var xclass = item.Properties.Restrictions?.Class ?? Class.Peasant;
-                var nclass = xclass.ToString("g").Replace("Peasant", "All");
-                var weight = item.Properties.Physical.Weight;
-                var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
-                var defaultDesc = item.Properties?.StatModifiers != null
-                    ? item.Properties.StatModifiers.BonusString
-                    : "";
-                if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
+                try
+                {
+                    var level = item.Properties.Restrictions?.Level?.Min ?? 1;
+                    var xclass = item.Properties.Restrictions?.Class ?? Class.Peasant;
+                    var nclass = xclass.ToString("g").Replace("Peasant", "All");
+                    var weight = item.Properties.Physical.Weight;
+                    var tab = item.Properties.Vendor?.ShopTab ?? "Junk";
+                    var defaultDesc = item.Properties?.StatModifiers != null
+                        ? item.Properties.StatModifiers.BonusString
+                        : "";
+                    if (defaultDesc.Length > 0) defaultDesc.Remove(defaultDesc.Length - 2);
 
-                var desc = "";
-                if (item.Properties!.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
-                    desc = defaultDesc;
-                else
-                    desc = item.Properties.Vendor?.Description ?? "";
+                    var desc = "";
+                    if (item.Properties!.Vendor?.Description == null || item.Properties.Vendor?.Description == "item")
+                        desc = defaultDesc;
+                    else
+                        desc = item.Properties.Vendor?.Description ?? "";
 
-                iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
+                    iteminfo.Nodes.Add(new MetafileNode(item.Name, level, (int)xclass, weight, tab, desc));
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "metafile: item {Name} failed, omitted from ItemInfo", item.Name);
+                }
             }
 
             WorldState.Set(iteminfo.Name, iteminfo.Compile());
@@ -469,170 +513,182 @@ public class World : Server
             sclass.Nodes.Add("");
             sclass.Nodes.Add("Skill");
             foreach (var skill in skills)
-            {
-                if (!skill.IncludeInMetafile)
-                    continue;
-                var desc = "";
-                if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
-                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
-                else if (skill.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
-                    desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
-
-                if (desc == null) desc = "";
-
-                var requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
-                if (requirements == null)
-                    requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
-
-                List<LearnPrerequisite>? prereqs = null;
-                if (requirements != null)
-                    prereqs = requirements.Prerequisites.Prerequisite;
-                else
-                    requirements = new Requirement();
-
-                if (requirements.Level == null)
+                try
                 {
-                    requirements.Level = new ClassRequirementLevel();
-                    requirements.Level.Min = 0;
-                }
+                    if (!skill.IncludeInMetafile)
+                        continue;
+                    var desc = "";
+                    if (skill.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
+                        desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
+                    else if (skill.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
+                        desc = skill.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
 
-                if (requirements.Items != null)
-                {
-                    desc += "\n\nRequired Items:\n";
+                    if (desc == null) desc = "";
 
-                    foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}";
-                    desc += "\n\n";
-                }
+                    var requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
+                    if (requirements == null)
+                        requirements = skill.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
 
-                if (requirements.Gold != 0) desc += $"Required Gold: {requirements.Gold}";
+                    List<LearnPrerequisite>? prereqs = null;
+                    if (requirements != null)
+                        prereqs = requirements.Prerequisites.Prerequisite;
+                    else
+                        requirements = new Requirement();
 
-                var prereq1 = "0";
-                var prereq1level = "0";
-                var prereq2 = "0";
-                var prereq2level = "0";
-                if (prereqs != null)
-                    if (prereqs.Count <= 2 && prereqs.Count > 0)
+                    if (requirements.Level == null)
                     {
-                        if (prereqs[0] != null)
-                        {
-                            prereq1 = prereqs[0].Value;
-                            prereq1level = $"{prereqs[0].Level}";
-                        }
-
-                        if (prereqs.Count == 2)
-                            if (prereqs[1] != null)
-                            {
-                                prereq2 = prereqs[1].Value;
-                                prereq2level = $"{prereqs[1].Level}";
-                            }
+                        requirements.Level = new ClassRequirementLevel();
+                        requirements.Level.Min = 0;
                     }
 
-                sclass.Nodes.Add(new MetafileNode(skill.Name,
-                    string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
-                        requirements.Ab != null
-                            ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
-                            : 0), // req level, master (0/1), req ab
-                    string.Format("{0}/{1}/{2}", skill.Icon, 0,
-                        0), // skill icon, x position (defunct), y position (defunct)
-                    string.Format("{0}/{1}/{2}/{3}/{4}",
-                        requirements?.Physical == null ? 3 : requirements.Physical.Str,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Int,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
-                    // str, int, wis, dex, con (not a typo, dex before con)
-                    string.Format("{0}/{1}", prereq1,
-                        prereq1level), // req skill 1 (skill name or 0 for none), req skill 1 level
-                    string.Format("{0}/{1}", prereq2,
-                        prereq2level), // req skill 2 (skill name or 0 for none), req skill 2 level
-                    desc
-                ));
-            }
+                    if (requirements.Items != null)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}";
+                        desc += "\n\n";
+                    }
+
+                    if (requirements.Gold != 0) desc += $"Required Gold: {requirements.Gold}";
+
+                    var prereq1 = "0";
+                    var prereq1level = "0";
+                    var prereq2 = "0";
+                    var prereq2level = "0";
+                    if (prereqs != null)
+                        if (prereqs.Count <= 2 && prereqs.Count > 0)
+                        {
+                            if (prereqs[0] != null)
+                            {
+                                prereq1 = prereqs[0].Value;
+                                prereq1level = $"{prereqs[0].Level}";
+                            }
+
+                            if (prereqs.Count == 2)
+                                if (prereqs[1] != null)
+                                {
+                                    prereq2 = prereqs[1].Value;
+                                    prereq2level = $"{prereqs[1].Level}";
+                                }
+                        }
+
+                    sclass.Nodes.Add(new MetafileNode(skill.Name,
+                        string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
+                            requirements.Ab != null
+                                ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
+                                : 0), // req level, master (0/1), req ab
+                        string.Format("{0}/{1}/{2}", skill.Icon, 0,
+                            0), // skill icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}/{3}/{4}",
+                            requirements?.Physical == null ? 3 : requirements.Physical.Str,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Int,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Wis,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Dex,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Con),
+                        // str, int, wis, dex, con (not a typo, dex before con)
+                        string.Format("{0}/{1}", prereq1,
+                            prereq1level), // req skill 1 (skill name or 0 for none), req skill 1 level
+                        string.Format("{0}/{1}", prereq2,
+                            prereq2level), // req skill 2 (skill name or 0 for none), req skill 2 level
+                        desc
+                    ));
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "metafile: skill {Name} failed, omitted from SClass{Class}", skill.Name, i);
+                }
 
             sclass.Nodes.Add(new MetafileNode("Skill_End", ""));
             sclass.Nodes.Add("");
             sclass.Nodes.Add("Spell");
             foreach (var spell in spells)
             // placeholder; change to skills where class == i, are learnable from trainer, and sort by level
-            {
-                if (!spell.IncludeInMetafile)
-                    continue;
-                var desc = "";
-                if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
-                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
-                else if (spell.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
-                    desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
-
-                if (desc == null) desc = "";
-
-                var requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
-                if (requirements == null)
-                    requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
-
-                List<LearnPrerequisite>? prereqs = null;
-                if (requirements != null)
-                    prereqs = requirements.Prerequisites.Prerequisite;
-                else
-                    requirements = new Requirement();
-
-                if (requirements.Level == null)
+                try
                 {
-                    requirements.Level = new ClassRequirementLevel();
-                    requirements.Level.Min = 0;
-                }
+                    if (!spell.IncludeInMetafile)
+                        continue;
+                    var desc = "";
+                    if (spell.Descriptions.Any(predicate: x => x.Class.Contains(@class)))
+                        desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(@class))!.Value;
+                    else if (spell.Descriptions.Any(predicate: x => x.Class.Contains(Class.Peasant)))
+                        desc = spell.Descriptions.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant))!.Value;
 
-                if (requirements.Items != null && requirements.Items.Count > 0)
-                {
-                    desc += "\n\nRequired Items:\n";
+                    if (desc == null) desc = "";
 
-                    foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}\n";
-                    desc = desc.Remove(desc.Length - 1);
-                }
+                    var requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(@class));
+                    if (requirements == null)
+                        requirements = spell.Requirements.FirstOrDefault(predicate: x => x.Class.Contains(Class.Peasant));
 
-                if (requirements.Gold != 0) desc += $"\n\nRequired Gold: {requirements.Gold}";
+                    List<LearnPrerequisite>? prereqs = null;
+                    if (requirements != null)
+                        prereqs = requirements.Prerequisites.Prerequisite;
+                    else
+                        requirements = new Requirement();
 
-                var prereq1 = "0";
-                var prereq1level = "0";
-                var prereq2 = "0";
-                var prereq2level = "0";
-                if (prereqs != null)
-                    if (prereqs.Count <= 2 && prereqs.Count > 0)
+                    if (requirements.Level == null)
                     {
-                        if (prereqs[0] != null)
-                        {
-                            prereq1 = prereqs[0].Value;
-                            prereq1level = $"{prereqs[0].Level}";
-                        }
-
-                        if (prereqs.Count == 2)
-                            if (prereqs[1] != null)
-                            {
-                                prereq2 = prereqs[1].Value;
-                                prereq2level = $"{prereqs[1].Level}";
-                            }
+                        requirements.Level = new ClassRequirementLevel();
+                        requirements.Level.Min = 0;
                     }
 
-                sclass.Nodes.Add(new MetafileNode(spell.Name,
-                    string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
-                        requirements.Ab != null
-                            ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
-                            : 0), // req level, master (0/1), req ab
-                    string.Format("{0}/{1}/{2}", spell.Icon, 0,
-                        0), // spell icon, x position (defunct), y position (defunct)
-                    string.Format("{0}/{1}/{2}/{3}/{4}",
-                        requirements?.Physical == null ? 3 : requirements.Physical.Str,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Int,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Wis,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Dex,
-                        requirements?.Physical == null ? 3 : requirements.Physical.Con),
-                    //spell: str/dex/int/con/wis
-                    string.Format("{0}/{1}", prereq1,
-                        prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
-                    string.Format("{0}/{1}", prereq2,
-                        prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
-                    desc
-                ));
-            }
+                    if (requirements.Items != null && requirements.Items.Count > 0)
+                    {
+                        desc += "\n\nRequired Items:\n";
+
+                        foreach (var item in requirements.Items) desc += $"  ({item.Quantity}) {item.Value}\n";
+                        desc = desc.Remove(desc.Length - 1);
+                    }
+
+                    if (requirements.Gold != 0) desc += $"\n\nRequired Gold: {requirements.Gold}";
+
+                    var prereq1 = "0";
+                    var prereq1level = "0";
+                    var prereq2 = "0";
+                    var prereq2level = "0";
+                    if (prereqs != null)
+                        if (prereqs.Count <= 2 && prereqs.Count > 0)
+                        {
+                            if (prereqs[0] != null)
+                            {
+                                prereq1 = prereqs[0].Value;
+                                prereq1level = $"{prereqs[0].Level}";
+                            }
+
+                            if (prereqs.Count == 2)
+                                if (prereqs[1] != null)
+                                {
+                                    prereq2 = prereqs[1].Value;
+                                    prereq2level = $"{prereqs[1].Level}";
+                                }
+                        }
+
+                    sclass.Nodes.Add(new MetafileNode(spell.Name,
+                        string.Format("{0}/{1}/{2}", requirements.Level.Min == 0 ? 1 : requirements.Level.Min, 0,
+                            requirements.Ab != null
+                                ? requirements.Ab.Min == 0 ? 1 : requirements.Ab.Min
+                                : 0), // req level, master (0/1), req ab
+                        string.Format("{0}/{1}/{2}", spell.Icon, 0,
+                            0), // spell icon, x position (defunct), y position (defunct)
+                        string.Format("{0}/{1}/{2}/{3}/{4}",
+                            requirements?.Physical == null ? 3 : requirements.Physical.Str,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Int,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Wis,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Dex,
+                            requirements?.Physical == null ? 3 : requirements.Physical.Con),
+                        //spell: str/dex/int/con/wis
+                        string.Format("{0}/{1}", prereq1,
+                            prereq1level), // req spell 1 (spell name or 0 for none), req skill 1 level
+                        string.Format("{0}/{1}", prereq2,
+                            prereq2level), // req spell 2 (spell name or 0 for none), req skill 2 level
+                        desc
+                    ));
+                }
+                catch (Exception e)
+                {
+                    _dataLoadErrors++;
+                    GameLog.Error(e, "metafile: spell {Name} failed, omitted from SClass{Class}", spell.Name, i);
+                }
 
             sclass.Nodes.Add(new MetafileNode("Spell_End", ""));
             WorldState.Set(sclass.Name, sclass.Compile());
@@ -644,10 +700,18 @@ public class World : Server
 
         var npcillust = new Metafile("NPCIllust");
         foreach (var npc in WorldData.Values<Npc>()) // change to merchants that have a portrait rather than all
-            if (npc.Appearance.Portrait != null)
+            try
             {
-                npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
-                GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
+                if (npc.Appearance.Portrait != null)
+                {
+                    npcillust.Nodes.Add(new MetafileNode(npc.Name, npc.Appearance.Portrait /* portrait filename */));
+                    GameLog.Debug("metafile: set {Name} to {Portrait}", npc.Name, npc.Appearance.Portrait);
+                }
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "metafile: npc {Name} failed, omitted from NPCIllust", npc.Name);
             }
 
         WorldState.Set(npcillust.Name, npcillust.Compile());
@@ -658,10 +722,16 @@ public class World : Server
 
         var nationdesc = new Metafile("NationDesc");
         foreach (var nation in WorldData.Values<Nation>())
-        {
-            GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
-            nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
-        }
+            try
+            {
+                GameLog.DebugFormat("Adding flag {0} for nation {1}", nation.Flag, nation.Name);
+                nationdesc.Nodes.Add(new MetafileNode("nation_" + nation.Flag, nation.Name));
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "metafile: nation {Name} failed, omitted from NationDesc", nation.Name);
+            }
 
         WorldState.Set(nationdesc.Name, nationdesc.Compile());
 
@@ -682,21 +752,27 @@ public class World : Server
         // By now this has been populated since OnSpawn for all NPCS has run
 
         foreach (var quest in Game.World.WorldState.QuestMetadata)
-        {
-            if (quest.Circle < 1 || quest.Circle > 6) continue;
-            var file = files[quest.Circle - 1];
-            var hdr = quests[quest.Circle - 1].ToString().PadLeft(2, '0');
-            file.Nodes.Add(new MetafileNode($"{hdr}_start"));
-            file.Nodes.Add(new MetafileNode($"{hdr}_title", quest.Title));
-            file.Nodes.Add(new MetafileNode($"{hdr}_id", quest.Id));
-            file.Nodes.Add(new MetafileNode($"{hdr}_qual", quest.Circle, quest.Classes));
-            file.Nodes.Add(new MetafileNode($"{hdr}_sum", quest.Summary));
-            file.Nodes.Add(new MetafileNode($"{hdr}_result", quest.Result));
-            file.Nodes.Add(new MetafileNode($"{hdr}_sub", quest.Prerequisite));
-            file.Nodes.Add(new MetafileNode($"{hdr}_reward", quest.Reward));
-            file.Nodes.Add(new MetafileNode($"{hdr}_end"));
-            quests[quest.Circle - 1]++;
-        }
+            try
+            {
+                if (quest.Circle < 1 || quest.Circle > 6) continue;
+                var file = files[quest.Circle - 1];
+                var hdr = quests[quest.Circle - 1].ToString().PadLeft(2, '0');
+                file.Nodes.Add(new MetafileNode($"{hdr}_start"));
+                file.Nodes.Add(new MetafileNode($"{hdr}_title", quest.Title));
+                file.Nodes.Add(new MetafileNode($"{hdr}_id", quest.Id));
+                file.Nodes.Add(new MetafileNode($"{hdr}_qual", quest.Circle, quest.Classes));
+                file.Nodes.Add(new MetafileNode($"{hdr}_sum", quest.Summary));
+                file.Nodes.Add(new MetafileNode($"{hdr}_result", quest.Result));
+                file.Nodes.Add(new MetafileNode($"{hdr}_sub", quest.Prerequisite));
+                file.Nodes.Add(new MetafileNode($"{hdr}_reward", quest.Reward));
+                file.Nodes.Add(new MetafileNode($"{hdr}_end"));
+                quests[quest.Circle - 1]++;
+            }
+            catch (Exception e)
+            {
+                _dataLoadErrors++;
+                GameLog.Error(e, "metafile: quest {Id} failed, omitted from SEvent", quest.Id);
+            }
 
         foreach (var f in files) WorldState.Set(f.Name, f.Compile());
 
