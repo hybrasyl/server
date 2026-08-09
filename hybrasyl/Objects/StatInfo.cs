@@ -1597,7 +1597,8 @@ public class StatInfo
         Game.ActiveConfiguration.Constants.PlayerMaxMr) + 1.0;
 
     [FormulaVariable]
-    // Normalize to a double between -0.84 / 1.16
+    // Multiplier centered on 1.0: BonusRegen 0.1 yields 1.1x. Range follows the
+    // PlayerMin/MaxRegen constants, so don't restate it here.
     public double Regen =>
         Math.Clamp(BonusRegen, Game.ActiveConfiguration.Constants.PlayerMinRegen,
             Game.ActiveConfiguration.Constants.PlayerMaxRegen) + 1.0;

@@ -62,7 +62,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Humanizer.Core" Version="3.0.10" />
-    <PackageReference Include="Hybrasyl.Xml" Version="0.9.6" Condition="'$(UseLocalXml)' != 'true'" />
+    <PackageReference Include="Hybrasyl.Xml" Version="0.9.7" Condition="'$(UseLocalXml)' != 'true'" />
     <ProjectReference Include="$(LocalXmlProjectPath)" Condition="'$(UseLocalXml)' == 'true'" />
     <PackageReference Include="MoonSharp" Version="2.0.0" />
     <PackageReference Include="MSBuildGitHash" Version="2.0.2">

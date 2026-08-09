@@ -1430,7 +1430,7 @@ public class World : Server
         // regenerate a user
         // USDA Formula for HP: MAXHP * (0.1 + (CON - Lv) * 0.01) <20% MAXHP
         // USDA Formula for MP: MAXMP * (0.1 + (WIS - Lv) * 0.01) <20% MAXMP
-        // Regen = regen * 0.0015 (so 100 regen = 15%)
+        // Regen bonus applies as a multiplier: Stats.Regen == BonusRegen + 1.0 (clamped).
         var connectionId = message.GetArgument<long>(0);
         if (!TryGetActiveUserById(connectionId, out var user)) return;
         if (user.Condition.Comatose || !user.Condition.Alive) return;
@@ -1450,23 +1450,19 @@ public class World : Server
                 User = user
             });
 
-        switch (user.Stats.Regen)
-        {
-            case > 0:
-                hpRegen += (uint)(hpRegen * (user.Stats.Regen / 100));
-                mpRegen += (uint)(mpRegen * (user.Stats.Regen / 100));
-                break;
-            case < 0:
-                hpRegen -= (uint)(hpRegen * (user.Stats.Regen / 100) * -1);
-                mpRegen -= (uint)(mpRegen * (user.Stats.Regen / 100) * -1);
-                break;
-        }
+        // Stats.Regen is a multiplier centered on 1.0 (BonusRegen + 1.0, clamped), not a
+        // percentage — BonusRegen 0.1 means 1.1x regen. Floored at 0 so a bonus below -1.0
+        // stops regen rather than underflowing the unsigned arithmetic.
+        var regenModifier = Math.Max(0.0, user.Stats.Regen);
+        hpRegen = (uint) (hpRegen * regenModifier);
+        mpRegen = (uint) (mpRegen * regenModifier);
 
         if (!user.Condition.IsHpRegenProhibited)
         {
             user.Stats.Hp = Math.Min(user.Stats.Hp + hpRegen, user.Stats.MaximumHp);
             GameLog.UserActivityInfo(
-                "User {User}: regen HP {HpRegen}, regen bonus {RegenBonus}%", user.Name, hpRegen, user.Stats.Regen);
+                "User {User}: regen HP {HpRegen}, regen modifier {RegenModifier}x", user.Name, hpRegen,
+                user.Stats.Regen);
         }
         else
             user.SendSystemMessage("You cannot regenerate health at this time.");
@@ -1475,7 +1471,8 @@ public class World : Server
         {
             user.Stats.Mp = Math.Min(user.Stats.Mp + mpRegen, user.Stats.MaximumMp);
             GameLog.UserActivityInfo(
-                "User {User}: regen MP {MpRegen},regen bonus {RegenBonus}%", user.Name, mpRegen, user.Stats.Regen);
+                "User {User}: regen MP {MpRegen}, regen modifier {RegenModifier}x", user.Name, mpRegen,
+                user.Stats.Regen);
 
         }
         else 
