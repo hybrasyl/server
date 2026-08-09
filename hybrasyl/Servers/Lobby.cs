@@ -42,7 +42,7 @@ public class Lobby : Server
 
     public LobbyPacketHandler[] PacketHandlers { get; }
 
-    private void PacketHandler_0x00_ClientVersion(IClient client, ClientPacket packet)
+    private void PacketHandler_0x00_ClientVersion(IClient client, InboundPacket packet)
     {
         // Lobby clients get their key in the Client constructor; a null here is a server bug.
         if (client.EncryptionKey is not { } key)
@@ -53,7 +53,7 @@ public class Lobby : Server
         }
 
         // Throws on a missing 'LK' signature; the receive loop drops the packet.
-        var version = VersionPacket.Parse(packet.PayloadData);
+        var version = VersionPacket.Parse(packet.Body.Span);
         GameLog.DebugFormat("Lobby: cid {0} client version {1}", client.ConnectionId, version.Version);
 
         client.Enqueue(new CryptoKeyPacket
@@ -64,9 +64,9 @@ public class Lobby : Server
         });
     }
 
-    private void PacketHandler_0x57_ServerTable(IClient client, ClientPacket packet)
+    private void PacketHandler_0x57_ServerTable(IClient client, InboundPacket packet)
     {
-        switch (ServerTablePacket.Parse(packet.PayloadData))
+        switch (ServerTablePacket.Parse(packet.Body.Span))
         {
             case ServerTableRequestPacket:
                 GameLog.InfoFormat("ServerTable: sent {0} entries", Game.ServerTableEntries.Count);

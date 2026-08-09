@@ -21,6 +21,6 @@ namespace Hybrasyl.Networking.Throttling;
 public interface IPacketThrottleData : IThrottleData
 {
     Client Client { get; }
-    ClientPacket Packet { get; }
+    InboundPacket Packet { get; }
     byte Opcode { get; }
 }

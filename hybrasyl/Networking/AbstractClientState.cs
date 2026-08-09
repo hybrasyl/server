@@ -30,7 +30,7 @@ namespace Hybrasyl.Networking;
 public abstract class AbstractClientState
 {
     private const int BufferSize = 65600;
-    private readonly ConcurrentQueue<ClientPacket> _receiveBuffer = new();
+    private readonly ConcurrentQueue<InboundFrame> _receiveBuffer = new();
     private readonly object _receiveLock = new();
     private readonly object _sendLock = new();
 
@@ -62,8 +62,8 @@ public abstract class AbstractClientState
         }
     }
 
-    public void ReceiveBufferAdd(ClientPacket packet) => _receiveBuffer.Enqueue(packet);
-    public bool ReceiveBufferTake([MaybeNullWhen(false)] out ClientPacket packet) => _receiveBuffer.TryDequeue(out packet);
+    public void ReceiveBufferAdd(InboundFrame frame) => _receiveBuffer.Enqueue(frame);
+    public bool ReceiveBufferTake(out InboundFrame frame) => _receiveBuffer.TryDequeue(out frame);
 
     public IEnumerable<byte> ReceiveBufferTake(int range)
     {
@@ -97,17 +97,17 @@ public abstract class AbstractClientState
         _sendBuffer = new ConcurrentQueue<ServerPacket>();
     }
 
-    public bool TryGetPacket([MaybeNullWhen(false)] out ClientPacket packet)
+    public bool TryGetFrame(out InboundFrame frame)
     {
-        packet = null!;
+        frame = default;
         lock (ReceiveLock)
         {
             if (Buffer.Length == 0 || Buffer[0] != 0xAA || Buffer.Length <= 3) return false;
             var packetLength = (Buffer[1] << 8) + Buffer[2] + 3;
-            // Complete packet, pop it off and return it
+            // Complete frame, pop it off and return it
             if (BytesReceived < packetLength) return false;
             BytesReceived -= packetLength;
-            packet = new ClientPacket(ReceiveBufferPop(packetLength).ToArray());
+            frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength).ToArray());
             return true;
         }
     }

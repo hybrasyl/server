@@ -21,6 +21,8 @@ using System;
 using System.Collections.Generic;
 using Hybrasyl.Networking;
 using Hybrasyl.Objects;
+using DALib.Networking.Packets.Client;
+using Hybrasyl.Networking;
 
 namespace Hybrasyl.Subsystems.Manufacturing;
 
@@ -56,27 +58,23 @@ public class ManufactureState
 
     public ManufactureRecipe SelectedRecipe => Recipes[SelectedIndex];
 
-    public void ProcessManufacturePacket(ClientPacket packet)
+    public void ProcessManufacturePacket(InboundPacket packet)
     {
-        var manufactureType = (ManufactureType) packet.ReadByte();
-        var slotIndex = packet.ReadByte();
+        // ManufacturePacket.Parse self-dispatches on the subtype byte, so the variant carries
+        // its own tail; the window tokens are echoed back from the 0x50 that opened it.
+        var request = ManufacturePacket.Parse(packet.Body.Span);
 
-        if (manufactureType != Type || slotIndex != Slot) return;
+        if ((ManufactureType) request.ManufactureType != Type || request.Slot != Slot) return;
 
-        var manufacturePacketType = (ManufactureClientPacketType) packet.ReadByte();
-
-        switch (manufacturePacketType)
+        switch (request)
         {
-            case ManufactureClientPacketType.RequestPage:
-                var pageIndex = packet.ReadByte();
-                if (Math.Abs(SelectedIndex - pageIndex) > 1 || pageIndex >= Recipes.Count) return;
-                ShowPage(pageIndex);
+            case RequestManufacturePagePacket page:
+                if (Math.Abs(SelectedIndex - page.PageIndex) > 1 || page.PageIndex >= Recipes.Count) return;
+                ShowPage(page.PageIndex);
                 break;
-            case ManufactureClientPacketType.Make:
-                var recipeName = packet.ReadString8();
-                var addSlotIndex = packet.ReadByte();
-                if (recipeName != SelectedRecipe.Name) return;
-                SelectedRecipe.Make(User, addSlotIndex);
+            case MakeManufacturePacket make:
+                if (make.RecipeName != SelectedRecipe.Name) return;
+                SelectedRecipe.Make(User, make.AddSlotIndex);
                 ShowPage(SelectedIndex);
                 break;
         }

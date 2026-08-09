@@ -462,7 +462,7 @@ public struct MerchantSkill
     public string Name;
 }
 
-public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, ClientPacket packet);
+public delegate void MerchantMenuHandlerDelegate(User user, Merchant merchant, InboundPacket packet);
 
 public class MerchantMenuHandler
 {

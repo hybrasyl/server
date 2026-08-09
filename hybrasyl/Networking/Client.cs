@@ -100,7 +100,12 @@ public class Client : AbstractClient, IClient
     // DALib conversion (Phase 1): the stateless codec is shared process-wide; only the
     // per-connection CryptoState carries key/seed/ordinal state. The codec scans DALib plus
     // this assembly so Hybrasyl extension packet records register alongside retail ones.
-    internal static readonly PacketCodec Codec = new([typeof(Client).Assembly]);
+    // PacketCodec does NOT implicitly include DALib's own assembly — it must be passed
+    // explicitly. Scanning only Hybrasyl's left both parser tables essentially empty; that
+    // was invisible while nothing parsed through the codec (EncodeFrame uses only Opcode +
+    // WriteBody), and made IsClientOpcodeRegistered answer false for every opcode.
+    internal static readonly PacketCodec Codec =
+        new([typeof(DALib.Networking.Wire.IPacket).Assembly, typeof(Client).Assembly]);
 
     public CryptoState Crypto { get; set; } = new();
 
@@ -386,40 +391,45 @@ public class Client : AbstractClient, IClient
         {
             try
             {
-                while (ClientState.ReceiveBufferTake(out var packet))
+                while (ClientState.ReceiveBufferTake(out var frame))
                 {
-                    var method = CryptoState.GetClientEncryptMethod(packet.Opcode);
-                    if (method != DALib.Networking.Crypto.EncryptMethod.None)
+                    var method = CryptoState.GetClientEncryptMethod(frame.Opcode);
+                    if (method == DALib.Networking.Crypto.EncryptMethod.Normal && !Crypto.IsInitialized)
                     {
-                        if (method == DALib.Networking.Crypto.EncryptMethod.Normal && !Crypto.IsInitialized)
-                        {
-                            GameLog.Warning(
-                                "cid {ConnectionId}: encrypted opcode 0x{Opcode:X2} received before key exchange, discarding",
-                                ConnectionId, packet.Opcode);
-                            continue;
-                        }
-
-                        // Decrypt via DALib; hand the plaintext body to the positional reader.
-                        packet.ReplaceData(Crypto.DecryptClient(packet.Opcode, packet.Ordinal, packet.PayloadData));
+                        GameLog.Warning(
+                            "cid {ConnectionId}: encrypted opcode 0x{Opcode:X2} received before key exchange, discarding",
+                            ConnectionId, frame.Opcode);
+                        continue;
                     }
 
-                    // Dialog obfuscation moves to DALib. Same unmasking as the
-                    // legacy in-place transform, but it validates the CRC-CCITT the legacy
-                    // path only unmasked and ignored, and returns the body with the 6-byte
-                    // header already stripped — so the 0x39/0x3A handlers no longer skip it.
-                    if (DALib.Networking.Crypto.DialogObfuscation.AppliesTo(packet.Opcode))
-                        try
-                        {
-                            packet.ReplaceData(
-                                DALib.Networking.Crypto.DialogObfuscation.Remove(packet.PayloadData));
-                        }
-                        catch (Exception e)
-                        {
-                            GameLog.Warning(e,
-                                "cid {ConnectionId}: malformed dialog response 0x{Opcode:X2}, discarding",
-                                ConnectionId, packet.Opcode);
-                            continue;
-                        }
+                    // An opcode with no registered handler is dropped here rather
+                    // than reaching dispatch. Only the World table needs this — Lobby and Login
+                    // pre-fill all 256 slots with an "unhandled opcode" logger, while World's is
+                    // a Dictionary that would otherwise throw KeyNotFoundException. Framing
+                    // already consumed the whole frame, so the stream behind it stays aligned
+                    // and the connection is kept.
+                    if (Server is World world && !world.WorldPacketHandlers.ContainsKey(frame.Opcode))
+                    {
+                        GameLog.Warning(
+                            "cid {ConnectionId}: no handler for opcode 0x{Opcode:X2} ({Length} bytes), discarding",
+                            ConnectionId, frame.Opcode, frame.Wire.Length);
+                        continue;
+                    }
+
+                    // Decrypt + de-obfuscate into the plaintext body handlers parse from.
+                    InboundPacket packet;
+                    try
+                    {
+                        packet = InboundPacket.FromFrame(frame, Crypto);
+                    }
+                    catch (Exception e)
+                    {
+                        GameLog.Warning(e,
+                            "cid {ConnectionId}: undecodable body for 0x{Opcode:X2}, discarding",
+                            ConnectionId, frame.Opcode);
+                        continue;
+                    }
+
                     try
                     {
                         if (Server is Lobby lobby)
@@ -530,17 +540,42 @@ public class Client : AbstractClient, IClient
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
         => Enqueue(ServerPacket.FromDalib(packet, transmitDelay), flush);
 
-    public void Enqueue(ClientPacket packet)
+    // Injects a typed C→S packet as though it had arrived on the wire. Encodes a real frame
+    // through the codec rather than handing the record straight to the queue, so the injected
+    // traffic exercises the same crypto and parse path a retail client's does.
+    /// <summary>
+    ///     The socket receive path: queue a framed packet and process the queue.
+    /// </summary>
+    /// <remarks>
+    ///     Mirrors the pre-P5 <c>Enqueue(ClientPacket)</c>, which is where the flush used to live
+    ///     — a Normal-encrypted opcode arriving before key exchange is left queued rather than
+    ///     flushed, because it cannot be decrypted yet. Dropping this flush is what stalled the
+    ///     entire receive path when framing moved into ReadCallback.
+    /// </remarks>
+    public void ReceiveFrame(InboundFrame frame)
     {
-        GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
+        ClientState.ReceiveBufferAdd(frame);
+
+        var needsKey = CryptoState.GetClientEncryptMethod(frame.Opcode) ==
+                       DALib.Networking.Crypto.EncryptMethod.Normal;
+        if (!needsKey || Crypto.IsInitialized)
+            FlushReceiveBuffer();
+    }
+
+    public void Enqueue(IClientPacket packet)
+    {
+        GameLog.DebugFormat("Enqueueing IClientPacket {0}", packet.Opcode);
         if (!Connected)
         {
             Disconnect();
             throw new ObjectDisposedException($"cid {ConnectionId}");
         }
 
-        ClientState.ReceiveBufferAdd(packet);
-        if (!packet.ShouldEncrypt || (packet.ShouldEncrypt && EncryptionKey != null))
+        ClientState.ReceiveBufferAdd(InboundFrame.FromWire(Codec.EncodeClient(packet, Crypto)));
+        // Flush immediately unless this opcode needs a key we do not have yet.
+        var needsKey = CryptoState.GetClientEncryptMethod(packet.Opcode) ==
+                       DALib.Networking.Crypto.EncryptMethod.Normal;
+        if (!needsKey || Crypto.IsInitialized)
             FlushReceiveBuffer();
     }
 

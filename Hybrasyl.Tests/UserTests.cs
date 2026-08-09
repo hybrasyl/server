@@ -25,6 +25,7 @@ using System;
 using System.Linq;
 using System.Text;
 using Xunit;
+using DALib.Networking.Packets.Client;
 
 namespace Hybrasyl.Tests;
 
@@ -33,6 +34,13 @@ public class UserTests(HybrasylFixture fixture)
 {
     public HybrasylFixture Fixture { get; set; } = fixture;
 
+    /// <summary>
+    ///     Wraps a DALib client record as the plaintext body a handler now receives. Handlers are
+    ///     invoked directly here, so this skips framing and crypto deliberately.
+    /// </summary>
+    private static InboundPacket Inbound(DALib.Networking.Wire.IClientPacket packet) =>
+        new(packet.Opcode, packet.ToBody());
+
     public static TestClient Client => new(new TestSocket())
     { EncryptionSeed = 0, EncryptionKey = "UrkcnItnI"u8.ToArray() };
 
@@ -40,16 +48,19 @@ public class UserTests(HybrasylFixture fixture)
     {
         var client = Client;
         var handler = Game.Login.PacketHandlers[0x03];
-        var loginPacket = new Login(username, "leethax6");
-        handler(client, (ClientPacket)loginPacket);
+        handler(client, Inbound(new LoginPacket { Name = username, Password = "leethax6" }));
         Assert.Equal("Welcome to Hybrasyl!", client.LastMessage);
         Assert.NotNull(client.LastRedirect);
         Assert.NotNull(client.EncryptionKey);
         var worldLoginHandler = Game.World.WorldPacketHandlers[0x10];
         GlobalConnectionManifest.RegisterClient(client);
-        worldLoginHandler(client.ConnectionId, (ClientPacket)
-            new JoinWorld(client.EncryptionSeed, Encoding.UTF8.GetString(client.EncryptionKey), username,
-                client.LastRedirect.Id));
+        worldLoginHandler(client.ConnectionId, Inbound(new ClientJoinPacket
+        {
+            EncryptionSeed = client.EncryptionSeed,
+            EncryptionKey = client.EncryptionKey,
+            Name = username,
+            RedirectId = client.LastRedirect.Id
+        }));
         Assert.True(Game.World.WorldState.TryGetUser(username, out var u1));
         Assert.True(Game.World.TryGetActiveUser(username, out var u2));
         Assert.NotNull(u2);
@@ -66,11 +77,9 @@ public class UserTests(HybrasylFixture fixture)
         var user = GetTestUser(username);
         Assert.NotNull(user);
         Assert.NotNull(user.Location.Map);
-        var leavePacket = new LeaveWorld(1);
-        handler(user, (ClientPacket)leavePacket);
+        handler(user, Inbound(new ClientExitPacket { Signal = ExitSignal.Request }));
         Assert.NotNull(user.Location.Map);
-        leavePacket = new LeaveWorld(0);
-        handler(user, (ClientPacket)leavePacket);
+        handler(user, Inbound(new ClientExitPacket { Signal = ExitSignal.Confirm }));
         Assert.False(Game.World.TryGetActiveUser(username, out _));
     }
 
@@ -79,11 +88,11 @@ public class UserTests(HybrasylFixture fixture)
         var client = Client;
         var handler = Game.Login.PacketHandlers[0x02];
         Assert.NotNull(handler);
-        var createAPacket = new CreateALogin(username, "leethax6", "k@erd.en");
-        handler(client, (ClientPacket)createAPacket);
-        var createBPacket = new CreateBLogin(0, (byte)Gender.Male, 0);
+        handler(client, Inbound(new CreateCharRequestPacket
+            { Name = username, Password = "leethax6", Email = "k@erd.en" }));
         handler = Game.Login.PacketHandlers[0x04];
-        handler(client, (ClientPacket)createBPacket);
+        handler(client, Inbound(new CreateCharFinalizePacket
+            { HairStyle = 0, Gender = DALib.Enums.Gender.Male, HairColor = 0 }));
         Assert.Equal("\0", client.LastMessage);
         return client;
     }
@@ -115,8 +124,7 @@ public class UserTests(HybrasylFixture fixture)
     {
         var client = CreateTestUser("AOUSS");
         var handler = Game.Login.PacketHandlers[0x03];
-        var loginPacket = new Login("AOUSS", "leethax6");
-        handler(client, (ClientPacket)loginPacket);
+        handler(client, Inbound(new LoginPacket { Name = "AOUSS", Password = "leethax6" }));
         Assert.Equal("Welcome to Hybrasyl!", client.LastMessage);
         DeleteTestUser("AOUSS", true);
     }
@@ -127,8 +135,8 @@ public class UserTests(HybrasylFixture fixture)
         var client = CreateTestUser("COUTAESF");
         var handler = Game.Login.PacketHandlers[0x02];
         Assert.NotNull(handler);
-        var createAPacket = new CreateALogin("COUTAESF", "leethax6", "k@erd.en");
-        handler(client, (ClientPacket)createAPacket);
+        handler(client, Inbound(new CreateCharRequestPacket
+            { Name = "COUTAESF", Password = "leethax6", Email = "k@erd.en" }));
         Assert.Equal("That name is unavailable.", client.LastMessage);
         DeleteTestUser("COUTAESF");
     }
@@ -139,8 +147,8 @@ public class UserTests(HybrasylFixture fixture)
         using var client = Client;
         var handler = Game.Login.PacketHandlers[0x02];
         Assert.NotNull(handler);
-        var createAPacket = new CreateALogin("Kerrrrrrrrrrrrrrden", "leethax6", "k@erd.en");
-        handler(client, (ClientPacket)createAPacket);
+        handler(client, Inbound(new CreateCharRequestPacket
+            { Name = "Kerrrrrrrrrrrrrrden", Password = "leethax6", Email = "k@erd.en" }));
         Assert.Equal("Names must be between 4 to 12 characters long.", client.LastMessage);
     }
 
@@ -150,8 +158,8 @@ public class UserTests(HybrasylFixture fixture)
         using var client = Client;
         var handler = Game.Login.PacketHandlers[0x02];
         Assert.NotNull(handler);
-        var createAPacket = new CreateALogin("Kerden1337", "leethax6", "k@erd.en");
-        handler(client, (ClientPacket)createAPacket);
+        handler(client, Inbound(new CreateCharRequestPacket
+            { Name = "Kerden1337", Password = "leethax6", Email = "k@erd.en" }));
         Assert.Equal("Names may only contain letters.", client.LastMessage);
     }
 

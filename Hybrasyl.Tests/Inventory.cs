@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Xunit;
+using DALib.Networking.Packets.Client;
 
 namespace Hybrasyl.Tests;
 
@@ -214,12 +215,14 @@ public class Inventory(HybrasylFixture fixture)
         var slot1 = Fixture.TestUser.Inventory[1];
         Assert.NotNull(slot1);
         var guid = slot1.Guid;
-        var testPacket = new DropItem(1, Fixture.TestUser.X, Fixture.TestUser.Y,
-            (uint)slot1.Count);
+        var testPacket = new DropItemPacket
+        {
+            Slot = 1, X = Fixture.TestUser.X, Y = Fixture.TestUser.Y, Count = (uint)slot1.Count
+        };
 
         var handler = Game.World.WorldPacketHandlers[0x08];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, (ClientPacket)testPacket);
+        handler(Fixture.TestUser, new InboundPacket(testPacket.Opcode, testPacket.ToBody()));
         Thread.Sleep(1000);
         // Assert X,Y contains the item we just dropped
 
@@ -295,11 +298,11 @@ public class Inventory(HybrasylFixture fixture)
         var slot1 = Fixture.TestUser.Inventory[1];
         Assert.NotNull(slot1);
         var guid = slot1.Guid;
-        var testPacket = new EquipItemClick((byte)EquipmentSlot.RightHand);
+        var testPacket = new UnequipPacket { Slot = (byte)EquipmentSlot.RightHand };
 
         var handler = Game.World.WorldPacketHandlers[testPacket.Opcode];
         Assert.NotNull(handler);
-        handler(Fixture.TestUser, (ClientPacket)testPacket);
+        handler(Fixture.TestUser, new InboundPacket(testPacket.Opcode, testPacket.ToBody()));
         Assert.Equal("You can't carry anything else.", Fixture.TestUser.LastSystemMessage);
     }
 

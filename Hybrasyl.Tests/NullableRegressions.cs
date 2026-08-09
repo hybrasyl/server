@@ -240,8 +240,9 @@ public class NullableRegressions
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(handler);
 
-        // 0xAA <len16> <opcode> <ordinal> <data: string8 "1">
-        var packet = new ClientPacket(new byte[] { 0xAA, 0x00, 0x03, 0x38, 0x00, 0x01, 0x31 });
+        // The plaintext body a merchant text-response callback receives: string8 "1".
+        // (Framing, opcode and ordinal are consumed before dispatch and are not part of it.)
+        var packet = new InboundPacket(0x38, new byte[] { 0x01, 0x31 });
 
         var ex = Record.Exception(() => handler.Invoke(Game.World, new object[] { Fixture.TestUser, merchant, packet }));
         Assert.Null(ex);

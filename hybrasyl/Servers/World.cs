@@ -1851,7 +1851,7 @@ public class World : Server
     #region Packet Handlers
 
     [PacketHandler(0x05)]
-    private void PacketHandler_0x05_RequestMap(object obj, ClientPacket packet)
+    private void PacketHandler_0x05_RequestMap(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
@@ -1875,10 +1875,10 @@ public class World : Server
     [PacketHandler(0x06)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
-    private void PacketHandler_0x06_Walk(object obj, ClientPacket packet)
+    private void PacketHandler_0x06_Walk(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = WalkPacket.Parse(packet.PayloadData);
+        var request = WalkPacket.Parse(packet.Body.Span);
         // DALib casts the wire byte straight to Direction without validating it, so the
         // crafted-packet guard stays. (The record also carries a Sequence byte Hybrasyl
         // has never used.)
@@ -1890,11 +1890,11 @@ public class World : Server
     [PacketHandler(0x07)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x07_PickupItem(object obj, ClientPacket packet)
+    private void PacketHandler_0x07_PickupItem(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var request = PickupItemPacket.Parse(packet.PayloadData);
+        var request = PickupItemPacket.Parse(packet.Body.Span);
         var slot = request.Slot;
         // DALib types the wire coordinates u16; the legacy reads were ReadInt16 and the map
         // helpers take short, so cast to keep the value bit-identical to before.
@@ -2029,11 +2029,11 @@ public class World : Server
     [PacketHandler(0x08)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x08_DropItem(object obj, ClientPacket packet)
+    private void PacketHandler_0x08_DropItem(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var request = DropItemPacket.Parse(packet.PayloadData);
+        var request = DropItemPacket.Parse(packet.Body.Span);
         var slot = request.Slot;
         var x = (short)request.X;
         var y = (short)request.Y;
@@ -2121,10 +2121,10 @@ public class World : Server
     }
 
     [PacketHandler(0x0E)]
-    private void PacketHandler_0x0E_Talk(object obj, ClientPacket packet)
+    private void PacketHandler_0x0E_Talk(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = TalkPacket.Parse(packet.PayloadData);
+        var request = TalkPacket.Parse(packet.Body.Span);
         var isShout = (byte)request.ChatType;
         var message = request.Message;
         var cmdPrefix = Game.ActiveConfiguration.Handlers?.Chat?.CommandPrefix ?? "/";
@@ -2165,10 +2165,10 @@ public class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x0F_UseSpell(object obj, ClientPacket packet)
+    private void PacketHandler_0x0F_UseSpell(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = UseSpellPacket.Parse(packet.PayloadData);
+        var request = UseSpellPacket.Parse(packet.Body.Span);
         // DALib models the tail as opaque Args (target serial, then x/y for ground-targeted
         // casts); Hybrasyl only consumes the serial. An absent tail is a no-target cast, which
         // UseSpell already expresses as target 0 — the legacy positional read threw instead.
@@ -2180,10 +2180,10 @@ public class World : Server
     }
 
     [PacketHandler(0x0B)]
-    private void PacketHandler_0x0B_ClientExit(object obj, ClientPacket packet)
+    private void PacketHandler_0x0B_ClientExit(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = ClientExitPacket.Parse(packet.PayloadData);
+        var request = ClientExitPacket.Parse(packet.Body.Span);
 
         if (request.Signal == ExitSignal.Request)
         {
@@ -2223,10 +2223,10 @@ public class World : Server
     }
 
     [PacketHandler(0x0C)]
-    private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
+    private void PacketHandler_0X0C_PutGround(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var missingObjId = RequestObjectPacket.Parse(packet.PayloadData).ObjectId;
+        var missingObjId = RequestObjectPacket.Parse(packet.Body.Span).ObjectId;
         if (user.World.Objects.TryGetValue(missingObjId, out var missingObj) &&
             missingObj is VisibleObject missingVisibleObj &&
             user.Location.Map == missingVisibleObj.Location.Map)
@@ -2235,11 +2235,11 @@ public class World : Server
     }
 
     [PacketHandler(0x10)]
-    private void PacketHandler_0x10_ClientJoin(object obj, ClientPacket packet)
+    private void PacketHandler_0x10_ClientJoin(object obj, InboundPacket packet)
     {
         var connectionId = (long)obj;
 
-        var join = ClientJoinPacket.Parse(packet.PayloadData);
+        var join = ClientJoinPacket.Parse(packet.Body.Span);
         var seed = join.EncryptionSeed;
         var key = join.EncryptionKey;
         var name = join.Name;
@@ -2369,10 +2369,10 @@ public class World : Server
 
     [PacketHandler(0x11)]
     [Prohibited(CreatureCondition.Stun, PlayerFlags.InDialog)]
-    private void PacketHandler_0x11_Turn(object obj, ClientPacket packet)
+    private void PacketHandler_0x11_Turn(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = TurnPacket.Parse(packet.PayloadData);
+        var request = TurnPacket.Parse(packet.Body.Span);
         if ((byte)request.Direction > 3) return;
         user.Condition.Casting = false;
         user.Turn((Direction)request.Direction);
@@ -2381,14 +2381,14 @@ public class World : Server
     [PacketHandler(0x13)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
-    private void PacketHandler_0x13_Attack(object obj, ClientPacket packet)
+    private void PacketHandler_0x13_Attack(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         user.AssailAttack(user.Direction);
     }
 
     [PacketHandler(0x18)]
-    private void PacketHandler_0x18_ShowPlayerList(object obj, ClientPacket packet)
+    private void PacketHandler_0x18_ShowPlayerList(object obj, InboundPacket packet)
     {
         var me = (User)obj;
 
@@ -2425,10 +2425,10 @@ public class World : Server
 
     [PacketHandler(0x19)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x19_Whisper(object obj, ClientPacket packet)
+    private void PacketHandler_0x19_Whisper(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = WhisperPacket.Parse(packet.PayloadData);
+        var request = WhisperPacket.Parse(packet.Body.Span);
         var target = request.Target;
         var message = request.Message;
 
@@ -2560,10 +2560,10 @@ public class World : Server
     };
 
     [PacketHandler(0x1B)]
-    private void PacketHandler_0x1B_Settings(object obj, ClientPacket packet)
+    private void PacketHandler_0x1B_Settings(object obj, InboundPacket packet)
     {
         // TODO: future expansion
-        var settingNumber = SettingsPacket.Parse(packet.PayloadData).SettingNumber;
+        var settingNumber = SettingsPacket.Parse(packet.Body.Span).SettingNumber;
         var user = (User)obj;
         // Only seven of these are usable by the client (1-6, and 8), 
         // the seventh one is sent to keep the ordering consistent but seemingly does nothing
@@ -2599,10 +2599,10 @@ public class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x1C_UseItem(object obj, ClientPacket packet)
+    private void PacketHandler_0x1C_UseItem(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var slot = UseItemPacket.Parse(packet.PayloadData).Slot;
+        var slot = UseItemPacket.Parse(packet.Body.Span).Slot;
 
         GameLog.DebugFormat("Updating slot {0}", slot);
 
@@ -2776,10 +2776,10 @@ public class World : Server
     [PacketHandler(0x1D)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x1D_Emote(object obj, ClientPacket packet)
+    private void PacketHandler_0x1D_Emote(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var emote = EmotePacket.Parse(packet.PayloadData).EmoteIndex;
+        var emote = EmotePacket.Parse(packet.Body.Span).EmoteIndex;
         if (emote <= 35)
         {
             emote += 9;
@@ -2790,11 +2790,11 @@ public class World : Server
     [PacketHandler(0x24)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x24_DropGold(object obj, ClientPacket packet)
+    private void PacketHandler_0x24_DropGold(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var request = DropGoldPacket.Parse(packet.PayloadData);
+        var request = DropGoldPacket.Parse(packet.Body.Span);
         var amount = request.Amount;
         var x = (short)request.X;
         var y = (short)request.Y;
@@ -2859,7 +2859,7 @@ public class World : Server
     }
 
     [PacketHandler(0x2D)]
-    private void PacketHandler_0x2D_PlayerInfo(object obj, ClientPacket packet)
+    private void PacketHandler_0x2D_PlayerInfo(object obj, InboundPacket packet)
     {
         //this handler also handles group management pane
 
@@ -2870,7 +2870,7 @@ public class World : Server
     [PacketHandler(0x2E)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x2E_GroupRequest(object obj, ClientPacket packet)
+    private void PacketHandler_0x2E_GroupRequest(object obj, InboundPacket packet)
     {
         /*
          * Handle user-initiated grouping requests. There are a number of mechanisms in the client
@@ -2895,7 +2895,7 @@ public class World : Server
         //   0x03 = invitee responds with a "yes"
         // The simple stages carry the target name in Name; stage 4 (the recruit box) carries
         // the sender's own name in Leader instead, followed by the box itself.
-        var request = GroupRequestPacket.Parse(packet.PayloadData);
+        var request = GroupRequestPacket.Parse(packet.Body.Span);
         var stage = (GroupClientPacketType)request.Stage;
 
         var subject = stage == GroupClientPacketType.RecruitInit ? request.Leader : request.Name;
@@ -2999,7 +2999,7 @@ public class World : Server
     [PacketHandler(0x2F)]
     [Prohibited(CreatureCondition.Coma, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x2F_GroupToggle(object obj, ClientPacket packet)
+    private void PacketHandler_0x2F_GroupToggle(object obj, InboundPacket packet)
     {
         var user = (User)obj;
 
@@ -3023,9 +3023,9 @@ public class World : Server
     [PacketHandler(0x2A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
+    private void PacketHandler_0x2A_DropGoldOnCreature(object obj, InboundPacket packet)
     {
-        var request = DropGoldOnCreaturePacket.Parse(packet.PayloadData);
+        var request = DropGoldOnCreaturePacket.Parse(packet.Body.Span);
         var goldAmount = request.Amount;
         var targetId = request.TargetId;
 
@@ -3080,9 +3080,9 @@ public class World : Server
     [PacketHandler(0x29)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
+    private void PacketHandler_0x29_DropItemOnCreature(object obj, InboundPacket packet)
     {
-        var request = DropItemOnCreaturePacket.Parse(packet.PayloadData);
+        var request = DropItemOnCreaturePacket.Parse(packet.Body.Span);
         var itemSlot = request.Slot;
         var targetId = request.TargetId;
         var quantity = request.Count;
@@ -3136,10 +3136,10 @@ public class World : Server
 
     [PacketHandler(0x30)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x30_MoveUIElement(object obj, ClientPacket packet)
+    private void PacketHandler_0x30_MoveUIElement(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = SwapSlotPacket.Parse(packet.PayloadData);
+        var request = SwapSlotPacket.Parse(packet.Body.Span);
         var window = request.Window;
         var oldSlot = request.Slot1;
         var newSlot = request.Slot2;
@@ -3189,13 +3189,13 @@ public class World : Server
     }
 
     [PacketHandler(0x3b)]
-    private void PacketHandler_0x3B_AccessMessages(object obj, ClientPacket packet)
+    private void PacketHandler_0x3B_AccessMessages(object obj, InboundPacket packet)
     {
         var user = (User)obj;
 
         // BoardRequestPacket dispatches on the action byte into one variant per board
         // operation; the action is recovered from RequestType so the switch is unchanged.
-        var request = BoardRequestPacket.Parse(packet.PayloadData);
+        var request = BoardRequestPacket.Parse(packet.Body.Span);
         var action = (byte)request.RequestType;
 
         // The moment we get a 3B packet, we assume a user is "in a board"
@@ -3275,17 +3275,17 @@ public class World : Server
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, CreatureCondition.Root,
         PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x3E_UseSkill(object obj, ClientPacket packet)
+    private void PacketHandler_0x3E_UseSkill(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var slot = UseSkillPacket.Parse(packet.PayloadData).Slot;
+        var slot = UseSkillPacket.Parse(packet.Body.Span).Slot;
 
         user.UseSkill(slot);
     }
 
     [PacketHandler(0x3F)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
-    private void PacketHandler_0x3F_MapPointClick(object obj, ClientPacket packet)
+    private void PacketHandler_0x3F_MapPointClick(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         // CFieldMap (retail): checksum, map_id, x, y — all u16 big-endian, copied verbatim by
@@ -3293,7 +3293,7 @@ public class World : Server
         // forgeable, so a raw map_id would let a player teleport to any map in the world. The click
         // must match a destination the *current* world map actually offered — WorldMapPoint is the
         // allowlist — and we then teleport using the point's server-side destination, not the client's.
-        var request = MapPointClickPacket.Parse(packet.PayloadData);
+        var request = MapPointClickPacket.Parse(packet.Body.Span);
         var mapId = request.MapId;      // CheckSum is carried back and has no server meaning
         var x = request.X;
         var y = request.Y;
@@ -3322,7 +3322,7 @@ public class World : Server
 
     [PacketHandler(0x38)]
     [Prohibited(PlayerFlags.InDialog)]
-    private void PacketHandler_0x38_Refresh(object obj, ClientPacket packet)
+    private void PacketHandler_0x38_Refresh(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         user.Condition.Casting = false;
@@ -3331,14 +3331,14 @@ public class World : Server
 
     [PacketHandler(0x39)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
-    private void PacketHandler_0x39_NPCMainMenu(object obj, ClientPacket packet)
+    private void PacketHandler_0x39_NPCMainMenu(object obj, InboundPacket packet)
     {
         var user = (User)obj;
 
         // The prefix only. Each merchant callback re-parses the full body as whichever
         // variant its own menu form carries — 0x39 is not self-describing, so the variant is
         // determined by the menu the server last sent, not by anything on the wire.
-        var request = NpcMainMenuSelectPacket.ParseResponse(packet.PayloadData);
+        var request = NpcMainMenuSelectPacket.ParseResponse(packet.Body.Span);
         var objectType = request.ObjectType;
         var objectId = request.ObjectId;
         var pursuitId = request.PursuitId;
@@ -3422,14 +3422,14 @@ public class World : Server
 
     [PacketHandler(0x3A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
-    private void PacketHandler_0x3A_DialogUse(object obj, ClientPacket packet)
+    private void PacketHandler_0x3A_DialogUse(object obj, InboundPacket packet)
     {
         var user = (User)obj;
 
         // 0x3A *is* self-describing: DialogUsePacket.Parse dispatches on the trailing tag
         // byte (none = navigation, 1 = menu choice, 2 = text). Only the prefix is read here;
         // the response tail is pulled from the typed record further down.
-        var request = DialogUsePacket.Parse(packet.PayloadData);
+        var request = DialogUsePacket.Parse(packet.Body.Span);
         var objectType = (DialogObjectType)request.ObjectType;
         var objectID = request.ObjectId;
         var pursuitID = request.PursuitId;
@@ -3697,13 +3697,13 @@ public class World : Server
 
     [PacketHandler(0x43)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
-    private void PacketHandler_0x43_PointClick(object obj, ClientPacket packet)
+    private void PacketHandler_0x43_PointClick(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
         // ClickPacket carries a discriminated tail: type 3 is an X/Y map click, type 1 an
         // entity click. Both forms are read up front.
-        var request = ClickPacket.Parse(packet.PayloadData);
+        var request = ClickPacket.Parse(packet.Body.Span);
         var clickType = request.ClickType;
         var commonViewport = user.GetViewport();
         // N.B. We handle dead checks here rather than at the Required attribute level due to some 
@@ -3778,8 +3778,6 @@ public class World : Server
                 }
             default:
                 GameLog.DebugFormat("Unsupported clickType {0}", clickType);
-                GameLog.DebugFormat("Packet follows:");
-                packet.DumpPacket();
                 break;
         }
     }
@@ -3787,12 +3785,12 @@ public class World : Server
     [PacketHandler(0x44)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x44_EquippedItemClick(object obj, ClientPacket packet)
+    private void PacketHandler_0x44_EquippedItemClick(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         // This packet is received when a client unequips an item from the detail (a) screen.
 
-        var slot = UnequipPacket.Parse(packet.PayloadData).Slot;
+        var slot = UnequipPacket.Parse(packet.Body.Span).Slot;
 
         GameLog.DebugFormat("Removing equipment from slot {0}", slot);
         var item = user.Equipment[slot];
@@ -3825,11 +3823,11 @@ public class World : Server
     }
 
     [PacketHandler(0x45)]
-    private void PacketHandler_0x45_ByteHeartbeat(object obj, ClientPacket packet)
+    private void PacketHandler_0x45_ByteHeartbeat(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         // Client sends 0x45 response in the reverse order of what the server sends...
-        var request = ByteHeartbeatPacket.Parse(packet.PayloadData);
+        var request = ByteHeartbeatPacket.Parse(packet.Body.Span);
         var byteB = request.First;
         var byteA = request.Second;
 
@@ -3847,12 +3845,13 @@ public class World : Server
     [PacketHandler(0x47)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun, PlayerFlags.InDialog)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x47_StatPoint(object obj, ClientPacket packet)
+    private void PacketHandler_0x47_StatPoint(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         if (user.LevelPoints > 0)
         {
-            switch (StatPointPacket.Parse(packet.PayloadData).Stat)
+            var statPoint = StatPointPacket.Parse(packet.Body.Span);
+            switch (statPoint.Stat)
             {
                 case 0x01:
                     user.Stats.BaseStr++;
@@ -3886,13 +3885,13 @@ public class World : Server
     [PacketHandler(0x4A)]
     [Prohibited(CreatureCondition.Coma, CreatureCondition.Sleep, CreatureCondition.Stun)]
     [Required(PlayerFlags.Alive)]
-    private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
+    private void PacketHandler_0x4A_Trade(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         // ExchangePacket dispatches on the stage byte into one variant per exchange action;
         // the stage is recovered from the variant's RequestType so the switch below is
         // unchanged.
-        var request = ExchangePacket.Parse(packet.PayloadData);
+        var request = ExchangePacket.Parse(packet.Body.Span);
         var tradeStage = (byte)request.RequestType;
 
         if (tradeStage == 0 && user.ActiveExchange != null)
@@ -3973,7 +3972,7 @@ public class World : Server
 
     [PacketHandler(0x4D)]
     [Prohibited(PlayerFlags.InDialog)]
-    private void PacketHandler_0x4D_BeginCasting(object obj, ClientPacket packet)
+    private void PacketHandler_0x4D_BeginCasting(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         user.Condition.Casting = true;
@@ -3981,10 +3980,10 @@ public class World : Server
 
     [PacketHandler(0x4E)]
     [Prohibited(PlayerFlags.InDialog)]
-    private void PacketHandler_0x4E_CastLine(object obj, ClientPacket packet)
+    private void PacketHandler_0x4E_CastLine(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var text = CastLinePacket.Parse(packet.PayloadData).Line;
+        var text = CastLinePacket.Parse(packet.Body.Span).Line;
 
         // Chant echo (legacy CastLine builder's 3 trailing 0x00 dropped)
         user.SendCastLine(new DALib.Networking.Packets.Server.PublicMessagePacket
@@ -3996,19 +3995,19 @@ public class World : Server
     }
 
     [PacketHandler(0x4F)]
-    private void PacketHandler_0x4F_ProfileTextPortrait(object obj, ClientPacket packet)
+    private void PacketHandler_0x4F_ProfileTextPortrait(object obj, InboundPacket packet)
     {
         var user = (User)obj;
         // The leading total-length field is redundant with the two that follow; DALib reads
         // and discards it, as the legacy site did.
-        var request = SetProfilePacket.Parse(packet.PayloadData);
+        var request = SetProfilePacket.Parse(packet.Body.Span);
 
         user.PortraitData = request.PortraitData;
         user.ProfileText = request.ProfileText;
     }
 
     [PacketHandler(0x55)]
-    private void PacketHandler_0x55_Manufacture(object obj, ClientPacket packet)
+    private void PacketHandler_0x55_Manufacture(object obj, InboundPacket packet)
     {
         var user = (User)obj;
 
@@ -4018,10 +4017,10 @@ public class World : Server
     }
 
     [PacketHandler(0x75)]
-    private void PacketHandler_0x75_TickHeartbeat(object obj, ClientPacket packet)
+    private void PacketHandler_0x75_TickHeartbeat(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = TickHeartbeatPacket.Parse(packet.PayloadData);
+        var request = TickHeartbeatPacket.Parse(packet.Body.Span);
         // Same bits either way; IsHeartbeatValid compares against Environment.TickCount.
         var serverTick = (int)request.ServerTick;
         var clientTick = (int)request.ClientTick; // Dunno what to do with this right now, so we just store it
@@ -4038,18 +4037,18 @@ public class World : Server
     }
 
     [PacketHandler(0x79)]
-    private void PacketHandler_0x79_Status(object obj, ClientPacket packet)
+    private void PacketHandler_0x79_Status(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var status = StatusPacket.Parse(packet.PayloadData).Status;
+        var status = StatusPacket.Parse(packet.Body.Span).Status;
         if (status <= 7) user.GroupStatus = (UserStatus)status;
     }
 
     [PacketHandler(0x7B)]
-    private void PacketHandler_0x7B_RequestMetafile(object obj, ClientPacket packet)
+    private void PacketHandler_0x7B_RequestMetafile(object obj, InboundPacket packet)
     {
         var user = (User)obj;
-        var request = RequestMetafilePacket.Parse(packet.PayloadData);
+        var request = RequestMetafilePacket.Parse(packet.Body.Span);
 
         // The request's bool selects the response form, and doubles as the response's leading
         // discriminator byte: false -> op 0 (one named file's data), true -> op 1 (checksum
@@ -4088,28 +4087,28 @@ public class World : Server
 
     #region Merchant Menu ItemObject Handlers
 
-    private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_MainMenu(User user, Merchant merchant, InboundPacket packet)
     {
         (merchant as IPursuitable).DisplayPursuits(user);
     }
 
-    private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_BuyItemMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowBuyMenu(merchant);
     }
 
-    private void MerchantMenuHandler_SellItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItemMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowSellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_BuyItemWithQuantity(User user, Merchant merchant, InboundPacket packet)
     {
         // The client sends the item name only. The second read here was spurious: it survived
         // because the legacy buffer still carried the dialog wrapper's trailing zero past the
         // payload, so it returned "" — and the value was discarded anyway. Under this delta the body
         // ends at the payload, so reading it throws. See the register entry.
-        var name = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+        var name = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
 
         user.ShowBuyMenuQuantity(merchant, name);
     }
@@ -4123,9 +4122,9 @@ public class World : Server
     ///     trailing whitespace, a leading sign), so only the inputs that used to throw are now
     ///     rejected — and they are rejected with a message to the player instead.
     /// </summary>
-    private static bool TryReadQuantity(User user, ClientPacket packet, out uint quantity)
+    private static bool TryReadQuantity(User user, InboundPacket packet, out uint quantity)
     {
-        var text = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+        var text = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
 
         if (uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out quantity))
             return true;
@@ -4136,7 +4135,7 @@ public class World : Server
         return false;
     }
 
-    private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_BuyItemAccept(User user, Merchant merchant, InboundPacket packet)
     {
         if (!TryReadQuantity(user, packet, out var quantity))
         {
@@ -4147,7 +4146,7 @@ public class World : Server
         user.ShowBuyItem(merchant, quantity);
     }
 
-    private void MerchantMenuHandler_SellItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItem(User user, Merchant merchant, InboundPacket packet)
     {
         if (!TryReadQuantity(user, packet, out var quantity))
         {
@@ -4159,9 +4158,9 @@ public class World : Server
         user.ShowSellConfirm(merchant, user.PendingSellableSlot, quantity);
     }
 
-    private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItemWithQuantity(User user, Merchant merchant, InboundPacket packet)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4174,19 +4173,19 @@ public class World : Server
         user.ShowSellConfirm(merchant, slot);
     }
 
-    private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SellItemAccept(User user, Merchant merchant, InboundPacket packet)
     {
         user.SellItemAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSkillMenu(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkill(User user, Merchant merchant, InboundPacket packet)
     {
-        var skillName = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+        var skillName = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
         // The name comes straight from the packet; only a real skill may enter the flow
         if (!WorldData.TryGetValueByIndex(skillName, out Castable skill) || !skill.IsSkill)
         {
@@ -4198,29 +4197,29 @@ public class World : Server
         user.ShowLearnSkill(merchant, skill);
     }
 
-    private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillAccept(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSkillAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillAgree(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSkillAgree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSkillDisagree(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSkillDisagree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSpellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpell(User user, Merchant merchant, InboundPacket packet)
     {
-        var spellName = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+        var spellName = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
         // The name comes straight from the packet; only a real spell may enter the flow
         if (!WorldData.TryGetValueByIndex(spellName, out Castable spell) || !spell.IsSpell)
         {
@@ -4232,63 +4231,63 @@ public class World : Server
         user.ShowLearnSpell(merchant, spell);
     }
 
-    private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellAccept(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSpellAccept(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellAgree(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSpellAgree(merchant);
     }
 
-    private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_LearnSpellDisagree(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowLearnSpellDisagree(merchant);
     }
 
 
-    private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSkillMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowForgetSkillMenu(merchant);
     }
 
-    private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_ForgetSkill(User user, Merchant merchant, InboundPacket packet) { }
 
-    private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSkillAccept(User user, Merchant merchant, InboundPacket packet)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         user.ShowForgetSkillAccept(merchant, slot);
     }
 
-    private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSpellMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowForgetSpellMenu(merchant);
     }
 
-    private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_ForgetSpell(User user, Merchant merchant, InboundPacket packet) { }
 
-    private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ForgetSpellAccept(User user, Merchant merchant, InboundPacket packet)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         user.ShowForgetSpellAccept(merchant, slot);
     }
 
-    private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowMerchantSendParcel(merchant);
     }
 
-    private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelQuantity(User user, Merchant merchant, InboundPacket packet)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         var itemObj = user.Inventory[slot];
         if (itemObj == null) return;
 
         user.ShowMerchantSendParcelQuantity(merchant, itemObj);
     }
 
-    private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelRecipient(User user, Merchant merchant, InboundPacket packet)
     {
         if (!TryReadQuantity(user, packet, out var quantity))
         {
@@ -4300,34 +4299,34 @@ public class World : Server
         user.ShowMerchantSendParcelRecipient(merchant, quantity);
     }
 
-    private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_SendParcel(User user, Merchant merchant, InboundPacket packet) { }
 
-    private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, ClientPacket packet) { }
+    private void MerchantMenuHandler_SendParcelFailure(User user, Merchant merchant, InboundPacket packet) { }
 
-    private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_SendParcelAccept(User user, Merchant merchant, InboundPacket packet)
     {
-        var recipient = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+        var recipient = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
         user.ShowMerchantSendParcelAccept(merchant, recipient);
     }
 
-    private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_ReceiveParcel(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowMerchantReceiveParcelAccept(merchant);
     }
 
-    private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawItemQuantity(User user, Merchant merchant, InboundPacket packet)
     {
-        var item = NpcTextResponsePacket.ParseResponse(packet.PayloadData).Text;
+        var item = NpcTextResponsePacket.ParseResponse(packet.Body.Span).Text;
 
         user.ShowWithdrawItemQuantity(merchant, item);
     }
 
-    private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawItemMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowWithdrawItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawItem(User user, Merchant merchant, InboundPacket packet)
     {
         if (user.PendingWithdrawItem == null) return;
         if (!TryReadQuantity(user, packet, out var quantity))
@@ -4339,19 +4338,19 @@ public class World : Server
         user.WithdrawItemConfirm(merchant, user.PendingWithdrawItem, quantity);
     }
 
-    private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawGoldMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowWithdrawGoldMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositGoldMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowDepositGoldMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositItemQuantity(User user, Merchant merchant, InboundPacket packet)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         var item = user.Inventory[slot];
         if (item == null) return;
 
@@ -4364,12 +4363,12 @@ public class World : Server
         user.DepositItemConfirm(merchant, slot);
     }
 
-    private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositItemMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowDepositItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositItem(User user, Merchant merchant, InboundPacket packet)
     {
         if (!TryReadQuantity(user, packet, out var quantity))
         {
@@ -4380,7 +4379,7 @@ public class World : Server
         user.DepositItemConfirm(merchant, user.PendingDepositSlot, quantity);
     }
 
-    private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_DepositGoldQuantity(User user, Merchant merchant, InboundPacket packet)
     {
         if (!TryReadQuantity(user, packet, out var amount))
         {
@@ -4391,7 +4390,7 @@ public class World : Server
         user.DepositGoldConfirm(merchant, amount);
     }
 
-    private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_WithdrawGoldQuantity(User user, Merchant merchant, InboundPacket packet)
     {
         if (!TryReadQuantity(user, packet, out var amount))
         {
@@ -4402,28 +4401,28 @@ public class World : Server
         user.WithdrawGoldConfirm(merchant, amount);
     }
 
-    private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairItemMenu(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowRepairItemMenu(merchant);
     }
 
-    private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairItem(User user, Merchant merchant, InboundPacket packet)
     {
-        var slot = NpcOptionResponsePacket.ParseResponse(packet.PayloadData).Option;
+        var slot = NpcOptionResponsePacket.ParseResponse(packet.Body.Span).Option;
         user.ShowRepairItem(merchant, slot);
     }
 
-    private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairItemAccept(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowRepairItemAccept(merchant);
     }
 
-    private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairAllItems(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowRepairAllItems(merchant);
     }
 
-    private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant, ClientPacket packet)
+    private void MerchantMenuHandler_RepairAllItemsAccept(User user, Merchant merchant, InboundPacket packet)
     {
         user.ShowRepairAllItemsAccept(merchant);
     }

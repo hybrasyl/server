@@ -23,6 +23,7 @@ using Hybrasyl.Servers;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using IClientPacket = DALib.Networking.Wire.IClientPacket;
 
 namespace Hybrasyl.Networking;
 
@@ -86,7 +87,13 @@ public class TestClient : AbstractClient, IClient
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0) =>
         ClientState.SendBufferAdd(ServerPacket.FromDalib(packet, transmitDelay));
 
-    public void Enqueue(ClientPacket packet) => ClientState.ReceiveBufferAdd(packet);
+    // TestClient has no receive loop; queue without flushing.
+    public void ReceiveFrame(InboundFrame frame) => ClientState.ReceiveBufferAdd(frame);
+
+    // TestClient captures outbound traffic; it has no CryptoState, so there is nothing to
+    // encode an inbound frame against. Tests that need to drive a handler invoke it directly.
+    public void Enqueue(IClientPacket packet) =>
+        throw new NotSupportedException("TestClient does not accept inbound packets; call the handler directly.");
 
     public void FlushReceiveBuffer()
     {

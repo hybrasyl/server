@@ -57,9 +57,9 @@ public class Login : Server
 
     public LoginPacketHandler[] PacketHandlers { get; }
 
-    private void PacketHandler_0x02_CreateA(IClient client, ClientPacket packet)
+    private void PacketHandler_0x02_CreateA(IClient client, InboundPacket packet)
     {
-        var request = CreateCharRequestPacket.Parse(packet.PayloadData);
+        var request = CreateCharRequestPacket.Parse(packet.Body.Span);
         var name = request.Name;
         var password = request.Password;
 
@@ -91,11 +91,11 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x03_Login(IClient client, ClientPacket packet)
+    private void PacketHandler_0x03_Login(IClient client, InboundPacket packet)
     {
         // Parse validates the 15-byte XOR'd integrity trailer (CRC-CCITT) and throws on
         // mismatch; the receive loop drops the packet.
-        var request = LoginPacket.Parse(packet.PayloadData);
+        var request = LoginPacket.Parse(packet.Body.Span);
         var name = request.Name;
         var password = request.Password;
         GameLog.DebugFormat("cid {0}: Login request for {1}", client.ConnectionId, name);
@@ -184,10 +184,10 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x04_CreateB(IClient client, ClientPacket packet)
+    private void PacketHandler_0x04_CreateB(IClient client, InboundPacket packet)
     {
         if (string.IsNullOrEmpty(client.NewCharacterName) || string.IsNullOrEmpty(client.NewCharacterPassword)) return;
-        var finalize = CreateCharFinalizePacket.Parse(packet.PayloadData);
+        var finalize = CreateCharFinalizePacket.Parse(packet.Body.Span);
         var hairStyle = finalize.HairStyle;
         var gender = (byte)finalize.Gender;
         var hairColor = finalize.HairColor;
@@ -253,9 +253,9 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x10_ClientJoin(IClient client, ClientPacket packet)
+    private void PacketHandler_0x10_ClientJoin(IClient client, InboundPacket packet)
     {
-        var join = ClientJoinPacket.Parse(packet.PayloadData);
+        var join = ClientJoinPacket.Parse(packet.Body.Span);
         var seed = join.EncryptionSeed;
         var key = join.EncryptionKey;
         var name = join.Name;
@@ -291,9 +291,9 @@ public class Login : Server
 
     // Chart for all error password-related error codes were provided by kojasou@ on
     // https://github.com/hybrasyl/server/pull/11.
-    private void PacketHandler_0x26_ChangePassword(IClient client, ClientPacket packet)
+    private void PacketHandler_0x26_ChangePassword(IClient client, InboundPacket packet)
     {
-        var request = ChangePasswordPacket.Parse(packet.PayloadData);
+        var request = ChangePasswordPacket.Parse(packet.Body.Span);
         var name = request.Name;
         var currentPass = request.CurrentPassword;
         // Clientside validation ensures that the same string is typed twice for the new
@@ -335,13 +335,13 @@ public class Login : Server
         }
     }
 
-    private void PacketHandler_0x4B_RequestNotification(IClient client, ClientPacket packet) =>
+    private void PacketHandler_0x4B_RequestNotification(IClient client, InboundPacket packet) =>
         client.Enqueue(new LoginNotificationPacket
         {
             Form = new NotificationDataForm { Data = Game.Notification }
         });
 
-    private void PacketHandler_0x68_RequestHomepage(IClient client, ClientPacket packet) =>
+    private void PacketHandler_0x68_RequestHomepage(IClient client, InboundPacket packet) =>
         client.Enqueue(new UrlPacket
         {
             Form = new SetUrlForm { Url = "http://www.hybrasyl.com" }
