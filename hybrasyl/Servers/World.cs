@@ -1616,8 +1616,8 @@ public class World : Server
     private void ControlMessage_RemoveReactor(HybrasylControlMessage message)
     {
         if (message.Arguments[0] is not Guid g || !WorldState.TryGetWorldObject<Reactor>(g, out var obj) ||
-            obj.Location.Map is not { } reactorMap || !WorldState.TryGetValue<MapObject>(reactorMap.Id, out var m)) return;
-        m.Remove(obj);
+            obj.Location.Map is not { } reactorMap) return;
+        reactorMap.Remove(obj);
     }
 
     [HybrasylMessageHandler(ControlOpcode.ModifyStats)]
