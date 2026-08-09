@@ -30,6 +30,16 @@ public class ServerPacket : Packet
         Data = [];
     }
 
+    // DALib conversion (Phase 2+): a converted send site wraps a typed DALib record here so
+    // FlushSendBuffer encodes retail-true bytes directly, bypassing the RawBodyServerPacket
+    // parity bridge. Unconverted opcodes leave this null and flow through the bridge. This
+    // threads the typed path through the existing ServerPacket send queue with no queue-type
+    // churn; the envelope disappears in Phase 5 when the last site converts.
+    internal DALib.Networking.Wire.IServerPacket? DalibPacket { get; private init; }
+
+    internal static ServerPacket FromDalib(DALib.Networking.Wire.IServerPacket packet, int transmitDelay = 0) =>
+        new(packet.Opcode) { DalibPacket = packet, TransmitDelay = transmitDelay };
+
     public ServerPacket(byte[] buffer)
     {
         Opcode = buffer[3];

@@ -67,6 +67,7 @@ public interface IClient : IDisposable
     public void SendCallback(IAsyncResult ar);
     public void GenerateKeyTable(string seed);
     public void Enqueue(ServerPacket packet, bool flush = false);
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0);
     public void Enqueue(ClientPacket packet);
     public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0);
     public void LoginMessage(string message, byte type);

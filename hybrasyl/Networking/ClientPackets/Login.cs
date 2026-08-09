@@ -20,10 +20,13 @@ namespace Hybrasyl.Networking.ClientPackets;
 
 public class Login : PacketBase
 {
+    // Body built by the DALib record so the XOR'd integrity trailer is present and
+    // CRC-valid — the typed handler parse rejects a bare name/password body.
     public Login(string name, string password)
     {
-        WriteString(name);
-        WriteString(password);
+        var writer = new DALib.Networking.Wire.PacketWriter();
+        new DALib.Networking.Packets.Client.LoginPacket { Name = name, Password = password }.WriteBody(writer);
+        Data.Write(writer.WrittenSpan);
     }
 
     public override byte Opcode => 0x03;

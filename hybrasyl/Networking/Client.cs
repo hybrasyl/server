@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using DALib.Networking.Crypto;
+using DALib.Networking.Packets.Server;
 using DALib.Networking.Wire;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
@@ -154,14 +155,11 @@ public class Client : AbstractClient, IClient
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
         if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
-        var byteHeartbeat = new ServerPacket(0x3b);
         var a = Random.Shared.Next(254);
         var b = Random.Shared.Next(254);
         Interlocked.Exchange(ref _heartbeatA, a);
         Interlocked.Exchange(ref _heartbeatB, b);
-        byteHeartbeat.WriteByte((byte)a);
-        byteHeartbeat.WriteByte((byte)b);
-        Enqueue(byteHeartbeat);
+        Enqueue(new ByteHeartbeatPacket { First = (byte)a, Second = (byte)b });
         Interlocked.Exchange(ref _byteHeartbeatSent, DateTime.Now.Ticks);
     }
 
@@ -193,12 +191,10 @@ public class Client : AbstractClient, IClient
         var aliveSince = new TimeSpan(DateTime.Now.Ticks - ConnectedSince);
         if (aliveSince.TotalSeconds < Game.ActiveConfiguration.Constants.ByteHeartbeatInterval)
             return;
-        var tickHeartbeat = new ServerPacket(0x68);
         // We never really want to deal with negative values
         var tickCount = Environment.TickCount & int.MaxValue;
         Interlocked.Exchange(ref _localTickCount, tickCount);
-        tickHeartbeat.WriteInt32(tickCount);
-        Enqueue(tickHeartbeat);
+        Enqueue(new TickHeartbeatPacket { ServerTick = (uint)tickCount });
         Interlocked.Exchange(ref _tickHeartbeatSent, DateTime.Now.Ticks);
     }
 
@@ -345,8 +341,10 @@ public class Client : AbstractClient, IClient
 
                     if (packet.TransmitDelay > 0)
                         transmitDelay = packet.TransmitDelay;
-                    // Encode (framing + ordinal + encryption) through DALib's codec.
-                    var wire = Codec.EncodeServer(new RawBodyServerPacket(packet.Opcode, packet.BodyMemory), Crypto);
+                    // Converted sites carry a typed DALib record (retail-true bytes); unconverted
+                    // ones flow through the parity bridge. Either way the codec frames/encrypts.
+                    var record = packet.DalibPacket ?? new RawBodyServerPacket(packet.Opcode, packet.BodyMemory);
+                    var wire = Codec.EncodeServer(record, Crypto);
                     buffer.Write(wire.Span);
                 }
             }
@@ -514,6 +512,11 @@ public class Client : AbstractClient, IClient
         if (flush) FlushSendBuffer();
     }
 
+    // DALib conversion (Phase 2+): enqueue a typed DALib server packet. Encodes retail-true
+    // bytes directly through the codec (no parity bridge, no inner padding).
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
+        => Enqueue(ServerPacket.FromDalib(packet, transmitDelay), flush);
+
     public void Enqueue(ClientPacket packet)
     {
         GameLog.DebugFormat("Enqueueing ClientPacket {0}", packet.Opcode);
@@ -539,45 +542,28 @@ public class Client : AbstractClient, IClient
 
         var endPoint = Socket.RemoteEndPoint as IPEndPoint
                        ?? throw new InvalidOperationException("Redirect: socket has no remote endpoint");
-        byte[] addressBytes;
 
-        if (Game.RedirectTarget != null)
-            addressBytes = Game.RedirectTarget.GetAddressBytes();
-        else
-            addressBytes = IPAddress.IsLoopback(endPoint.Address)
-                ? IPAddress.Loopback.GetAddressBytes()
-                : Game.Lobby.BindAddress.GetAddressBytes();
+        // RedirectPacket reverses the octets on the wire itself.
+        var address = Game.RedirectTarget ?? (IPAddress.IsLoopback(endPoint.Address)
+            ? IPAddress.Loopback
+            : Game.Lobby.BindAddress);
 
-        Array.Reverse(addressBytes);
-
-        var x03 = new ServerPacket(0x03);
-        x03.Write(addressBytes);
-        x03.WriteUInt16((ushort)redirect.Destination.Port);
-        x03.WriteByte((byte)(redirect.EncryptionKey.Length + Encoding.ASCII.GetBytes(redirect.Name).Length + 7));
-        x03.WriteByte(redirect.EncryptionSeed);
-        x03.WriteByte((byte)redirect.EncryptionKey.Length);
-        x03.Write(redirect.EncryptionKey);
-        x03.WriteString8(redirect.Name);
-        x03.WriteUInt32(redirect.Id);
-        x03.TransmitDelay = transmitDelay == 0 ? 250 : transmitDelay;
-        Enqueue(x03, true);
+        Enqueue(new RedirectPacket
+        {
+            IpAddress = address,
+            Port = (ushort)redirect.Destination.Port,
+            EncryptionSeed = redirect.EncryptionSeed,
+            EncryptionKey = redirect.EncryptionKey,
+            Name = redirect.Name,
+            RedirectId = redirect.Id
+        }, flush: true, transmitDelay: transmitDelay == 0 ? 250 : transmitDelay);
     }
 
-    public void LoginMessage(string message, byte type)
-    {
-        var x02 = new ServerPacket(0x02);
-        x02.WriteByte(type);
-        x02.WriteString8(message);
-        Enqueue(x02);
-    }
+    public void LoginMessage(string message, byte type) =>
+        Enqueue(new LoginMessagePacket { Type = type, Message = message });
 
-    public void SendMessage(string message, byte type)
-    {
-        var x0A = new ServerPacket(0x0A);
-        x0A.WriteByte(type);
-        x0A.WriteString16(message);
-        Enqueue(x0A);
-    }
+    public void SendMessage(string message, byte type) =>
+        Enqueue(new SystemMessagePacket { MessageType = (SystemMessageType)type, Message = message });
 
     public void Dispose()
     {

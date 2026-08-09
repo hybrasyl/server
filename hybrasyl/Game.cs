@@ -105,7 +105,7 @@ public static class Game
         set => _activeConfiguration = value;
     }
 
-    public static byte[] ServerTable { get; private set; } = null!;
+    public static IReadOnlyList<DALib.Networking.Packets.Server.ServerEntry> ServerTableEntries { get; private set; } = [];
     public static uint ServerTableCrc { get; private set; }
     public static byte[] Notification { get; set; } = [];
     public static uint NotificationCrc { get; set; }
@@ -117,6 +117,25 @@ public static class Game
     public static string DataDirectory { get; set; } = string.Empty;
     public static string LogDirectory { get; set; } = string.Empty;
     public static string ActiveConfigurationName { get; set; } = string.Empty;
+
+    // Retail-true inner table layout: [u8 count] then per-entry
+    // [u8 id][ip4 network-order][u16-BE port][cstring name]. Must stay in lockstep with
+    // DALib ServerTableDataPacket.WriteEntry, which serializes the same entries for 0x56.
+    private static byte[] ServerTablePlaintext(IReadOnlyList<DALib.Networking.Packets.Server.ServerEntry> entries)
+    {
+        var writer = new DALib.Networking.Wire.PacketWriter();
+        writer.WriteByte((byte)entries.Count);
+
+        foreach (var entry in entries)
+        {
+            writer.WriteByte(entry.Id);
+            writer.WriteBytes(entry.IpAddress.GetAddressBytes());
+            writer.WriteUInt16(entry.Port);
+            writer.WriteCString(entry.Name);
+        }
+
+        return writer.WrittenSpan.ToArray();
+    }
 
     public static T? GetServerByGuid<T>(Guid g) where T : Server
     {
@@ -632,30 +651,21 @@ public static class Game
             Environment.Exit(1);
         }
 
-        byte[] addressBytes;
-        addressBytes = Lobby.BindAddress.GetAddressBytes();
-        Array.Reverse(addressBytes);
-
-        using (var multiServerTableStream = new MemoryStream())
-        {
-            using (var multiServerTableWriter = new BinaryWriter(multiServerTableStream, Encoding.ASCII, true))
+        // DALib conversion (Phase 2): the 0x56 emit builds from these entries
+        // (ServerTableDataPacket compresses at send time); the CRC is an opaque
+        // change-detection cookie the client caches in mServer.tbl, computed over the
+        // retail-true inner plaintext.
+        ServerTableEntries =
+        [
+            new DALib.Networking.Packets.Server.ServerEntry
             {
-                multiServerTableWriter.Write((byte)1);
-                multiServerTableWriter.Write((byte)1);
-                multiServerTableWriter.Write(addressBytes);
-                multiServerTableWriter.Write((byte)(2611 / 256));
-                multiServerTableWriter.Write((byte)(2611 % 256));
-                multiServerTableWriter.Write(Encoding.ASCII.GetBytes("Hybrasyl;Hybrasyl Production\0"));
+                Id = 1,
+                IpAddress = Lobby.BindAddress,
+                Port = 2611,
+                Name = "Hybrasyl"
             }
-
-            ServerTableCrc = ~Crc32.Calculate(multiServerTableStream.ToArray());
-
-            using (var compressedMultiServerTableStream = new MemoryStream())
-            {
-                ZlibCompression.Compress(multiServerTableStream, compressedMultiServerTableStream);
-                ServerTable = compressedMultiServerTableStream.ToArray();
-            }
-        }
+        ];
+        ServerTableCrc = ~Crc32.Calculate(ServerTablePlaintext(ServerTableEntries));
 
         using (var stipulationStream = new MemoryStream())
         {

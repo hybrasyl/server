@@ -16,10 +16,12 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Client;
+using DALib.Networking.Packets.Server;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
-using System;
+using System.Linq;
 using System.Net;
 
 namespace Hybrasyl.Servers;
@@ -50,40 +52,41 @@ public class Lobby : Server
             return;
         }
 
-        var x00 = new ServerPacket(0x00);
-        x00.WriteByte(0x00);
-        x00.WriteUInt32(Game.ServerTableCrc);
-        x00.WriteByte(client.EncryptionSeed);
-        x00.WriteByte((byte)key.Length);
-        x00.Write(key);
-        client.Enqueue(x00);
+        // Throws on a missing 'LK' signature; the receive loop drops the packet.
+        var version = VersionPacket.Parse(packet.PayloadData);
+        GameLog.DebugFormat("Lobby: cid {0} client version {1}", client.ConnectionId, version.Version);
+
+        client.Enqueue(new CryptoKeyPacket
+        {
+            ServerTableCrc = Game.ServerTableCrc,
+            Seed = client.EncryptionSeed,
+            Key = key
+        });
     }
 
     private void PacketHandler_0x57_ServerTable(IClient client, ClientPacket packet)
     {
-        var mismatch = packet.ReadByte();
-
-        if (mismatch == 1)
+        switch (ServerTablePacket.Parse(packet.PayloadData))
         {
-            var x56 = new ServerPacket(0x56);
-            x56.WriteUInt16((ushort)Game.ServerTable.Length);
-            x56.Write(Game.ServerTable);
-            GameLog.InfoFormat("ServerTable: Sent: {0}", BitConverter.ToString(x56.ToArray()));
-            client.Enqueue(x56);
-        }
-        else
-        {
-            // Lobby clients get their key in the Client constructor; a null here is a server bug.
-            if (client.EncryptionKey is not { } key)
-            {
-                GameLog.Error("Lobby: cid {ConnectionId} has no encryption key, disconnecting", client.ConnectionId);
-                client.Disconnect();
-                return;
-            }
+            case ServerTableRequestPacket:
+                GameLog.InfoFormat("ServerTable: sent {0} entries", Game.ServerTableEntries.Count);
+                client.Enqueue(new ServerTableDataPacket { Servers = Game.ServerTableEntries.ToList() });
+                break;
 
-            var server = packet.ReadByte();
-            var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed, key);
-            client.Redirect(redirect);
+            case ServerTableSelectPacket:
+                // Lobby clients get their key in the Client constructor; a null here is a server bug.
+                if (client.EncryptionKey is not { } key)
+                {
+                    GameLog.Error("Lobby: cid {ConnectionId} has no encryption key, disconnecting",
+                        client.ConnectionId);
+                    client.Disconnect();
+                    return;
+                }
+
+                // Single-server deployment: the selected ServerId is irrelevant, all roads lead to Login.
+                var redirect = new Redirect(client, this, Game.Login, "socket", client.EncryptionSeed, key);
+                client.Redirect(redirect);
+                break;
         }
     }
 }

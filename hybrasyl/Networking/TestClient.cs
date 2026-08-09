@@ -83,6 +83,9 @@ public class TestClient : AbstractClient, IClient
 
     public void Enqueue(ServerPacket packet, bool flush = false) => ClientState.SendBufferAdd(packet);
 
+    public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0) =>
+        ClientState.SendBufferAdd(ServerPacket.FromDalib(packet, transmitDelay));
+
     public void Enqueue(ClientPacket packet) => ClientState.ReceiveBufferAdd(packet);
 
     public void FlushReceiveBuffer()
