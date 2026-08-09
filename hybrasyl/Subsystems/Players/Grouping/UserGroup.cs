@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using DALib.Networking.Packets.Client;
 using DALib.Networking.Packets.Server;
 using System;
 using System.Collections.Generic;
@@ -299,21 +300,26 @@ public class GroupRecruit
         };
     }
 
-    public static GroupRecruit Read(ClientPacket packet, User recruiter)
+    /// <summary>
+    ///     Builds a recruit box from a parsed stage-4 (Groupbox) 0x2E. The caps are assigned by
+    ///     class name rather than wire position: retail order is Warrior, Wizard, Rogue, Priest,
+    ///     Monk (rung-1, HTOO-64), which is what `_wanted[0..4]` has always meant here.
+    /// </summary>
+    public static GroupRecruit FromRequest(GroupRequestPacket request, User recruiter)
     {
         return new GroupRecruit(recruiter)
         {
-            Name = packet.ReadString8(),
-            Note = packet.ReadString8(),
-            StartingLevelRange = Math.Max((int) packet.ReadByte(), 1),
-            EndingLevelRange = Math.Clamp((int) packet.ReadByte(), 1, 99),
+            Name = request.Title ?? string.Empty,
+            Note = request.Note ?? string.Empty,
+            StartingLevelRange = Math.Max((int) (request.MinLevel ?? 0), 1),
+            EndingLevelRange = Math.Clamp((int) (request.MaxLevel ?? 0), 1, 99),
             _wanted = new[]
             {
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13),
-                Math.Min((int) packet.ReadByte(), 13)
+                Math.Min((int) (request.MaxWarrior ?? 0), 13),
+                Math.Min((int) (request.MaxWizard ?? 0), 13),
+                Math.Min((int) (request.MaxRogue ?? 0), 13),
+                Math.Min((int) (request.MaxPriest ?? 0), 13),
+                Math.Min((int) (request.MaxMonk ?? 0), 13)
             }
         };
     }

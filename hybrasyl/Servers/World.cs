@@ -66,6 +66,7 @@ using ClientExitPacket = DALib.Networking.Packets.Client.ClientExitPacket;
 using ClientJoinPacket = DALib.Networking.Packets.Client.ClientJoinPacket;
 using EmotePacket = DALib.Networking.Packets.Client.EmotePacket;
 using ExitSignal = DALib.Networking.Packets.Client.ExitSignal;
+using GroupRequestPacket = DALib.Networking.Packets.Client.GroupRequestPacket;
 using RequestMetafilePacket = DALib.Networking.Packets.Client.RequestMetafilePacket;
 using SettingsPacket = DALib.Networking.Packets.Client.SettingsPacket;
 using StatusPacket = DALib.Networking.Packets.Client.StatusPacket;
@@ -74,6 +75,32 @@ using TurnPacket = DALib.Networking.Packets.Client.TurnPacket;
 using UseSkillPacket = DALib.Networking.Packets.Client.UseSkillPacket;
 using UseSpellPacket = DALib.Networking.Packets.Client.UseSpellPacket;
 using WalkPacket = DALib.Networking.Packets.Client.WalkPacket;
+using BoardRequestPacket = DALib.Networking.Packets.Client.BoardRequestPacket;
+using DeletePostPacket = DALib.Networking.Packets.Client.DeletePostPacket;
+using HighlightPostPacket = DALib.Networking.Packets.Client.HighlightPostPacket;
+using NewPostPacket = DALib.Networking.Packets.Client.NewPostPacket;
+using SendMailPacket = DALib.Networking.Packets.Client.SendMailPacket;
+using ViewBoardPacket = DALib.Networking.Packets.Client.ViewBoardPacket;
+using ViewPostPacket = DALib.Networking.Packets.Client.ViewPostPacket;
+using AddExchangeItemPacket = DALib.Networking.Packets.Client.AddExchangeItemPacket;
+using AddExchangeStackableItemPacket = DALib.Networking.Packets.Client.AddExchangeStackableItemPacket;
+using ExchangePacket = DALib.Networking.Packets.Client.ExchangePacket;
+using SetExchangeGoldPacket = DALib.Networking.Packets.Client.SetExchangeGoldPacket;
+using ClickPacket = DALib.Networking.Packets.Client.ClickPacket;
+using MapPointClickPacket = DALib.Networking.Packets.Client.MapPointClickPacket;
+using SetProfilePacket = DALib.Networking.Packets.Client.SetProfilePacket;
+using DropGoldOnCreaturePacket = DALib.Networking.Packets.Client.DropGoldOnCreaturePacket;
+using DropGoldPacket = DALib.Networking.Packets.Client.DropGoldPacket;
+using DropItemOnCreaturePacket = DALib.Networking.Packets.Client.DropItemOnCreaturePacket;
+using DropItemPacket = DALib.Networking.Packets.Client.DropItemPacket;
+using PickupItemPacket = DALib.Networking.Packets.Client.PickupItemPacket;
+using RequestObjectPacket = DALib.Networking.Packets.Client.RequestObjectPacket;
+using StatPointPacket = DALib.Networking.Packets.Client.StatPointPacket;
+using SwapSlotPacket = DALib.Networking.Packets.Client.SwapSlotPacket;
+using TalkPacket = DALib.Networking.Packets.Client.TalkPacket;
+using UnequipPacket = DALib.Networking.Packets.Client.UnequipPacket;
+using UseItemPacket = DALib.Networking.Packets.Client.UseItemPacket;
+using WhisperPacket = DALib.Networking.Packets.Client.WhisperPacket;
 using DialogUsePacket = DALib.Networking.Packets.Client.DialogUsePacket;
 using DialogOptionResponsePacket = DALib.Networking.Packets.Client.DialogOptionResponsePacket;
 using DialogTextResponsePacket = DALib.Networking.Packets.Client.DialogTextResponsePacket;
@@ -1867,9 +1894,12 @@ public class World : Server
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var slot = packet.ReadByte();
-        var x = packet.ReadInt16();
-        var y = packet.ReadInt16();
+        var request = PickupItemPacket.Parse(packet.PayloadData);
+        var slot = request.Slot;
+        // DALib types the wire coordinates u16; the legacy reads were ReadInt16 and the map
+        // helpers take short, so cast to keep the value bit-identical to before.
+        var x = (short)request.X;
+        var y = (short)request.Y;
 
         // Is the player within PICKUP_DISTANCE tiles of what they're trying to pick up?
         if (Math.Abs(x - user.X) > Game.ActiveConfiguration.Constants.PlayerPickupDistance ||
@@ -2003,10 +2033,11 @@ public class World : Server
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var slot = packet.ReadByte();
-        var x = packet.ReadInt16();
-        var y = packet.ReadInt16();
-        var count = packet.ReadUInt32();
+        var request = DropItemPacket.Parse(packet.PayloadData);
+        var slot = request.Slot;
+        var x = (short)request.X;
+        var y = (short)request.Y;
+        var count = request.Count;
 
         GameLog.DebugFormat("{0} {1} {2} {3}", slot, x, y, count);
 
@@ -2093,8 +2124,9 @@ public class World : Server
     private void PacketHandler_0x0E_Talk(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var isShout = packet.ReadByte();
-        var message = packet.ReadString8();
+        var request = TalkPacket.Parse(packet.PayloadData);
+        var isShout = (byte)request.ChatType;
+        var message = request.Message;
         var cmdPrefix = Game.ActiveConfiguration.Handlers?.Chat?.CommandPrefix ?? "/";
 
         string argString;
@@ -2194,7 +2226,7 @@ public class World : Server
     private void PacketHandler_0X0C_PutGround(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var missingObjId = packet.ReadUInt32();
+        var missingObjId = RequestObjectPacket.Parse(packet.PayloadData).ObjectId;
         if (user.World.Objects.TryGetValue(missingObjId, out var missingObj) &&
             missingObj is VisibleObject missingVisibleObj &&
             user.Location.Map == missingVisibleObj.Location.Map)
@@ -2396,10 +2428,9 @@ public class World : Server
     private void PacketHandler_0x19_Whisper(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var size = packet.ReadByte();
-        var target = Encoding.ASCII.GetString(packet.Read(size));
-        var msgsize = packet.ReadByte();
-        var message = Encoding.ASCII.GetString(packet.Read(msgsize));
+        var request = WhisperPacket.Parse(packet.PayloadData);
+        var target = request.Target;
+        var message = request.Message;
 
         switch (target)
         {
@@ -2571,7 +2602,7 @@ public class World : Server
     private void PacketHandler_0x1C_UseItem(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var slot = packet.ReadByte();
+        var slot = UseItemPacket.Parse(packet.PayloadData).Slot;
 
         GameLog.DebugFormat("Updating slot {0}", slot);
 
@@ -2763,9 +2794,10 @@ public class World : Server
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var amount = packet.ReadUInt32();
-        var x = packet.ReadInt16();
-        var y = packet.ReadInt16();
+        var request = DropGoldPacket.Parse(packet.PayloadData);
+        var amount = request.Amount;
+        var x = (short)request.X;
+        var y = (short)request.Y;
 
         if (amount > user.Gold)
         {
@@ -2861,14 +2893,15 @@ public class World : Server
         // stage:
         //   0x02 = user is sending initial request to invitee
         //   0x03 = invitee responds with a "yes"
-        var stage = (GroupClientPacketType)packet.ReadByte();
+        // The simple stages carry the target name in Name; stage 4 (the recruit box) carries
+        // the sender's own name in Leader instead, followed by the box itself.
+        var request = GroupRequestPacket.Parse(packet.PayloadData);
+        var stage = (GroupClientPacketType)request.Stage;
 
-        if (!TryGetActiveUser(packet.ReadString8(), out var partner))
+        var subject = stage == GroupClientPacketType.RecruitInit ? request.Leader : request.Name;
+
+        if (string.IsNullOrEmpty(subject) || !TryGetActiveUser(subject, out var partner))
             return;
-
-        // TODO: currently leaving five bytes on the table here. There's probably some
-        // additional work that needs to happen though I haven't been able to determine
-        // what those bytes represent yet...
 
         if (partner == null) return;
 
@@ -2930,7 +2963,7 @@ public class World : Server
 
                 if (!user.Grouping) user.Grouping = true;
 
-                user.GroupRecruit = GroupRecruit.Read(packet, user);
+                user.GroupRecruit = GroupRecruit.FromRequest(request, user);
                 user.Show();
                 break;
             case GroupClientPacketType.RecruitInfo:
@@ -2992,8 +3025,9 @@ public class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x2A_DropGoldOnCreature(object obj, ClientPacket packet)
     {
-        var goldAmount = packet.ReadUInt32();
-        var targetId = packet.ReadUInt32();
+        var request = DropGoldOnCreaturePacket.Parse(packet.PayloadData);
+        var goldAmount = request.Amount;
+        var targetId = request.TargetId;
 
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
@@ -3048,9 +3082,10 @@ public class World : Server
     [Required(PlayerFlags.Alive)]
     private void PacketHandler_0x29_DropItemOnCreature(object obj, ClientPacket packet)
     {
-        var itemSlot = packet.ReadByte();
-        var targetId = packet.ReadUInt32();
-        var quantity = packet.ReadByte();
+        var request = DropItemOnCreaturePacket.Parse(packet.PayloadData);
+        var itemSlot = request.Slot;
+        var targetId = request.TargetId;
+        var quantity = request.Count;
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
 
@@ -3104,9 +3139,10 @@ public class World : Server
     private void PacketHandler_0x30_MoveUIElement(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var window = packet.ReadByte();
-        var oldSlot = packet.ReadByte();
-        var newSlot = packet.ReadByte();
+        var request = SwapSlotPacket.Parse(packet.PayloadData);
+        var window = request.Window;
+        var oldSlot = request.Slot1;
+        var newSlot = request.Slot2;
 
         // For right now we ignore the other cases (moving a skill or spell)
 
@@ -3157,7 +3193,10 @@ public class World : Server
     {
         var user = (User)obj;
 
-        var action = packet.ReadByte();
+        // BoardRequestPacket dispatches on the action byte into one variant per board
+        // operation; the action is recovered from RequestType so the switch is unchanged.
+        var request = BoardRequestPacket.Parse(packet.PayloadData);
+        var action = (byte)request.RequestType;
 
         // The moment we get a 3B packet, we assume a user is "in a board"
         user.Condition.Flags = user.Condition.Flags | PlayerFlags.InBoard;
@@ -3172,19 +3211,21 @@ public class World : Server
                 break;
             case 0x02:
                 {
-                    // Get message list
-                    var boardId = packet.ReadUInt16();
-                    var startPostId = packet.ReadInt16();
-                    user.SendBoardResponse(MessagingController.GetMessageList(user.GuidReference, boardId, startPostId));
+                    // Get message list. Rung-1 (darkages-741 059-0x3b) gives this form a third
+                    // field, u8 list_direction (0xF0 in every client caller), which the legacy
+                    // read simply left unconsumed; DALib reads it as Offset. Unused here.
+                    if (request is not ViewBoardPacket viewBoard) return;
+                    user.SendBoardResponse(MessagingController.GetMessageList(
+                        user.GuidReference, viewBoard.BoardId, viewBoard.StartPostId));
                 }
                 break;
             case 0x03:
                 {
                     // Get message
-                    var boardId = packet.ReadUInt16();
-                    var postId = packet.ReadInt16();
-                    var offset = packet.ReadSByte();
-                    user.SendBoardResponse(MessagingController.GetMessage(user.GuidReference, postId, offset, boardId));
+                    if (request is not ViewPostPacket viewPost) return;
+                    var boardId = viewPost.BoardId;
+                    user.SendBoardResponse(MessagingController.GetMessage(
+                        user.GuidReference, viewPost.PostId, viewPost.Offset, boardId));
                     if (boardId == 0)
                         user.UpdateAttributes(StatUpdateFlags.Secondary);
                 }
@@ -3192,38 +3233,34 @@ public class World : Server
             case 0x04:
                 {
                     // Send message
-                    var boardId = packet.ReadUInt16();
-                    var subject = packet.ReadString8();
-                    var body = packet.ReadString16();
-                    user.SendBoardResponse(
-                        MessagingController.SendMessage(user.GuidReference, boardId, string.Empty, subject, body));
+                    if (request is not NewPostPacket newPost) return;
+                    user.SendBoardResponse(MessagingController.SendMessage(
+                        user.GuidReference, newPost.BoardId, string.Empty, newPost.Subject, newPost.Body));
                 }
                 break;
             case 0x05:
                 {
-                    // Delete post
-                    var boardId = packet.ReadUInt16();
-                    var postId = packet.ReadUInt16();
-                    user.SendBoardResponse(MessagingController.DeleteMessage(user.GuidReference, boardId, postId));
+                    // Delete post. DALib types PostId short where the legacy read was unsigned;
+                    // same bytes, and DeleteMessage takes the wider type.
+                    if (request is not DeletePostPacket deletePost) return;
+                    user.SendBoardResponse(MessagingController.DeleteMessage(
+                        user.GuidReference, deletePost.BoardId, (ushort)deletePost.PostId));
                 }
                 break;
             case 0x06:
                 {
                     // Replies (why is this separate)
-                    var boardId = packet.ReadUInt16();
-                    var recipient = packet.ReadString8();
-                    var subject = packet.ReadString8();
-                    var body = packet.ReadString16();
-                    user.SendBoardResponse(
-                        MessagingController.SendMessage(user.GuidReference, boardId, recipient, subject, body));
+                    if (request is not SendMailPacket sendMail) return;
+                    user.SendBoardResponse(MessagingController.SendMessage(
+                        user.GuidReference, sendMail.BoardId, sendMail.Recipient, sendMail.Subject, sendMail.Body));
                 }
                 break;
             case 0x07:
                 // Highlight message
                 {
-                    var boardId = packet.ReadUInt16();
-                    var postId = packet.ReadInt16();
-                    user.SendBoardResponse(MessagingController.HighlightMessage(user.GuidReference, boardId, postId));
+                    if (request is not HighlightPostPacket highlight) return;
+                    user.SendBoardResponse(MessagingController.HighlightMessage(
+                        user.GuidReference, highlight.BoardId, highlight.PostId));
                 }
                 break;
             default:
@@ -3256,10 +3293,10 @@ public class World : Server
         // forgeable, so a raw map_id would let a player teleport to any map in the world. The click
         // must match a destination the *current* world map actually offered — WorldMapPoint is the
         // allowlist — and we then teleport using the point's server-side destination, not the client's.
-        packet.ReadUInt16();               // checksum (carried back, no server meaning)
-        var mapId = packet.ReadUInt16();
-        var x = packet.ReadUInt16();
-        var y = packet.ReadUInt16();
+        var request = MapPointClickPacket.Parse(packet.PayloadData);
+        var mapId = request.MapId;      // CheckSum is carried back and has no server meaning
+        var x = request.X;
+        var y = request.Y;
 
         if (!user.IsAtWorldMap || user.ActiveWorldMap is not { } worldMap)
         {
@@ -3664,7 +3701,10 @@ public class World : Server
     {
         var user = (User)obj;
         if (user.Location.Map is not { } map) return;
-        var clickType = packet.ReadByte();
+        // ClickPacket carries a discriminated tail: type 3 is an X/Y map click, type 1 an
+        // entity click. Both forms are read up front.
+        var request = ClickPacket.Parse(packet.PayloadData);
+        var clickType = request.ClickType;
         var commonViewport = user.GetViewport();
         // N.B. We handle dead checks here rather than at the Required attribute level due to some 
         // edge cases
@@ -3673,8 +3713,9 @@ public class World : Server
             // User has clicked an X,Y point
             case 3:
                 {
-                    var x = (byte)packet.ReadUInt16();
-                    var y = (byte)packet.ReadUInt16();
+                    if (request.X is not { } clickX || request.Y is not { } clickY) return;
+                    var x = (byte)clickX;
+                    var y = (byte)clickY;
                     var coords = (x, y);
                     GameLog.DebugFormat("coordinates were {0}, {1}", x, y);
 
@@ -3705,7 +3746,7 @@ public class World : Server
             // User has clicked on another entity
             case 1:
                 {
-                    var entityId = packet.ReadUInt32();
+                    if (request.TargetId is not { } entityId) return;
                     GameLog.DebugFormat("User {0} clicked ID {1}: ", user.Name, entityId);
 
                     var clickTarget = new WorldObject();
@@ -3751,7 +3792,7 @@ public class World : Server
         var user = (User)obj;
         // This packet is received when a client unequips an item from the detail (a) screen.
 
-        var slot = packet.ReadByte();
+        var slot = UnequipPacket.Parse(packet.PayloadData).Slot;
 
         GameLog.DebugFormat("Removing equipment from slot {0}", slot);
         var item = user.Equipment[slot];
@@ -3811,7 +3852,7 @@ public class World : Server
         var user = (User)obj;
         if (user.LevelPoints > 0)
         {
-            switch (packet.ReadByte())
+            switch (StatPointPacket.Parse(packet.PayloadData).Stat)
             {
                 case 0x01:
                     user.Stats.BaseStr++;
@@ -3848,7 +3889,11 @@ public class World : Server
     private void PacketHandler_0x4A_Trade(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var tradeStage = packet.ReadByte();
+        // ExchangePacket dispatches on the stage byte into one variant per exchange action;
+        // the stage is recovered from the variant's RequestType so the switch below is
+        // unchanged.
+        var request = ExchangePacket.Parse(packet.PayloadData);
+        var tradeStage = (byte)request.RequestType;
 
         if (tradeStage == 0 && user.ActiveExchange != null)
             return;
@@ -3864,10 +3909,8 @@ public class World : Server
             case 0x00:
                 {
                     // Starting trade
-                    var x0PlayerId = packet.ReadInt32();
-
                     WorldObject? target;
-                    if (Objects.TryGetValue((uint)x0PlayerId, out target))
+                    if (Objects.TryGetValue(request.OtherUserId, out target))
                         if (target is User playerTarget)
                         {
                             if (!Exchange.StartConditionsValid(user, playerTarget, out var errorMessage))
@@ -3886,10 +3929,10 @@ public class World : Server
             case 0x01:
                 // Add item to trade
                 {
-                    // We ignore playerId because we only allow one exchange at a time and we
+                    // We ignore OtherUserId because we only allow one exchange at a time and we
                     // keep track of the participants on both sides
-                    var x1playerId = packet.ReadInt32();
-                    var x1ItemSlot = packet.ReadByte();
+                    if (request is not AddExchangeItemPacket addItem) return;
+                    var x1ItemSlot = addItem.SourceSlot;
                     if (user.Inventory[x1ItemSlot] is { Count: > 1 })
                         // Send quantity request
                         user.SendExchangeQuantityPrompt(x1ItemSlot);
@@ -3901,17 +3944,14 @@ public class World : Server
 
             case 0x02:
                 // Add item with quantity
-                var x2PlayerId = packet.ReadInt32();
-                var x2ItemSlot = packet.ReadByte();
-                var x2ItemQuantity = packet.ReadByte();
-                user.ActiveExchange!.AddItem(user, x2ItemSlot, x2ItemQuantity);
+                if (request is not AddExchangeStackableItemPacket addStackable) return;
+                user.ActiveExchange!.AddItem(user, addStackable.SourceSlot, addStackable.ItemCount);
                 break;
 
             case 0x03:
                 // Add gold to trade
-                var x3PlayerId = packet.ReadInt32();
-                var x3GoldQuantity = packet.ReadUInt32();
-                user.ActiveExchange!.AddGold(user, x3GoldQuantity);
+                if (request is not SetExchangeGoldPacket addGold) return;
+                user.ActiveExchange!.AddGold(user, addGold.GoldAmount);
                 break;
 
             case 0x04:
@@ -3959,13 +3999,12 @@ public class World : Server
     private void PacketHandler_0x4F_ProfileTextPortrait(object obj, ClientPacket packet)
     {
         var user = (User)obj;
-        var totalLength = packet.ReadUInt16();
-        var portraitLength = packet.ReadUInt16();
-        var portraitData = packet.Read(portraitLength);
-        var profileText = packet.ReadString16();
+        // The leading total-length field is redundant with the two that follow; DALib reads
+        // and discards it, as the legacy site did.
+        var request = SetProfilePacket.Parse(packet.PayloadData);
 
-        user.PortraitData = portraitData;
-        user.ProfileText = profileText;
+        user.PortraitData = request.PortraitData;
+        user.ProfileText = request.ProfileText;
     }
 
     [PacketHandler(0x55)]

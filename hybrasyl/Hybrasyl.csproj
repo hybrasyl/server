@@ -54,7 +54,7 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
-    <PackageReference Include="DALib" Version="1.0.0-beta2" Condition="'$(UseLocalDALib)' != 'true'" />
+    <PackageReference Include="DALib" Version="1.0.0-beta3" Condition="'$(UseLocalDALib)' != 'true'" />
     <ProjectReference Include="$(LocalDALibProjectPath)" Condition="'$(UseLocalDALib)' == 'true'" />
     <PackageReference Include="Discord.Net.Webhook" Version="3.20.1" />
     <PackageReference Include="Google.Protobuf" Version="3.35.1" />
