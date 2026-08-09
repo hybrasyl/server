@@ -1033,11 +1033,13 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         damageEvent.Element = element;
         damageEvent.Type = damageType;
 
-        // Handle dodging first
+        // Handle dodging first. Stats.Hit is a multiplier centered on 1.0, so the attacker's
+        // accuracy *reduces* the defender's dodge chance (1.16 accuracy removes 16% of it).
+        // A sourceless hit (scripts, /damage) stays undodgeable, as before.
         if (damageType == DamageType.Physical && Stats.Dodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
-            var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
-            if (Random.Shared.NextDouble() <= Stats.Dodge * dodgeReduction)
+            var dodgeChance = attacker == null ? 0.0 : Stats.Dodge * Math.Max(0.0, 2.0 - attacker.Stats.Hit);
+            if (Random.Shared.NextDouble() <= dodgeChance)
             {
                 Effect(115, 100);
                 return;
@@ -1046,8 +1048,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
         if (damageType == DamageType.Magical && Stats.MagicDodge > 0 && !damageFlags.HasFlag(DamageFlags.NoDodge))
         {
-            var dodgeReduction = attacker == null ? 0 : attacker.Stats.Hit;
-            if (Random.Shared.NextDouble() <= Stats.MagicDodge * dodgeReduction)
+            var dodgeChance = attacker == null ? 0.0 : Stats.MagicDodge * Math.Max(0.0, 2.0 - attacker.Stats.Hit);
+            if (Random.Shared.NextDouble() <= dodgeChance)
             {
                 Effect(33, 100);
                 return;
@@ -1091,13 +1093,22 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
         // Handle dmg/mr/crit/magiccrit
         if (attacker != null && damageType != DamageType.Direct)
         {
-            damage += damage * attacker.Stats.Dmg;
-            damageEvent.BonusDmg = Convert.ToInt32(damage * attacker.Stats.Dmg);
+            // Stats.Dmg is a multiplier centered on 1.0, so it is applied, not added: 1.16
+            // means 116% damage. Report the delta, which is why the pre-value is kept.
+            var beforeDmg = damage;
+            damage *= attacker.Stats.Dmg;
+            damageEvent.BonusDmg = Convert.ToInt32(damage - beforeDmg);
 
+            // Stats.Mr is magic resistance as damage *reduction* (MagicDodge covers evasion
+            // separately). It is a multiplier centered on 1.0 where the deviation is the
+            // resisted fraction -- 1.16 means 16% resisted -- so the damage factor is
+            // 2.0 - Mr. Clamped: immune at or above BonusMr 1.0, at most 2x when deeply
+            // negative, so resistance can never heal the target.
             if (damageType == DamageType.Magical && !damageFlags.HasFlag(DamageFlags.NoResistance))
             {
-                damage += damage * Stats.Mr;
-                damageEvent.MagicResisted = Convert.ToInt32(damage * Stats.Mr);
+                var beforeMr = damage;
+                damage *= Math.Clamp(2.0 - Stats.Mr, 0.0, 2.0);
+                damageEvent.MagicResisted = Convert.ToInt32(beforeMr - damage);
             }
 
             if (attacker.Stats.Crit > 0 && damageType == DamageType.Physical &&
@@ -1111,7 +1122,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
             if (attacker.Stats.MagicCrit > 0 && damageType == DamageType.Magical &&
                 !damageFlags.HasFlag(DamageFlags.NoCrit))
-                if (Random.Shared.NextDouble() <= attacker.Stats.Crit)
+                if (Random.Shared.NextDouble() <= attacker.Stats.MagicCrit)
                 {
                     damage += damage * 2;
                     damageEvent.MagicCrit = true;
@@ -1120,7 +1131,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
 
             // negative dodge, aka "i rolled a 1 and hit myself in the face"
             if (damageType != DamageType.Magical && Stats.Dodge < 0)
-                if (Random.Shared.Next() <= Stats.Dodge * -1)
+                if (Random.Shared.NextDouble() <= Stats.Dodge * -1)
                 {
                     Effect(68, 100);
                     var selfDamage = damage * -1 * 0.25;
@@ -1129,7 +1140,10 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                         new StatInfo { DeltaHp = (long)selfDamage },
                         new StatChangeEvent
                         {
-                            Amount = Convert.ToUInt32(selfDamage),
+                            // selfDamage is negative (it is a DeltaHp); Amount is an unsigned
+                            // report field, so it takes the magnitude. Convert.ToUInt32 is
+                            // checked and throws on a negative, unlike a cast.
+                            Amount = Convert.ToUInt32(Math.Abs(selfDamage)),
                             EventType = CombatLogEventType.CriticalFailure,
                             Source = attacker,
                             Target = this
@@ -1148,7 +1162,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                         new StatInfo { DeltaHp = (long)selfDamage },
                         new StatChangeEvent
                         {
-                            Amount = Convert.ToUInt32(selfDamage),
+                            Amount = Convert.ToUInt32(Math.Abs(selfDamage)),
                             EventType = CombatLogEventType.CriticalMagicFailure,
                             Source = attacker,
                             Target = this
@@ -1225,7 +1239,8 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                     new StatInfo { DeltaHp = (long)(reflected * -1) },
                     new StatChangeEvent
                     {
-                        Amount = Convert.ToUInt32(reflected * -1),
+                        // reflected is positive; DeltaHp carries the sign, Amount is unsigned.
+                        Amount = Convert.ToUInt32(reflected),
                         EventType = CombatLogEventType.ReflectMagical,
                         Source = attacker,
                         Target = this
@@ -1239,7 +1254,7 @@ public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialize
                 attacker.World.EnqueueGuidStatUpdate(attacker.Guid, new StatInfo { DeltaHp = (long)reflected * -1 },
                     new StatChangeEvent
                     {
-                        Amount = Convert.ToUInt32(reflected * -1),
+                        Amount = Convert.ToUInt32(reflected),
                         EventType = CombatLogEventType.ReflectPhysical,
                         Source = attacker,
                         Target = this
