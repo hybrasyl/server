@@ -348,6 +348,7 @@ public class User : Creature
     public void Enqueue(DALib.Networking.Wire.IServerPacket packet, bool flush = false, int transmitDelay = 0)
     {
         GameLog.DebugFormat("Sending 0x{0:X2} to {1}", packet.Opcode, Name);
+        if (packet is NpcMenuPacket menu) ReportMerchantFormMismatches(menu);
         try
         {
             Client?.Enqueue(packet, flush, transmitDelay);
@@ -364,6 +365,14 @@ public class User : Creature
             World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.CleanupUser, CleanupType.ByName,
                 Name));
         }
+    }
+
+    // Logged rather than thrown: the menu itself is well-formed, and the misparse it predicts is a
+    // registration bug the player should not lose their dialog over.
+    private void ReportMerchantFormMismatches(NpcMenuPacket menu)
+    {
+        foreach (var mismatch in MerchantResponseFormCheck.Mismatches(menu, World.MerchantMenuHandlers))
+            GameLog.Error("Merchant menu to {User}: {Mismatch}", Name, mismatch);
     }
 
     /// <summary>
@@ -4018,8 +4027,6 @@ public class User : Creature
     public void ShowMerchantGoBack(Merchant merchant, string message,
         MerchantMenuItem menuItem = MerchantMenuItem.MainMenu)
     {
-        // Built inline rather than through the MerchantMenu helper: an options menu carrying a
-        // single "Go back" row.
         var options = new MerchantOptions
         {
             Options = [new MerchantDialogOption { Id = (ushort)menuItem, Text = "Go back" }]

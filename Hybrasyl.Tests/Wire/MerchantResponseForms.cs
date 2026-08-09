@@ -64,8 +64,9 @@ namespace Hybrasyl.Tests.Wire;
 ///         <strong>What this does not cover.</strong> It pins the receive side against the
 ///         protocol. It does not execute the send side, so it cannot catch a
 ///         <c>Show…Menu</c> being changed to offer an item under a different menu type — the
-///         expectation table would then be stale in a way only re-reading <c>User.cs</c> reveals.
-///         That link remains the hand audit recorded on HS-1577.
+///         expectation table below would then be stale in a way only re-reading <c>User.cs</c>
+///         reveals. <see cref="MerchantMenuFormsAtTheWire" /> covers that link by reading the menu
+///         type off the packet the send methods actually emit.
 ///     </para>
 /// </remarks>
 [Collection("Hybrasyl")]
