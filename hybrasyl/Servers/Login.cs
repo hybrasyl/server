@@ -23,6 +23,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
+using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Xml.Objects;
@@ -53,6 +54,14 @@ public class Login : Server
         PacketHandlers[0x26] = PacketHandler_0x26_ChangePassword;
         PacketHandlers[0x4B] = PacketHandler_0x4B_RequestNotification;
         PacketHandlers[0x68] = PacketHandler_0x68_RequestHomepage;
+
+        // The three opcodes that reach BCrypt at cost 12, which is ~175 ms of CPU each on an
+        // unauthenticated packet of about thirty bytes. A person logs in or changes a password
+        // once, so a second between accepted attempts costs them nothing; the disconnect
+        // threshold is what makes exceeding it expensive, since it forces a reconnect.
+        RegisterPacketThrottle(new GenericPacketThrottle(0x02, 1000, 2000, 10));  // Account creation
+        RegisterPacketThrottle(new GenericPacketThrottle(0x03, 1000, 2000, 10));  // Login
+        RegisterPacketThrottle(new GenericPacketThrottle(0x26, 1000, 2000, 10));  // Password change
     }
 
     public LoginPacketHandler[] PacketHandlers { get; }

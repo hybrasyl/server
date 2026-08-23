@@ -444,8 +444,18 @@ public class Client : AbstractClient, IClient
 
                     try
                     {
+                        // Throttling is asked before dispatch on every listener, not only World, so
+                        // that unauthenticated work (a BCrypt-12 hash per login or account creation)
+                        // has a rate to exceed. An opcode with no registered throttle answers OK, so
+                        // this is inert where none is set.
+                        // Real clients always have a non-null server on this path.
+                        var throttleResult = Server!.PacketThrottleCheck(this, packet);
+                        var accepted = throttleResult is ThrottleResult.OK or ThrottleResult.ThrottleEnd
+                            or ThrottleResult.SquelchEnd;
+
                         if (Server is Lobby lobby)
                         {
+                            if (!accepted) continue;
                             GameLog.DebugFormat("Lobby: 0x{0:X2}", packet.Opcode);
                             var handler = lobby.PacketHandlers[packet.Opcode];
                             handler.Invoke(this, packet);
@@ -454,6 +464,7 @@ public class Client : AbstractClient, IClient
                         }
                         else if (Server is Login login)
                         {
+                            if (!accepted) continue;
                             GameLog.Debug("Login: 0x{Opcode:X2}", packet.Opcode);
                             var handler = login.PacketHandlers[packet.Opcode];
                             handler.Invoke(this, packet);
@@ -466,11 +477,7 @@ public class Client : AbstractClient, IClient
                                                packet.Opcode != 0x75);
                             GameLog.Debug("Queuing: 0x{Opcode:X2}", packet.Opcode);
                             //packet.DumpPacket();
-                            // Check for throttling
-                            // Real clients always have a non-null (World) server on this path.
-                            var throttleResult = Server!.PacketThrottleCheck(this, packet);
-                            if (throttleResult == ThrottleResult.OK || throttleResult == ThrottleResult.ThrottleEnd ||
-                                throttleResult == ThrottleResult.SquelchEnd)
+                            if (accepted)
                                 World.MessageQueue.Add(new HybrasylClientMessage(packet, ConnectionId));
                             else if (packet.Opcode == 0x06)
                                 World.ControlMessageQueue.Add(new HybrasylControlMessage(ControlOpcode.TriggerRefresh,
