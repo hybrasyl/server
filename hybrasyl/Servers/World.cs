@@ -182,6 +182,24 @@ public class World : Server
     }
 
     /// <summary>
+    ///     Whether <paramref name="user" /> could actually have clicked <paramref name="wobj" />.
+    /// </summary>
+    /// <remarks>
+    ///     <c>World.Objects</c> is keyed globally, so a dialog or merchant menu resolved from a
+    ///     client-supplied id alone can be driven against any object anywhere in the world. The
+    ///     client only renders, and so only clicks, what is inside its viewport.
+    ///     <para>
+    ///         This is a coordinate test, deliberately not <see cref="User.IsInViewport" />, which
+    ///         additionally requires the object to be registered in the map's entity tree. The two
+    ///         disagree for an on-map object the tree does not hold.
+    ///     </para>
+    /// </remarks>
+    private static bool IsWithinInteractionRange(User user, WorldObject wobj) =>
+        wobj is VisibleObject visible
+        && visible.Location.Map == user.Location.Map
+        && user.GetViewport().Contains(visible.X, visible.Y);
+
+    /// <summary>
     ///     Register world throttles. This should eventually use XML configuration; for now it simply
     ///     registers our hardcoded throttle values.
     /// </summary>
@@ -3327,6 +3345,12 @@ public class World : Server
 
         if (Game.World.Objects.TryGetValue(objectId, out wobj) && wobj is IPursuitable ip)
         {
+            if (!IsWithinInteractionRange(user, wobj))
+            {
+                GameLog.Warning("{User}: menu on {Object} which is not in range, ignoring", user.Name, wobj.Name);
+                return;
+            }
+
             // Are we handling a global sequence?
             DialogSequence? pursuit;
 
@@ -3440,6 +3464,12 @@ public class World : Server
         }
         else if (user.World.Objects.TryGetValue(objectID, out wobj))
         {
+            if (!IsWithinInteractionRange(user, wobj))
+            {
+                GameLog.Warning("{User}: dialog on {Object} which is not in range, ignoring", user.Name, wobj.Name);
+                return;
+            }
+
             clickTarget = wobj as IInteractable;
             if (clickTarget != null)
                 invocation = new DialogInvocation(clickTarget, user, user);

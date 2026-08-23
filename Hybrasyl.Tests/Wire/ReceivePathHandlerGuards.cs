@@ -176,7 +176,11 @@ public class ReceivePathHandlerGuards
     {
         Fixture.ResetTestUserStats();
 
-        var merchant = Game.World.Objects.Values.OfType<Merchant>().FirstOrDefault(x => x.Name == "Maria");
+        // The map's Maria, not the world's: three maps ship one, and a global lookup can return a
+        // merchant on a map the test user is not standing on. Dialog now requires the object to be
+        // in the user's viewport, so a cross-map pick makes this test assert the range guard
+        // instead of the response-shape guard it is about.
+        var merchant = Fixture.Map.Objects.OfType<Merchant>().FirstOrDefault(x => x.Name == "Maria");
         Assert.NotNull(merchant);
 
         var options = new OptionsDialog("Which one?");
