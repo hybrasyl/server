@@ -110,7 +110,7 @@ data:
 {{- end -}}
 {{- if hasKey . "moderators" }}
 {{- range .moderators }}
-            <Moderator>{{ . }}</Moderator>
+            <Moderate>{{ . }}</Moderate>
 {{- end }}
 {{- end }}
           </AccessList>

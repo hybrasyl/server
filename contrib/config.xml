@@ -41,10 +41,11 @@ the server. docker-compose uses this in particular. -->
       </Grpc>
   </Network>
   <Access>
-    <!-- You can limit this to specific character names here. Hybrasyl
-         has many slash commands that can be discovered using
-         /help. -->
-    <Privileged>*</Privileged>
+    <!-- Character names listed here get privileged slash commands and the
+         Lua evaluation path. Uncomment and substitute your own name.
+         Do not ship a placeholder: any name here is claimable by whoever
+         registers it first, which hands them the account. -->
+    <!-- <Privileged>YourCharacterName</Privileged> -->
     <!-- Reserved names are not allowed to be used by players. -->
     <Reserved>Danaan Chadul Deoch Glioca Cail Luathas Gramail Fiosachd Ceannlaidir Sgrios Belenus</Reserved>
   </Access>

@@ -93,8 +93,7 @@ server:
       #cert: server.pem
       #key: server.key
   access:
-    privileged:
-      - Kedian
+    privileged: []
     reserved:
       - Danaan
       - Deoch
@@ -109,10 +108,9 @@ server:
   boards:
     - name: discuss
       displayName: Discussions
-      moderators:
-        - Kedian
-        - Sabrael
-        - Dalta
+      # Set at deploy time. Any name listed here is claimable by whoever
+      # registers it first, so no placeholder ships.
+      moderators: []
   time:
     ages:
       - name: Danaan
