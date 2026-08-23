@@ -66,6 +66,23 @@ public class MerchantController
         };
     }
 
+    /// <summary>What the merchant pays for <paramref name="count" /> of an item worth
+    /// <paramref name="value" /> apiece.</summary>
+    private static uint BuybackPrice(double value, int count) =>
+        (uint) Math.Round(value * count * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage);
+
+    /// <summary>
+    ///     Whether <paramref name="user" /> could receive <paramref name="coins" />; says the
+    ///     merchant's refusal if not. Asked before any item is removed, so a refusal cannot destroy
+    ///     the goods.
+    /// </summary>
+    private bool CanCarryPayment(User user, double coins)
+    {
+        if (coins <= user.RemainingGold) return true;
+        Merchant.Say("You couldn't carry what I'd pay you for that.");
+        return false;
+    }
+
     public static string Verb(uint amount) => amount == 1 ? "is" : "are";
 
 
@@ -126,39 +143,54 @@ public class MerchantController
             {
                 uint coins = 0;
                 var removed = 0;
-                foreach (var slot in user.Inventory.GetSlotsByName(request.Match["target"].Value))
+                // Price the whole sale before removing anything: AddGold refuses above
+                // PlayerMaxGold, and a refusal after removal would destroy the items.
+                var slots = user.Inventory.GetSlotsByName(request.Match["target"].Value).ToList();
+                foreach (var slot in slots)
                 {
                     // GetSlotsByName returns only occupied slots.
                     var invItem = user.Inventory[slot]!;
-                    coins += (uint) Math.Round(invItem.Value * invItem.Count *
-                                               Game.ActiveConfiguration.Constants.MerchantBuybackPercentage);
+                    coins += BuybackPrice(invItem.Value, invItem.Count);
                     removed += invItem.Count;
-                    user.RemoveItem(slot);
                 }
 
-                if (removed > 0)
-                {
-                    Merchant.Say($"Certainly. I will buy {removed} of those for {Pluralize(coins)}, {user.Name}.");
-                    user.Stats.Gold += coins;
-                    user.UpdateAttributes(StatUpdateFlags.Experience);
-                }
-                else
+                if (removed == 0)
                 {
                     user.SendSystemMessage($"\"Sorry, {user.Name},\" {Merchant.Name} says. \"You don't have those!\"");
+                    return;
                 }
+
+                if (!CanCarryPayment(user, coins)) return;
+
+                foreach (var slot in slots)
+                    user.RemoveItem(slot);
+
+                Merchant.Say($"Certainly. I will buy {removed} of those for {Pluralize(coins)}, {user.Name}.");
+                user.AddGold(coins);
             }
             else if (int.TryParse(request.Match["amt"].Value, out var qty))
             {
                 if (user.Inventory.ContainsName(request.Match["target"].Value, qty))
                 {
+                    // The most this sale could pay, checked before any removal so that a refusal
+                    // cannot destroy the items. Actual payment is never more than this.
+                    var maximumOffer = items.Sum(selector: x => (double) qty * x.Properties.Physical.Value) *
+                                       Game.ActiveConfiguration.Constants.MerchantBuybackPercentage;
+                    if (!CanCarryPayment(user, maximumOffer)) return;
+
                     // Deal with annoying duplicate name / different gender edge cases
                     var actuallyRemoved = new List<(byte Slot, int Quantity)>();
                     uint coins = 0;
+                    // qty is the total requested, not a quota per matching definition.
+                    var outstanding = qty;
                     foreach (var item in items)
                     {
-                        user.Inventory.TryRemoveQuantity(item.Id, out var removed, qty);
+                        if (outstanding <= 0) break;
+                        user.Inventory.TryRemoveQuantity(item.Id, out var removed, outstanding);
+                        var count = removed.Sum(selector: x => x.Quantity);
+                        outstanding -= count;
                         actuallyRemoved.AddRange(removed);
-                        coins += (uint) (removed.Sum(selector: x => x.Quantity) * item.Properties.Physical.Value);
+                        coins += BuybackPrice(item.Properties.Physical.Value, count);
                     }
 
                     if (actuallyRemoved.Count > 0)
@@ -170,8 +202,7 @@ public class MerchantController
                                 user.SendItemUpdate(user.Inventory[slot], slot);
                         Merchant.Say(
                             $"Certainly. I will buy {actuallyRemoved.Sum(selector: x => x.Quantity)} of those for {Pluralize(coins)}, {user.Name}.");
-                        user.Stats.Gold += coins;
-                        user.UpdateAttributes(StatUpdateFlags.Experience);
+                        user.AddGold(coins);
                     }
                     else
                     {
@@ -188,13 +219,13 @@ public class MerchantController
         else if (Game.World.WorldData.GetStore<Item>().ContainsCategory(request.Match["target"].Value))
         {
             uint coins = 0;
-            // Only support "buy all my <category>"
-            foreach (var slot in user.Inventory.GetSlotsByCategory(request.Match["target"].Value))
+            // Only support "buy all my <category>"; price before removing, as above.
+            var categorySlots = user.Inventory.GetSlotsByCategory(request.Match["target"].Value).ToList();
+            foreach (var slot in categorySlots)
             {
                 // GetSlotsByCategory returns only occupied slots.
                 var invItem = user.Inventory[slot]!;
-                coins += (uint) (invItem.Value * invItem.Count);
-                user.RemoveItem(slot);
+                coins += BuybackPrice(invItem.Value, invItem.Count);
             }
 
             if (coins == 0)
@@ -203,9 +234,13 @@ public class MerchantController
                 return;
             }
 
+            if (!CanCarryPayment(user, coins)) return;
+
+            foreach (var slot in categorySlots)
+                user.RemoveItem(slot);
+
             Merchant.Say($"Certainly. That will be {Pluralize(coins)}, {user.Name}.");
-            user.Stats.Gold += coins;
-            user.UpdateAttributes(StatUpdateFlags.Experience);
+            user.AddGold(coins);
         }
         else
         {
@@ -310,9 +345,9 @@ public class MerchantController
 
         if (user.Vault.AddGold(gold))
         {
+            user.Vault.Save();
             Merchant.Say($"I'll take your {Pluralize(gold)}.");
-            user.Stats.Gold -= gold;
-            user.UpdateAttributes(StatUpdateFlags.Experience);
+            user.RemoveGold(gold);
             return;
         }
 
@@ -383,15 +418,22 @@ public class MerchantController
             return;
         }
 
-        if (!user.Vault.RemoveGold(gold))
+        if (gold > user.Vault.CurrentGold)
         {
             Merchant.Say("Sorry, you don't have that much on deposit.");
             return;
         }
 
-        user.Stats.Gold += gold;
+        // AddGold enforces PlayerMaxGold, which the vault's uint.MaxValue limit can exceed; credit
+        // the user before debiting the vault so a refusal leaves both sides untouched.
+        if (!user.AddGold(gold))
+        {
+            Merchant.Say("Sorry, your coin pouch seems to be too full.");
+            return;
+        }
+
         user.Vault.RemoveGold(gold);
-        user.UpdateAttributes(StatUpdateFlags.Experience);
+        user.Vault.Save();
         Merchant.Say($"Here {Verb(gold)} your {Pluralize(gold)}.");
     }
 
@@ -426,6 +468,13 @@ public class MerchantController
             var invItem = user.Inventory[slot]!;
             if (invItem.Stackable && invItem.Count != invItem.MaximumStack)
             {
+                if (!user.Vault.RemoveItem(item.Name))
+                {
+                    Merchant.Say("You don't have any of those.");
+                    return;
+                }
+
+                user.Vault.Save();
                 invItem.Count++;
                 user.SendInventorySlot(slot);
                 Merchant.Say($"Here's your {invItem.Name} back.");
@@ -439,7 +488,13 @@ public class MerchantController
             return;
         }
 
-        user.Vault.RemoveItem(item.Name);
+        if (!user.Vault.RemoveItem(item.Name))
+        {
+            Merchant.Say("You don't have any of those.");
+            return;
+        }
+
+        user.Vault.Save();
         var itemObj = new ItemObject(item, user.World.Guid);
         itemObj.Durability = itemObj.MaximumDurability;
         var newSlot = user.Inventory.FindEmptySlot();

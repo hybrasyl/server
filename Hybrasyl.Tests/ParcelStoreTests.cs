@@ -53,4 +53,19 @@ public class ParcelStoreTests(HybrasylFixture fixture)
 
         Assert.Equal(goldBefore, user.Stats.Gold);
     }
+
+    // A zero-quantity parcel reaches AddItem(name, 0). The non-stackable branch is a do/while
+    // over a ushort, so the decrement wraps to 65535 and creates 65536 items rather than none.
+    [Fact]
+    public void AddItemOfZeroQuantityCreatesNothing()
+    {
+        var user = Fixture.CreateUser("ZeroQuantityUser");
+        var countBefore = user.Inventory.Count;
+        var worldObjectsBefore = Game.World.Objects.Count;
+
+        Assert.False(user.AddItem("Epee", 0));
+
+        Assert.Equal(countBefore, user.Inventory.Count);
+        Assert.Equal(worldObjectsBefore, Game.World.Objects.Count);
+    }
 }

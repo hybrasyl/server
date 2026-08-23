@@ -4062,7 +4062,9 @@ public class World : Server
     /// </summary>
     private static bool TryReadQuantity(User user, string text, out uint quantity)
     {
-        if (TryParseQuantity(text, out quantity))
+        // Zero parses fine but is not a quantity any merchant operation can carry out; it reaches
+        // conservation checks that are all written as "> owned" and passes them trivially.
+        if (TryParseQuantity(text, out quantity) && quantity > 0)
             return true;
 
         GameLog.UserActivityWarning("{Name}: merchant quantity prompt: rejecting {Input}", user.Name, text);

@@ -16,7 +16,9 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using System;
 using Hybrasyl.Objects;
+using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Xml.Objects;
 using System.IO;
 using System.Linq;
@@ -249,7 +251,10 @@ public class Merchants
         Fixture.TestUser.Say("Buy all of my junk");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
-        var coins = item.Value * item.Count + item2.Value * item2.Count;
+        // The merchant pays MerchantBuybackPercentage of value, rounded per slot as the handler does.
+        var buyback = Game.ActiveConfiguration.Constants.MerchantBuybackPercentage;
+        var coins = (uint) Math.Round(item.Value * item.Count * buyback) +
+                    (uint) Math.Round(item2.Value * item2.Count * buyback);
         Assert.Equal($"Certainly. That will be {coins} coins, TestUser.", msg.Message);
         Assert.Equal(Fixture.TestUser.Stats.Gold, before + coins);
         Assert.False(Fixture.TestUser.Inventory.ContainsName("Prayer Book"));
@@ -267,8 +272,9 @@ public class Merchants
         Fixture.TestUser.Say("Buy 1 of my epee");
         var msg = Fixture.TestUser.MessagesReceived.Last();
         Assert.Equal("Maria", msg.Speaker.Name);
-        Assert.Equal($"Certainly. I will buy 1 of those for {item.Value} coins, {Fixture.TestUser.Name}.", msg.Message);
-        Assert.Equal(Fixture.TestUser.Stats.Gold, before + item.Value);
+        var coins = (uint) Math.Round(item.Value * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage);
+        Assert.Equal($"Certainly. I will buy 1 of those for {coins} coins, {Fixture.TestUser.Name}.", msg.Message);
+        Assert.Equal(Fixture.TestUser.Stats.Gold, before + coins);
         Assert.False(Fixture.TestUser.Inventory.ContainsName("Epee"));
     }
 
@@ -382,6 +388,119 @@ public class Merchants
         Assert.Equal("Here are your 30000 coins.", msg.Message);
         Assert.Equal((uint)0, Fixture.TestUser.Vault.CurrentGold);
         Assert.Equal(Fixture.TestUser.Stats.Gold, before + 30000);
+    }
+
+    // Spoken-trigger banking (MerchantController) is a separate implementation from the
+    // MerchantMenuItem handlers on User; both must conserve gold.
+    [Fact]
+    public void SpokenPartialWithdrawalConservesVaultGold()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
+        Fixture.TestUser.Vault.AddGold(30000);
+        Fixture.TestUser.Stats.Gold = 0;
+
+        Fixture.TestUser.Say("withdraw 10000 coins");
+
+        Assert.Equal((uint) 20000, Fixture.TestUser.Vault.CurrentGold);
+        Assert.Equal((uint) 10000, Fixture.TestUser.Stats.Gold);
+    }
+
+    // The quote validated ownership across every slot holding the item, but acceptance only ever
+    // removes from the selected slot — so two stacks of one paid twice for a single removal.
+    [Fact]
+    public void SellingMoreThanTheSelectedSlotHoldsIsRefused()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Mouse Tail", out Item reagent),
+            "Couldn't find mouse tail in test items");
+        // Two separate single-item stacks of the same item.
+        var first = new ItemObject(reagent, Fixture.TestUser.World.Guid) { Count = 1 };
+        var second = new ItemObject(reagent, Fixture.TestUser.World.Guid) { Count = 1 };
+        Assert.True(Fixture.TestUser.AddItem(first, 1), "Couldn't add first stack");
+        Assert.True(Fixture.TestUser.AddItem(second, 2), "Couldn't add second stack");
+        Fixture.TestUser.Stats.Gold = 0;
+
+        // Aggregate ownership is 2, but slot 1 holds only 1.
+        Fixture.TestUser.ShowSellConfirm(merchant, 1, 2);
+        Fixture.TestUser.SellItemAccept(merchant);
+
+        Assert.Equal((uint) 0, Fixture.TestUser.Stats.Gold);
+        Assert.Equal(2, Fixture.TestUser.Inventory.Count);
+    }
+
+    // Parcel send took the requested quantity on trust: RemoveItem's result was discarded and the
+    // requested amount was mailed regardless, so asking for more than you own duplicated it.
+    [Fact]
+    public void SendingAParcelForMoreThanIsOwnedIsRefused()
+    {
+        Fixture.ResetTestUserStats();
+        var merchant = GetTestMerchant();
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item epee),
+            "Couldn't find epee in test items");
+        var item = new ItemObject(epee, Fixture.TestUser.World.Guid);
+        Assert.True(Fixture.TestUser.AddItem(item), "Couldn't add item to inventory");
+        Fixture.TestUser.Stats.Gold = 100000;
+
+        Fixture.TestUser.ShowMerchantSendParcelQuantity(merchant, item);
+        Fixture.TestUser.ShowMerchantSendParcelRecipient(merchant, 2);
+        Fixture.TestUser.ShowMerchantSendParcelAccept(merchant, Fixture.TestUser.Name);
+
+        // The one epee stays put, and no parcel is created for the two that were requested.
+        Assert.True(Fixture.TestUser.Inventory.ContainsName("Epee"));
+        Assert.Empty(Game.World.WorldState.GetOrCreate<ParcelStore>(Fixture.TestUser.GuidReference).Items);
+    }
+
+    // The sale is priced before anything is removed, so a refusal must leave the goods intact.
+    [Fact]
+    public void SpokenSaleIsRefusedWithoutRemovingItemsWhenPaymentWouldNotFit()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Epee", out Item junk), "Couldn't find epee in test items");
+        var item = new ItemObject(junk, Fixture.TestUser.World.Guid);
+        Assert.True(Fixture.TestUser.AddItem(item), "Couldn't add item to inventory");
+        Fixture.TestUser.Stats.Gold = Game.ActiveConfiguration.Constants.PlayerMaxGold;
+
+        Fixture.TestUser.Say("Buy 1 of my epee");
+
+        Assert.True(Fixture.TestUser.Inventory.ContainsName("Epee"));
+        Assert.Equal(Game.ActiveConfiguration.Constants.PlayerMaxGold, Fixture.TestUser.Stats.Gold);
+    }
+
+    // Topping up an existing stack is a separate branch of the spoken withdrawal and must
+    // still debit the vault, or the item is duplicated on every repetition.
+    [Fact]
+    public void SpokenItemWithdrawalOntoAnExistingStackDebitsTheVault()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
+        Assert.True(Game.World.WorldData.TryGetValueByIndex("Mouse Tail", out Item reagent),
+            "Couldn't find mouse tail in test items");
+        var stack = new ItemObject(reagent, Fixture.TestUser.World.Guid) { Count = 2 };
+        Assert.True(Fixture.TestUser.AddItem(stack), "Couldn't add item to inventory");
+        Fixture.TestUser.Vault.AddItem(reagent.Name);
+
+        Fixture.TestUser.Say("withdraw Mouse Tail");
+
+        Assert.Equal(3, stack.Count);
+        Assert.False(Fixture.TestUser.Vault.Items.ContainsKey(reagent.Name));
+    }
+
+    [Fact]
+    public void WithdrawGoldIsRefusedWhenTheUserCannotCarryIt()
+    {
+        Fixture.ResetTestUserStats();
+        Fixture.TestUser.Teleport("XUnit Test Realm - With Casting", 8, 8);
+        Fixture.TestUser.Vault.AddGold(30000);
+        Fixture.TestUser.Stats.Gold = Game.ActiveConfiguration.Constants.PlayerMaxGold;
+
+        Fixture.TestUser.Say("withdraw 30000 coins");
+
+        Assert.Equal((uint)30000, Fixture.TestUser.Vault.CurrentGold);
+        Assert.Equal(Game.ActiveConfiguration.Constants.PlayerMaxGold, Fixture.TestUser.Stats.Gold);
+        Assert.DoesNotContain("Here are your", Fixture.TestUser.MessagesReceived.Last().Message);
     }
 
     [Fact]
@@ -540,4 +659,5 @@ public class Merchants
         Assert.Equal(goldBefore, user.Stats.Gold);
         Assert.Equal(1, user.SkillBook.Count(x => x.Castable.Id == skill.Id));
     }
+
 }

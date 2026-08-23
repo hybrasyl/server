@@ -2136,6 +2136,15 @@ public class User : Creature
         return true;
     }
 
+    /// <summary>
+    ///     Gold this user can still receive before hitting PlayerMaxGold. Unlike Vault.RemainingGold
+    ///     this clamps, because Stats.Gold is also written directly during exchange staging.
+    /// </summary>
+    public uint RemainingGold =>
+        Gold >= Game.ActiveConfiguration.Constants.PlayerMaxGold
+            ? 0
+            : Game.ActiveConfiguration.Constants.PlayerMaxGold - Gold;
+
     public bool AddGold(Gold gold) => AddGold(gold.Amount);
 
     public bool AddGold(uint amount)
@@ -2328,6 +2337,11 @@ public class User : Creature
 
     public bool AddItem(string itemName, ushort quantity = 1, bool updateWeight = true)
     {
+        // The non-stackable path below is a do/while decrementing this ushort, so zero wraps to
+        // 65535 and creates 65536 items instead of none.
+        if (quantity == 0)
+            return false;
+
         var xmlItem = World.WorldData.GetByIndex<Item>(itemName);
 
         if (xmlItem.Stackable)
@@ -3924,6 +3938,8 @@ public class User : Creature
             return;
         }
 
+        if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
+
         PendingSellableSlot = slot;
         PendingSellableQuantity = quantity;
         var offer = (uint)(Math.Round(item.Value * Game.ActiveConfiguration.Constants.MerchantBuybackPercentage, 0) *
@@ -3935,8 +3951,6 @@ public class User : Creature
         };
         var prompt = string.Empty;
 
-        if (quantity > ushort.MaxValue) quantity = ushort.MaxValue;
-
         if (item.Durability != item.MaximumDurability)
             prompt = merchant.GetLocalString("sell_failure_durability");
 
@@ -3944,8 +3958,11 @@ public class User : Creature
             if (!Inventory.ContainsName(item.Name))
                 prompt = merchant.GetLocalString("sell_failure_no_item");
 
+        // Scoped to the selected slot, because acceptance only ever removes from that slot and
+        // the quantity prompt offers the player that slot's count. An aggregate check here pays
+        // for stacks the sale never takes.
         if (prompt == string.Empty)
-            if (!Inventory.ContainsName(item.Name, (int)quantity))
+            if (quantity == 0 || (uint)item.Count < quantity)
                 prompt = merchant.GetLocalString("sell_failure_quantity");
 
         if (prompt == string.Empty)
@@ -3991,18 +4008,30 @@ public class User : Creature
             return;
         }
 
-        if (item.Count > PendingSellableQuantity)
+        // The slot can have shrunk between the quote and the accept; paying the quoted offer for
+        // whatever is left now is how a split stack gets paid for twice.
+        if (PendingSellableQuantity == 0 || (uint)item.Count < PendingSellableQuantity)
         {
-            DecreaseItem(PendingSellableSlot, (int)PendingSellableQuantity);
-            AddGold(PendingMerchantOffer);
-        }
-        else
-        {
-            RemoveItem(PendingSellableSlot);
-            AddGold(PendingMerchantOffer);
+            SendSystemMessage("You don't have that many.");
+            AbortMerchantMenu();
+            return;
         }
 
+        // Credit first: AddGold refuses above PlayerMaxGold, and a refusal after removal would
+        // take the goods for nothing.
+        if (!AddGold(PendingMerchantOffer))
+        {
+            AbortMerchantMenu();
+            return;
+        }
+
+        if (item.Count > PendingSellableQuantity)
+            DecreaseItem(PendingSellableSlot, (int)PendingSellableQuantity);
+        else
+            RemoveItem(PendingSellableSlot);
+
         PendingSellableSlot = 0;
+        PendingSellableQuantity = 0;
         PendingMerchantOffer = 0;
 
         var options = new MerchantOptions();
@@ -4100,13 +4129,29 @@ public class User : Creature
         var parcelFee = (uint)Math.Ceiling(itemObj.Value * .10 * quantity);
         if (!Game.World.WorldState.TryGetAuthInfo(recipient, out var info))
             prompt = merchant.GetLocalString("parcel_recipient_nonexistent");
-        if (prompt == string.Empty)
-            if (!(Gold > parcelFee))
-                prompt = merchant.GetLocalString("send_parcel_fail", ("$FEE", parcelFee.ToString()));
+        // The parcel is persisted as a uint but removed as a ushort, so an out-of-range quantity
+        // would truncate to a different number of items than it charges for and mails.
+        // One refusal for every way the send can fail on this side; the recipient check above wins
+        // because it has its own message.
+        if (prompt == string.Empty &&
+            (quantity == 0 || quantity > ushort.MaxValue ||
+             !Inventory.ContainsName(itemObj.Name, (int)quantity) || Gold <= parcelFee))
+            prompt = merchant.GetLocalString("send_parcel_fail", ("$FEE", parcelFee.ToString()));
         if (prompt == string.Empty)
         {
+            // Remove before granting: the parcel must never be created from items that were not
+            // actually taken.
+            if (!RemoveItem(itemObj.Name, (ushort)quantity))
+            {
+                GameLog.UserActivityWarning(
+                    "{Name}: parcel send: removal of {Quantity} {Item} failed, aborting", Name, quantity,
+                    itemObj.Name);
+                ShowMerchantGoBack(merchant, merchant.GetLocalString("send_parcel_fail",
+                    ("$FEE", parcelFee.ToString())), MerchantMenuItem.SendParcelMenu);
+                return;
+            }
+
             RemoveGold(parcelFee);
-            RemoveItem(itemObj.Name, (ushort)quantity);
             SendInventory();
             prompt = merchant.GetLocalString("send_parcel_success");
 
@@ -4229,7 +4274,9 @@ public class User : Creature
         }
         else
         {
-            if (amount > uint.MaxValue - Gold)
+            // AddGold enforces PlayerMaxGold, which is far below the vault's uint.MaxValue limit,
+            // so its result must gate the vault debit rather than being discarded.
+            if (amount > RemainingGold || !AddGold(amount))
             {
                 prompt = merchant.GetLocalString("withdraw_gold_failure_surplus");
                 ShowMerchantGoBack(merchant, prompt, MerchantMenuItem.WithdrawGoldMenu);
@@ -4238,7 +4285,6 @@ public class User : Creature
             {
                 Vault.RemoveGold(amount);
                 Vault.Save();
-                AddGold(amount);
                 var coins = "coin";
                 if (amount > 1) coins = "coins";
                 prompt = merchant.GetLocalString("withdraw_gold_success", ("$COINS", amount.ToString()),
