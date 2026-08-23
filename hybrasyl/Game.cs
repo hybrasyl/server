@@ -24,6 +24,7 @@ using Hybrasyl.Internals.CommandLine;
 using Hybrasyl.Internals.Compression;
 using Hybrasyl.Internals.Crc;
 using Hybrasyl.Internals.Logging;
+using Hybrasyl.Networking;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Spawning;
 using Hybrasyl.Xml.Manager;
@@ -43,6 +44,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -109,6 +111,13 @@ public static class Game
     public static byte[] Notification { get; set; } = [];
     public static uint NotificationCrc { get; set; }
     public static byte[] Collisions { get; set; } = null!;
+
+    /// <summary>
+    ///     The stack-wide TLS server certificate, loaded at startup when ServerConfig declares
+    ///     Network/Tls. Null means the stack does not speak TLS and the extension-dialect
+    ///     capability marker must not be advertised.
+    /// </summary>
+    public static X509Certificate2? TlsCertificate { get; private set; }
 
     public static DateTime StartDate { get; set; }
     public static string CommitLog { get; private set; } = "There was an error fetching commit log information from GitHub. Sorry.";
@@ -588,6 +597,13 @@ public static class Game
                 // We can have a hostname here to support ease of running in Docker; try to naively resolve it
                 RedirectTarget = Dns.GetHostAddresses(activeConfiguration.Network.Lobby.ExternalAddress)
                     .FirstOrDefault()!;
+        }
+
+        if (activeConfiguration.Network.Tls != null)
+        {
+            TlsCertificate = TlsCertificateLoader.Load(activeConfiguration.Network.Tls, DataDirectory);
+            Log.Information("TLS: stack certificate loaded ({Subject}, expires {NotAfter})",
+                TlsCertificate.Subject, TlsCertificate.NotAfter);
         }
 
         var lobbyIp = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);
