@@ -18,6 +18,7 @@
 
 using Hybrasyl.Interfaces;
 using System;
+using System.IO;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -47,6 +48,11 @@ public sealed class TestSocket : ISocketProxy
 
 
     public bool Connected => true;
+
+    // The TLS upgrade path is the only consumer; its test fixture supplies real streams
+    // (slice 4 of HS-1621). Until a test needs one here, this stays unsupported like
+    // Bind/Listen/Shutdown.
+    public Stream GetStream() => throw new NotImplementedException();
 
     public static ISocketProxy Create(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) =>
         throw new NotImplementedException();

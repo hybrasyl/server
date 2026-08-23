@@ -18,6 +18,7 @@
 
 using Hybrasyl.Interfaces;
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -26,10 +27,16 @@ namespace Hybrasyl.Networking;
 
 public sealed class SocketProxy(Socket toProxy) : ISocketProxy
 {
+    private NetworkStream? _stream;
+
     public bool Connected => toProxy.Connected;
     public nint Handle => toProxy.Handle;
 
     public EndPoint? RemoteEndPoint => toProxy.RemoteEndPoint;
+
+    // ownsSocket stays false: ClientState.Dispose owns socket shutdown, and a second owner
+    // would double-dispose it.
+    public Stream GetStream() => _stream ??= new NetworkStream(toProxy, ownsSocket: false);
 
     public static ISocketProxy Create(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) =>
         new SocketProxy(new Socket(addressFamily, socketType, protocolType));

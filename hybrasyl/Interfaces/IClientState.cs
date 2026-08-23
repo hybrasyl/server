@@ -25,6 +25,13 @@ namespace Hybrasyl.Interfaces;
 
 public interface IClientState
 {
+    /// <summary>
+    ///     The transport this connection's first byte decided (HS-1621). Set exactly once by
+    ///     <c>Server.ReadCallback</c>'s probe; <see cref="TransportKind.Undecided" /> until data
+    ///     arrives.
+    /// </summary>
+    public TransportKind Transport { get; set; }
+
     public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; }
     public int SendBufferDepth { get; }

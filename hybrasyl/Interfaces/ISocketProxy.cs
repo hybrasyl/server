@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
@@ -28,6 +29,12 @@ public interface ISocketProxy : IDisposable
     public bool Connected { get; }
 
     public nint Handle { get; }
+
+    /// <summary>
+    ///     A stream over this socket, for transports that consume one (the TLS upgrade wraps it
+    ///     in <c>SslStream</c>). The proxy retains ownership of the underlying socket.
+    /// </summary>
+    public Stream GetStream();
 
     public void Bind(IPEndPoint remoteEndPoint);
     public void Listen(int backlog);

@@ -36,6 +36,7 @@ public abstract class AbstractClientState
 
     private byte[] _buffer = new byte[BufferSize];
     private ConcurrentQueue<QueuedPacket> _sendBuffer = new();
+    public TransportKind Transport { get; set; } = TransportKind.Undecided;
     public int BytesReceived { get; set; }
 
     public byte[] Buffer => _buffer;

@@ -39,6 +39,7 @@ public class ClientState(ISocketProxy incoming) : IClientState
     private ConcurrentQueue<InboundFrame> _receiveBuffer = new();
     private ConcurrentQueue<QueuedPacket> _sendBuffer = new();
 
+    public TransportKind Transport { get; set; } = TransportKind.Undecided;
     public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; set; } = new(false);
 

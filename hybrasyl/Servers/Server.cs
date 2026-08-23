@@ -21,6 +21,7 @@ using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.Throttling;
+using Hybrasyl.Protocol.Transport;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -252,6 +253,29 @@ public class Server
             Game.ReportException(e);
             client.Disconnect();
         }
+
+        // The connection's first byte decides its transport, once (HS-1621): 0xAA is retail
+        // framing and stays on this path; 0x16 is a TLS ClientHello answering the capability
+        // marker; anything else is garbage and fatal. Retail clients never reach the other arms.
+        if (client.ClientState.Transport == TransportKind.Undecided && client.ClientState.BytesReceived > 0)
+            switch (TlsProbe.Peek(client.ClientState.Buffer.AsSpan(0, client.ClientState.BytesReceived)))
+            {
+                case InboundKind.Retail:
+                    client.ClientState.Transport = TransportKind.Plaintext;
+                    break;
+                case InboundKind.TlsHandshake:
+                    // The upgrade seam lands in HS-1621 slice 4. Until then the marker is never
+                    // advertised, so a ClientHello is an unsupported client, not a capable one.
+                    GameLog.Warning(
+                        "cid {ConnectionId}: TLS ClientHello received but the upgrade is not enabled, disconnecting", client.ConnectionId);
+                    client.Disconnect();
+                    return;
+                default:
+                    GameLog.Warning(
+                        "cid {ConnectionId}: first byte 0x{FirstByte:X2} is neither retail framing nor TLS, disconnecting", client.ConnectionId, client.ClientState.Buffer[0]);
+                    client.Disconnect();
+                    return;
+            }
 
         try
         {
