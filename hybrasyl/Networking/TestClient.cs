@@ -125,12 +125,14 @@ public class TestClient : AbstractClient, IClient
 
     public void Redirect(Redirect redirect, bool isLogoff, int transmitDelay)
     {
+        if (!redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect))
+            throw new InvalidOperationException($"redirect id {redirect.Id} is already outstanding");
+
         LastRedirect = redirect;
         GameLog.InfoFormat("Processing redirect");
         GlobalConnectionManifest.RegisterRedirect(this, redirect);
         GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
         if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
-        redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
     }
 
     public void SendByteHeartbeat()

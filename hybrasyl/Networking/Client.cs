@@ -627,10 +627,24 @@ public class Client : AbstractClient, IClient
     public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0)
     {
         GameLog.InfoFormat("Processing redirect");
+
+        // Claim the id at the destination first. Ids are drawn at random, so a collision is
+        // vanishingly rare and entirely silent -- the client would be handed an id resolving to
+        // somebody else's credentials and refused at the far end for a mismatch it cannot see.
+        // Claiming before publishing is what keeps the refusal path from leaving the global table
+        // holding a redirect the destination never accepted.
+        if (!redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect))
+        {
+            GameLog.Error("cid {ConnectionId}: redirect id {RedirectId} is already outstanding, refusing",
+                ConnectionId, redirect.Id);
+            Disconnect();
+
+            return;
+        }
+
         GlobalConnectionManifest.RegisterRedirect(this, redirect);
         GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
         if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
-        redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 
         var endPoint = Socket.RemoteEndPoint as IPEndPoint
                        ?? throw new InvalidOperationException("Redirect: socket has no remote endpoint");
