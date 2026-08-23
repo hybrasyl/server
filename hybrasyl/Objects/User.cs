@@ -35,6 +35,7 @@ using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Players.Guilds;
 using Hybrasyl.Subsystems.Statuses;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
@@ -45,7 +46,7 @@ using System.Text;
 using Book = Hybrasyl.Casting.Book;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 using MessageType = Hybrasyl.Internals.Enums.MessageType;
-using SpellUseType = Hybrasyl.Xml.Objects.SpellUseType;
+using SpellUseType = Hybrasyl.Xml.Enums.SpellUseType;
 using WireDoor = DALib.Networking.Packets.Server.Door;
 
 namespace Hybrasyl.Objects;
@@ -3484,9 +3485,9 @@ public class User : Creature
             if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_skill_prereq_item");
 
-        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Objects.Book.PrimarySkill) ||
-            (SkillBook.IsSecondaryFull && castable.Book == Xml.Objects.Book.SecondarySkill) ||
-            (SkillBook.IsUtilityFull && castable.Book == Xml.Objects.Book.UtilitySkill))
+        if ((SkillBook.IsPrimaryFull && castable.Book == Xml.Enums.Book.PrimarySkill) ||
+            (SkillBook.IsSecondaryFull && castable.Book == Xml.Enums.Book.SecondarySkill) ||
+            (SkillBook.IsUtilityFull && castable.Book == Xml.Enums.Book.UtilitySkill))
             prompt = merchant.GetLocalString("learn_skill_book_full");
 
         if (prompt == string.Empty)
@@ -3723,9 +3724,9 @@ public class User : Creature
             if (classReq.Items.Any(predicate: itemReq => !Inventory.ContainsName(itemReq.Value, itemReq.Quantity)))
                 prompt = merchant.GetLocalString("learn_spell_prereq_item");
 
-        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Objects.Book.PrimarySpell) ||
-            (SpellBook.IsSecondaryFull && castable.Book == Xml.Objects.Book.SecondarySpell) ||
-            (SpellBook.IsUtilityFull && castable.Book == Xml.Objects.Book.UtilitySpell))
+        if ((SpellBook.IsPrimaryFull && castable.Book == Xml.Enums.Book.PrimarySpell) ||
+            (SpellBook.IsSecondaryFull && castable.Book == Xml.Enums.Book.SecondarySpell) ||
+            (SpellBook.IsUtilityFull && castable.Book == Xml.Enums.Book.UtilitySpell))
             prompt = merchant.GetLocalString("learn_spell_book_full");
 
         if (prompt == string.Empty)

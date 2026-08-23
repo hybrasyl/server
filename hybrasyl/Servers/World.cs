@@ -36,6 +36,7 @@ using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Interfaces;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
@@ -62,7 +63,7 @@ using System.Timers;
 using DALib.Networking.Packets.Client;
 using Creature = Hybrasyl.Objects.Creature;
 using Message = Hybrasyl.Plugins.Message;
-using MessageType = Hybrasyl.Xml.Objects.MessageType;
+using MessageType = Hybrasyl.Xml.Enums.MessageType;
 using Reactor = Hybrasyl.Objects.Reactor;
 using Script = Hybrasyl.Subsystems.Scripting.Script;
 using Timer = System.Timers.Timer;
@@ -217,7 +218,7 @@ public class World : Server
         }
 
         WorldState.Ready = true;
-        WorldData.LogResult(GameLog.GetLogger(LogType.WorldData).Logger);
+        GameLog.LogXmlResults(WorldData.GetResultSummaries(), GameLog.GetLogger(LogType.WorldData).Logger);
         try
         {
             GenerateMetafiles();
@@ -541,7 +542,7 @@ public class World : Server
 
                     List<LearnPrerequisite>? prereqs = null;
                     if (requirements != null)
-                        prereqs = requirements.Prerequisites.Prerequisite;
+                        prereqs = requirements.Prerequisites?.Prerequisite;
                     else
                         requirements = new Requirement();
 
@@ -632,7 +633,7 @@ public class World : Server
 
                     List<LearnPrerequisite>? prereqs = null;
                     if (requirements != null)
-                        prereqs = requirements.Prerequisites.Prerequisite;
+                        prereqs = requirements.Prerequisites?.Prerequisite;
                     else
                         requirements = new Requirement();
 

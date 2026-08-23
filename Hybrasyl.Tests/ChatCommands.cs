@@ -15,6 +15,7 @@
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging.ChatCommands;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System.Reflection;
 using Xunit;

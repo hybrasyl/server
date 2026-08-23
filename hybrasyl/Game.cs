@@ -387,7 +387,7 @@ public static class Game
             }
 
             Log.Information("Loading xml completed");
-            manager.LogResult(Log.Logger);
+            GameLog.LogXmlResults(manager.GetResultSummaries(), Log.Logger);
         }
         catch (FileNotFoundException)
         {

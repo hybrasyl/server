@@ -432,6 +432,20 @@ public class Merchants
     }
 
     [Fact]
+    public void LearnPrerequisitesArePopulatedFromWorldData()
+    {
+        // Pins the wire surface: Prerequisites carried maxOccurs="0" in the schema
+        // for years and only worked because the old generator ignored occurrence
+        // constraints. If this fails, prerequisite data is not surviving XML load.
+        var skill = GetLearnable("TestPrerequisite");
+        var req = skill.Requirements.FirstOrDefault(x => x.Prerequisites != null);
+        Assert.NotNull(req);
+        var prereq = Assert.Single(req.Prerequisites.Prerequisite);
+        Assert.Equal("TestNoCookie", prereq.Value);
+        Assert.Equal(0, prereq.Level);
+    }
+
+    [Fact]
     public void LearnSkillAcceptReplayIsIgnored()
     {
         Fixture.ResetTestUserStats();

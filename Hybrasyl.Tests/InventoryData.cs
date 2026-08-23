@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Enums;
 using System.Collections.Generic;
 using Hybrasyl.Xml.Objects;
 
@@ -27,9 +28,9 @@ public class XmlItemTestData
     {
         TestItem = new Item
         {
-            Name = "Test Item"
+            Name = "Test Item",
+            Properties = new ItemProperties { Appearance = new Appearance(), Stackable = new Stackable { Max = 1 } }
         };
-        TestItem.Properties.Stackable.Max = 1;
         TestItem.Properties.Equipment = new Xml.Objects.Equipment
             { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
@@ -41,9 +42,9 @@ public class XmlItemTestData
 
         StackableTestItem = new Item
         {
-            Name = "Stackable Test Item"
+            Name = "Stackable Test Item",
+            Properties = new ItemProperties { Appearance = new Appearance(), Stackable = new Stackable { Max = 20 } }
         };
-        StackableTestItem.Properties.Stackable.Max = 20;
         StackableTestItem.Properties.Equipment = new Xml.Objects.Equipment
             { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };

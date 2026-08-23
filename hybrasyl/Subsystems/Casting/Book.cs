@@ -16,12 +16,13 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using XmlBook = Hybrasyl.Xml.Objects.Book;
+using XmlBook = Hybrasyl.Xml.Enums.Book;
 
 namespace Hybrasyl.Casting;
 

@@ -24,6 +24,7 @@ using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Subsystems.Statuses;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
@@ -89,8 +90,8 @@ public class ItemObject : VisibleObject, IInteractable
     {
         get
         {
-            if ((Template.Properties.Equipment?.Slot ?? Xml.Objects.EquipmentSlot.None) !=
-                Xml.Objects.EquipmentSlot.None)
+            if ((Template.Properties.Equipment?.Slot ?? Xml.Enums.EquipmentSlot.None) !=
+                Xml.Enums.EquipmentSlot.None)
                 return ItemObjectType.Equipment;
             if (Template.Properties.Flags.HasFlag(ItemFlags.Consumable) || Template.Use != null)
                 return ItemObjectType.CanUse;
@@ -326,8 +327,8 @@ public class ItemObject : VisibleObject, IInteractable
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
                 if (
-                    (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
-                    (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
+                    (restriction.Slot == Xml.Enums.EquipmentSlot.Ring && userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.Enums.EquipmentSlot.Gauntlet && userobj.Equipment.GauntletEquipped) ||
                     userobj.Equipment[(byte) restriction.Slot] != null
                 )
                 {
@@ -338,8 +339,8 @@ public class ItemObject : VisibleObject, IInteractable
             else
             {
                 if (
-                    (restriction.Slot == Xml.Objects.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
-                    (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
+                    (restriction.Slot == Xml.Enums.EquipmentSlot.Ring && !userobj.Equipment.RingEquipped) ||
+                    (restriction.Slot == Xml.Enums.EquipmentSlot.Gauntlet && !userobj.Equipment.GauntletEquipped) ||
                     userobj.Equipment[(byte) restriction.Slot] == null
                 )
                 {
@@ -361,12 +362,12 @@ public class ItemObject : VisibleObject, IInteractable
 
             if (restriction.Type == SlotRestrictionType.ItemProhibited)
             {
-                if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring &&
-                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftHand) ||
-                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightHand ||
-                    (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
-                     EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.LeftArm) ||
-                    EquipmentSlot == (byte) Xml.Objects.EquipmentSlot.RightArm ||
+                if ((restriction.Slot == Xml.Enums.EquipmentSlot.Ring &&
+                     EquipmentSlot == (byte) Xml.Enums.EquipmentSlot.LeftHand) ||
+                    EquipmentSlot == (byte) Xml.Enums.EquipmentSlot.RightHand ||
+                    (restriction.Slot == Xml.Enums.EquipmentSlot.Gauntlet &&
+                     EquipmentSlot == (byte) Xml.Enums.EquipmentSlot.LeftArm) ||
+                    EquipmentSlot == (byte) Xml.Enums.EquipmentSlot.RightArm ||
                     EquipmentSlot == (byte) restriction.Slot)
                 {
                     message = restrictionMessage;
@@ -375,8 +376,8 @@ public class ItemObject : VisibleObject, IInteractable
             }
             else
             {
-                if ((restriction.Slot == Xml.Objects.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
-                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.Objects.EquipmentSlot.Gauntlet &&
+                if ((restriction.Slot == Xml.Enums.EquipmentSlot.Ring && userobj.Equipment.LRing != null) ||
+                    userobj.Equipment.RRing != null || (restriction.Slot == Xml.Enums.EquipmentSlot.Gauntlet &&
                                                         userobj.Equipment.LGauntlet != null) ||
                     userobj.Equipment.RGauntlet != null || EquipmentSlot != (byte) restriction.Slot)
                 {

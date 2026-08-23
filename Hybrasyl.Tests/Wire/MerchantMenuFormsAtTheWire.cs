@@ -21,6 +21,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using Serilog;
 using Serilog.Core;

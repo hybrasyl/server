@@ -22,6 +22,7 @@ using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

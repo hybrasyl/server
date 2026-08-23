@@ -16,9 +16,11 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using Microsoft.Extensions.Configuration;
 using Serilog;
@@ -529,5 +531,22 @@ public static class GameLog
     public static void DataLogDebug(string messageTemplate, params object?[] propertyValues)
     {
         Log(LogEventLevel.Debug, LogType.WorldData, messageTemplate, propertyValues);
+    }
+
+    /// <summary>
+    ///     Renders an XML load's per-stage result summaries to <paramref name="log" />. Replaces the
+    ///     <c>LogResult</c> Hybrasyl.Xml dropped when it stopped depending on Serilog; both the
+    ///     startup transcript and the world-data log go through here so they cannot drift.
+    /// </summary>
+    public static void LogXmlResults(IEnumerable<XmlResultSummary> summaries, ILogger log)
+    {
+        foreach (var summary in summaries)
+        {
+            log.Information("{Stage} {Type}: {Processed} processed, {Errors} error(s)",
+                summary.Stage, summary.TypeName, summary.TotalProcessed, summary.ErrorCount);
+
+            foreach (var error in summary.Errors)
+                log.Error("  {Source}: {Error}", error.Key, error.Value);
+        }
     }
 }

@@ -18,6 +18,7 @@
 
 using DALib.Networking.Packets.Client;
 using DALib.Networking.Packets.Server;
+using Hybrasyl.Xml.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;

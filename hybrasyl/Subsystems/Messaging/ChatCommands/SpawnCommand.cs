@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Objects;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using Creature = Hybrasyl.Xml.Objects.Creature;
 

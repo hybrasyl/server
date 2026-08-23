@@ -21,6 +21,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System.Linq;

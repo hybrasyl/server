@@ -18,6 +18,7 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Scripting;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Threading;

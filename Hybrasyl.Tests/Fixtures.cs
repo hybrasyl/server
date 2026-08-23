@@ -22,6 +22,7 @@ using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Players;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using Serilog;
@@ -112,9 +113,9 @@ public class HybrasylFixture : IDisposable
 
         TestItem = new Item
         {
-            Name = "Test Item"
+            Name = "Test Item",
+            Properties = new ItemProperties { Appearance = new Appearance(), Stackable = new Stackable { Max = 1 } }
         };
-        TestItem.Properties.Stackable.Max = 1;
         TestItem.Properties.Equipment = new Xml.Objects.Equipment
         { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         TestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
@@ -127,9 +128,9 @@ public class HybrasylFixture : IDisposable
 
         StackableTestItem = new Item
         {
-            Name = "Stackable Test Item"
+            Name = "Stackable Test Item",
+            Properties = new ItemProperties { Appearance = new Appearance(), Stackable = new Stackable { Max = 20 } }
         };
-        StackableTestItem.Properties.Stackable.Max = 20;
         StackableTestItem.Properties.Equipment = new Xml.Objects.Equipment
         { WeaponType = WeaponType.None, Slot = EquipmentSlot.None };
         StackableTestItem.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };
@@ -144,8 +145,11 @@ public class HybrasylFixture : IDisposable
 
         foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
         {
-            var item = new Item { Name = $"Equip Test {slot}" };
-            item.Properties.Stackable.Max = 1;
+            var item = new Item
+            {
+                Name = $"Equip Test {slot}",
+                Properties = new ItemProperties { Appearance = new Appearance(), Stackable = new Stackable { Max = 1 } }
+            };
             item.Properties.Equipment = new Xml.Objects.Equipment
             { WeaponType = slot == EquipmentSlot.Weapon ? WeaponType.Dagger : WeaponType.None, Slot = slot };
             item.Properties.Physical = new Physical { Durability = 1000, Weight = 1 };

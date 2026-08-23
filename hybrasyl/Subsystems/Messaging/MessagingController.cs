@@ -23,10 +23,11 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Plugins;
 using Hybrasyl.Servers;
+using Hybrasyl.Xml.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MessageType = Hybrasyl.Xml.Objects.MessageType;
+using MessageType = Hybrasyl.Xml.Enums.MessageType;
 
 namespace Hybrasyl.Subsystems.Messaging;
 

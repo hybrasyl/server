@@ -25,6 +25,7 @@ using Hybrasyl.Subsystems.Loot;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Subsystems.Statuses;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
@@ -32,7 +33,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
-using MessageType = Hybrasyl.Xml.Objects.MessageType;
+using MessageType = Hybrasyl.Xml.Enums.MessageType;
 
 namespace Hybrasyl.Objects;
 
@@ -633,31 +634,31 @@ public sealed class Monster : Creature, ICloneable, IEphemeral, ISpawnable
     public void AllocateStats()
     {
         var totalPoints = Stats.Level * 2;
-        if (BehaviorSet is null || string.IsNullOrEmpty(BehaviorSet.StatAlloc))
+        if (BehaviorSet is null || BehaviorSet.StatAlloc is not { Count: > 0 })
         {
             RandomlyAllocateStatPoints(totalPoints);
         }
         else
         {
-            var allocPattern = BehaviorSet.StatAlloc.Trim().ToLower().Split(" ");
+            var allocPattern = BehaviorSet.StatAlloc;
             while (totalPoints > 0)
                 foreach (var alloc in allocPattern)
                 {
                     switch (alloc)
                     {
-                        case "str":
+                        case StatType.Str:
                             Stats.BaseStr += 1;
                             break;
-                        case "int":
+                        case StatType.Int:
                             Stats.BaseInt += 1;
                             break;
-                        case "wis":
+                        case StatType.Wis:
                             Stats.BaseWis += 1;
                             break;
-                        case "con":
+                        case StatType.Con:
                             Stats.BaseCon += 1;
                             break;
-                        case "dex":
+                        case StatType.Dex:
                             Stats.BaseDex += 1;
                             break;
                         default:

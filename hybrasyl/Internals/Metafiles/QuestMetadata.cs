@@ -16,6 +16,7 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Xml.Enums;
 using System.Collections.Generic;
 using System.Linq;
 using Hybrasyl.Xml.Objects;

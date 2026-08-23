@@ -18,6 +18,7 @@
 
 using Discord.Rest;
 using Hybrasyl.Networking;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

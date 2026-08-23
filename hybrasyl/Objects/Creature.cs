@@ -29,6 +29,7 @@ using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Subsystems.Statuses;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
@@ -40,7 +41,7 @@ using System.Text.Json.Serialization;
 using Equipment = Hybrasyl.Subsystems.Players.Equipment;
 
 using DALib.Networking.Packets.Server;
-using SpellUseType = Hybrasyl.Xml.Objects.SpellUseType;
+using SpellUseType = Hybrasyl.Xml.Enums.SpellUseType;
 namespace Hybrasyl.Objects;
 
 public class Creature : VisibleObject, IStatSnapshotProvider, IJsonOnDeserialized

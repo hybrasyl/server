@@ -21,6 +21,7 @@ using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Dialogs;
+using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Buffers.Binary;
