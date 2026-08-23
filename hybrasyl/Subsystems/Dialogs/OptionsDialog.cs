@@ -32,12 +32,22 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
 
     public override void ShowTo(DialogInvocation invocation)
     {
+        // A dialog with no options at all is a content error; nothing to show.
         if (Options.Count <= 0) return;
 
         // Handle check expressions on individual options
-
         var displayedOptions = Options.Where(x => RunCheckExpression(x, invocation)).ToList();
-        if (displayedOptions.Count <= 0) return;
+        if (displayedOptions.Count <= 0)
+        {
+            // Options exist but every one was hidden, so there is nothing for the client to answer
+            // -- and StartDialog has already put the player in a dialog. Returning here would leave
+            // them holding a session with no packet from which to close it.
+            Log.Warning(
+                "Options dialog {DialogPath}: no option passed its check expression, ending the dialog",
+                DialogPath);
+            invocation.Target.ClearDialogState();
+            return;
+        }
 
         var body = new DALib.Networking.Packets.Server.OptionsDialog
         {
