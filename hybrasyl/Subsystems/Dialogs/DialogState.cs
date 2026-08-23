@@ -20,6 +20,7 @@ using System.Linq;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
+using Hybrasyl.Casting;
 using Hybrasyl.Subsystems.Scripting;
 using Serilog;
 
@@ -164,7 +165,9 @@ public class DialogState
     /// </remarks>
     internal bool OwnsSession(IInteractable? target) => target switch
     {
-        Merchant or Creature => target == Associate,
+        // A castable's dialog is associated by its script calling StartSequence with the origin it
+        // was handed, which is the CastableObject -- which is why it is IInteractable at all.
+        Merchant or Creature or CastableObject => target == Associate,
         // A dialog carried by an item is owned by holding the item; an async session supplies the
         // item from outside the inventory.
         ItemObject io => User.ActiveDialogSession != null || User.Inventory.Contains(io),

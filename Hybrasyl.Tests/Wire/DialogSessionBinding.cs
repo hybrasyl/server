@@ -16,6 +16,7 @@
 //
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
+using Hybrasyl.Casting;
 using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
@@ -165,6 +166,93 @@ public class DialogSessionBinding
         {
             Fixture.TestUser.DialogState.EndDialog();
             here.SequenceIndex.Remove(JumpTarget);
+        }
+    }
+
+    /// <summary>
+    ///     The same defect through the CastableObject branch, which resolves a client-supplied id from
+    ///     WorldState with no ownership test of its own.
+    /// </summary>
+    /// <remarks>
+    ///     These are built once at world load, one per castable template, with a dense sequential id
+    ///     from zero -- so the id space is enumerable rather than guessable. A castable dialog is
+    ///     associated by its script calling StartSequence with the origin it was handed, which is the
+    ///     CastableObject; nothing else can legitimately own such a session.
+    /// </remarks>
+    [Fact]
+    public void AnUnassociatedCastable_CannotSeizeTheDialogSession()
+    {
+        var (here, _) = TwoMarias();
+        var castable = Game.World.WorldState.Values<CastableObject>().FirstOrDefault();
+        Assert.True(castable is not null,
+            "precondition: the fixture world must load at least one scripted castable");
+
+        var pursuitId = (uint) Game.ActiveConfiguration.Constants.DialogSequenceShared + 1;
+        var sequence = MenuWithJumpOption(here, pursuitId);
+
+        Fixture.TestUser.DialogState.EndDialog();
+        Assert.True(Fixture.TestUser.DialogState.StartDialog(here, sequence),
+            "couldn't start the probe dialog");
+        var indexBefore = Fixture.TestUser.DialogState.CurrentPursuitIndex;
+
+        try
+        {
+            // objectType 0x05 is DialogObjectType.CastableObject.
+            var wire = OptionResponse(castable!.Id, pursuitId, indexBefore + 1);
+            wire[0] = 0x05;
+            Game.World.WorldPacketHandlers[0x3A].Invoke(Fixture.TestUser, new InboundBody(0x3A, wire));
+
+            Assert.Same(here, Fixture.TestUser.DialogState.Associate);
+            Assert.NotEqual(JumpTarget, Fixture.TestUser.DialogState.ActiveDialogSequence?.Name);
+        }
+        finally
+        {
+            Fixture.TestUser.DialogState.EndDialog();
+            here.SequenceIndex.Remove(JumpTarget);
+        }
+    }
+
+    /// <summary>
+    ///     The positive control for the branch above: a castable that does own the session still
+    ///     drives its own dialog, so the check binds association rather than refusing 0x05 outright.
+    /// </summary>
+    [Fact]
+    public void TheAssociatedCastable_StillDrivesItsOwnDialog()
+    {
+        var castable = Game.World.WorldState.Values<CastableObject>().FirstOrDefault();
+        Assert.True(castable is not null,
+            "precondition: the fixture world must load at least one scripted castable");
+
+        var pursuitId = (uint) Game.ActiveConfiguration.Constants.DialogSequenceShared + 1;
+        var destination = new DialogSequence(JumpTarget) { Id = pursuitId + 1 };
+        destination.AddDialog(new OptionsDialog("You have arrived."));
+        castable!.SequenceIndex[JumpTarget] = destination;
+
+        var menu = new OptionsDialog("Which one?");
+        menu.AddDialogOption(new DialogOption { OptionText = "Jump", JumpDialog = new JumpDialog(JumpTarget) });
+        var sequence = new DialogSequence("DialogSessionBindingCastableProbe") { Id = pursuitId };
+        sequence.AddDialog(menu);
+
+        Fixture.TestUser.DialogState.EndDialog();
+        Assert.True(Fixture.TestUser.DialogState.StartDialog(castable, sequence),
+            "couldn't start the probe dialog");
+        var indexBefore = Fixture.TestUser.DialogState.CurrentPursuitIndex;
+
+        try
+        {
+            var wire = OptionResponse(castable.Id, pursuitId, indexBefore + 1);
+            wire[0] = 0x05;
+            Game.World.WorldPacketHandlers[0x3A].Invoke(Fixture.TestUser, new InboundBody(0x3A, wire));
+
+            Assert.True(Fixture.TestUser.DialogState.InDialog,
+                "a legitimate castable option response ended the session");
+            Assert.Same(castable, Fixture.TestUser.DialogState.Associate);
+            Assert.Equal(JumpTarget, Fixture.TestUser.DialogState.ActiveDialogSequence?.Name);
+        }
+        finally
+        {
+            Fixture.TestUser.DialogState.EndDialog();
+            castable.SequenceIndex.Remove(JumpTarget);
         }
     }
 }
