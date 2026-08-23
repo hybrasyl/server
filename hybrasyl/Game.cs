@@ -764,44 +764,29 @@ public static class Game
         // Uncomment for GRPC troubleshooting
         // Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "debug");
 
-        // Start GRPC server
-        if (activeConfiguration.Network.Grpc != null)
+        // Start GRPC server; see GrpcTransportPolicy for why the mode decision lives there.
+        var grpcConfig = activeConfiguration.Network.Grpc;
+        var grpcMode = GrpcTransportPolicy.Decide(grpcConfig, GrpcTransportPolicy.InsecureRequested(),
+            out var grpcReason);
+
+        switch (grpcMode)
         {
-            Log.Information("doing grpc things");
-
-            var ssl_enabled = activeConfiguration.Network.Grpc.ServerCertificateFile != null &&
-                              activeConfiguration.Network.Grpc.ServerKeyFile != null;
-
-            if (ssl_enabled)
+            case GrpcTransportMode.MutualTls:
             {
-                var certPath = Path.Join(DataDirectory, activeConfiguration.Network.Grpc.ServerCertificateFile);
-                var keyPath = Path.Join(DataDirectory, activeConfiguration.Network.Grpc.ServerKeyFile);
-
-                SslServerCredentials? credentials;
-                // Load credentials
+                SslServerCredentials? credentials = null;
                 try
                 {
-                    var cert = File.ReadAllText(certPath);
-                    var key = File.ReadAllText(keyPath);
-                    var keypair_list = new List<KeyCertificatePair> { new(cert, key) };
-                    if (activeConfiguration.Network.Grpc.ChainCertificateFile != null)
-                    {
-                        var chaincerts = File.ReadAllText(Path.Join(DataDirectory,
-                            activeConfiguration.Network.Grpc.ChainCertificateFile));
-                        credentials = new SslServerCredentials(keypair_list, chaincerts,
-                            SslClientCertificateRequestType.RequestAndRequireAndVerify);
-                    }
-                    else
-                    {
-                        // Note, without a chain certificate, only the connection is secure; there is no authentication
-                        credentials = new SslServerCredentials(keypair_list);
-                    }
+                    var cert = File.ReadAllText(Path.Join(DataDirectory, grpcConfig!.ServerCertificateFile));
+                    var key = File.ReadAllText(Path.Join(DataDirectory, grpcConfig.ServerKeyFile));
+                    var chain = File.ReadAllText(Path.Join(DataDirectory, grpcConfig.ChainCertificateFile));
+                    credentials = new SslServerCredentials(
+                        new List<KeyCertificatePair> { new(cert, key) }, chain,
+                        SslClientCertificateRequestType.RequestAndRequireAndVerify);
                 }
                 catch (Exception e)
                 {
                     Log.Error("GRPC: server initialization: key/cert load failed: {e}", e);
                     Log.Error("GRPC: server disabled");
-                    credentials = null;
                 }
 
                 if (credentials != null)
@@ -811,33 +796,34 @@ public static class Game
                         Services = { Patron.BindService(new PatronServer()) },
                         Ports =
                         {
-                            new ServerPort(activeConfiguration.Network.Grpc.BindAddress,
-                                activeConfiguration.Network.Grpc.Port, credentials)
+                            new ServerPort(grpcConfig!.BindAddress, grpcConfig.Port, credentials)
                         }
                     };
-                    Log.Information("GRPC: SSL server initialized ({BindAddress}:{Port})", activeConfiguration.Network.Grpc.BindAddress, activeConfiguration.Network.Grpc.Port);
+                    Log.Information("GRPC: mutual TLS server initialized ({BindAddress}:{Port}) - {Reason}",
+                        grpcConfig.BindAddress, grpcConfig.Port, grpcReason);
                 }
+
+                break;
             }
-            else
-            {
-                // Insecure mode, should be used for development only
-                // docker-compose path generates self-signed certs 
+
+            case GrpcTransportMode.InsecureDevelopment:
                 GrpcServer = new Grpc.Core.Server
                 {
                     Services = { Patron.BindService(new PatronServer()) },
                     Ports =
                     {
-                        new ServerPort(activeConfiguration.Network.Grpc.BindAddress,
-                            activeConfiguration.Network.Grpc.Port,
-                            ServerCredentials.Insecure)
+                        new ServerPort(grpcConfig!.BindAddress, grpcConfig.Port, ServerCredentials.Insecure)
                     }
                 };
-                Log.Information("GRPC: server initialized - INSECURE - DEV ONLY ({BindAddress}:{Port})", activeConfiguration.Network.Grpc.BindAddress, activeConfiguration.Network.Grpc.Port);
-            }
-        }
-        else // grpc disabled
-        {
-            Log.Information("GRPC: server configuration not found in config.xml - GRPC disabled");
+                Log.Warning(
+                    "GRPC: INSECURE - the administrative endpoint is bound in plaintext and authenticates NO caller ({BindAddress}:{Port}) - {Reason}",
+                    grpcConfig.BindAddress, grpcConfig.Port, grpcReason);
+                break;
+
+            case GrpcTransportMode.Disabled:
+            default:
+                Log.Warning("GRPC: endpoint not exposed - {Reason}", grpcReason);
+                break;
         }
 
         if (GrpcServer != null)
