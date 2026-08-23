@@ -53,7 +53,7 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
         var env = ScriptEnvironment.CreateWithTargetAndSource(invocation.Target, invocation.Source);
         env.DialogPath = $"{invocation.Source.Name}:DisplayPursuits:MenuCheckExpression";
         var ret = invocation.Script.ExecuteExpression(option.CheckExpression, env);
-        return !ret.Return.CastToBool() || ret.Return.CastToBool();
+        return ret.Return.CastToBool();
     }
 
     public void AddDialogOption(DialogOption option) => Options.Add(option);
@@ -61,42 +61,49 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
     public bool HandleResponse(int optionSelected, DialogInvocation invocation)
     {
         var expression = string.Empty;
-        // Quick sanity check
-        if (optionSelected < 0 || optionSelected > Options.Count)
+
+        // Resolve against the options the client was shown, not the ones this dialog holds. An
+        // option its check expression hid is absent from this list, which is what makes the check an
+        // authorization rather than a display filter -- and it keeps the client's index meaning the
+        // same list in both directions, which it did not when ShowTo filtered and this did not.
+        var displayed = Options.Where(x => RunCheckExpression(x, invocation)).ToList();
+
+        // The client is 1-indexed, so zero is out of range rather than the first option.
+        if (optionSelected < 1 || optionSelected > displayed.Count)
         {
             Log.Error("Option dialog response: invalid player selection {OptionSelected}, aborting", optionSelected);
             return false;
         }
 
-        // Note that client is 1-indexed for responses
-        // If we have a JumpDialog, handle that first
+        var selected = displayed[optionSelected - 1];
 
-        if (Options[optionSelected - 1].JumpDialog != null)
+        // If we have a JumpDialog, handle that first
+        if (selected.JumpDialog != null)
         {
             // Use jump dialog first
-            Options[optionSelected - 1].JumpDialog!.ShowTo(invocation);
+            selected.JumpDialog!.ShowTo(invocation);
             return true;
         }
 
         // If the response is a sequence, start it
-        if (Options[optionSelected - 1].OverrideSequence != null)
+        if (selected.OverrideSequence != null)
         {
-            var sequence = Options[optionSelected - 1].OverrideSequence!;
+            var sequence = selected.OverrideSequence!;
             invocation.Target.DialogState.TransitionDialog(invocation.Origin, sequence);
             sequence.ShowTo(invocation);
         }
 
         // If the individual options don't have callbacks, use the dialog callback instead.
-        if (Handler != null && Options[optionSelected - 1].CallbackFunction == null)
+        if (Handler != null && selected.CallbackFunction == null)
             expression = Handler;
-        else if (Options[optionSelected - 1].CallbackFunction != null)
-            expression = Options[optionSelected - 1].CallbackFunction!;
+        else if (selected.CallbackFunction != null)
+            expression = selected.CallbackFunction!;
         // Regardless of what handler we use, make sure the script can see the value.
         // We pass everything as string to not make UserData barf, as it can't handle dynamics.
         // For option dialogs we pass both the "number" selected, and the actual text of the button pressed.
         if (invocation.Script == null) return false;
         invocation.Environment.Add("player_selection", optionSelected.ToString());
-        invocation.Environment.Add("player_response", Options[optionSelected - 1].OptionText);
+        invocation.Environment.Add("player_response", selected.OptionText);
         invocation.Environment.DialogPath = DialogPath;
         LastScriptResult = invocation.ExecuteExpression(expression);
         return Equals(LastScriptResult.Return, DynValue.True) || Equals(LastScriptResult.Return, DynValue.Nil);
