@@ -301,7 +301,14 @@ data/*
 # Claude Code
 .claude/
 
-# Epona-managed worktrees and build overrides
+# Epona-managed worktrees and build overrides (see Directory.Build.props.example)
 .worktrees/
 Directory.Build.props
+
+# Per-machine MCP server config
+.mcp.json
+
+# Security assessments and proof-of-concept harnesses. These describe unpatched
+# defects and are deliberately kept out of this repository.
+docs/security/
 
