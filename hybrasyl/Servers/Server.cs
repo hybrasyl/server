@@ -23,6 +23,7 @@ using Hybrasyl.Networking;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Protocol.Transport;
 using Hybrasyl.Protocol.Wire;
+using Hybrasyl.Protocol.Packets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -71,13 +72,33 @@ public class Server
         // dialect connection on lobby, login, or world heartbeats the same way.
         // An exchange is one opcode across both directions, so the reply to a client probe is
         // another ClientEcho rather than a differently-numbered packet.
-        ExtensionHandlers[Hybrasyl.Protocol.Wire.ExtensionOpcodes.ClientEcho] = (client, packet) =>
+        // Both sides log the token at Info: it is the only field pairing a reply with its probe.
+        ExtensionHandlers[ExtensionOpcodes.ClientEcho] = (client, packet) =>
         {
-            if (packet is Hybrasyl.Protocol.Packets.ClientEcho echo && client.ClientState.Tls is { } tls)
-                tls.Send(new Hybrasyl.Protocol.Packets.ClientEcho(echo.Token));
+            if (packet is not ClientEcho echo) return;
+
+            if (client.ClientState.Tls is not { } tls)
+            {
+                GameLog.Warning(
+                    "cid {ConnectionId}: ClientEcho token 0x{Token:X16} arrived with no TLS session; not answered",
+                    client.ConnectionId, echo.Token);
+
+                return;
+            }
+
+            GameLog.Info("cid {ConnectionId}: ClientEcho token 0x{Token:X16} received, answering",
+                client.ConnectionId, echo.Token);
+            tls.Send(new ClientEcho(echo.Token));
         };
-        ExtensionHandlers[Hybrasyl.Protocol.Wire.ExtensionOpcodes.ServerEcho] = (client, packet) =>
-            GameLog.Debug("cid {ConnectionId}: ServerEcho reply received", client.ConnectionId);
+        ExtensionHandlers[ExtensionOpcodes.ServerEcho] = (client, packet) =>
+        {
+            if (packet is ServerEcho echo)
+                GameLog.Info("cid {ConnectionId}: ServerEcho reply, token 0x{Token:X16}",
+                    client.ConnectionId, echo.Token);
+            else
+                GameLog.Warning("cid {ConnectionId}: ServerEcho opcode carrying {Type}",
+                    client.ConnectionId, packet.GetType().Name);
+        };
         Default = isDefault;
         Task.Run(ProcessOutbound);
         Game.RegisterServer(this);
