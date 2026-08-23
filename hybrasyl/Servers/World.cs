@@ -3508,15 +3508,6 @@ public class World : Server
             if (!session.IsParticipant(user.Guid)) return;
         }
 
-        if (pursuitID == user.DialogState.CurrentPursuitId && pursuitIndex == user.DialogState.CurrentPursuitIndex)
-        {
-            // If we get a packet back with the same index and ID, the dialog has been closed.
-            GameLog.DebugFormat("Dialog closed, resetting dialog state");
-            user.ClearDialogState();
-            user.ActiveDialogSession?.Close(user.Guid);
-            return;
-        }
-
         if (pursuitIndex > user.DialogState.CurrentPursuitIndex + 1 ||
             pursuitIndex < user.DialogState.CurrentPursuitIndex - 1)
         {
@@ -3524,6 +3515,42 @@ public class World : Server
             return;
         }
 
+
+        // Everything below acts on the session: navigating it, or running a handler that can
+        // reassociate it (a JumpDialog or OverrideSequence option calls StartDialog/TransitionDialog
+        // with invocation.Origin). SetDialogIndex's own association check is reached on only some of
+        // those paths and never before the handlers run, so by then it compares against a value this
+        // click may already have written. Ask once, here, above all of them.
+        if (!user.DialogState.OwnsSession(clickTarget))
+        {
+            GameLog.UserActivityWarning(
+                "{Name}: 0x3A: names {Object}, which does not own the dialog session, ignoring",
+                user.Name, clickTarget.Name);
+            return;
+        }
+
+        // The pursuit id names which sequence the client believes it is answering. Nothing below
+        // consults it before running a handler, and the server acts on its own ActiveDialog either
+        // way -- so a stale response from a finished dialog would otherwise drive the current one.
+        if (pursuitID != user.DialogState.CurrentPursuitId)
+        {
+            GameLog.UserActivityWarning(
+                "{Name}: 0x3A: names pursuit {Pursuit}, but the active pursuit is {Current}, ignoring",
+                user.Name, pursuitID, user.DialogState.CurrentPursuitId);
+            return;
+        }
+
+        // Closing is a mutation like any other -- it clears dialog state and tears down an async
+        // session -- so it sits below the ownership and pursuit-id guards rather than above them.
+        // Ahead of them, any in-range interactable could end a session it does not own.
+        if (pursuitIndex == user.DialogState.CurrentPursuitIndex)
+        {
+            // If we get a packet back with the same index and ID, the dialog has been closed.
+            GameLog.DebugFormat("Dialog closed, resetting dialog state");
+            user.ClearDialogState();
+            user.ActiveDialogSession?.Close(user.Guid);
+            return;
+        }
 
         // Was the previous button clicked? Handle that first
         if (pursuitIndex == user.DialogState.CurrentPursuitIndex - 1)
@@ -3536,18 +3563,6 @@ public class World : Server
                 user.DialogState.ActiveDialog?.ShowTo(invocation);
                 return;
             }
-        }
-
-        // The response handlers below run scripts and can reassociate the session (a JumpDialog or
-        // OverrideSequence option calls StartDialog/TransitionDialog with invocation.Origin). The
-        // association check in SetDialogIndex is not reached until after they return, so it would be
-        // comparing against a value this click had already written. Ask before, not after.
-        if (!user.DialogState.OwnsSession(clickTarget))
-        {
-            GameLog.UserActivityWarning(
-                "{Name}: 0x3A: response names {Object}, which does not own the dialog session, ignoring",
-                user.Name, clickTarget.Name);
-            return;
         }
 
         // Is the active dialog an input or options dialog?

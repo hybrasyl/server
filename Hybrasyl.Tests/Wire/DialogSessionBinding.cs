@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Casting;
+using Hybrasyl.Xml.Objects;
 using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
@@ -253,6 +254,132 @@ public class DialogSessionBinding
         {
             Fixture.TestUser.DialogState.EndDialog();
             castable.SequenceIndex.Remove(JumpTarget);
+        }
+    }
+
+    /// <summary>
+    ///     A reactor is interactable, in-world and not a Creature, so an ownership check that named
+    ///     the types it knew and let the rest through admitted it.
+    /// </summary>
+    /// <remarks>
+    ///     This is the case that decided the default: OwnsSession denies anything not established as
+    ///     able to own a session, rather than permitting anything it does not recognise.
+    /// </remarks>
+    [Fact]
+    public void AnUnassociatedReactor_CannotSeizeTheDialogSession()
+    {
+        var (here, _) = TwoMarias();
+
+        Fixture.TestUser.SkillBook.Clear();
+        Fixture.TestUser.Stats.Level = 41;
+        Fixture.TestUser.Teleport(Fixture.Map.Id, 20, 20);
+        var trap = Game.World.WorldData.GetByIndex<Castable>("TestTrapMulti");
+        Assert.True(Fixture.TestUser.AddSkill(trap, 1), "couldn't add the trap castable");
+        Assert.True(Fixture.TestUser.UseCastable(trap), "UseCastable failed");
+
+        var reactor = Fixture.Map.Reactors[(Fixture.TestUser.X, Fixture.TestUser.Y)].Values.First();
+        Assert.True(Game.World.Objects.ContainsKey(reactor.Id),
+            "precondition: the reactor must be resolvable from World.Objects, as 0x3A resolves it");
+
+        var pursuitId = (uint) Game.ActiveConfiguration.Constants.DialogSequenceShared + 1;
+        var sequence = MenuWithJumpOption(here, pursuitId);
+        reactor.SequenceIndex[JumpTarget] = new DialogSequence(JumpTarget) { Id = pursuitId + 2 };
+
+        Fixture.TestUser.DialogState.EndDialog();
+        Assert.True(Fixture.TestUser.DialogState.StartDialog(here, sequence),
+            "couldn't start the probe dialog");
+        var indexBefore = Fixture.TestUser.DialogState.CurrentPursuitIndex;
+
+        try
+        {
+            Game.World.WorldPacketHandlers[0x3A].Invoke(Fixture.TestUser,
+                new InboundBody(0x3A, OptionResponse(reactor.Id, pursuitId, indexBefore + 1)));
+
+            Assert.Same(here, Fixture.TestUser.DialogState.Associate);
+            Assert.NotEqual(JumpTarget, Fixture.TestUser.DialogState.ActiveDialogSequence?.Name);
+        }
+        finally
+        {
+            Fixture.TestUser.DialogState.EndDialog();
+            here.SequenceIndex.Remove(JumpTarget);
+            reactor.SequenceIndex.Remove(JumpTarget);
+        }
+    }
+
+    /// <summary>
+    ///     Previous-navigation reaches ShowTo through SetDialogIndex, which has no CastableObject
+    ///     case at all -- so before the ownership check was hoisted above this path, a castable could
+    ///     rewind another castable's session and run under its script.
+    /// </summary>
+    [Fact]
+    public void AnUnassociatedCastable_CannotRewindTheSession()
+    {
+        var castables = Game.World.WorldState.Values<CastableObject>().Take(2).ToList();
+        Assert.True(castables.Count == 2,
+            "precondition: the fixture world must load at least two scripted castables");
+        var (owner, other) = (castables[0], castables[1]);
+
+        var pursuitId = (uint) Game.ActiveConfiguration.Constants.DialogSequenceShared + 1;
+        var sequence = new DialogSequence("DialogSessionBindingRewindProbe") { Id = pursuitId };
+        sequence.AddDialog(new OptionsDialog("first"));
+        sequence.AddDialog(new OptionsDialog("second"));
+
+        Fixture.TestUser.DialogState.EndDialog();
+        Assert.True(Fixture.TestUser.DialogState.StartDialog(owner, sequence),
+            "couldn't start the probe dialog");
+        Assert.True(Fixture.TestUser.DialogState.SetDialogIndex(owner, (int) pursuitId, 1),
+            "couldn't advance the probe dialog to index 1");
+        Assert.Equal(1, Fixture.TestUser.DialogState.CurrentPursuitIndex);
+
+        try
+        {
+            // Index 0 is CurrentPursuitIndex - 1: the previous-navigation path.
+            var wire = OptionResponse(other.Id, pursuitId, 0);
+            wire[0] = 0x05;
+            Game.World.WorldPacketHandlers[0x3A].Invoke(Fixture.TestUser, new InboundBody(0x3A, wire));
+
+            Assert.Same(owner, Fixture.TestUser.DialogState.Associate);
+            Assert.Equal(1, Fixture.TestUser.DialogState.CurrentPursuitIndex);
+        }
+        finally
+        {
+            Fixture.TestUser.DialogState.EndDialog();
+        }
+    }
+
+    /// <summary>
+    ///     The pursuit id must name the sequence actually active. The owning object is correct here
+    ///     and the index is the expected next one; only the pursuit disagrees.
+    /// </summary>
+    /// <remarks>
+    ///     The server acts on its own ActiveDialog regardless of what the packet claims, so the risk
+    ///     is not option substitution but replay: a response left over from a finished sequence
+    ///     driving whichever one is open now.
+    /// </remarks>
+    [Fact]
+    public void AResponseNamingAnotherPursuit_IsRefused()
+    {
+        var (here, _) = TwoMarias();
+        var pursuitId = (uint) Game.ActiveConfiguration.Constants.DialogSequenceShared + 1;
+        var sequence = MenuWithJumpOption(here, pursuitId);
+
+        Fixture.TestUser.DialogState.EndDialog();
+        Assert.True(Fixture.TestUser.DialogState.StartDialog(here, sequence),
+            "couldn't start the probe dialog");
+        var indexBefore = Fixture.TestUser.DialogState.CurrentPursuitIndex;
+
+        try
+        {
+            Game.World.WorldPacketHandlers[0x3A].Invoke(Fixture.TestUser,
+                new InboundBody(0x3A, OptionResponse(here.Id, pursuitId + 100, indexBefore + 1)));
+
+            Assert.NotEqual(JumpTarget, Fixture.TestUser.DialogState.ActiveDialogSequence?.Name);
+            Assert.Equal(indexBefore, Fixture.TestUser.DialogState.CurrentPursuitIndex);
+        }
+        finally
+        {
+            Fixture.TestUser.DialogState.EndDialog();
+            here.SequenceIndex.Remove(JumpTarget);
         }
     }
 }

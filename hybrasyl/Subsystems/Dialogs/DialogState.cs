@@ -20,7 +20,6 @@ using System.Linq;
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
-using Hybrasyl.Casting;
 using Hybrasyl.Subsystems.Scripting;
 using Serilog;
 
@@ -165,13 +164,17 @@ public class DialogState
     /// </remarks>
     internal bool OwnsSession(IInteractable? target) => target switch
     {
-        // A castable's dialog is associated by its script calling StartSequence with the origin it
-        // was handed, which is the CastableObject -- which is why it is IInteractable at all.
-        Merchant or Creature or CastableObject => target == Associate,
+        null => false,
         // A dialog carried by an item is owned by holding the item; an async session supplies the
         // item from outside the inventory.
         ItemObject io => User.ActiveDialogSession != null || User.Inventory.Contains(io),
-        _ => true
+        // Everything else owns a session by being what the session was opened against: a merchant or
+        // creature clicked in the world, a CastableObject whose script called StartSequence with the
+        // origin it was handed, an AsyncDialogSession that opened the dialog on itself.
+        //
+        // Deny by default rather than allow: Reactor is interactable and in-world but does not own
+        // a session. A type nobody has established can own a session is one that cannot.
+        _ => target == Associate
     };
 
     /// <summary>
