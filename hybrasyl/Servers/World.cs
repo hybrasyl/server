@@ -173,6 +173,15 @@ public class World : Server
 
 
     /// <summary>
+    ///     Hangs up the socket behind <paramref name="connectionId" />, if it is still registered.
+    /// </summary>
+    private static void DisconnectConnection(long connectionId)
+    {
+        if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out var client))
+            client.Disconnect();
+    }
+
+    /// <summary>
     ///     Register world throttles. This should eventually use XML configuration; for now it simply
     ///     registers our hardcoded throttle values.
     /// </summary>
@@ -187,6 +196,10 @@ public class World : Server
         RegisterPacketThrottle(new GenericPacketThrottle(0x3E, 500, 0, 0));         //Skill
         RegisterPacketThrottle(new GenericPacketThrottle(0x0F, 500, 0, 0));         //Spell
         RegisterPacketThrottle(new GenericPacketThrottle(0x1C, 50, 0, 0));         //Item
+
+        // Join is the only opcode a connection with no user may act on, so it is the only one an
+        // unauthenticated socket can put work on the world queue with. A client joins once.
+        RegisterPacketThrottle(new GenericPacketThrottle(0x10, 1000, 2000, 5));   // Join world
     }
 
     /// <summary>
@@ -2212,7 +2225,12 @@ public class World : Server
         var id = join.RedirectId;
 
         if (!ExpectedConnections.TryGetValue(id, out var redirect) || !redirect.Matches(name, key, seed))
+        {
+            GameLog.Warning("cid {ConnectionId}: join for {Name} carries no valid redirect, disconnecting",
+                connectionId, name);
+            DisconnectConnection(connectionId);
             return;
+        }
 
         ExpectedConnections.Remove(id, out _);
 
@@ -2221,8 +2239,7 @@ public class World : Server
             // Disconnect connection immediately, nothing good can come of this
             GameLog.Fatal("cid {id}: DESERIALIZATION FAILURE due to bug or corrupt user data, disconnecting",
                 connectionId);
-            if (GlobalConnectionManifest.ConnectedClients.TryGetValue(connectionId, out var client))
-                client.Disconnect();
+            DisconnectConnection(connectionId);
             return;
         }
 

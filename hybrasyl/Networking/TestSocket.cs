@@ -184,7 +184,14 @@ public sealed class TestSocket : ISocketProxy
 
     public void Close(int timeout) { }
 
-    public void Disconnect(bool reuseSocket) { }
+    /// <summary>
+    ///     Whether the socket was hung up on. This is the only observable a test has for that:
+    ///     <see cref="Connected" /> is unconditionally true here, so a disconnected
+    ///     <see cref="TestClient" /> still reports itself connected.
+    /// </summary>
+    public bool IsDisconnected { get; private set; }
+
+    public void Disconnect(bool reuseSocket) => IsDisconnected = true;
 
     public void Dispose() { }
 
