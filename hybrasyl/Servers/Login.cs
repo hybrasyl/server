@@ -286,7 +286,23 @@ public class Login : Server
             return;
         }
 
-        ((IDictionary)ExpectedConnections).Remove(id);
+        // Expiry is checked here and not left to the reaper: the sweep runs on an interval, so a
+        // redirect stays spendable for its lifetime plus however long until the next pass.
+        if (redirect.Expired)
+        {
+            GameLog.Warning("Login: redirect {RedirectId} for {Name} has expired, disconnecting", id, name);
+            client.Disconnect();
+            return;
+        }
+
+        // Spending it is the acceptance. Two sockets can both clear Matches before either reaches
+        // this line, and a single-use credential that succeeds twice is not single-use.
+        if (!ExpectedConnections.TryRemove(id, out _))
+        {
+            GameLog.Warning("Login: redirect {RedirectId} for {Name} was already spent, disconnecting", id, name);
+            client.Disconnect();
+            return;
+        }
 
         // Only past Matches is the client-supplied name known to be the one this redirect was
         // issued for. Persisting it first meant any caller holding any valid redirect could move

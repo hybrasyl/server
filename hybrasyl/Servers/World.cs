@@ -2254,7 +2254,14 @@ public class World : Server
             return;
         }
 
-        ExpectedConnections.Remove(id, out _);
+        if (!ExpectedConnections.TryRemove(id, out _))
+        {
+            GameLog.Warning("cid {ConnectionId}: redirect {RedirectId} was already spent, disconnecting",
+                connectionId, id);
+            DisconnectConnection(connectionId);
+            return;
+        }
+
 
         if (!WorldState.TryGetUser(name, out var loginUser))
         {
@@ -2277,10 +2284,18 @@ public class World : Server
             return;
         }
 
-        loginUser.AuthInfo.CurrentState = UserState.InWorld;
+        // Associate first, and honour the result. It fails exactly when the connection is no longer
+        // registered, asked at the moment of binding rather than before it, so nothing can close the
+        // socket in between.
+        if (!loginUser.AssociateConnection(Guid, connectionId))
+        {
+            GameLog.Warning("cid {ConnectionId}: could not associate {Name}, not admitting", connectionId, name);
 
+            return;
+        }
+
+        loginUser.AuthInfo.CurrentState = UserState.InWorld;
         loginUser.AuthInfo.Save();
-        loginUser.AssociateConnection(Guid, connectionId);
         loginUser.SetEncryptionParameters(key, seed, name);
         loginUser.UpdateLoginTime();
         loginUser.Inventory.RecalculateWeight();

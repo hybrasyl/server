@@ -125,4 +125,98 @@ public class RedirectAuthority
         Assert.True(span > 1u << 24,
             $"redirect ids span only {span}, which is what a counter looks like");
     }
+
+    /// <summary>
+    ///     A world join whose connection closed while the packet sat in the queue is discarded.
+    /// </summary>
+    /// <remarks>
+    ///     World packets are queued and drained by one thread, so anything may close the connection
+    ///     between the join arriving and being handled — the admission reaper above all. Admitting
+    ///     one that is gone persists <c>InWorld</c> against a socket nobody holds, which no later
+    ///     cleanup undoes because the cleanup already ran.
+    /// </remarks>
+    [Fact]
+    public void AJoinForAClosedConnection_DoesNotAdmitTheAccount()
+    {
+        var user = Fixture.CreateUser("Ghostone");
+        _ = user.GuidReference;
+
+        var client = new TestClient(new TestSocket()) { EncryptionSeed = 0, EncryptionKey = Key };
+        GlobalConnectionManifest.RegisterClient(client);
+
+        var redirect = new Redirect(client, Game.Login, Game.World, user.Name, 0, Key);
+        Game.World.ExpectedConnections.TryAdd(redirect.Id, redirect);
+
+        var join = new ClientJoinPacket
+        {
+            EncryptionSeed = 0,
+            EncryptionKey = Key,
+            Name = user.Name,
+            RedirectId = redirect.Id,
+        };
+
+        try
+        {
+            // What the reaper does: the connection is gone, but the join is already queued.
+            GlobalConnectionManifest.DeregisterClient(client);
+
+            Game.World.WorldPacketHandlers[join.Opcode]
+                .Invoke(client.ConnectionId, new InboundBody(join.Opcode, join.ToBody()));
+
+            Assert.True(Game.World.WorldState.TryGetAuthInfo(user.Name, out var auth),
+                "the user's auth info vanished");
+            Assert.NotEqual(UserState.InWorld, auth.CurrentState);
+        }
+        finally
+        {
+            Game.World.ExpectedConnections.TryRemove(redirect.Id, out _);
+        }
+    }
+
+    /// <summary>
+    ///     A redirect whose id is already outstanding is refused rather than sent.
+    /// </summary>
+    /// <remarks>
+    ///     Ids are drawn at random now, so a collision is vanishingly rare — and was entirely
+    ///     silent: <c>TryAdd</c>'s result was discarded and the client was handed an id resolving to
+    ///     another caller's credentials, to be refused at the far end for a mismatch it could not
+    ///     see. Rarity is why this needs a test rather than why it does not.
+    /// </remarks>
+    [Fact]
+    public void ARedirectWhoseIdIsAlreadyOutstanding_IsRefused()
+    {
+        var incumbentClient = new TestClient(new TestSocket());
+        var collidingSocket = new TestSocket();
+        // A real Client, not the double: refusing is the production path's behaviour, and the
+        // double deliberately throws instead so a colliding id cannot pass unnoticed in a harness.
+        var collidingClient = new Client(collidingSocket, Game.Login);
+
+        var incumbent = new Redirect(incumbentClient, Game.World, Game.Login, "Kerden", 0, Key);
+        Game.Login.ExpectedConnections.TryAdd(incumbent.Id, incumbent);
+
+        var colliding = new Redirect(collidingClient, Game.World, Game.Login, "Someoneelse", 0, Key)
+        {
+            Id = incumbent.Id,
+        };
+
+        try
+        {
+            collidingClient.Redirect(colliding);
+
+            Assert.Same(incumbent, Game.Login.ExpectedConnections[incumbent.Id]);
+            // Client.Disconnect tears down through ClientState.Dispose rather than the socket's
+            // own Disconnect, so Connected is the observable here and IsDisconnected is not.
+            Assert.False(collidingClient.Connected,
+                "a client was left holding a redirect id that resolves to someone else's credentials");
+            Assert.Equal(0, collidingSocket.SentCount);
+            Assert.False(GlobalConnectionManifest.Redirects.ContainsKey(collidingClient.ConnectionId),
+                "the global table kept a redirect the destination never accepted");
+        }
+        finally
+        {
+            Game.Login.ExpectedConnections.TryRemove(incumbent.Id, out _);
+            GlobalConnectionManifest.Redirects.TryRemove(incumbentClient.ConnectionId, out _);
+            GlobalConnectionManifest.Redirects.TryRemove(collidingClient.ConnectionId, out _);
+        }
+    }
 }
