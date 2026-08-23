@@ -2380,7 +2380,7 @@ public class World : Server
             listPacket.Users.Add(new DALib.Networking.Packets.Server.UserListEntry(
                 (byte)user.Class,
                 color,
-                (DALib.Networking.Packets.Server.SocialStatus)(byte)user.GroupStatus,
+                user.GroupStatus,
                 user.Title,
                 user.IsMaster,
                 user.Name));
@@ -3984,7 +3984,7 @@ public class World : Server
     {
         var user = (User)obj;
         var status = StatusPacket.Parse(packet.Body.Span).Status;
-        if (status <= 7) user.GroupStatus = (UserStatus)status;
+        if (status <= 7) user.GroupStatus = (DALib.Networking.Packets.Server.SocialStatus)status;
     }
 
     [PacketHandler(0x7B)]

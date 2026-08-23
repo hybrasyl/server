@@ -744,12 +744,12 @@ public class User : Creature
 
         #region Appearance defaults
 
-        RestPosition = RestPosition.Standing;
+        RestPosition = DALib.Enums.RestPosition.None;
         SkinColor = SkinColor.Basic;
         Transparent = false;
         FaceShape = 0;
-        NameStyle = NameDisplayStyle.GreyHover;
-        LanternSize = LanternSize.None;
+        NameStyle = DALib.Enums.NameTagStyle.NeutralHover;
+        LanternSize = DALib.Enums.LanternSize.None;
         DisplayAsMonster = false;
         MonsterSprite = ushort.MinValue;
 
@@ -1021,7 +1021,7 @@ public class User : Creature
         {
             Id = Id,
             Equipment = equipment,
-            SocialStatus = (DALib.Networking.Packets.Server.SocialStatus)(byte)GroupStatus,
+            SocialStatus = GroupStatus,
             Name = Name,
             NationFlag = Nation.Flag, // This should pull from town / nation
             Title = string.Empty,
@@ -4972,7 +4972,7 @@ public class User : Creature
 
     #region Appearance settings
 
-    [Persist] public RestPosition RestPosition { get; set; }
+    [Persist] public DALib.Enums.RestPosition RestPosition { get; set; }
 
     [Persist] public SkinColor SkinColor { get; set; }
 
@@ -4980,9 +4980,9 @@ public class User : Creature
 
     [Persist] public byte FaceShape { get; set; }
 
-    [Persist] public LanternSize LanternSize { get; set; }
+    [Persist] public DALib.Enums.LanternSize LanternSize { get; set; }
 
-    [Persist] public NameDisplayStyle NameStyle { get; set; }
+    [Persist] public DALib.Enums.NameTagStyle NameStyle { get; set; }
 
     [Persist] public bool DisplayAsMonster { get; set; }
 
@@ -5005,7 +5005,7 @@ public class User : Creature
 
     [Persist] public bool Grouping { get; set; }
 
-    public UserStatus GroupStatus { get; set; }
+    public SocialStatus GroupStatus { get; set; }
 
     [Persist] public byte[] PortraitData { get; set; } = [];
 
