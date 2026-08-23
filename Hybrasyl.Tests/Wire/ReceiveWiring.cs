@@ -267,6 +267,37 @@ public class ReceiveWiring
         }
     }
 
+    /// <summary>
+    ///     A retail frame with no opcode takes the connection down rather than being logged and
+    ///     read past.
+    /// </summary>
+    /// <remarks>
+    ///     The assertion belongs here rather than on <c>ClientState</c>: framing can only report
+    ///     that the boundary is unrecoverable, and whether that ends the connection is
+    ///     <c>ReadCallback</c>'s decision. It used to log the parse failure and re-arm the receive,
+    ///     which is what made a three-byte write worth repeating. The TLS pump already disconnected
+    ///     on this; the plaintext path did not.
+    /// </remarks>
+    [Fact]
+    public void SocketCallback_DisconnectsOnAZeroLengthFrame()
+    {
+        var socket = new TestSocket();
+        var client = new Client(socket, Game.Login) { EncryptionKey = "UrkcnItnI"u8.ToArray() };
+
+        try
+        {
+            socket.QueueReceive([0xAA, 0x00, 0x00]);
+            Drive(client, socket);
+
+            Assert.False(client.Connected,
+                "a frame with no opcode left the connection up, so the sender can replay it for free");
+        }
+        finally
+        {
+            GlobalConnectionManifest.DeregisterClient(client);
+        }
+    }
+
     /// <summary>One socket read: arm the buffer where the last one left off, then run the callback.</summary>
     private static void Drive(Client client, TestSocket socket)
     {

@@ -27,6 +27,7 @@ using Hybrasyl.Protocol.Packets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -339,6 +340,13 @@ public class Server
         try
         {
             while (client.ClientState.TryGetFrame(out var frame)) client.ReceiveFrame(frame);
+        }
+        catch (InvalidDataException e)
+        {
+            // A frame boundary that cannot be recovered from; leaving the socket armed lets one
+            // malformed write be replayed for the cost of sending it.
+            GameLog.Warning("{Reason}; disconnecting", e.Message);
+            client.Disconnect();
         }
         catch (Exception e)
         {

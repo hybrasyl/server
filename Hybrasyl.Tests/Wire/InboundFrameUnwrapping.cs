@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System;
+using System.IO;
 using System.Linq;
 using DALib.Enums;
 using DALib.Networking.Crypto;
@@ -363,4 +364,21 @@ public class InboundFrameUnwrapping
         Assert.Equal(0, state.BytesReceived);
     }
 
+    /// <summary>
+    ///     A frame declaring a zero-length body carries no opcode and is refused as unrecoverable.
+    /// </summary>
+    /// <remarks>
+    ///     It used to be popped and handed to <see cref="InboundFrame.FromWire" />, which reads
+    ///     index 3 unconditionally; on the plaintext path the resulting throw was logged and the
+    ///     receive re-armed, so the three bytes <c>AA 00 00</c> could be replayed indefinitely at
+    ///     no cost to the sender.
+    /// </remarks>
+    [Fact]
+    public void ZeroLengthBodyIsRefusedAsMalformed()
+    {
+        var state = new ClientState(new TestSocket());
+        Feed(state, [0xAA, 0x00, 0x00]);
+
+        Assert.Throws<InvalidDataException>(() => state.TryGetFrame(out _));
+    }
 }

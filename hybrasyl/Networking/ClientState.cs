@@ -18,11 +18,13 @@
 
 using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
+using Hybrasyl.Protocol.Framing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -32,6 +34,15 @@ namespace Hybrasyl.Networking;
 public class ClientState(ISocketProxy incoming) : IClientState
 {
     private const int BufferSize = 65600;
+
+    /// <summary>[0xAA][u16 body length] precedes every retail C→S frame.</summary>
+    private const int FrameHeaderLength = 3;
+
+    /// <summary>
+    ///     The header plus the opcode <see cref="InboundFrame.FromWire" /> reads at index 3; a
+    ///     shorter frame declares a zero-length body and carries no opcode at all.
+    /// </summary>
+    private const int MinimumFrameLength = FrameHeaderLength + 1;
 
     private readonly object _recvlock = new();
 
@@ -194,23 +205,30 @@ public class ClientState(ISocketProxy incoming) : IClientState
         Connected = false;
     }
 
+    /// <summary>
+    ///     Pops one complete retail frame off the front of the receive buffer, if one has fully
+    ///     arrived. Callers route by first byte and must only call this on a retail frame.
+    /// </summary>
+    /// <exception cref="InvalidDataException">
+    ///     The frame declares a zero-length body, so it carries no opcode for
+    ///     <see cref="InboundFrame.FromWire" /> to read. Callers disconnect: the boundary is
+    ///     unrecoverable, and reading past it lets one malformed write be replayed indefinitely.
+    /// </exception>
     public bool TryGetFrame(out InboundFrame frame)
     {
         frame = default;
         lock (ReceiveLock)
         {
-            if (Buffer.Length != 0 && Buffer[0] == 0xAA && Buffer.Length > 3)
-            {
-                var packetLength = (Buffer[1] << 8) + Buffer[2] + 3;
-                // Complete frame, pop it off and return it
-                if (BytesReceived >= packetLength)
-                {
-                    frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength).ToArray());
-                    return true;
-                }
-            }
+            if (BytesReceived < FrameHeaderLength || Buffer[0] != FrameRouter.RetailMarker) return false;
 
-            return false;
+            var packetLength = (Buffer[1] << 8) + Buffer[2] + FrameHeaderLength;
+            if (packetLength < MinimumFrameLength)
+                throw new InvalidDataException($"cid {Id}: retail frame declares a zero-length body");
+
+            if (BytesReceived < packetLength) return false;
+
+            frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength));
+            return true;
         }
     }
 
