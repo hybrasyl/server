@@ -24,7 +24,6 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Threading;
@@ -33,8 +32,6 @@ namespace Hybrasyl.Networking;
 
 public static class GlobalConnectionManifest
 {
-    private static readonly byte[] InvalidEncryptionKey = Encoding.ASCII.GetBytes("NOTVALID!");
-
     private static long _connectionId;
 
     public static ConcurrentDictionary<long, IClient> ConnectedClients = new();
@@ -85,9 +82,18 @@ public static class GlobalConnectionManifest
         }
     }
 
-    public static byte[] RequestEncryptionKey(string endpoint, IPAddress remoteAddress)
+    /// <summary>
+    ///     Asks the configured encryption endpoint for this connection's key.
+    /// </summary>
+    /// <returns>
+    ///     False if no key could be obtained. Callers must refuse the connection rather than
+    ///     proceed: the key is what a redirect is matched on, so continuing without one would let
+    ///     an endpoint outage hand every connection in that window the same guessable credential.
+    /// </returns>
+    public static bool TryRequestEncryptionKey(string endpoint, IPAddress remoteAddress,
+        [MaybeNullWhen(false)] out byte[] encryptionKey)
     {
-        byte[] key;
+        encryptionKey = null;
 
         try
         {
@@ -107,17 +113,17 @@ public static class GlobalConnectionManifest
             var response = webReq.GetResponse();
             using (var sr = new StreamReader(response.GetResponseStream()))
             {
-                key = JsonSerializer.Deserialize<byte[]>(sr.ReadToEnd()) ?? InvalidEncryptionKey;
+                encryptionKey = JsonSerializer.Deserialize<byte[]>(sr.ReadToEnd());
             }
         }
         catch (Exception e)
         {
             Game.ReportException(e);
             GameLog.Error("RequestEncryptionKey failure: {e}", e);
-            key = InvalidEncryptionKey;
+            return false;
         }
 
-        return key;
+        return encryptionKey != null;
     }
 
     public static bool ValidateEncryptionKey(string endpoint, ServerToken token)

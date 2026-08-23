@@ -63,26 +63,39 @@ public class Client : AbstractClient, IClient
             ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString(),
             ((IPEndPoint)socket.RemoteEndPoint!).Port);
 
+        var refused = false;
+
         if (server is Lobby)
         {
-            EncryptionKey = Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint != null
-                ? GlobalConnectionManifest.RequestEncryptionKey(
-                    Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint.Url,
-                    ((IPEndPoint)socket.RemoteEndPoint!).Address)
-                : Encoding.ASCII.GetBytes("UrkcnItnI");
-            GameLog.InfoFormat("EncryptionKey is {EncryptionKey}", Encoding.ASCII.GetString(EncryptionKey));
+            var remote = ((IPEndPoint)socket.RemoteEndPoint!).Address;
 
-            var valid = Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint != null
-                ? GlobalConnectionManifest.ValidateEncryptionKey(
-                    Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint.Url,
-                    new ServerToken
-                    { Ip = ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString(), Seed = EncryptionKey })
-                : true;
-
-            if (!valid)
+            if (Game.ActiveConfiguration.ApiEndpoints.EncryptionEndpoint is { } encryptionEndpoint)
             {
-                GameLog.ErrorFormat("Invalid key from {IP}", ((IPEndPoint)Socket.RemoteEndPoint!).Address.ToString());
-                socket.Disconnect(true);
+                // Fail closed. Every failure here used to yield the same fixed key, so an endpoint
+                // that was down handed every connection in that window one shared published value
+                // -- and the key is one of the three fields a redirect is matched on.
+                if (GlobalConnectionManifest.TryRequestEncryptionKey(encryptionEndpoint.Url, remote,
+                        out var requested))
+                {
+                    EncryptionKey = requested;
+                }
+                else
+                {
+                    GameLog.Error("Could not obtain an encryption key for {IP}, refusing connection", remote);
+                    refused = true;
+                }
+            }
+            else
+            {
+                EncryptionKey = Encoding.ASCII.GetBytes("UrkcnItnI");
+            }
+
+            if (!refused && Game.ActiveConfiguration.ApiEndpoints.ValidationEndpoint is { } validationEndpoint &&
+                !GlobalConnectionManifest.ValidateEncryptionKey(validationEndpoint.Url,
+                    new ServerToken { Ip = remote.ToString(), Seed = EncryptionKey }))
+            {
+                GameLog.ErrorFormat("Invalid key from {IP}", remote.ToString());
+                refused = true;
             }
         }
 
@@ -91,6 +104,8 @@ public class Client : AbstractClient, IClient
         GlobalConnectionManifest.RegisterClient(this);
 
         ConnectedSince = DateTime.Now.Ticks;
+
+        if (refused) socket.Disconnect(true);
     }
 
     public IClientState ClientState { get; set; } = null!; // set by the socket ctor; parameterless ctor is degenerate
@@ -614,7 +629,6 @@ public class Client : AbstractClient, IClient
         GameLog.InfoFormat("Processing redirect");
         GlobalConnectionManifest.RegisterRedirect(this, redirect);
         GameLog.InfoFormat("Redirect: cid {0}", ConnectionId);
-        GameLog.Info("Redirect EncryptionKey is {EncryptionKey}", Encoding.ASCII.GetString(redirect.EncryptionKey));
         if (isLogoff) GlobalConnectionManifest.DeregisterClient(this);
         redirect.Destination.ExpectedConnections.TryAdd(redirect.Id, redirect);
 

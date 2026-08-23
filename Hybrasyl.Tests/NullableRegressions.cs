@@ -362,19 +362,22 @@ public class NullableRegressions
     // receive guard unobservable, which was itself a false coverage claim sitting on a live
     // defect (ReceiveFrame enqueued without flushing).
 
-    // Site: GlobalConnectionManifest.RequestEncryptionKey — key endpoint returns a JSON
-    // null body. Pre-migration: a null key was returned (NRE downstream). Now: the
-    // "NOTVALID!" sentinel key is returned.
+    // Site: GlobalConnectionManifest.TryRequestEncryptionKey — key endpoint returns a JSON
+    // null body. Pre-migration: a null key was returned (NRE downstream). Then: the
+    // "NOTVALID!" sentinel was handed back to the caller as if it were a key, which is the
+    // shared-fixed-key degradation. Now: the failure is reported and the caller refuses.
     [Fact]
-    public async Task RequestEncryptionKeyNullResponseReturnsInvalidSentinel()
+    public async Task RequestEncryptionKeyNullResponseIsReportedAsFailure()
     {
         var (listener, prefix) = StartListener();
         var served = ServeOneJsonNull(listener);
         try
         {
-            var key = GlobalConnectionManifest.RequestEncryptionKey(prefix, IPAddress.Loopback);
+            var obtained = GlobalConnectionManifest.TryRequestEncryptionKey(prefix, IPAddress.Loopback,
+                out var key);
             await served.WaitAsync(TimeSpan.FromSeconds(10));
-            Assert.Equal(Encoding.ASCII.GetBytes("NOTVALID!"), key);
+            Assert.False(obtained, "a key endpoint answering null yielded a usable key");
+            Assert.Null(key);
         }
         finally
         {
