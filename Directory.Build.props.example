@@ -1,0 +1,52 @@
+<!--
+  Per-machine build overrides.
+
+  Copy to Directory.Build.props (git-ignored) and edit. MSBuild imports it from the
+  repo root before any project file, and hybrasyl/Hybrasyl.csproj writes its own
+  defaults with Condition="'$(X)' == ''", so anything set here wins.
+
+  The case this exists for: testing a Hybrasyl.Protocol or Hybrasyl.Xml change on
+  the machine that runs the server, before it is published to NuGet. Setting a
+  toggle here makes every build in this checkout - dotnet build, dotnet run,
+  dotnet test, and the IDE - use the sibling checkout, with no -p: flag to
+  remember and nothing to revert before committing.
+
+  EPONA OWNS THIS FILENAME. Epona generates a Directory.Build.props in each
+  worktree it manages, pointing at a local XML branch,
+  and will overwrite whatever is here. Hand-write one only in a checkout Epona is
+  not managing; in an Epona instance, let Epona set the XML properties and expect
+  your edits to be replaced.
+
+  BOTH ENDS MUST RUN THE SAME Hybrasyl.Protocol BUILD. The negotiation exchange
+  establishes the dialect and so cannot itself be versioned by it, so a server on a
+  local build and a client on the published package fail during the handshake with
+  nothing on either side naming the cause. When testing an unpublished
+  Hybrasyl.Protocol change, activate the matching override in the client too.
+
+  Verify it took effect - a config file that silently no-ops is worse than none:
+
+      dotnet msbuild hybrasyl/Hybrasyl.csproj -getProperty:UseLocalProtocol
+      dotnet restore && grep -A2 '"Hybrasyl.Protocol"' hybrasyl/obj/project.assets.json
+
+  The second is the one that settles it: the entry must read "type": "project". A
+  green build is not evidence, because it can resolve off a stale obj/ while the
+  reference is wrong.
+-->
+<Project>
+    <PropertyGroup>
+
+        <!-- Build Hybrasyl.Protocol from the sibling Hybrasyl.Protocol checkout instead of the pinned package. -->
+        <UseLocalProtocol>true</UseLocalProtocol>
+
+        <!-- The same toggles exist for DALib and Hybrasyl.Xml. -->
+        <!-- <UseLocalDALib>true</UseLocalDALib> -->
+        <!-- <UseLocalXml>true</UseLocalXml> -->
+
+        <!-- Paths are only needed where the checkouts are not siblings of this repo;
+             Hybrasyl.csproj already defaults to ../Hybrasyl.Protocol, ../dalib and ../xml. -->
+        <!-- <LocalProtocolProjectPath>/path/to/Hybrasyl.Protocol/src/Hybrasyl.Protocol/Hybrasyl.Protocol.csproj</LocalProtocolProjectPath> -->
+        <!-- <LocalDALibProjectPath>/path/to/dalib/DALib/DALib.csproj</LocalDALibProjectPath> -->
+        <!-- <LocalXmlProjectPath>/path/to/xml/src/Hybrasyl.Xml.csproj</LocalXmlProjectPath> -->
+
+    </PropertyGroup>
+</Project>
