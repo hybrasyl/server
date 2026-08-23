@@ -170,6 +170,13 @@ public static class Game
         Servers[s.Guid] = s;
     }
 
+    /// <summary>
+    ///     A snapshot of the registered listeners, for jobs that must sweep per-server state.
+    ///     Copied because <see cref="Servers" /> is a plain dictionary written at startup and read
+    ///     from timer threads.
+    /// </summary>
+    internal static IReadOnlyList<Server> RegisteredServers => Servers.Values.ToList();
+
     public static void ToggleActive()
     {
         if (Interlocked.Read(ref Active) == 0)

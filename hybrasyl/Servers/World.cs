@@ -2224,7 +2224,11 @@ public class World : Server
         var name = join.Name;
         var id = join.RedirectId;
 
-        if (!ExpectedConnections.TryGetValue(id, out var redirect) || !redirect.Matches(name, key, seed))
+        // Expiry is part of validity here and not left to the reaper: the sweep runs on an
+        // interval, so a redirect stays spendable for its lifetime plus however long until the
+        // next pass.
+        if (!ExpectedConnections.TryGetValue(id, out var redirect) || !redirect.Matches(name, key, seed) ||
+            redirect.Expired)
         {
             GameLog.Warning("cid {ConnectionId}: join for {Name} carries no valid redirect, disconnecting",
                 connectionId, name);

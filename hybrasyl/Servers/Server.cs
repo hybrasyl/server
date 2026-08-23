@@ -400,6 +400,13 @@ public class Redirect
 {
     private static uint id;
 
+    /// <summary>
+    ///     How long a redirect stays in the tables. It is minted at the end of a login and consumed
+    ///     by the join the client makes immediately after, so this bounds an automatic handoff and
+    ///     not anything a person waits through. Internal-settable for tests.
+    /// </summary>
+    internal static TimeSpan Lifetime { get; set; } = TimeSpan.FromMinutes(2);
+
     public Redirect(IClient client, Server source, Server destination, string name, byte seed, byte[] key)
     {
         Id = id++;
@@ -410,6 +417,12 @@ public class Redirect
         EncryptionSeed = seed;
         EncryptionKey = key;
     }
+
+    /// <summary>When this redirect was minted, for <see cref="Expired" />.</summary>
+    public DateTime Created { get; } = DateTime.Now;
+
+    /// <summary>Whether this redirect has outlived <see cref="Lifetime" /> and may be swept.</summary>
+    public bool Expired => DateTime.Now - Created > Lifetime;
 
     public uint Id { get; set; }
     public IClient Client { get; set; }
