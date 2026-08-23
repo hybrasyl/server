@@ -278,25 +278,34 @@ public class Login : Server
             return;
         }
 
+        if (!redirect.Matches(name, key, seed))
+        {
+            GameLog.Warning("Login: client join for {Name} does not match redirect {RedirectId}, disconnecting",
+                name, id);
+            client.Disconnect();
+            return;
+        }
+
+        ((IDictionary)ExpectedConnections).Remove(id);
+
+        // Only past Matches is the client-supplied name known to be the one this redirect was
+        // issued for. Persisting it first meant any caller holding any valid redirect could move
+        // any named account's login state -- which is the state Login and World read to refuse a
+        // second concurrent login, so it removed that guard rather than merely vandalizing.
         if (Game.World.WorldState.TryGetAuthInfo(name, out var login))
         {
             login.CurrentState = UserState.Login;
             login.Save();
         }
 
-        if (redirect.Matches(name, key, seed))
-        {
-            ((IDictionary)ExpectedConnections).Remove(id);
+        client.EncryptionKey = key;
+        client.EncryptionSeed = seed;
 
-            client.EncryptionKey = key;
-            client.EncryptionSeed = seed;
-
-            if (redirect.Source is Lobby || redirect.Source is World)
-                client.Enqueue(new LoginNotificationPacket
-                {
-                    Form = new NotificationChecksumForm { Checksum = Game.NotificationCrc }
-                });
-        }
+        if (redirect.Source is Lobby || redirect.Source is World)
+            client.Enqueue(new LoginNotificationPacket
+            {
+                Form = new NotificationChecksumForm { Checksum = Game.NotificationCrc }
+            });
     }
 
     // Chart for all error password-related error codes were provided by kojasou@ on

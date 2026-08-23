@@ -25,11 +25,13 @@ using Hybrasyl.Protocol.Transport;
 using Hybrasyl.Protocol.Wire;
 using Hybrasyl.Protocol.Packets;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -398,8 +400,6 @@ public class Server
 
 public class Redirect
 {
-    private static uint id;
-
     /// <summary>
     ///     How long a redirect stays in the tables. It is minted at the end of a login and consumed
     ///     by the join the client makes immediately after, so this bounds an automatic handoff and
@@ -409,7 +409,11 @@ public class Redirect
 
     public Redirect(IClient client, Server source, Server destination, string name, byte seed, byte[] key)
     {
-        Id = id++;
+        // The id is the only part of this credential an attacker does not already hold: the name is
+        // public, the seed is one byte, and the key is a per-connection value that falls back to a
+        // published constant when no encryption endpoint is configured. A counter therefore made
+        // the whole of Matches guessable. The wire field is a full uint on both sides.
+        Id = BinaryPrimitives.ReadUInt32LittleEndian(RandomNumberGenerator.GetBytes(sizeof(uint)));
         Client = client;
         Source = source;
         Destination = destination;
