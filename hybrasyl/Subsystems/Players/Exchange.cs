@@ -224,44 +224,42 @@ public class Exchange
 
     public bool AddGold(User giver, uint amount)
     {
+        // One body for both directions: the halves are mirror images, and the drift between two
+        // hand-maintained copies -- the target side missing the balance check -- was the defect.
+        User other;
+        ref var giverEscrow = ref _sourceGold;
+
         if (giver == _source)
         {
-            if (amount > uint.MaxValue - _sourceGold)
-            {
-                _source.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
-                return false;
-            }
-
-            if (amount > _source.Gold)
-            {
-                _source.SendMessage("You don't have that much gold.", MessageTypes.SYSTEM);
-                return false;
-            }
-
-            _sourceGold += amount;
-            _source.SendExchangeUpdate(amount);
-            _target.SendExchangeUpdate(amount, false);
-            _source.Stats.Gold -= amount;
-            _source.UpdateAttributes(StatUpdateFlags.Experience);
+            other = _target;
         }
         else if (giver == _target)
         {
-            if (amount > uint.MaxValue - _targetGold)
-            {
-                _target.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
-                return false;
-            }
-
-            _targetGold += amount;
-            _target.SendExchangeUpdate(amount);
-            _source.SendExchangeUpdate(amount, false);
-            _target.Stats.Gold -= amount;
-            _target.UpdateAttributes(StatUpdateFlags.Experience);
+            other = _source;
+            giverEscrow = ref _targetGold;
         }
         else
         {
             return false;
         }
+
+        if (amount > uint.MaxValue - giverEscrow)
+        {
+            giver.SendMessage("No more gold can be added to this exchange.", MessageTypes.SYSTEM);
+            return false;
+        }
+
+        if (amount > giver.Gold)
+        {
+            giver.SendMessage("You don't have that much gold.", MessageTypes.SYSTEM);
+            return false;
+        }
+
+        giverEscrow += amount;
+        giver.SendExchangeUpdate(amount);
+        other.SendExchangeUpdate(amount, false);
+        giver.Stats.Gold -= amount;
+        giver.UpdateAttributes(StatUpdateFlags.Experience);
 
         return true;
     }
@@ -288,8 +286,8 @@ public class Exchange
     {
         foreach (var item in _sourceItems) _source.AddItem(item);
         foreach (var item in _targetItems) _target.AddItem(item);
-        _source.AddGold(_sourceGold);
-        _target.AddGold(_targetGold);
+        CreditGold(_source, _source, _sourceGold);
+        CreditGold(_target, _target, _targetGold);
         _source.SendExchangeCancellation(requestor == _source);
         _target.SendExchangeCancellation(requestor == _target);
         _source.ActiveExchange = null;
@@ -297,6 +295,41 @@ public class Exchange
         _source.Condition.InExchange = false;
         _target.Condition.InExchange = false;
         return true;
+    }
+
+    /// <summary>
+    ///     Credits <paramref name="amount" /> to <paramref name="recipient" />, handing it back to
+    ///     <paramref name="owner" /> if the recipient cannot hold it.
+    /// </summary>
+    /// <remarks>
+    ///     Escrowed gold was debited from its owner when the offer was staged, so
+    ///     <see cref="User.AddGold(uint)" /> returning false and being discarded destroys it
+    ///     outright — it is in neither player's purse and no longer in the exchange. Both credits
+    ///     can be refused, including the owner's on a cancellation: nothing stops a player filling
+    ///     their purse to <c>PlayerMaxGold</c> while the window is open. The last resort drops it
+    ///     at their feet, which is what <see cref="User.AddItem(ItemObject, bool)" /> already does
+    ///     with an item the recipient cannot carry. Items therefore need no equivalent here.
+    /// </remarks>
+    private static void CreditGold(User recipient, User owner, uint amount)
+    {
+        if (amount == 0 || recipient.AddGold(amount)) return;
+
+        GameLog.UserActivityWarning("exchange: {Recipient} could not receive {Amount} gold; returning it to {Owner}",
+            recipient.Name, amount, owner.Name);
+
+        if (!ReferenceEquals(recipient, owner) && owner.AddGold(amount)) return;
+
+        if (owner.Location.Map is { } map)
+        {
+            var pile = new Gold(amount);
+            Game.World.Insert(pile);
+            map.AddGold(owner.X, owner.Y, pile);
+            owner.SendSystemMessage("You cannot carry any more gold.");
+            return;
+        }
+
+        GameLog.UserActivityError("exchange: {Amount} gold belonging to {Owner} could not be returned and is lost",
+            amount, owner.Name);
     }
 
     /// <summary>
@@ -308,8 +341,8 @@ public class Exchange
         GameLog.Info("Performing exchange");
         foreach (var item in _sourceItems) _target.AddItem(item);
         foreach (var item in _targetItems) _source.AddItem(item);
-        _source.AddGold(_targetGold);
-        _target.AddGold(_sourceGold);
+        CreditGold(_source, _target, _targetGold);
+        CreditGold(_target, _source, _sourceGold);
 
         _source.ActiveExchange = null;
         _target.ActiveExchange = null;
