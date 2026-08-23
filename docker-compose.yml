@@ -8,9 +8,15 @@ services:
       else
         git clone https://github.com/hybrasyl/ceridwen.git /world;
       fi &&
-      if [ ! -e /world/grpc-cert.pem ]; then
-        openssl req -x509 -newkey rsa:2048 -nodes -subj "/CN=hybrasyl-docker" -addext "subjectAltName=DNS:hybrasyl-server,DNS:localhost,IP:127.0.0.1" -keyout /world/grpc-key.pem -out /world/grpc-cert.pem -days 365 -sha256 &&
-        chmod 755 /world/grpc-cert.pem /world/grpc-key.pem
+      if ! { [ -s /world/grpc-chain.pem ] && [ -s /world/grpc-cert.pem ] && [ -s /world/grpc-key.pem ] && [ -s /world/hybctl-cert.pem ] && [ -s /world/hybctl-key.pem ]; }; then
+        printf 'subjectAltName=DNS:hybrasyl-server,DNS:localhost,IP:127.0.0.1\n' > /tmp/san.cnf &&
+        openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -sha256 -subj "/CN=hybrasyl-grpc-ca" -keyout /tmp/ca-key.pem -out /world/grpc-chain.pem &&
+        openssl req -newkey rsa:2048 -nodes -subj "/CN=hybrasyl-docker" -keyout /world/grpc-key.pem -out /tmp/server.csr &&
+        openssl x509 -req -in /tmp/server.csr -CA /world/grpc-chain.pem -CAkey /tmp/ca-key.pem -CAcreateserial -days 365 -sha256 -extfile /tmp/san.cnf -out /world/grpc-cert.pem &&
+        openssl req -newkey rsa:2048 -nodes -subj "/CN=hybctl" -keyout /world/hybctl-key.pem -out /tmp/hybctl.csr &&
+        openssl x509 -req -in /tmp/hybctl.csr -CA /world/grpc-chain.pem -CAkey /tmp/ca-key.pem -CAcreateserial -days 365 -sha256 -out /world/hybctl-cert.pem &&
+        rm -f /tmp/ca-key.pem /tmp/server.csr /tmp/hybctl.csr /tmp/san.cnf /world/grpc-chain.srl &&
+        chmod 755 /world/grpc-cert.pem /world/grpc-key.pem /world/grpc-chain.pem /world/hybctl-cert.pem /world/hybctl-key.pem
       fi"
     volumes:
       - world:/world

@@ -40,7 +40,11 @@ the server. docker-compose uses this in particular. -->
            A cert and key WITHOUT a chain used to give you an encrypted endpoint
            that authenticated nobody. That is no longer a mode you can select.
 
-           Generate a CA, a server cert, and one client cert per operator:
+           docker-compose generates all of these into the world volume on first
+           run, including a hybctl client certificate; the CA key is created in
+           the throwaway container and never written to the volume, so adding
+           another operator later means regenerating. Otherwise, by hand --
+           a CA, a server cert, and one client cert per operator:
 
              openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -sha256 \
                -subj "/CN=hybrasyl-grpc-ca" -keyout grpc-ca-key.pem -out grpc-chain.pem
