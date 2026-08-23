@@ -45,7 +45,15 @@ public class OptionsDialog(string displayText) : InputDialog(DialogTypes.OPTIONS
             Log.Warning(
                 "Options dialog {DialogPath}: no option passed its check expression, ending the dialog",
                 DialogPath);
-            invocation.Target.ClearDialogState();
+
+            // An async session is held on both participants, in ActiveDialogSession, which is not
+            // part of DialogState -- so clearing the target's dialog state alone would close the UI
+            // and leave both marked busy for every later request. Close() tears down both halves and
+            // does the ClearDialogState itself.
+            if (invocation.Target.ActiveDialogSession is { } asyncSession)
+                asyncSession.Close();
+            else
+                invocation.Target.ClearDialogState();
             return;
         }
 

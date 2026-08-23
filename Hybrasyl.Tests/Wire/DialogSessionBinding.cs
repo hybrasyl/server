@@ -264,26 +264,40 @@ public class DialogSessionBinding
     /// <remarks>
     ///     This is the case that decided the default: OwnsSession denies anything not established as
     ///     able to own a session, rather than permitting anything it does not recognise.
+    ///     <para>
+    ///     The reactor is constructed and inserted directly rather than spawned through a trap
+    ///     castable, so that this leaves the shared fixture's user, skillbook and map as it found
+    ///     them.
+    ///     </para>
     /// </remarks>
     [Fact]
     public void AnUnassociatedReactor_CannotSeizeTheDialogSession()
     {
         var (here, _) = TwoMarias();
 
-        Fixture.TestUser.SkillBook.Clear();
-        Fixture.TestUser.Stats.Level = 41;
-        Fixture.TestUser.Teleport(Fixture.Map.Id, 20, 20);
-        var trap = Game.World.WorldData.GetByIndex<Castable>("TestTrapMulti");
-        Assert.True(Fixture.TestUser.AddSkill(trap, 1), "couldn't add the trap castable");
-        Assert.True(Fixture.TestUser.UseCastable(trap), "UseCastable failed");
+        var reactor = new Objects.Reactor(
+            new Xml.Objects.Reactor
+            {
+                X = Fixture.TestUser.X,
+                Y = Fixture.TestUser.Y,
+                Blocking = false,
+                DisplayName = "DialogSessionBindingReactor"
+            }, Fixture.Map);
+        Fixture.Map.InsertReactor(reactor);
 
-        var reactor = Fixture.Map.Reactors[(Fixture.TestUser.X, Fixture.TestUser.Y)].Values.First();
         Assert.True(Game.World.Objects.ContainsKey(reactor.Id),
             "precondition: the reactor must be resolvable from World.Objects, as 0x3A resolves it");
+        Assert.True(Fixture.TestUser.GetViewport().Contains(reactor.X, reactor.Y),
+            "precondition: the reactor must be in range, so this tests association and not distance");
 
         var pursuitId = (uint) Game.ActiveConfiguration.Constants.DialogSequenceShared + 1;
         var sequence = MenuWithJumpOption(here, pursuitId);
-        reactor.SequenceIndex[JumpTarget] = new DialogSequence(JumpTarget) { Id = pursuitId + 2 };
+
+        // A real destination, so that a seizure would land somewhere rather than throwing on an
+        // empty sequence -- otherwise the mutation goes red before reaching the state assertions.
+        var reactorDestination = new DialogSequence(JumpTarget) { Id = pursuitId + 2 };
+        reactorDestination.AddDialog(new OptionsDialog("seized"));
+        reactor.SequenceIndex[JumpTarget] = reactorDestination;
 
         Fixture.TestUser.DialogState.EndDialog();
         Assert.True(Fixture.TestUser.DialogState.StartDialog(here, sequence),
@@ -302,7 +316,9 @@ public class DialogSessionBinding
         {
             Fixture.TestUser.DialogState.EndDialog();
             here.SequenceIndex.Remove(JumpTarget);
-            reactor.SequenceIndex.Remove(JumpTarget);
+            Fixture.Map.Reactors[(reactor.X, reactor.Y)].Remove(reactor.Guid);
+            Fixture.Map.Remove(reactor);
+            Game.World.Remove(reactor);
         }
     }
 

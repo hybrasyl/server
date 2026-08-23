@@ -218,11 +218,68 @@ public class DialogOptionAuthorization
 
             Assert.False(Fixture.TestUser.DialogState.InDialog,
                 "the player is still in a dialog with no options to answer");
+
+            // Ending the state server-side is not enough: without a close packet the client keeps
+            // whatever dialog it is already displaying, which is the case that matters when an
+            // all-hidden menu follows a visible one.
+            Assert.True(client.ClientState.SendBufferTake(out var queued),
+                "no packet was sent, so the client was never told to close");
+            Assert.Equal(0x30, queued.Opcode);
         }
         finally
         {
             restore.Dispose();
             Fixture.TestUser.DialogState.EndDialog();
+        }
+    }
+
+    /// <summary>
+    ///     An async session lives on both participants in <c>ActiveDialogSession</c>, which is not
+    ///     part of <c>DialogState</c> -- so ending the dialog state alone closes the UI and leaves
+    ///     both of them marked busy for every later request.
+    /// </summary>
+    [Fact]
+    public void AnAllHiddenAsyncMenu_TearsDownTheSessionForBothParticipants()
+    {
+        var source = Fixture.SecondTestUser;
+        var target = Fixture.TestUser;
+
+        var menu = new OptionsDialog("Nothing for you");
+        menu.AddDialogOption(new DialogOption { OptionText = "Hidden", CheckExpression = "return false" });
+        var sequence = new DialogSequence("DialogOptionAuthAsyncAllHidden") { Id = 90004 };
+        sequence.AddDialog(menu);
+
+        var castable = Game.World.WorldState.Values<CastableObject>().FirstOrDefault();
+        Assert.True(castable is not null, "precondition: a scripted castable must exist");
+        castable!.SequenceIndex[sequence.Name] = sequence;
+
+        var targetClient = HybrasylFixture.AttachTestClient(target, out var restoreTarget);
+        var sourceClient = HybrasylFixture.AttachTestClient(source, out var restoreSource);
+
+        try
+        {
+            var session = new AsyncDialogSession(sequence.Name, castable, source, target);
+            Assert.True(session.Start(), "couldn't start the async session");
+            Assert.Same(session, target.ActiveDialogSession);
+            Assert.Same(session, source.ActiveDialogSession);
+
+            target.DialogState.EndDialog();
+            Assert.True(target.DialogState.StartDialog(session, sequence),
+                "couldn't start the probe dialog");
+
+            menu.ShowTo(new DialogInvocation(castable, target, source));
+
+            Assert.Null(target.ActiveDialogSession);
+            Assert.Null(source.ActiveDialogSession);
+        }
+        finally
+        {
+            restoreSource.Dispose();
+            restoreTarget.Dispose();
+            target.ActiveDialogSession = null;
+            source.ActiveDialogSession = null;
+            target.DialogState.EndDialog();
+            castable.SequenceIndex.Remove(sequence.Name);
         }
     }
 }
