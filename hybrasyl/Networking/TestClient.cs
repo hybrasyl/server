@@ -20,6 +20,7 @@ using Hybrasyl.Interfaces;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Servers;
+using Hybrasyl.Protocol.Wire;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -87,6 +88,8 @@ public class TestClient : AbstractClient, IClient
 
     // TestClient has no receive loop; queue without flushing.
     public void ReceiveFrame(InboundFrame frame) => ClientState.ReceiveBufferAdd(frame);
+
+    public void ReceiveExtensionPacket(IExtensionClientPacket packet) { }
 
     // TestClient captures outbound traffic; it has no CryptoState, so there is nothing to
     // encode an inbound frame against. Tests that need to drive a handler invoke it directly.

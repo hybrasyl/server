@@ -22,6 +22,7 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Protocol.Transport;
+using Hybrasyl.Protocol.Wire;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,6 +40,8 @@ public delegate void LoginPacketHandler(IClient client, InboundBody packet);
 public delegate void WorldPacketHandler(object obj, InboundBody packet);
 
 public delegate void ControlMessageHandler(HybrasylControlMessage message);
+
+public delegate void ExtensionPacketHandler(IClient client, IExtensionClientPacket packet);
 
 public class Server
 {
@@ -63,6 +66,18 @@ public class Server
         foreach (var opcode in Enum.GetValues<ControlOpcode>())
             ControlMessageHandlers[opcode] = p =>
                 GameLog.Warning("{ServerType}: Unhandled control message type {ControlOpcode}", GetType().Name, opcode);
+
+        // Extension infrastructure opcodes are answered by every server in the stack; a
+        // dialect connection on lobby, login, or world heartbeats the same way.
+        // An exchange is one opcode across both directions, so the reply to a client probe is
+        // another ClientEcho rather than a differently-numbered packet.
+        ExtensionHandlers[Hybrasyl.Protocol.Wire.ExtensionOpcodes.ClientEcho] = (client, packet) =>
+        {
+            if (packet is Hybrasyl.Protocol.Packets.ClientEcho echo && client.ClientState.Tls is { } tls)
+                tls.Send(new Hybrasyl.Protocol.Packets.ClientEcho(echo.Token));
+        };
+        ExtensionHandlers[Hybrasyl.Protocol.Wire.ExtensionOpcodes.ServerEcho] = (client, packet) =>
+            GameLog.Debug("cid {ConnectionId}: ServerEcho reply received", client.ConnectionId);
         Default = isDefault;
         Task.Run(ProcessOutbound);
         Game.RegisterServer(this);
@@ -72,6 +87,13 @@ public class Server
     public bool Default { get; set; }
     public ISocketProxy? Listener { get; private set; }
     public Dictionary<byte, WorldPacketHandler> WorldPacketHandlers { get; } = new();
+
+    /// <summary>
+    ///     Handlers for native extension packets (u16 opcodes), keyed by opcode. Unlike the
+    ///     byte-indexed retail arrays there is no 256-slot pre-fill; an unregistered opcode is
+    ///     logged and discarded at dispatch.
+    /// </summary>
+    public Dictionary<ushort, ExtensionPacketHandler> ExtensionHandlers { get; } = new();
 
     /// <summary>
     ///     Opcodes with a real handler, as opposed to the unhandled-opcode logger every one of the
@@ -263,11 +285,21 @@ public class Server
                 case InboundKind.Retail:
                     client.ClientState.Transport = TransportKind.Plaintext;
                     break;
+                case InboundKind.TlsHandshake when Game.TlsCertificate is { } certificate:
+                    {
+                        client.ClientState.Transport = TransportKind.Tls;
+                        // The buffered bytes are the front of the ClientHello; they belong to the
+                        // handshake, never to the application. No receive is re-armed - from here
+                        // the session's pump is the socket's only reader.
+                        var clientHello = client.ClientState.Buffer
+                            .AsSpan(0, client.ClientState.BytesReceived).ToArray();
+                        client.ClientState.BytesReceived = 0;
+                        _ = TlsSession.StartAsync(client, clientHello, certificate, Game.TlsMaxFrameSize);
+                        return;
+                    }
                 case InboundKind.TlsHandshake:
-                    // The upgrade seam lands in HS-1621 slice 4. Until then the marker is never
-                    // advertised, so a ClientHello is an unsupported client, not a capable one.
                     GameLog.Warning(
-                        "cid {ConnectionId}: TLS ClientHello received but the upgrade is not enabled, disconnecting", client.ConnectionId);
+                        "cid {ConnectionId}: TLS ClientHello received but no certificate is configured, disconnecting", client.ConnectionId);
                     client.Disconnect();
                     return;
                 default:

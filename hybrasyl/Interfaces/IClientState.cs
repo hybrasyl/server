@@ -32,6 +32,12 @@ public interface IClientState
     /// </summary>
     public TransportKind Transport { get; set; }
 
+    /// <summary>
+    ///     The TLS channel, once the STARTTLS upgrade completes; null on plaintext connections
+    ///     and during the handshake. The send path routes through it when present.
+    /// </summary>
+    public TlsSession? Tls { get; set; }
+
     public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; }
     public int SendBufferDepth { get; }
@@ -51,6 +57,14 @@ public interface IClientState
     public void ResetSend();
     public void Dispose();
     public bool TryGetFrame(out InboundFrame frame);
+
+    /// <summary>
+    ///     Grows the receive buffer to <paramref name="newSize" /> bytes, preserving unconsumed
+    ///     content. Only the TLS pump calls this - an extension frame may exceed the fixed
+    ///     retail buffer - and the pop that consumes the oversized frame shrinks back to the
+    ///     default size. No-op when the buffer is already at least <paramref name="newSize" />.
+    /// </summary>
+    public void GrowReceiveBuffer(int newSize);
     public void ReceiveBufferAdd(InboundFrame frame);
     public bool ReceiveBufferTake(out InboundFrame frame);
 }

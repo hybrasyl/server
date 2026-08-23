@@ -65,7 +65,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Humanizer.Core" Version="3.0.10" />
-    <PackageReference Include="Hybrasyl.Protocol" Version="0.0.1" Condition="'$(UseLocalProtocol)' != 'true'" />
+    <PackageReference Include="Hybrasyl.Protocol" Version="0.0.3" Condition="'$(UseLocalProtocol)' != 'true'" />
     <ProjectReference Include="$(LocalProtocolProjectPath)" Condition="'$(UseLocalProtocol)' == 'true'" />
     <PackageReference Include="Hybrasyl.Xml" Version="1.0.0-alpha2" Condition="'$(UseLocalXml)' != 'true'" />
     <ProjectReference Include="$(LocalXmlProjectPath)" Condition="'$(UseLocalXml)' == 'true'" />

@@ -40,6 +40,7 @@ public class ClientState(ISocketProxy incoming) : IClientState
     private ConcurrentQueue<QueuedPacket> _sendBuffer = new();
 
     public TransportKind Transport { get; set; } = TransportKind.Undecided;
+    public TlsSession? Tls { get; set; }
     public int BytesReceived { get; set; }
     public ManualResetEvent SendComplete { get; set; } = new(false);
 
@@ -152,6 +153,17 @@ public class ClientState(ISocketProxy incoming) : IClientState
             }
 
             return false;
+        }
+    }
+
+    public void GrowReceiveBuffer(int newSize)
+    {
+        lock (ReceiveLock)
+        {
+            if (newSize <= Buffer.Length) return;
+            var grown = new byte[newSize];
+            Buffer.AsSpan(0, BytesReceived).CopyTo(grown);
+            Buffer = grown;
         }
     }
 

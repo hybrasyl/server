@@ -37,6 +37,7 @@ public abstract class AbstractClientState
     private byte[] _buffer = new byte[BufferSize];
     private ConcurrentQueue<QueuedPacket> _sendBuffer = new();
     public TransportKind Transport { get; set; } = TransportKind.Undecided;
+    public TlsSession? Tls { get; set; }
     public int BytesReceived { get; set; }
 
     public byte[] Buffer => _buffer;
@@ -60,6 +61,17 @@ public abstract class AbstractClientState
             GameLog.Debug(
                 "Send lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Thread.CurrentThread.ManagedThreadId);
             return _sendLock;
+        }
+    }
+
+    public void GrowReceiveBuffer(int newSize)
+    {
+        lock (ReceiveLock)
+        {
+            if (newSize <= _buffer.Length) return;
+            var grown = new byte[newSize];
+            _buffer.AsSpan(0, BytesReceived).CopyTo(grown);
+            _buffer = grown;
         }
     }
 

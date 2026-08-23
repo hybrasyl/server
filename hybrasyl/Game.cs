@@ -117,7 +117,15 @@ public static class Game
     ///     Network/Tls. Null means the stack does not speak TLS and the extension-dialect
     ///     capability marker must not be advertised.
     /// </summary>
-    public static X509Certificate2? TlsCertificate { get; private set; }
+    public static X509Certificate2? TlsCertificate { get; internal set; }
+
+    /// <summary>
+    ///     The largest extension frame the stack accepts, as <b>total wire size</b> including
+    ///     the length field (Network/Tls@MaxFrameSize; spec default 1 MiB). A length prefix is
+    ///     an allocation primitive, so this cap is what keeps u32's theoretical range from ever
+    ///     materializing.
+    /// </summary>
+    public static int TlsMaxFrameSize { get; internal set; } = 1_048_576;
 
     public static DateTime StartDate { get; set; }
     public static string CommitLog { get; private set; } = "There was an error fetching commit log information from GitHub. Sorry.";
@@ -601,9 +609,20 @@ public static class Game
 
         if (activeConfiguration.Network.Tls != null)
         {
+            // XmlSerializer does not enforce schema facets, so the bounds are re-checked here.
+            // Floor: a maximum retail frame (65538 bytes) plus the 8-byte extension envelope,
+            // so an extension frame can always carry the original framing.
+            if (activeConfiguration.Network.Tls.MaxFrameSize is < 65546 or > 8_388_608)
+                throw new ArgumentOutOfRangeException(nameof(activeConfiguration),
+                    $"Network/Tls@MaxFrameSize {activeConfiguration.Network.Tls.MaxFrameSize} is outside [65546, 8388608].");
+
             TlsCertificate = TlsCertificateLoader.Load(activeConfiguration.Network.Tls, DataDirectory);
-            Log.Information("TLS: stack certificate loaded ({Subject}, expires {NotAfter})",
-                TlsCertificate.Subject, TlsCertificate.NotAfter);
+            TlsMaxFrameSize = (int)Math.Min(activeConfiguration.Network.Tls.MaxFrameSize, int.MaxValue);
+            if (activeConfiguration.Network.Tls.ChainCertificateFile != null)
+                Log.Warning(
+                    "TLS: ChainCertificateFile is configured but intermediates are not yet served (HS-1621 chain follow-up); clients validating against system roots may reject the chain");
+            Log.Information("TLS: stack certificate loaded ({Subject}, expires {NotAfter}), MaxFrameSize {MaxFrameSize}",
+                TlsCertificate.Subject, TlsCertificate.NotAfter, TlsMaxFrameSize);
         }
 
         var lobbyIp = IPAddress.Parse(activeConfiguration.Network.Lobby.BindAddress);

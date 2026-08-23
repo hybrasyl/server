@@ -24,6 +24,7 @@ using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Servers;
+using Hybrasyl.Protocol.Wire;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -297,6 +298,12 @@ public class Client : AbstractClient, IClient
 
     public void FlushSendBuffer()
     {
+        // Between the probe deciding TLS and the session publishing (handshake and
+        // negotiation in flight), nothing may touch the socket: a raw write would land
+        // plaintext inside the TLS record stream. The queue holds - ProcessOutbound retries
+        // after the session appears, and pre-upgrade enqueues then drain inside TLS.
+        if (ClientState.Transport == TransportKind.Tls && ClientState.Tls is null) return;
+
         var buffer = new MemoryStream();
         var transmitDelay = 0;
 
@@ -349,11 +356,34 @@ public class Client : AbstractClient, IClient
                     //GameLog.Info($"transmit: {socketbuf.Length} with delay {transmitDelay}");
                     if (transmitDelay > 0)
                         await Task.Delay(transmitDelay);
-                    Socket.BeginSend(socketbuf, 0, socketbuf.Length, 0, SendCallback, ClientState);
+                    // The transport is re-read at dispatch, not captured at enqueue: a delayed
+                    // send scheduled while Undecided may wake after the probe chose TLS, and
+                    // Transport == Tls must never fall through to the raw socket. The bytes are
+                    // already off the queue, so a handshake in flight is awaited rather than
+                    // returned from - returning would lose them; disconnect abandons them.
+                    if (ClientState.Transport == TransportKind.Tls)
+                    {
+                        while (ClientState.Tls is null)
+                        {
+                            if (!Connected) return;
+                            await Task.Delay(10);
+                        }
+
+                        await ClientState.Tls.WriteAsync(socketbuf);
+                    }
+                    else
+                    {
+                        Socket.BeginSend(socketbuf, 0, socketbuf.Length, 0, SendCallback, ClientState);
+                    }
                 }
                 catch (ObjectDisposedException)
                 {
                     ClientState.Dispose();
+                }
+                catch (Exception e)
+                {
+                    GameLog.Warning(e, "cid {ConnectionId}: TLS send failed, disconnecting", ConnectionId);
+                    Disconnect();
                 }
             });
         }
@@ -526,6 +556,33 @@ public class Client : AbstractClient, IClient
     {
         ClientState.ReceiveBufferAdd(frame);
         FlushReceiveBuffer();
+    }
+
+    /// <summary>
+    ///     Dispatches a decoded extension packet to this server's u16-keyed handler table.
+    ///     The extension mirror of <see cref="ReceiveFrame" />; called only by the TLS pump.
+    /// </summary>
+    public void ReceiveExtensionPacket(IExtensionClientPacket packet)
+    {
+        // Real clients always have a server; the parameterless ctor is test-only.
+        if (Server!.ExtensionHandlers.TryGetValue(packet.Opcode, out var handler))
+        {
+            try
+            {
+                handler.Invoke(this, packet);
+            }
+            catch (Exception e)
+            {
+                Game.ReportException(e);
+                GameLog.Error(e, "cid {ConnectionId}: exception handling extension opcode 0x{Opcode:X4}",
+                    ConnectionId, packet.Opcode);
+            }
+        }
+        else
+        {
+            GameLog.Warning("cid {ConnectionId}: unhandled extension opcode 0x{Opcode:X4}, discarding",
+                ConnectionId, packet.Opcode);
+        }
     }
 
     public void Enqueue(IClientPacket packet)

@@ -19,6 +19,7 @@
 using Hybrasyl.Networking;
 using Hybrasyl.Networking.Throttling;
 using Hybrasyl.Servers;
+using Hybrasyl.Protocol.Wire;
 using System;
 using System.Collections.Generic;
 using IClientPacket = DALib.Networking.Wire.IClientPacket;
@@ -69,6 +70,7 @@ public interface IClient : IDisposable
     public void GenerateKeyTable(string seed);
     public void Enqueue(IServerPacket packet, bool flush = false, int transmitDelay = 0);
     public void ReceiveFrame(InboundFrame frame);
+    public void ReceiveExtensionPacket(IExtensionClientPacket packet);
     public void Enqueue(IClientPacket packet);
     public void Redirect(Redirect redirect, bool isLogoff = false, int transmitDelay = 0);
     public void LoginMessage(string message, byte type);
