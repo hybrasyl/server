@@ -32,7 +32,7 @@
        <ProjectReference Include="" /> for the package. -->
   <PropertyGroup>
     <LocalDALibProjectPath Condition="'$(LocalDALibProjectPath)' == ''">$(MSBuildThisFileDirectory)../../dalib/DALib/DALib.csproj</LocalDALibProjectPath>
-    <LocalProtocolProjectPath Condition="'$(LocalProtocolProjectPath)' == ''">$(MSBuildThisFileDirectory)../../sreang/src/Hybrasyl.Protocol/Hybrasyl.Protocol.csproj</LocalProtocolProjectPath>
+    <LocalProtocolProjectPath Condition="'$(LocalProtocolProjectPath)' == ''">$(MSBuildThisFileDirectory)../../Hybrasyl.Protocol/src/Hybrasyl.Protocol/Hybrasyl.Protocol.csproj</LocalProtocolProjectPath>
     <LocalXmlProjectPath Condition="'$(LocalXmlProjectPath)' == ''">$(MSBuildThisFileDirectory)../../xml/src/Hybrasyl.Xml.csproj</LocalXmlProjectPath>
   </PropertyGroup>
 

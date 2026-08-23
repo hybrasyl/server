@@ -43,7 +43,7 @@ public sealed class TlsSession
     public static readonly ServerDialectPolicy Policy = ServerDialectPolicy.Create(Dialect.V1, Dialect.V1);
 
     /// <summary>
-    ///     The typed extension codec, scanning sreang plus this assembly for declared packets.
+    ///     The typed extension codec, scanning Hybrasyl.Protocol plus this assembly for declared packets.
     ///     Stateless and shared process-wide, like <see cref="Client.Codec" />.
     /// </summary>
     internal static readonly ExtensionCodec ExtensionCodec =
