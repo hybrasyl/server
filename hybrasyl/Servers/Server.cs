@@ -47,7 +47,12 @@ public delegate void ExtensionPacketHandler(IClient client, IExtensionClientPack
 
 public class Server
 {
-    protected static ManualResetEvent AllDone = new(false);
+    /// <summary>
+    ///     Released by <see cref="AcceptConnection" /> so <see cref="StartListening" /> may arm the
+    ///     next accept. Per-instance: the three listeners run their own loops, and one shared event
+    ///     lets any of them release all of the others.
+    /// </summary>
+    private readonly ManualResetEvent _acceptReady = new(false);
 
     private readonly ClientType _clientType;
     public readonly IPAddress BindAddress;
@@ -188,15 +193,15 @@ public class Server
                 return;
             }
 
-            AllDone.Reset();
+            _acceptReady.Reset();
             Listener.BeginAccept(AcceptConnection, Listener);
-            AllDone.WaitOne();
+            _acceptReady.WaitOne();
         }
     }
 
     public virtual void AcceptConnection(IAsyncResult ar)
     {
-        AllDone.Set();
+        _acceptReady.Set();
         if (!Active) return;
         ISocketProxy handler;
         ISocketProxy clientSocket;
@@ -247,10 +252,11 @@ public class Server
 
         try
         {
+            // The next accept is armed by StartListening, released by _acceptReady above. Arming
+            // one here too leaves a second pending accept behind on every connection accepted.
             handler.BeginReceive(client.ClientState.Buffer, 0, client.ClientState.Buffer.Length, 0,
                 ReadCallback, client.ClientState);
             GameLog.DebugFormat("AcceptConnection returning");
-            clientSocket.BeginAccept(AcceptConnection, clientSocket);
         }
         catch (SocketException e)
         {

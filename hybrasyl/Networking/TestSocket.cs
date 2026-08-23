@@ -34,6 +34,7 @@ public sealed class TestSocket : ISocketProxy
     private readonly ConcurrentQueue<byte[]> _sent = new();
     private readonly ConcurrentQueue<byte[]> _incoming = new();
     private readonly SemaphoreSlim _sendSignal = new(0);
+    private int _acceptsArmed;
 
     public EndPoint RemoteEndPoint => new IPEndPoint(IPAddress.Parse("127.0.0.1"), 31337);
 
@@ -61,17 +62,25 @@ public sealed class TestSocket : ISocketProxy
 
     public ISocketProxy EndAccept(IAsyncResult asyncResult) => TaskToAsyncResult.End<TestSocket>(asyncResult);
 
+    /// <summary>How many accepts have been armed against this socket. See <see cref="BeginAccept" />.</summary>
+    public int AcceptsArmed => _acceptsArmed;
+
     /// <summary>
-    ///     Re-arms the accept loop and completes with no connection, so a test can drive one
-    ///     <c>Server.AcceptConnection</c> without the tail re-arm throwing.
+    ///     Records the arming and completes with no connection. Counting is the point: only
+    ///     <c>Server.StartListening</c> may arm the next accept, and a second armer leaves one
+    ///     pending accept behind per connection accepted.
     /// </summary>
     /// <remarks>
     ///     <paramref name="callback" /> is deliberately not invoked, for the same reason
-    ///     <see cref="BeginReceive" /> does not invoke its own: <c>AcceptConnection</c> ends by
-    ///     calling this, so driving the callback from here would recurse forever. A test drives
-    ///     one accept itself with a result it constructs.
+    ///     <see cref="BeginReceive" /> does not invoke its own: driving it from here would recurse.
+    ///     A test drives one accept itself with a result it constructs.
     /// </remarks>
-    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state) => Task.CompletedTask;
+    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state)
+    {
+        Interlocked.Increment(ref _acceptsArmed);
+
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     ///     Makes bytes available to the next completed receive, as if they had arrived on the
