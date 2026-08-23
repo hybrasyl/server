@@ -54,6 +54,14 @@ public static class GameLog
 
     public static bool HasLogger(LogType logType) => Loggers.ContainsKey(logType);
 
+    /// <summary>
+    ///     Whether a debug message would be emitted, for callers whose arguments are too expensive
+    ///     to compute unconditionally. Asks the logger rather than reading <see cref="DebugEnabled" />,
+    ///     which tracks only the <see cref="ToggleDebug" /> switch and not a configured level.
+    /// </summary>
+    public static bool IsDebugEnabled(LogType logType = LogType.General) =>
+        GetLogger(logType).Logger.IsEnabled(LogEventLevel.Debug);
+
     public static LogEventLevel ConvertLevel(LogLevel level) =>
         level switch
         {

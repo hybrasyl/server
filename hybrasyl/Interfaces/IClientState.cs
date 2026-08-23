@@ -49,7 +49,13 @@ public interface IClientState
     public byte[] Buffer { get; }
     public bool SendBufferEmpty { get; }
     public IEnumerable<byte> ReceiveBufferTake(int range);
-    public IEnumerable<byte> ReceiveBufferPop(int range);
+    public byte[] ReceiveBufferPop(int range);
+
+    /// <summary>
+    ///     Drops the first <paramref name="range" /> bytes without materializing them, for callers
+    ///     that have already decoded the frame and want only the compaction.
+    /// </summary>
+    public void ReceiveBufferConsume(int range);
     public void SendBufferAdd(QueuedPacket packet);
     public bool SendBufferPeek(out QueuedPacket packet);
     public bool SendBufferTake(out QueuedPacket packet);

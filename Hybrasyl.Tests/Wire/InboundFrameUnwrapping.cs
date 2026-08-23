@@ -17,6 +17,7 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using System;
+using System.Linq;
 using DALib.Enums;
 using DALib.Networking.Crypto;
 using DALib.Networking.Packets.Client;
@@ -265,4 +266,101 @@ public class InboundFrameUnwrapping
         Assert.Equal((byte) 0x06, complete.Opcode);
         Assert.Equal(frame, complete.Wire.ToArray());
     }
+
+    /// <summary>Writes a frame at the front of the buffer and reports it as just received.</summary>
+    private static void Feed(ClientState state, byte[] frame)
+    {
+        frame.CopyTo(state.Buffer, 0);
+        state.BytesReceived = frame.Length;
+    }
+
+    /// <summary>
+    ///     Popping a frame allocates in proportion to the frame, not to the receive buffer.
+    /// </summary>
+    /// <remarks>
+    ///     This runs once per frame on a socket that has not authenticated — on both the plaintext
+    ///     and the TLS path, which share it — so any cost tied to the 65,600-byte buffer rather
+    ///     than to the frame is an amplification the sender chooses. The bound is loose on purpose:
+    ///     buffer-proportional copying overshoots it by two orders of magnitude, so this cannot go
+    ///     red for allocator jitter.
+    /// </remarks>
+    [Fact]
+    public void PoppingAFrameAllocatesInProportionToTheFrame()
+    {
+        const int iterations = 200;
+        var state = new ClientState(new TestSocket());
+        var frame = RawFrame(0x06, 0x01, 0x02);
+
+        // One warm pop first: JIT and the logger lookup behind ReceiveLock allocate once, and
+        // charging that to the measured run would be measuring startup.
+        Feed(state, frame);
+        Assert.True(state.TryGetFrame(out _), "precondition: the frame must pop");
+
+        var popped = 0;
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < iterations; i++)
+        {
+            Feed(state, frame);
+            if (state.TryGetFrame(out _)) popped++;
+        }
+
+        var perFrame = (GC.GetAllocatedBytesForCurrentThread() - before) / iterations;
+
+        Assert.Equal(iterations, popped);
+        Assert.True(perFrame < 1024,
+            $"{perFrame} bytes allocated per {frame.Length}-byte frame: the pop is copying the buffer");
+    }
+
+    /// <summary>
+    ///     The pop owns the byte count, because its two callers cannot both be right otherwise.
+    /// </summary>
+    /// <remarks>
+    ///     <c>TryGetFrame</c> and <c>TlsSession.Drain</c>'s extension branch sat on opposite sides
+    ///     of this — one adjusted <c>BytesReceived</c> before the pop and one after. That was
+    ///     invisible while the pop copied the whole buffer regardless; the moment compaction is
+    ///     bounded by the live count, one of them corrupts the stream.
+    /// </remarks>
+    [Fact]
+    public void PoppingUpdatesTheByteCountAndCompactsTheRemainder()
+    {
+        var state = new ClientState(new TestSocket());
+        var first = RawFrame(0x11, 0x01, 0x02);
+        var second = RawFrame(0x06, 0x03, 0x04, 0x05);
+
+        first.CopyTo(state.Buffer, 0);
+        second.CopyTo(state.Buffer, first.Length);
+        state.BytesReceived = first.Length + second.Length;
+
+        var popped = state.ReceiveBufferPop(first.Length).ToArray();
+
+        Assert.Equal(first, popped);
+        Assert.Equal(second.Length, state.BytesReceived);
+        Assert.Equal(second, state.Buffer.Take(second.Length).ToArray());
+    }
+
+    /// <summary>
+    ///     A buffer grown for one oversized extension frame shrinks back when that frame is popped.
+    /// </summary>
+    /// <remarks>
+    ///     <c>TlsSession.TryGrowForFrontFrame</c> stretches the buffer to an attacker-declared size
+    ///     up to the configured ceiling, and depends on the pop to give it back. Without the
+    ///     shrink, one large claim pins that much memory for the life of the connection.
+    /// </remarks>
+    [Fact]
+    public void PoppingShrinksABufferGrownForAnOversizedFrame()
+    {
+        var state = new ClientState(new TestSocket());
+        var ordinarySize = state.Buffer.Length;
+        var grownSize = ordinarySize + 100_000;
+
+        state.GrowReceiveBuffer(grownSize);
+        Assert.Equal(grownSize, state.Buffer.Length);
+
+        state.BytesReceived = grownSize;
+        state.ReceiveBufferPop(grownSize);
+
+        Assert.Equal(ordinarySize, state.Buffer.Length);
+        Assert.Equal(0, state.BytesReceived);
+    }
+
 }

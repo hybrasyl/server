@@ -48,13 +48,16 @@ public class ClientState(ISocketProxy incoming) : IClientState
     public bool Connected { get; set; } = true;
     public long Id { get; } = GlobalConnectionManifest.GetNewConnectionId();
 
+    // Both getters walk the stack only when debug logging is on: they sit on the per-frame receive
+    // path, where a StackFrame construction and its reflective GetMethod cost far more than the
+    // lock they annotate.
     public object ReceiveLock
     {
         get
         {
-            var frame = new StackFrame(1);
-            GameLog.Debug(
-                "Receive lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Environment.CurrentManagedThreadId);
+            if (GameLog.IsDebugEnabled())
+                GameLog.Debug(
+                    "Receive lock acquired by: {Method} on thread {ThreadId}", new StackFrame(1).GetMethod()?.Name, Environment.CurrentManagedThreadId);
             return _recvlock;
         }
     }
@@ -63,9 +66,9 @@ public class ClientState(ISocketProxy incoming) : IClientState
     {
         get
         {
-            var frame = new StackFrame(1);
-            GameLog.Debug(
-                "Send lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Environment.CurrentManagedThreadId);
+            if (GameLog.IsDebugEnabled())
+                GameLog.Debug(
+                    "Send lock acquired by: {Method} on thread {ThreadId}", new StackFrame(1).GetMethod()?.Name, Environment.CurrentManagedThreadId);
             return _sendlock;
         }
     }
@@ -82,14 +85,70 @@ public class ClientState(ISocketProxy incoming) : IClientState
         }
     }
 
-    public IEnumerable<byte> ReceiveBufferPop(int range)
+    /// <summary>
+    ///     Removes the first <paramref name="range" /> bytes from the receive buffer, slides the
+    ///     unconsumed remainder down to offset 0, updates <see cref="BytesReceived" />, and returns
+    ///     the removed bytes. A buffer grown past <see cref="BufferSize" /> shrinks back once the
+    ///     remainder fits.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Allocates the returned frame and moves only the bytes <see cref="BytesReceived" />
+    ///         says are live. This runs once per frame on a socket that has not authenticated, so
+    ///         any cost proportional to the buffer rather than to the frame is an amplification the
+    ///         sender chooses.
+    ///     </para>
+    ///     <para>
+    ///         The shrink is what returns a buffer <see cref="GrowReceiveBuffer" /> stretched for
+    ///         one oversized extension frame; without it a single large claim pins its size for the
+    ///         life of the connection.
+    ///     </para>
+    /// </remarks>
+    public byte[] ReceiveBufferPop(int range)
     {
-        var ret = Buffer.Take(range);
-        var asList = Buffer.ToList();
-        asList.RemoveRange(0, range);
-        Buffer = new byte[BufferSize];
-        Array.ConstrainedCopy(asList.ToArray(), 0, Buffer, 0, asList.ToArray().Length);
-        return ret;
+        lock (ReceiveLock)
+        {
+            var ret = new byte[range];
+            Array.Copy(Buffer, 0, ret, 0, range);
+            Compact(range);
+            return ret;
+        }
+    }
+
+    /// <summary>
+    ///     Drops the first <paramref name="range" /> bytes without materializing them. The TLS pump
+    ///     decodes an extension frame in place and wants only this half; copying it out first would
+    ///     allocate and discard up to <c>Game.TlsMaxFrameSize</c> per frame.
+    /// </summary>
+    public void ReceiveBufferConsume(int range)
+    {
+        lock (ReceiveLock)
+        {
+            Compact(range);
+        }
+    }
+
+    /// <remarks>Callers hold <see cref="ReceiveLock" />.</remarks>
+    private void Compact(int range)
+    {
+        var remaining = Math.Max(0, BytesReceived - range);
+
+        if (Buffer.Length > BufferSize && remaining <= BufferSize)
+        {
+            var shrunk = new byte[BufferSize];
+            Buffer.AsSpan(range, remaining).CopyTo(shrunk);
+            Buffer = shrunk;
+        }
+        else
+        {
+            if (remaining > 0) Array.Copy(Buffer, range, Buffer, 0, remaining);
+            // Zeroing the vacated tail preserves what the pre-compaction implementation gave for
+            // free by allocating a fresh buffer each pop; bounded by the frame, not the buffer, so
+            // it stays proportional to what the sender actually sent.
+            Array.Clear(Buffer, remaining, Math.Min(range, Buffer.Length - remaining));
+        }
+
+        BytesReceived = remaining;
     }
 
     public void SendBufferAdd(QueuedPacket packet)
@@ -146,7 +205,6 @@ public class ClientState(ISocketProxy incoming) : IClientState
                 // Complete frame, pop it off and return it
                 if (BytesReceived >= packetLength)
                 {
-                    BytesReceived -= packetLength;
                     frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength).ToArray());
                     return true;
                 }

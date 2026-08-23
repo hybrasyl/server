@@ -266,8 +266,7 @@ public sealed class TlsSession
                     out var packet, out var consumed))
                 return;
 
-            state.ReceiveBufferPop(consumed);
-            state.BytesReceived -= consumed;
+            state.ReceiveBufferConsume(consumed);
             client.ReceiveExtensionPacket(packet!);
         }
     }

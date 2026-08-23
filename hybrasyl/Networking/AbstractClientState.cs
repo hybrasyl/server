@@ -17,11 +17,13 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Logging;
+using Hybrasyl.Protocol.Framing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -30,6 +32,16 @@ namespace Hybrasyl.Networking;
 public abstract class AbstractClientState
 {
     private const int BufferSize = 65600;
+
+    /// <summary>[0xAA][u16 body length] precedes every retail C→S frame.</summary>
+    private const int FrameHeaderLength = 3;
+
+    /// <summary>
+    ///     The header plus the opcode <see cref="InboundFrame.FromWire" /> reads at index 3; a
+    ///     shorter frame declares a zero-length body and carries no opcode at all.
+    /// </summary>
+    private const int MinimumFrameLength = FrameHeaderLength + 1;
+
     private readonly ConcurrentQueue<InboundFrame> _receiveBuffer = new();
     private readonly object _receiveLock = new();
     private readonly object _sendLock = new();
@@ -42,13 +54,15 @@ public abstract class AbstractClientState
 
     public byte[] Buffer => _buffer;
 
+    // Both getters walk the stack only when debug logging is on, matching ClientState: a StackFrame
+    // construction and its reflective GetMethod cost far more than the lock they annotate.
     public object ReceiveLock
     {
         get
         {
-            var frame = new StackFrame(1);
-            GameLog.Debug(
-                "Receive lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Thread.CurrentThread.ManagedThreadId);
+            if (GameLog.IsDebugEnabled())
+                GameLog.Debug(
+                    "Receive lock acquired by: {Method} on thread {ThreadId}", new StackFrame(1).GetMethod()?.Name, Environment.CurrentManagedThreadId);
             return _receiveLock;
         }
     }
@@ -57,9 +71,9 @@ public abstract class AbstractClientState
     {
         get
         {
-            var frame = new StackFrame(1);
-            GameLog.Debug(
-                "Send lock acquired by: {Method} on thread {ThreadId}", frame.GetMethod()?.Name, Thread.CurrentThread.ManagedThreadId);
+            if (GameLog.IsDebugEnabled())
+                GameLog.Debug(
+                    "Send lock acquired by: {Method} on thread {ThreadId}", new StackFrame(1).GetMethod()?.Name, Environment.CurrentManagedThreadId);
             return _sendLock;
         }
     }
@@ -86,11 +100,43 @@ public abstract class AbstractClientState
         }
     }
 
-    public IEnumerable<byte> ReceiveBufferPop(int range)
+    public byte[] ReceiveBufferPop(int range)
     {
-        var ret = Buffer.Take(range);
-        Array.Resize(ref _buffer, Buffer.Length - range);
-        return ret;
+        lock (ReceiveLock)
+        {
+            var ret = new byte[range];
+            Array.Copy(_buffer, 0, ret, 0, range);
+            Compact(range);
+            return ret;
+        }
+    }
+
+    public void ReceiveBufferConsume(int range)
+    {
+        lock (ReceiveLock)
+        {
+            Compact(range);
+        }
+    }
+
+    /// <remarks>Callers hold <see cref="ReceiveLock" />.</remarks>
+    private void Compact(int range)
+    {
+        var remaining = Math.Max(0, BytesReceived - range);
+
+        if (_buffer.Length > BufferSize && remaining <= BufferSize)
+        {
+            var shrunk = new byte[BufferSize];
+            _buffer.AsSpan(range, remaining).CopyTo(shrunk);
+            _buffer = shrunk;
+        }
+        else
+        {
+            if (remaining > 0) Array.Copy(_buffer, range, _buffer, 0, remaining);
+            Array.Clear(_buffer, remaining, Math.Min(range, _buffer.Length - remaining));
+        }
+
+        BytesReceived = remaining;
     }
 
     public void SendBufferAdd(QueuedPacket packet) => _sendBuffer.Enqueue(packet);
@@ -115,12 +161,15 @@ public abstract class AbstractClientState
         frame = default;
         lock (ReceiveLock)
         {
-            if (Buffer.Length == 0 || Buffer[0] != 0xAA || Buffer.Length <= 3) return false;
-            var packetLength = (Buffer[1] << 8) + Buffer[2] + 3;
-            // Complete frame, pop it off and return it
+            if (BytesReceived < FrameHeaderLength || Buffer[0] != FrameRouter.RetailMarker) return false;
+
+            var packetLength = (Buffer[1] << 8) + Buffer[2] + FrameHeaderLength;
+            if (packetLength < MinimumFrameLength)
+                throw new InvalidDataException("retail frame declares a zero-length body");
+
             if (BytesReceived < packetLength) return false;
-            BytesReceived -= packetLength;
-            frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength).ToArray());
+
+            frame = InboundFrame.FromWire(ReceiveBufferPop(packetLength));
             return true;
         }
     }
