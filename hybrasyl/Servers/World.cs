@@ -3538,8 +3538,20 @@ public class World : Server
             }
         }
 
+        // The response handlers below run scripts and can reassociate the session (a JumpDialog or
+        // OverrideSequence option calls StartDialog/TransitionDialog with invocation.Origin). The
+        // association check in SetDialogIndex is not reached until after they return, so it would be
+        // comparing against a value this click had already written. Ask before, not after.
+        if (!user.DialogState.OwnsSession(clickTarget))
+        {
+            GameLog.UserActivityWarning(
+                "{Name}: 0x3A: response names {Object}, which does not own the dialog session, ignoring",
+                user.Name, clickTarget.Name);
+            return;
+        }
+
         // Is the active dialog an input or options dialog?
-        // If so, we handle that first, as the response / callback / handler 
+        // If so, we handle that first, as the response / callback / handler
         // needs to be able to handle the response (which chould change the active sequence),
         // and then we need to potentially display the next dialog in sequence.
 

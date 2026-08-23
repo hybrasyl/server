@@ -153,6 +153,25 @@ public class DialogState
     }
 
     /// <summary>
+    ///     Whether <paramref name="target" /> is the object this dialog state was opened against.
+    /// </summary>
+    /// <remarks>
+    ///     Association is not implied by proximity: two objects can both be in the viewport while only
+    ///     one owns the session. This is the subset of <see cref="SetDialogIndex" />'s sanity checking
+    ///     that answers ownership alone, so that the response path can ask it before running a handler
+    ///     rather than after. It deliberately does not repeat that method's map, pursuit-id and
+    ///     InDialog conditions, which stay where they are.
+    /// </remarks>
+    internal bool OwnsSession(IInteractable? target) => target switch
+    {
+        Merchant or Creature => target == Associate,
+        // A dialog carried by an item is owned by holding the item; an async session supplies the
+        // item from outside the inventory.
+        ItemObject io => User.ActiveDialogSession != null || User.Inventory.Contains(io),
+        _ => true
+    };
+
+    /// <summary>
     ///     Set the index of a current dialog session. This dialog should be either the previous or next dialog
     ///     from the last one (index wise) and the player must be in a dialog.
     /// </summary>
@@ -168,7 +187,7 @@ public class DialogState
             case Merchant:
             case Creature:
             {
-                if (target is Creature c && (target != Associate ||
+                if (target is Creature c && (!OwnsSession(target) ||
                                              pursuitId != CurrentPursuitId ||
                                              c.Location.Map is null || c.Location.Map.Id != User.Location.Map?.Id || !InDialog))
                 {
@@ -183,15 +202,14 @@ public class DialogState
             }
             case ItemObject io:
             {
-                if (User.ActiveDialogSession == null)
-                    if (!User.Inventory.Contains(io))
-                    {
-                        Log.Error(
-                            "{User}: Failed dialog sanity check: item {Item} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {PursuitId}, index {Index}, " +
-                            "user map {UserMapId}, indialog {InDialog}",
-                            User.Name, io.Name, CurrentPursuitId, pursuitId, newIndex, User.Location.Map?.Id, InDialog);
-                        return false;
-                    }
+                if (!OwnsSession(io))
+                {
+                    Log.Error(
+                        "{User}: Failed dialog sanity check: item {Item} no longer in inventory: current pursuit {CurrentPursuitId}, pursuit {PursuitId}, index {Index}, " +
+                        "user map {UserMapId}, indialog {InDialog}",
+                        User.Name, io.Name, CurrentPursuitId, pursuitId, newIndex, User.Location.Map?.Id, InDialog);
+                    return false;
+                }
             }
                 break;
         }
