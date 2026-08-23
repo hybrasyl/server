@@ -17,7 +17,6 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Enums;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using Xunit;
 
@@ -59,7 +58,7 @@ public class Items
         Assert.NotNull(Fixture.TestUser.Equipment.Armor);
         Assert.NotNull(Fixture.TestUser.Equipment.Boots);
         // Removing the boots should not be possible (we should get a system message)
-        Assert.False(Fixture.TestUser.RemoveEquipment((byte)ItemSlots.Foot));
+        Assert.False(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Foot));
         Assert.Equal("Other equipment must be removed first.", Fixture.TestUser.LastSystemMessage);
         Assert.NotNull(Fixture.TestUser.Equipment.Armor);
         Assert.NotNull(Fixture.TestUser.Equipment.Boots);
@@ -86,7 +85,7 @@ public class Items
         Assert.False(boots.CheckRequirements(Fixture.TestUser, out error));
         Assert.Equal("You cannot equip this now.", error);
         // Now try the other way - put the boots on first and then equip the armor
-        Assert.True(Fixture.TestUser.RemoveEquipment((byte)ItemSlots.Armor));
+        Assert.True(Fixture.TestUser.RemoveEquipment((byte)EquipmentSlot.Armor));
         Assert.Null(Fixture.TestUser.Equipment.Armor);
         Assert.Null(Fixture.TestUser.Equipment.Boots);
         Assert.True(Fixture.TestUser.AddEquipment(boots, boots.EquipmentSlot, false));

@@ -17,7 +17,6 @@
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
 using Hybrasyl.Internals.Attributes;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
 using System;

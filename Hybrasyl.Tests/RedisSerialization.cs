@@ -26,7 +26,6 @@ using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Guilds;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using StackExchange.Redis;
 using System;

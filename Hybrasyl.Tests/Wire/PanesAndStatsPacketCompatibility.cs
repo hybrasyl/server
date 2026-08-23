@@ -111,7 +111,7 @@ public class PanesAndStatsPacketCompatibility
         {
             Slot = 3,
             Icon = 0x00AB,
-            UseType = (SpellUseType)2,
+            UseType = (DALib.Networking.Packets.Server.SpellUseType)2,
             Name = name,
             Prompt = "\0",
             CastLines = 4
@@ -127,7 +127,7 @@ public class PanesAndStatsPacketCompatibility
         // 0x00 (Unknown1), MaxDur u32, CurDur u32.
         const string name = "Claidheamh";
         var legacy = new LegacyServerPacket(0x37);
-        legacy.WriteByte((byte)EquipmentSlot.Weapon);
+        legacy.WriteByte((byte)DALib.Enums.EquipmentSlot.Weapon);
         legacy.WriteUInt16(0x8042);
         legacy.WriteByte(3);
         legacy.WriteStringWithLength(name);
@@ -137,7 +137,7 @@ public class PanesAndStatsPacketCompatibility
 
         var typed = Body(new AddEquipmentPacket
         {
-            Slot = EquipmentSlot.Weapon,
+            Slot = DALib.Enums.EquipmentSlot.Weapon,
             Sprite = 0x8042,
             Color = 3,
             Name = name,

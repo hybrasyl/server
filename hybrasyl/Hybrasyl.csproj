@@ -25,6 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Hybrasyl.Xml.Enums" />
     <InternalsVisibleTo Include="Hybrasyl.Tests" />
   </ItemGroup>
 

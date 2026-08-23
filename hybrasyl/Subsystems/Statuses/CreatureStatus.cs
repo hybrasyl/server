@@ -22,7 +22,6 @@ using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Scripting;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

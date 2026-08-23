@@ -22,7 +22,6 @@ using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Players;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Manager;
 using Hybrasyl.Xml.Objects;
 using Serilog;

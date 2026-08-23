@@ -18,7 +18,6 @@
 
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Formulas;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System.Collections.Generic;
 using Xunit;

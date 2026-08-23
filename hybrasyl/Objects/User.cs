@@ -35,7 +35,6 @@ using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Players.Guilds;
 using Hybrasyl.Subsystems.Statuses;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Concurrent;
@@ -954,10 +953,10 @@ public class User : Creature
 
         switch (toApply.EquipmentSlot)
         {
-            case (byte)ItemSlots.Necklace:
+            case (byte)EquipmentSlot.Necklace:
                 Stats.BaseOffensiveElement = toApply.Element;
                 break;
-            case (byte)ItemSlots.Waist:
+            case (byte)EquipmentSlot.Waist:
                 Stats.BaseDefensiveElement = toApply.Element;
                 break;
         }
@@ -972,10 +971,10 @@ public class User : Creature
         Stats.Remove(toRemove.Stats);
         switch (toRemove.EquipmentSlot)
         {
-            case (byte)ItemSlots.Necklace:
+            case (byte)EquipmentSlot.Necklace:
                 Stats.BaseOffensiveElement = ElementType.None;
                 break;
-            case (byte)ItemSlots.Waist:
+            case (byte)EquipmentSlot.Waist:
                 Stats.BaseDefensiveElement = ElementType.None;
                 break;
         }
@@ -2691,7 +2690,7 @@ public class User : Creature
         else
         {
             foreach (var item in Equipment)
-                if (item.EquipmentSlot != (byte)ItemSlots.Weapon && !item.Undamageable)
+                if (item.EquipmentSlot != (byte)EquipmentSlot.Weapon && !item.Undamageable)
                     item.Durability -= 1 / (item.MaximumDurability * (100 - Stats.Ac == 0 ? 1 : 100 - Stats.Ac));
         }
 

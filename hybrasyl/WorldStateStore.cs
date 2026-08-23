@@ -36,13 +36,6 @@ using RedisType = Hybrasyl.Internals.Attributes.RedisType;
 
 namespace Hybrasyl;
 
-public enum CastableFilter
-{
-    SkillsOnly,
-    SpellsOnly,
-    SkillsAndSpells
-}
-
 public class WorldStateStore
 {
     public static SHA256 sha = SHA256.Create();

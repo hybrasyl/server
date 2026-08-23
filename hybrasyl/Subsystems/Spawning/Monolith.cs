@@ -355,7 +355,7 @@ internal class Monolith
                                     baseMob.Stats.OffensiveElementOverride = spawn.OffensiveElement;
 
                                     var item = new ItemObject(newTemplate);
-                                    baseMob.Equipment.Insert((byte)ItemSlots.Weapon, item);
+                                    baseMob.Equipment.Insert((byte)EquipmentSlot.Weapon, item);
                                 }
                         }
                         catch (Exception ex)

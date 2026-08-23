@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="Hybrasyl.Xml.Enums" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageReference Include="Serilog.Sinks.TestCorrelator" Version="4.0.0" />
     <PackageReference Include="Serilog.Sinks.XUnit" Version="3.0.19" />

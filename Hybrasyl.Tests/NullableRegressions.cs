@@ -21,7 +21,6 @@ using Hybrasyl.Objects;
 using Hybrasyl.Servers;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Statuses;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.IO;

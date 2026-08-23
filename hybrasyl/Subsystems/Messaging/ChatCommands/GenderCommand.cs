@@ -13,7 +13,6 @@
 // with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using Hybrasyl.Objects;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;

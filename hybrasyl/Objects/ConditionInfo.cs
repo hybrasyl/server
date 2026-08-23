@@ -18,7 +18,6 @@
 
 using Hybrasyl.Internals.Attributes;
 using Hybrasyl.Internals.Enums;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Objects;

@@ -65,7 +65,7 @@ public class InboundFrameUnwrapping
     public void EncryptedOpcode_UnwrapsToTheOriginalBody()
     {
         var crypto = MakeCrypto();
-        var original = new WalkPacket { Direction = Direction.South, Sequence = 0x11 };
+        var original = new WalkPacket { Direction = DALib.Enums.Direction.South, Sequence = 0x11 };
 
         var received = RoundTrip(original, crypto);
 
@@ -73,7 +73,7 @@ public class InboundFrameUnwrapping
         Assert.Equal(original.ToBody(), received.Body.ToArray());
         // And it still parses back to the same values a handler would read.
         var reparsed = WalkPacket.Parse(received.Body.Span);
-        Assert.Equal(Direction.South, reparsed.Direction);
+        Assert.Equal(DALib.Enums.Direction.South, reparsed.Direction);
         Assert.Equal((byte) 0x11, reparsed.Sequence);
     }
 

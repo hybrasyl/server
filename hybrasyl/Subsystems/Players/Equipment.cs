@@ -16,7 +16,6 @@
 // 
 // For contributors and individual authors please refer to CONTRIBUTORS.MD.
 
-using Hybrasyl.Xml.Enums;
 using System;
 using System.Collections.Generic;
 using Hybrasyl.Internals.Enums;
@@ -41,25 +40,25 @@ public class Equipment : Inventory
     {
         var returnList = new List<Tuple<ushort, byte>>();
 
-        foreach (var slot in Enum.GetValues(typeof(ItemSlots)))
+        foreach (var slot in Enum.GetValues<EquipmentSlot>())
             switch (slot)
             {
                 // Work around a very weird edge case in the client
-                case ItemSlots.Foot:
-                    var footAcc = Items[(byte) ItemSlots.FirstAcc];
+                case EquipmentSlot.Foot:
+                    var footAcc = Items[(byte) EquipmentSlot.FirstAcc];
                     returnList.Add(footAcc == null
                         ? new Tuple<ushort, byte>(0, 0)
                         : new Tuple<ushort, byte>((ushort) (0x8000 + footAcc.EquipSprite), footAcc.Color));
                     break;
-                case ItemSlots.FirstAcc:
-                    var accFoot = Items[(byte) ItemSlots.Foot];
+                case EquipmentSlot.FirstAcc:
+                    var accFoot = Items[(byte) EquipmentSlot.Foot];
                     returnList.Add(accFoot == null
                         ? new Tuple<ushort, byte>(0, 0)
                         : new Tuple<ushort, byte>((ushort) (0x8000 + accFoot.EquipSprite), accFoot.Color));
                     break;
-                case ItemSlots.None:
-                case ItemSlots.Ring:
-                case ItemSlots.Gauntlet:
+                case EquipmentSlot.None:
+                case EquipmentSlot.Ring:
+                case EquipmentSlot.Gauntlet:
                     break;
                 default:
                     var item = Items[(byte) slot];
@@ -74,41 +73,41 @@ public class Equipment : Inventory
 
     #region Equipment Properties
 
-    public ItemObject? Weapon => Items[(byte) ItemSlots.Weapon];
+    public ItemObject? Weapon => Items[(byte) EquipmentSlot.Weapon];
 
-    public ItemObject? Armor => Items[(byte) ItemSlots.Armor];
+    public ItemObject? Armor => Items[(byte) EquipmentSlot.Armor];
 
-    public ItemObject? Shield => Items[(byte) ItemSlots.Shield];
+    public ItemObject? Shield => Items[(byte) EquipmentSlot.Shield];
 
-    public ItemObject? Helmet => Items[(byte) ItemSlots.Helmet];
+    public ItemObject? Helmet => Items[(byte) EquipmentSlot.Helmet];
 
-    public ItemObject? Earring => Items[(byte) ItemSlots.Earring];
+    public ItemObject? Earring => Items[(byte) EquipmentSlot.Earring];
 
-    public ItemObject? Necklace => Items[(byte) ItemSlots.Necklace];
+    public ItemObject? Necklace => Items[(byte) EquipmentSlot.Necklace];
 
-    public ItemObject? LRing => Items[(byte) ItemSlots.LHand];
+    public ItemObject? LRing => Items[(byte) EquipmentSlot.LeftHand];
 
-    public ItemObject? RRing => Items[(byte) ItemSlots.RHand];
+    public ItemObject? RRing => Items[(byte) EquipmentSlot.RightHand];
 
-    public ItemObject? LGauntlet => Items[(byte) ItemSlots.LArm];
+    public ItemObject? LGauntlet => Items[(byte) EquipmentSlot.LeftArm];
 
-    public ItemObject? RGauntlet => Items[(byte) ItemSlots.RArm];
+    public ItemObject? RGauntlet => Items[(byte) EquipmentSlot.RightArm];
 
-    public ItemObject? Belt => Items[(byte) ItemSlots.Waist];
+    public ItemObject? Belt => Items[(byte) EquipmentSlot.Waist];
 
-    public ItemObject? Greaves => Items[(byte) ItemSlots.Leg];
+    public ItemObject? Greaves => Items[(byte) EquipmentSlot.Leg];
 
-    public ItemObject? Boots => Items[(byte) ItemSlots.Foot];
+    public ItemObject? Boots => Items[(byte) EquipmentSlot.Foot];
 
-    public ItemObject? FirstAcc => Items[(byte) ItemSlots.FirstAcc];
+    public ItemObject? FirstAcc => Items[(byte) EquipmentSlot.FirstAcc];
 
-    public ItemObject? Overcoat => Items[(byte) ItemSlots.Trousers];
+    public ItemObject? Overcoat => Items[(byte) EquipmentSlot.Trousers];
 
-    public ItemObject? DisplayHelm => Items[(byte) ItemSlots.Coat];
+    public ItemObject? DisplayHelm => Items[(byte) EquipmentSlot.Coat];
 
-    public ItemObject? SecondAcc => Items[(byte) ItemSlots.SecondAcc];
+    public ItemObject? SecondAcc => Items[(byte) EquipmentSlot.SecondAcc];
 
-    public ItemObject? ThirdAcc => Items[(byte) ItemSlots.ThirdAcc];
+    public ItemObject? ThirdAcc => Items[(byte) EquipmentSlot.ThirdAcc];
 
     #endregion Equipment Properties
 }

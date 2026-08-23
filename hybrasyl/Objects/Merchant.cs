@@ -23,7 +23,6 @@ using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Messaging;
 using Hybrasyl.Subsystems.Mundanes;
 using Hybrasyl.Subsystems.Scripting;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using NpcOptionResponsePacket = DALib.Networking.Packets.Client.NpcOptionResponsePacket;
 using NpcTextResponsePacket = DALib.Networking.Packets.Client.NpcTextResponsePacket;

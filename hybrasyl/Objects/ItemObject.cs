@@ -24,7 +24,6 @@ using Hybrasyl.Subsystems.Dialogs;
 using Hybrasyl.Subsystems.Formulas;
 using Hybrasyl.Subsystems.Scripting;
 using Hybrasyl.Subsystems.Statuses;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;
@@ -292,7 +291,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a shield while holding a two-handed weapon
 
-        if (EquipmentSlot == (byte) ItemSlots.Shield && userobj.Equipment.Weapon is { WeaponType: WeaponType.TwoHand })
+        if (EquipmentSlot == (byte) Xml.Enums.EquipmentSlot.Shield && userobj.Equipment.Weapon is { WeaponType: WeaponType.TwoHand })
         {
             message = World.GetLocalString("item_equip_shield_2h");
             return false;
@@ -300,7 +299,7 @@ public class ItemObject : VisibleObject, IInteractable
 
         // Check if user is equipping a two-handed weapon while holding a shield
 
-        if (EquipmentSlot == (byte) ItemSlots.Weapon &&
+        if (EquipmentSlot == (byte) Xml.Enums.EquipmentSlot.Weapon &&
             WeaponType is WeaponType.TwoHand or WeaponType.Staff &&
             userobj.Equipment.Shield != null)
         {

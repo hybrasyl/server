@@ -25,7 +25,6 @@ using Hybrasyl.Internals.Logging;
 using Hybrasyl.Networking;
 using Hybrasyl.Objects;
 using Hybrasyl.Subsystems.Players;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections;

@@ -21,7 +21,6 @@ using Hybrasyl.Internals.Crc;
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Internals.Logging;
 using Hybrasyl.Servers;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 using System;
 using System.Collections.Generic;

@@ -18,7 +18,6 @@
 
 using Hybrasyl.Extensions.Utility;
 using Hybrasyl.Objects;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Objects;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;

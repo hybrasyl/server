@@ -59,7 +59,7 @@ public class ConverterCallbackTests
         void IJsonOnDeserialized.OnDeserialized() => CallbackFired = true;
     }
 
-    private sealed class CallbackBook : Book, IJsonOnDeserialized
+    private sealed class CallbackBook : Casting.Book, IJsonOnDeserialized
     {
         public bool CallbackFired { get; private set; }
         void IJsonOnDeserialized.OnDeserialized() => CallbackFired = true;

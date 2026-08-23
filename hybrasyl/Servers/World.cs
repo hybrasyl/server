@@ -36,7 +36,6 @@ using Hybrasyl.Subsystems.Messaging.ChatCommands;
 using Hybrasyl.Subsystems.Players;
 using Hybrasyl.Subsystems.Players.Grouping;
 using Hybrasyl.Subsystems.Scripting;
-using Hybrasyl.Xml.Enums;
 using Hybrasyl.Xml.Interfaces;
 using Hybrasyl.Xml.Objects;
 using MoonSharp.Interpreter;
@@ -2586,7 +2585,7 @@ public class World : Server
         switch (item.ItemObjectType)
         {
             case ItemObjectType.CanUse:
-                if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte)ItemSlots.None) != (byte)ItemSlots.None)
+                if (item.Durability == 0 && (item?.EquipmentSlot ?? (byte)EquipmentSlot.None) != (byte)EquipmentSlot.None)
                 {
                     user.SendSystemMessage("This item is too badly damaged to use.");
                     return;
@@ -2632,79 +2631,79 @@ public class World : Server
                     user.RemoveItem(slot);
 
                     // Handle gauntlet / ring special cases
-                    if (item.EquipmentSlot == (byte)ItemSlots.Gauntlet)
+                    if (item.EquipmentSlot == (byte)EquipmentSlot.Gauntlet)
                     {
                         GameLog.DebugFormat("item is gauntlets");
                         // First, is the left arm slot occupied?
-                        if (user.Equipment[(byte)ItemSlots.LArm] != null)
+                        if (user.Equipment[(byte)EquipmentSlot.LeftArm] != null)
                         {
-                            if (user.Equipment[(byte)ItemSlots.RArm] == null)
+                            if (user.Equipment[(byte)EquipmentSlot.RightArm] == null)
                             {
                                 // Right arm slot is empty; use it
-                                user.AddEquipment(item, (byte)ItemSlots.RArm);
+                                user.AddEquipment(item, (byte)EquipmentSlot.RightArm);
                             }
                             else
                             {
                                 // Right arm slot is in use; replace LArm with item
-                                var olditem = user.Equipment[(byte)ItemSlots.LArm];
-                                user.RemoveEquipment((byte)ItemSlots.LArm);
+                                var olditem = user.Equipment[(byte)EquipmentSlot.LeftArm];
+                                user.RemoveEquipment((byte)EquipmentSlot.LeftArm);
                                 user.AddItem(olditem!, slot); // slot occupancy checked above
-                                user.AddEquipment(item, (byte)ItemSlots.LArm);
+                                user.AddEquipment(item, (byte)EquipmentSlot.LeftArm);
                             }
                         }
                         else
                         {
-                            user.AddEquipment(item, (byte)ItemSlots.LArm);
+                            user.AddEquipment(item, (byte)EquipmentSlot.LeftArm);
                         }
                     }
-                    else if (item.EquipmentSlot == (byte)ItemSlots.Ring)
+                    else if (item.EquipmentSlot == (byte)EquipmentSlot.Ring)
                     {
                         GameLog.DebugFormat("item is ring");
 
                         // First, is the left ring slot occupied?
-                        if (user.Equipment[(byte)ItemSlots.LHand] != null)
+                        if (user.Equipment[(byte)EquipmentSlot.LeftHand] != null)
                         {
-                            if (user.Equipment[(byte)ItemSlots.RHand] == null)
+                            if (user.Equipment[(byte)EquipmentSlot.RightHand] == null)
                             {
                                 // Right ring slot is empty; use it
-                                user.AddEquipment(item, (byte)ItemSlots.RHand);
+                                user.AddEquipment(item, (byte)EquipmentSlot.RightHand);
                             }
                             else
                             {
                                 // Right ring slot is in use; replace LHand with item
-                                var olditem = user.Equipment[(byte)ItemSlots.LHand];
-                                user.RemoveEquipment((byte)ItemSlots.LHand);
+                                var olditem = user.Equipment[(byte)EquipmentSlot.LeftHand];
+                                user.RemoveEquipment((byte)EquipmentSlot.LeftHand);
                                 user.AddItem(olditem!, slot); // slot occupancy checked above
-                                user.AddEquipment(item, (byte)ItemSlots.LHand);
+                                user.AddEquipment(item, (byte)EquipmentSlot.LeftHand);
                             }
                         }
                         else
                         {
-                            user.AddEquipment(item, (byte)ItemSlots.LHand);
+                            user.AddEquipment(item, (byte)EquipmentSlot.LeftHand);
                         }
                     }
-                    else if (item.EquipmentSlot == (byte)ItemSlots.FirstAcc ||
-                             item.EquipmentSlot == (byte)ItemSlots.SecondAcc ||
-                             item.EquipmentSlot == (byte)ItemSlots.ThirdAcc)
+                    else if (item.EquipmentSlot == (byte)EquipmentSlot.FirstAcc ||
+                             item.EquipmentSlot == (byte)EquipmentSlot.SecondAcc ||
+                             item.EquipmentSlot == (byte)EquipmentSlot.ThirdAcc)
                     {
                         if (user.Equipment.FirstAcc == null)
                         {
-                            user.AddEquipment(item, (byte)ItemSlots.FirstAcc);
+                            user.AddEquipment(item, (byte)EquipmentSlot.FirstAcc);
                         }
                         else if (user.Equipment.SecondAcc == null)
                         {
-                            user.AddEquipment(item, (byte)ItemSlots.SecondAcc);
+                            user.AddEquipment(item, (byte)EquipmentSlot.SecondAcc);
                         }
                         else if (user.Equipment.ThirdAcc == null)
                         {
-                            user.AddEquipment(item, (byte)ItemSlots.ThirdAcc);
+                            user.AddEquipment(item, (byte)EquipmentSlot.ThirdAcc);
                         }
                         else
                         {
                             // Remove first accessory
                             var oldItem = user.Equipment.FirstAcc;
-                            user.RemoveEquipment((byte)ItemSlots.FirstAcc);
-                            user.AddEquipment(item, (byte)ItemSlots.FirstAcc);
+                            user.RemoveEquipment((byte)EquipmentSlot.FirstAcc);
+                            user.AddEquipment(item, (byte)EquipmentSlot.FirstAcc);
                             user.AddItem(oldItem, slot);
                             user.Show();
                         }

@@ -18,6 +18,7 @@
 
 using Hybrasyl.Internals.Enums;
 using Hybrasyl.Objects;
+using MessageType = Hybrasyl.Internals.Enums.MessageType;
 
 namespace Hybrasyl.Subsystems.Messaging.ChatCommands;
 
