@@ -114,6 +114,10 @@ public sealed class TlsSession
                 await stream.AuthenticateAsServerAsync(TlsConfig.ServerOptions(certificate))
                     .WaitAsync(HandshakeTimeout).ConfigureAwait(false);
 
+                // ServerOptions leaves the enabled protocols at the platform default, so "TLS 1.3
+                // only" holds only if it is checked here; nothing has crossed the channel yet.
+                TlsChannel.VerifyNegotiatedProtocol(stream);
+
                 var negotiated = await DialectNegotiator.NegotiateAsServerAsync(stream, Policy)
                     .WaitAsync(HandshakeTimeout).ConfigureAwait(false);
 

@@ -27,9 +27,11 @@ using Hybrasyl.Protocol.Packets;
 using Hybrasyl.Protocol.Transport;
 using Hybrasyl.Protocol.Wire;
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -81,6 +83,23 @@ public class TlsUpgradeWiring
         public static async Task<Loopback> ConnectAsync(ClientDialectPolicy clientPolicy,
             string clientVersion = "test/1.0", int maxFrameSize = 1_048_576)
         {
+            var loopback = await AcceptAsync(maxFrameSize);
+
+            await loopback.UpgradeClientAsync(
+                TlsConfig.ClientOptions("localhost", (_, _, _, _) => true));
+            loopback.Negotiation = await DialectNegotiator
+                .NegotiateAsClientAsync(loopback.ClientStream, clientPolicy, clientVersion)
+                .WaitAsync(Timeout);
+
+            return loopback;
+        }
+
+        /// <summary>
+        ///     A connected pair with the server side armed and nothing sent yet, for tests that
+        ///     drive the client handshake themselves.
+        /// </summary>
+        public static async Task<Loopback> AcceptAsync(int maxFrameSize = 1_048_576)
+        {
             var loopback = new Loopback();
             Game.TlsCertificate = MakeCertificate();
             Game.TlsMaxFrameSize = maxFrameSize;
@@ -102,16 +121,14 @@ public class TlsUpgradeWiring
             proxy.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None,
                 Game.Login.ReadCallback, state);
 
-            loopback.ClientStream = new SslStream(loopback._tcp.GetStream(),
-                leaveInnerStreamOpen: false);
-            await loopback.ClientStream
-                .AuthenticateAsClientAsync(TlsConfig.ClientOptions("localhost", (_, _, _, _) => true))
-                .WaitAsync(Timeout);
-            loopback.Negotiation = await DialectNegotiator
-                .NegotiateAsClientAsync(loopback.ClientStream, clientPolicy, clientVersion)
-                .WaitAsync(Timeout);
-
             return loopback;
+        }
+
+        /// <summary>Runs the client half of the handshake with the given options.</summary>
+        public Task UpgradeClientAsync(SslClientAuthenticationOptions options)
+        {
+            ClientStream = new SslStream(_tcp.GetStream(), leaveInnerStreamOpen: false);
+            return ClientStream.AuthenticateAsClientAsync(options).WaitAsync(Timeout);
         }
 
         /// <summary>The server session, waiting for the upgrade task to publish it.</summary>
@@ -142,7 +159,7 @@ public class TlsUpgradeWiring
             Game.TlsMaxFrameSize = 1_048_576;
             GlobalConnectionManifest.DeregisterClient(ServerClient);
             if (ServerClient.Connected) ServerClient.Disconnect();
-            ClientStream.Dispose();
+            ClientStream?.Dispose();
             _tcp.Dispose();
             _listener.Stop();
         }
@@ -176,6 +193,39 @@ public class TlsUpgradeWiring
         {
             Game.Login.PacketHandlers[packet.Opcode] = original;
         }
+    }
+
+    /// <summary>
+    ///     A client that can only offer TLS 1.2 gets no session. Since Hybrasyl.Protocol 0.0.4 the
+    ///     handshake options ask the platform for nothing in particular - macOS refuses an explicit
+    ///     request above 1.2 - so the server's post-handshake check is the only thing holding
+    ///     "TLS 1.3 only".
+    /// </summary>
+    [Fact]
+    public async Task Tls12Client_IsRefused_WithNoSessionPublished()
+    {
+        using var loopback = await Loopback.AcceptAsync();
+
+        var options = new SslClientAuthenticationOptions
+        {
+            TargetHost = "localhost",
+            EnabledSslProtocols = SslProtocols.Tls12,
+            RemoteCertificateValidationCallback = (_, _, _, _) => true,
+        };
+
+        // The server finishes the 1.2 handshake before refusing it, so the client's own
+        // authenticate may return successfully or fail on the drop; either is consistent with the
+        // server-side invariant under test.
+        try
+        {
+            await loopback.UpgradeClientAsync(options);
+        }
+        catch (Exception e) when (e is AuthenticationException or IOException)
+        {
+        }
+
+        Assert.True(await loopback.ServerDisconnectedAsync());
+        Assert.Null(loopback.ServerClient.ClientState.Tls);
     }
 
     [Fact]
