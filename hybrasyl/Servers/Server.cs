@@ -199,10 +199,16 @@ public class Server
         {
             case Lobby:
                 {
-                    client.Enqueue(new DALib.Networking.Packets.Server.AcceptConnectionPacket
+                    var greeting = new DALib.Networking.Packets.Server.AcceptConnectionPacket
                     {
                         Message = "CONNECTED SERVER\n"
-                    });
+                    };
+                    // Nothing further may be sent here: a capable client upgrades only if the
+                    // lobby falls silent after the greeting, so a second enqueue would quietly
+                    // keep it on retail rather than break anything.
+                    client.Enqueue(Game.TlsCertificate is null
+                        ? greeting
+                        : new CapabilityGreetingPacket(greeting));
                     GameLog.DebugFormat("Lobby: AcceptConnection occuring");
                     GameLog.Info("Lobby: cid is {0}", client.ConnectionId);
                     break;

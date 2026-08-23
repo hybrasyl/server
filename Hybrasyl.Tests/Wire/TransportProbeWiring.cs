@@ -77,8 +77,9 @@ public class TransportProbeWiring
     }
 
     /// <summary>
-    ///     Until the upgrade seam lands (slice 4), a ClientHello is refused by disconnect - and
-    ///     the capability marker is never advertised, so a capable client never sends one.
+    ///     With no stack certificate the upgrade seam cannot act, so a ClientHello is refused by
+    ///     disconnect - and the lobby advertises no capability marker, so a capable client has
+    ///     nothing to answer.
     /// </summary>
     [Fact]
     public void FirstByte_TlsClientHello_Disconnects()

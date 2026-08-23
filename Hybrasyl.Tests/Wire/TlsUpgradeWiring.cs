@@ -53,20 +53,6 @@ public class TlsUpgradeWiring
 
     public TlsUpgradeWiring(HybrasylFixture fixture) { }
 
-    private static X509Certificate2 MakeCertificate()
-    {
-        using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256,
-            RSASignaturePadding.Pkcs1);
-        using var ephemeral = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1),
-            DateTimeOffset.UtcNow.AddDays(1));
-
-        // Same PKCS#12 round-trip as TlsCertificateLoader: SChannel rejects the ephemeral key
-        // on Windows, and this suite runs there too.
-        return X509CertificateLoader.LoadPkcs12(ephemeral.Export(X509ContentType.Pkcs12),
-            password: null);
-    }
-
     /// <summary>
     ///     A connected loopback pair: the server side is a real <see cref="Client" /> whose
     ///     first receive is armed with the real <c>ReadCallback</c>; the client side is an
@@ -101,7 +87,7 @@ public class TlsUpgradeWiring
         public static async Task<Loopback> AcceptAsync(int maxFrameSize = 1_048_576)
         {
             var loopback = new Loopback();
-            Game.TlsCertificate = MakeCertificate();
+            Game.TlsCertificate = TestCertificate.Create();
             Game.TlsMaxFrameSize = maxFrameSize;
 
             loopback._listener = new TcpListener(IPAddress.Loopback, 0);
@@ -412,7 +398,7 @@ public class TlsUpgradeWiring
     {
         var savedTimeout = TlsSession.HandshakeTimeout;
         TlsSession.HandshakeTimeout = TimeSpan.FromMilliseconds(500);
-        Game.TlsCertificate = MakeCertificate();
+        Game.TlsCertificate = TestCertificate.Create();
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var tcp = new TcpClient();

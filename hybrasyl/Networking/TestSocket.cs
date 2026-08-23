@@ -61,7 +61,17 @@ public sealed class TestSocket : ISocketProxy
 
     public ISocketProxy EndAccept(IAsyncResult asyncResult) => TaskToAsyncResult.End<TestSocket>(asyncResult);
 
-    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state) => throw new NotImplementedException();
+    /// <summary>
+    ///     Re-arms the accept loop and completes with no connection, so a test can drive one
+    ///     <c>Server.AcceptConnection</c> without the tail re-arm throwing.
+    /// </summary>
+    /// <remarks>
+    ///     <paramref name="callback" /> is deliberately not invoked, for the same reason
+    ///     <see cref="BeginReceive" /> does not invoke its own: <c>AcceptConnection</c> ends by
+    ///     calling this, so driving the callback from here would recurse forever. A test drives
+    ///     one accept itself with a result it constructs.
+    /// </remarks>
+    public IAsyncResult BeginAccept(AsyncCallback? callback, object? state) => Task.CompletedTask;
 
     /// <summary>
     ///     Makes bytes available to the next completed receive, as if they had arrived on the
