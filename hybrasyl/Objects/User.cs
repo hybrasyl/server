@@ -280,7 +280,7 @@ public class User : Creature
                 return;
             }
 
-            if (!Condition.IsSayProhibited || AuthInfo.IsExempt)
+            if (!Condition.IsSayProhibited)
             {
                 base.Say(message, from);
                 return;
@@ -301,7 +301,7 @@ public class User : Creature
                 return;
             }
 
-            if (!Condition.IsShoutProhibited || AuthInfo.IsExempt)
+            if (!Condition.IsShoutProhibited)
             {
                 base.Shout(message, from);
                 return;

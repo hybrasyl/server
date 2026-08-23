@@ -41,8 +41,6 @@ internal class DeleteSessionCookieCommand : ChatCommand
         if (!Game.World.WorldState.TryGetValue<User>(args[0], out var target))
             return Fail($"User {args[0]} not logged in");
 
-        if (target.AuthInfo.IsExempt)
-            return Fail($"User {target.Name} is exempt from your meddling.");
         target.DeleteSessionCookie(args[1]);
         return Success($"Player {target.Name}: flag {args[1]} removed.");
     }

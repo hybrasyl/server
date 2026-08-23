@@ -80,16 +80,10 @@ public class AuthInfo : IStateStorable
 
     public string StorageKey => $"{GetType()}:{UserGuid}";
     public bool IsSaving { get; set; }
-    public bool IsGamemaster { get; set; }
 
     public string Username => Game.World.WorldState.GetNameByGuid(UserGuid);
 
-    public bool IsPrivileged =>
-        IsExempt || IsGamemaster || (Game.ActiveConfiguration.Access?.IsPrivileged(Username) ?? false);
-
-    public bool IsExempt =>
-        // This is hax, obvs, and so can you
-        Username == "Kedian";
+    public bool IsPrivileged => Game.ActiveConfiguration.Access?.IsPrivileged(Username) ?? false;
 
     public void Save()
     {

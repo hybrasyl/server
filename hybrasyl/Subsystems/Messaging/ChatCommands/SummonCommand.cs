@@ -31,9 +31,6 @@ internal class SummonCommand : ChatCommand
     {
         if (Game.World.TryGetActiveUser(args[0], out var target))
         {
-            if (target.AuthInfo.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling.");
-
             target.Teleport(user.Location.MapId, user.Location.X, user.Location.Y);
             return Success($"User {target.Name} has been summoned.");
         }

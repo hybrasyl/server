@@ -32,8 +32,6 @@ internal class ClearDialogCommand : ChatCommand
         if (!Game.World.WorldState.TryGetValue<User>(args[0], out var target))
             return Fail($"User {args[0]} not logged in");
 
-        if (target.AuthInfo.IsExempt)
-            return Fail($"User {target.Name} is exempt from your meddling.");
         target.ClearDialogState();
 
         return Success($"User {target.Name}: dialog state cleared.");

@@ -231,4 +231,37 @@ public class UserTests(HybrasylFixture fixture)
         var ex = Record.Exception(() => Fixture.TestUser.UseSpell(3));
         Assert.Null(ex);
     }
+
+    [Fact]
+    public void IsPrivileged_IsFalse_ForKedian_WhichWasOnceHardcodedPrivileged()
+    {
+        var kedian = Fixture.CreateUser("Kedian");
+        // AuthInfo.Username resolves through the guid->name reference, which is created lazily.
+        _ = kedian.GuidReference;
+
+        Assert.Equal("Kedian", kedian.AuthInfo.Username);
+        Assert.False(kedian.AuthInfo.IsPrivileged);
+    }
+
+    [Fact]
+    public void IsPrivileged_IsTrue_OnlyWhenConfigurationGrantsIt()
+    {
+        var granted = Fixture.CreateUser("Privilegedone");
+        var denied = Fixture.CreateUser("Deniedone");
+        _ = granted.GuidReference;
+        _ = denied.GuidReference;
+        var previous = Game.ActiveConfiguration.Access;
+
+        try
+        {
+            Game.ActiveConfiguration.Access = new Access { Privileged = ["Privilegedone"] };
+
+            Assert.True(granted.AuthInfo.IsPrivileged);
+            Assert.False(denied.AuthInfo.IsPrivileged);
+        }
+        finally
+        {
+            Game.ActiveConfiguration.Access = previous;
+        }
+    }
 }

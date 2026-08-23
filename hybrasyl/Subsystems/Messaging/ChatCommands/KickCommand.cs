@@ -31,8 +31,6 @@ internal class KickCommand : ChatCommand
     {
         if (Game.World.TryGetActiveUser(args[0], out var target))
         {
-            if (target.AuthInfo.IsExempt)
-                return Fail($"User {target.Name} is exempt from your meddling");
             target.Logoff(true);
 
             return Success($"User {target.Name} was kicked.");
