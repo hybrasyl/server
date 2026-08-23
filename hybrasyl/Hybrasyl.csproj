@@ -24,6 +24,18 @@
     <Optimize>false</Optimize>
   </PropertyGroup>
 
+  <!-- Fallbacks for the UseLocalX toggles below, assuming the ERISCO layout: every
+       repo checked out beside this one. Each is conditioned on being unset, so a
+       Directory.Build.props - which MSBuild imports before this file, and which Epona
+       generates per worktree (docs/epona-branch-instances.md) - always wins. Without
+       these, setting UseLocalProtocol=true alone substituted an empty
+       <ProjectReference Include="" /> for the package. -->
+  <PropertyGroup>
+    <LocalDALibProjectPath Condition="'$(LocalDALibProjectPath)' == ''">$(MSBuildThisFileDirectory)../../dalib/DALib/DALib.csproj</LocalDALibProjectPath>
+    <LocalProtocolProjectPath Condition="'$(LocalProtocolProjectPath)' == ''">$(MSBuildThisFileDirectory)../../sreang/src/Hybrasyl.Protocol/Hybrasyl.Protocol.csproj</LocalProtocolProjectPath>
+    <LocalXmlProjectPath Condition="'$(LocalXmlProjectPath)' == ''">$(MSBuildThisFileDirectory)../../xml/src/Hybrasyl.Xml.csproj</LocalXmlProjectPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <Using Include="Hybrasyl.Xml.Enums" />
     <InternalsVisibleTo Include="Hybrasyl.Tests" />
